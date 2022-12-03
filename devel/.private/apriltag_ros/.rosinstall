@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/fu/apriltag_ws/devel/.private/apriltag_ros/setup.sh

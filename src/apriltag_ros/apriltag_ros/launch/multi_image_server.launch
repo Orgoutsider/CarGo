@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find apriltag_ros)/launch/single_image_server.launch" />
+    <include file="$(find usb_cam)/launch/usb_cam-test.launch" />
+</launch>

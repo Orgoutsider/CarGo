@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/fu/apriltag_ws/devel/.private/my_hand_eye/setup.sh
