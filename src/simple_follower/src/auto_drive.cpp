@@ -44,6 +44,7 @@ public:
         resize(cv_image_->image, srcF, Size(640, 480));
         srcF = srcF(Range(100, 270), Range(0, 480)); // 根据实际调整
         ROS_INFO_STREAM("c:" << srcF.channels());
+        srcF.convertTo(srcF, CV_8UC3);
         cvtColor(srcF, srcF, COLOR_BGR2HSV);
         inRange(srcF, BK_low, BK_up, srcF);
         //threshold(srcF, srcF, 100, 255, THRESH_BINARY);
