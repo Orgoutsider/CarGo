@@ -1,1 +1,0 @@
-/home/fu/apriltag_ws/devel/.private/cv_camera/share/cv_camera/cmake/cv_cameraConfig.cmake
