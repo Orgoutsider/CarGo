@@ -1,5 +1,5 @@
-#ifndef _COLORFINDING_H_
-#define _COLORFINDING_H_
+#ifndef _COLOR_DETECTOR_H_
+#define _COLOR_DETECTOR_H_
 #include "opencv2/opencv.hpp"
 
 #include <ros/ros.h>
@@ -14,7 +14,7 @@ namespace eye
     class ColorDetector : public nodelet::Nodelet
     {
     private:
-        std_msgs::Int16 task;
+        int task_;
         const cv::Scalar R_Low = cv::Scalar(156, 43, 46);
         const cv::Scalar R_up = cv::Scalar(180, 255, 255);
 
@@ -26,6 +26,7 @@ namespace eye
 
         const cv::Scalar Low[3] = { B_Low, G_Low, R_Low };
         const cv::Scalar Up[3] = { B_up, G_up, R_up };
+        cv::RNG rngs_ = { 12345 }; 
         cv_bridge::CvImagePtr cv_image_;
         std::shared_ptr<image_transport::ImageTransport> it_;
         image_transport::Subscriber camera_image_subscriber_;
@@ -38,4 +39,4 @@ namespace eye
         cv::Mat find_color(unsigned RGB);
     };    
 } // namespace eye
-#endif // !_COLORFINDING_H_
+#endif // !_COLOR_DETECTOR_H_

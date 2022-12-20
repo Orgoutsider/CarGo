@@ -10,7 +10,7 @@ RNG rng_(12345);
 void Turning_Corner_focus(VideoCapture* camera)
 {
 	Mat srcF, srcImg;
-	bool flag = false;//ÊÇ·ñ¼ì²âµ½ÁËÏß
+	bool flag = false;//æ˜¯å¦æ£€æµ‹åˆ°äº†çº¿
 	while (true)
 	{
 		*camera >> srcImg;
@@ -19,67 +19,67 @@ void Turning_Corner_focus(VideoCapture* camera)
 		if ((char)waitKey(1) == 27)
 		{
 			break;
-			//destroyAllWindows();//¹Ø±ÕËùÓĞÍ¼ĞÎ´°¿Ú
+			//destroyAllWindows();//å…³é—­æ‰€æœ‰å›¾å½¢çª—å£
 		}
 		resize(srcImg, srcF, srcImg.size() / 4);
-		srcF = srcF(Range(y_low, y_up), Range(x_low, x_up));//¶¯Ì¬µ÷Õû
-#if(1)//É«²Ê·ÖÀë²éÕÒ³µµÀÏß
+		srcF = srcF(Range(y_low, y_up), Range(x_low, x_up));//ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½
+#if(1)//è‰²å½©åˆ†ç¦»æŸ¥æ‰¾è½¦é“çº¿
 		cvtColor(srcF, srcF, COLOR_BGR2HSV);
 		inRange(srcF, BK_low_, BK_up_, srcF);
-#else //»Ò¶ÈãĞÖµ²éÕÒ³µµÀÏß
+#else //ç°åº¦é˜ˆå€¼æŸ¥æ‰¾è½¦é“çº¿
 		cvtColor(srcF, srcF, COLOR_BGR2GRAY);
 		int thresh = 200;
 		threshold(srcF,srcF,thresh, 255, THRESH_BINARY);
 #endif
-#if(0)//¿ÉÄÜĞèÒªÈ¥³ı¸ÉÈÅÂÖÀª
+#if(0)//å¯èƒ½éœ€è¦å»é™¤å¹²æ‰°è½®å»“
 		Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
 		morphologyEx(srcF, srcF, MORPH_OPEN, element);
 #endif
-		vector<vector<Point> >contours;//ÂÖÀªÈİÆ÷
-		findContours(srcF, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);//²éÕÒÂÖÀª
-		Mat dst = Mat::zeros(srcF.size(), CV_8UC3);//´´½¨¿Õ°×Í¼Ïñ£¬µ÷ÊÔÊ±²é¿´ÂÖÀªÊ¹ÓÃ
+		vector<vector<Point> >contours;//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		findContours(srcF, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		Mat dst = Mat::zeros(srcF.size(), CV_8UC3);//ï¿½ï¿½ï¿½ï¿½ï¿½Õ°ï¿½Í¼ï¿½ñ£¬µï¿½ï¿½ï¿½Ê±ï¿½é¿´ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
 		int cX = 0, cY = 0;
 		int tag = 0;
-		//Èç¹û¼ì²âµ½ÁË³µµÀÏß
-		if (contours.size())//ÈİÆ÷±ØĞëÒª·Ç¿Õ
+		//ï¿½ï¿½ï¿½ï¿½ï¿½âµ½ï¿½Ë³ï¿½ï¿½ï¿½ï¿½ï¿½
+		if (contours.size())//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ç¿ï¿½
 		{
 			flag = true;
 			for (size_t i = 0; i < contours.size(); i++)
 			{
 				Moments moment = moments(contours[i]);
-				if (moment.m00)//³ıÊı²»ÄÜÎª0
+				if (moment.m00)//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0
 				{
-					//ÇóÈ¡ÂÖÀªÖØĞÄµÄX×ø±ê
+					//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½Xï¿½ï¿½ï¿½ï¿½
 					cX = cvRound(moment.m10 / moment.m00);
-					//ÇóÈ¡ÂÖÀªÖØĞÄµÄY×ø±ê
+					//ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½Yï¿½ï¿½ï¿½ï¿½
 					cY = cvRound(moment.m01 / moment.m00);
 				}
-				drawContours(dst, contours, i, Scalar(rng_.uniform(0, 255), rng_.uniform(0, 255), rng_.uniform(0, 255)), 1);//»æÖÆÂÖÀª
-				line(dst, Point(cX, cY), Point(cX, cY), Scalar(0, 0, 255), 2, LINE_AA);//»æÖÆÖĞĞÄµã
+				drawContours(dst, contours, i, Scalar(rng_.uniform(0, 255), rng_.uniform(0, 255), rng_.uniform(0, 255)), 1);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+				line(dst, Point(cX, cY), Point(cX, cY), Scalar(0, 0, 255), 2, LINE_AA);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½
 				tag += cY;
 			}
-#if(1)//Èç¹û¼ì²â³öÁË¶à¸öÏà»¥·ÖÀëµÄÂÖÀª£¬ÔòÇóÆ½¾ùÖµ
+#if(1)//å¦‚æœæ£€æµ‹å‡ºäº†å¤šä¸ªç›¸äº’åˆ†ç¦»çš„è½®å»“ï¼Œåˆ™æ±‚å¹³å‡å€¼
 			tag = int(tag / contours.size());
 #endif
-			//tagĞÅÏ¢Ğ´ÈëÍ¼Æ¬ÖĞ
+			//å¦‚æœæœªæ£€æµ‹åˆ°è½¦é“çº¿ï¼š1.ä¹‹å‰ä»æœªæ£€æµ‹åˆ°>>ç»§ç»­è¿è¡Œï¼›2.ä¹‹å‰æ£€æµ‹åˆ°>>å¯èƒ½å³å°†æˆ–å·²ç»å‹çº¿ï¼Œç«‹å³åœæ­¢
 			char info[40] = {};
 			sprintf_s(info, "tag: %d\ntag_low: %d\ntag_up: %d", tag, judge_low, judge_up);
 			putText(dst, info, Point(8, 20), FONT_HERSHEY_PLAIN, 2, Scalar(255, 0, 0), 1);
 			imshow("dst", dst);
 			//cout << "Tag:  " << tag << endl;
-			//ÔÚ·¶Î§ÄÚÖ´ĞĞ×ªÍä
+			//flag = false;
 			if (tag >= judge_low && tag <= judge_up)
-				cout << "Ö´ĞĞ×ªÍä" << endl;
+				cout << "Ö´ï¿½ï¿½×ªï¿½ï¿½" << endl;
 			else if (tag > judge_up)
-				cout << "Á¢¼´Í£Ö¹£¬µ÷ÕûÎ»ÖÃ£¬×ªÍä" << endl;
+				cout << "ï¿½ï¿½ï¿½ï¿½Í£Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ã£ï¿½×ªï¿½ï¿½" << endl;
 		}
-		//Èç¹ûÎ´¼ì²âµ½³µµÀÏß£º1.Ö®Ç°´ÓÎ´¼ì²âµ½>>¼ÌĞøÔËĞĞ£»2.Ö®Ç°¼ì²âµ½>>¿ÉÄÜ¼´½«»òÒÑ¾­Ñ¹Ïß£¬Á¢¼´Í£Ö¹
+		//å¦‚æœæœªæ£€æµ‹åˆ°è½¦é“çº¿ï¼š1.ä¹‹å‰ä»æœªæ£€æµ‹åˆ°>>ç»§ç»­è¿è¡Œï¼›2.ä¹‹å‰æ£€æµ‹åˆ°>>å¯èƒ½å³å°†æˆ–å·²ç»å‹çº¿ï¼Œç«‹å³åœæ­¢
 		else
 		{
 			if (flag)
 			{
 				//flag = false;
-				cout << "¼´½«Ô½½ç£¬Á¢¼´Í£Ö¹" << endl;
+				cout << "ï¿½ï¿½ï¿½ï¿½Ô½ï¿½ç£¬ï¿½ï¿½ï¿½ï¿½Í£Ö¹" << endl;
 			}
 		}
 	}

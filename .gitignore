@@ -9,7 +9,7 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
-src/my_hand_eye/img/*.png
+*.png
 build/
 logs/
 devel/
