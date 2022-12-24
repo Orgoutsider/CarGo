@@ -9,11 +9,11 @@
 #define ARM_DEFAULT_Y 5
 #define ARM_DEFAULT_Z 40
 
-#include "nijie.hpp"
+#include "backward_kinematics.hpp"
 #include "my_hand_eye/SCServo.h"
 #include "opencv2/opencv.hpp"
 
-namespace nijie{
+namespace my_hand_eye{
     struct ArmPose
     {
         cv::Mat R;

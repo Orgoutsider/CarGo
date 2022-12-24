@@ -55,12 +55,14 @@
   <build_depend>nodelet</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>image_transport</build_depend>
+  <build_depend>message_generation</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>nodelet</build_export_depend>
   <build_export_depend>cv_bridge</build_export_depend>
   <build_export_depend>image_transport</build_export_depend>
+  <exec_depend>message_runtime</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
@@ -70,8 +72,9 @@
 
 
   <!-- The export tag contains other, unspecified, tags -->
-  <export>
+  <export> 
     <!-- Other tools can request additional information be placed here -->
-
+    <nodelet plugin="${prefix}/QR_code_plugins.xml" />
+    <nodelet plugin="${prefix}/color_plugins.xml" />
   </export>
 </package>

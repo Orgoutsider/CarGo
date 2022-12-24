@@ -13,16 +13,16 @@ int main()
 	camera.set(CAP_PROP_FRAME_WIDTH, 1280);
 	
 	
-	//É¨ÂëÑİÊ¾
+	//æ‰«ç æ¼”ç¤º
 	
 	string turns_info;
 	QRcode(&camera, &turns_info);
 	printf_s("\n%s\n\n", turns_info.c_str());
-	//ÂÖÀªÊ¶±ğÑİÊ¾
+	//è½®å»“è¯†åˆ«æ¼”ç¤º
 	
 	/*
-	vector<Point> figure_info;//ÖĞĞÄµãĞÅÏ¢
-	vector<RotatedRect> rects;//ÂÖÀª¾ØÕóĞÅÏ¢
+	vector<Point> figure_info;//ä¸­å¿ƒç‚¹ä¿¡æ¯
+	vector<RotatedRect> rects;//è½®å»“çŸ©é˜µä¿¡æ¯
 	ColorFinding(&camera, &figure_info, 2);
 	*/
 	

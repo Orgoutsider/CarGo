@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(my_hand_eye)
-
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
@@ -14,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   nodelet
   cv_bridge
   image_transport
+  message_generation
 )
 find_package(OpenCV REQUIRED)
 ## System dependencies are found with CMake's conventions
@@ -50,11 +50,11 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  TaskArray.msg
+  ArrayofTaskArrays.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -71,10 +71,10 @@ find_package(OpenCV REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,8 +107,8 @@ find_package(OpenCV REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES ${PROJECT_NAME}
- CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport
+ LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_color ${PROJECT_NAME}_QR_code
+ CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime
  DEPENDS OpenCV
 )
 
@@ -125,17 +125,35 @@ include
 )
 
 ## Declare a C++ library
-file(GLOB hdrs include/${PROJECT_NAME}/**)
-file(GLOB srs src/${PROJECT_NAME}/*.cpp)
-
-add_library(${PROJECT_NAME} STATIC ${hdrs} ${srs})
+# add_library(${PROJECT_NAME} src/nijie.cpp src/pos.cpp src/SCS.cpp src/SCSCL.cpp src/SCSerial.cpp src/SMS_STS.cpp src/SMSBL.cpp src/SMSCL.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+# target_link_libraries(${PROJECT_NAME}
+#   ${catkin_LIBRARIES}
+#   ${OpenCV_LIBRARIES}
+# )
+
+add_library(${PROJECT_NAME} src/${PROJECT_NAME}/backward_kinematics.cpp src/${PROJECT_NAME}/pos.cpp src/${PROJECT_NAME}/SCS.cpp src/${PROJECT_NAME}/SCSCL.cpp src/${PROJECT_NAME}/SCSerial.cpp src/${PROJECT_NAME}/SMS_STS.cpp src/${PROJECT_NAME}/SMSBL.cpp src/${PROJECT_NAME}/SMSCL.cpp)
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
+add_library(${PROJECT_NAME}_color src/${PROJECT_NAME}/color_detector.cpp)
+add_dependencies(${PROJECT_NAME}_color ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_color
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
+add_library(${PROJECT_NAME}_QR_code src/${PROJECT_NAME}/QRcode_detector.cpp)
+add_dependencies(${PROJECT_NAME}_QR_code ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_QR_code
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
@@ -144,7 +162,7 @@ target_link_libraries(${PROJECT_NAME}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
+# add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,12 +172,26 @@ add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_ping_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_ping_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+# target_link_libraries(${PROJECT_NAME}_ping_node
+#   ${PROJECT_NAME}
+#   ${catkin_LIBRARIES}
+# )
+
+add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
+add_dependencies(${PROJECT_NAME}_ping_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_ping_node
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
+)
+
+add_executable(${PROJECT_NAME}_QR_code_node src/${PROJECT_NAME}_QR_code_node.cpp)
+add_dependencies(${PROJECT_NAME}_QR_code_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_QR_code_node
+  ${PROJECT_NAME}_QR_code
+  ${catkin_LIBRARIES} 
 )
 
 #############

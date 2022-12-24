@@ -2,7 +2,7 @@
 #include "ros/ros.h"
 #include <cmath>
 
-namespace nijie
+namespace my_hand_eye
 {
     Pos::Pos(s16 *Position, u16 *Speed, u8 *ACC, SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look)
     {

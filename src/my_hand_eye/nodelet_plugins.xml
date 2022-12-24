@@ -1,5 +1,0 @@
-<library path="lib/libmy_hand_eye">
-    <class type="eye::ColorDetector" base_class_type="nodelet::Nodelet" name="my_hand_eye/ColorDetector">
-        <description>颜色识别rgb、像素点坐标标定、物体定位</description>
-    </class>
-</library>

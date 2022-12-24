@@ -2,9 +2,9 @@
 
 #include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(eye::ColorDetector, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(my_hand_eye::ColorDetector, nodelet::Nodelet);
 
-namespace eye
+namespace my_hand_eye
 {
 	void ColorDetector::onInit()
 	{

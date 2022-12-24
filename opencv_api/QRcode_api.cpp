@@ -3,23 +3,23 @@
 #include <fstream>
 #include "QRcode.h"
 
-//ÎÄ×Ö×ø±ê£¬¼Ù¶¨ÏÔÊ¾ÎÄ×ÖµÄÍ¼ÏñÎª1080p£¬ÒÑÔ¤ÉèºÃ
+//æ–‡å­—åæ ‡ï¼Œå‡å®šæ˜¾ç¤ºæ–‡å­—çš„å›¾åƒä¸º1080pï¼Œå·²é¢„è®¾å¥½
 int ptx_info[6] = { 350,800,1240,350,800,1240 };
 int pty_info[6] = { 430,430,430,950,950,950 };
-//ÎÄ×Ö×ø±êÆ«ÒÆÁ¿£¬Ç°ÆÚµ÷ÊÔÓÃ
+//æ–‡å­—åæ ‡åç§»é‡ï¼Œå‰æœŸè°ƒè¯•ç”¨
 int txt_Xoffset = 0;
 int txt_Yoffset = 0;
-//ÎÄ×Ö´óĞ¡
+//æ–‡å­—å¤§å°
 int txt_size = 30;
-//ÎÄ×Öºñ¶È
+//æ–‡å­—åšåº¦
 int txt_thick = 50;
 
 void QRcode(cv::VideoCapture *camera, std::string* info)
 {
 	cv::Mat QR;
-	//´´½¨ÏÔÊ¾ÎÄ×ÖµÄÍ¼Æ¬£¬¼Ù¶¨1080p£¬3Í¨µÀ£¬ÑÕÉ«ËæÒâ
+	//åˆ›å»ºæ˜¾ç¤ºæ–‡å­—çš„å›¾ç‰‡ï¼Œå‡å®š1080pï¼Œ3é€šé“ï¼Œé¢œè‰²éšæ„
 	cv::Mat resImg(cv::Size(1920, 1080), CV_8UC3, cv::Scalar(100, 80, 60));
-	std::cout << "\n\n¿ªÊ¼Ê¶±ğ¶şÎ¬Âë...\n\n" << std::endl;
+	std::cout << "\n\nå¼€å§‹è¯†åˆ«äºŒç»´ç ...\n\n" << std::endl;
 	while (true)
 	{
 		*camera >> QR;
@@ -29,25 +29,25 @@ void QRcode(cv::VideoCapture *camera, std::string* info)
 			break;
 		}
 		cvtColor(QR, QR, cv::COLOR_BGR2GRAY);
-		//½âÂë²Ù×÷
+		//è§£ç æ“ä½œ
 		cv::Mat straight_qrcode;
 		cv::QRCodeDetector QR_detector;
 		std::vector<cv::Point> points;
 		*info = QR_detector.detectAndDecode(QR, points, straight_qrcode);
-		//»æÖÆ²Ù×÷
+		//ç»˜åˆ¶æ“ä½œ
 		if ((*info).size())
 		{
 			int ii = 0;
 			for (size_t i = 0; i < (*info).size(); i++)
 			{
-				if (i != 3)//²»ÏÔÊ¾ +
+				if (i != 3)//ä¸æ˜¾ç¤º +
 				{
 					char txt_temp[2] = { (*info)[i] };
 					putText(resImg, txt_temp, cv::Point(ptx_info[ii] + txt_Xoffset, pty_info[ii] + txt_Yoffset), cv::FONT_HERSHEY_PLAIN, txt_size, cv::Scalar::all(255), txt_thick, cv::FILLED, false);
 					ii++;
 				}
 			}
-			std::cout << "\n\nÊ¶±ğ³É¹¦\n\n" << std::endl;
+			std::cout << "\n\nè¯†åˆ«æˆåŠŸ\n\n" << std::endl;
 			imshow("resImg", resImg);
 			break;
 		}

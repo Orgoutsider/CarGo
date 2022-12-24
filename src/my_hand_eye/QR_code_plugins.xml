@@ -1,0 +1,5 @@
+<library path="lib/libmy_hand_eye_QR_code">
+    <class type="my_hand_eye::QRcodeDetector" base_class_type="nodelet::Nodelet" name="my_hand_eye/QRcodeDetector">
+        <description>二维码识别</description>
+    </class>
+</library>

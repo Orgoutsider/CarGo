@@ -11,7 +11,7 @@ u16 Speed[6] = {500, 500, 500, 500, 500, 500};
 u8 ACC[6] = {10, 10, 10, 10, 10, 10};
 SMS_STS sm_st;
 SCSCL sc;
-nijie::Pos ps(Position, Speed, ACC, &sm_st, &sc);
+my_hand_eye::Pos ps(Position, Speed, ACC, &sm_st, &sc);
 
 int num = 0;
 const int maxnum = 20;
@@ -80,7 +80,7 @@ void MouseEvent(int event, int x, int y, int flags, void *data)
   if (event == cv::EVENT_LBUTTONDBLCLK)
   {
     num++;
-    nijie::ArmPose aps = ps.end_to_base_now();
+    my_hand_eye::ArmPose aps = ps.end_to_base_now();
     if (aps.empty)
     {
       ROS_ERROR("Arm's pose is empty!");
