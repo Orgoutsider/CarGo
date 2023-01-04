@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(my_hand_eye)
+project(mmdetection_ros)
+
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
@@ -7,20 +8,23 @@ project(my_hand_eye)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  nodelet
-  cv_bridge
-  image_transport
+  # roscpp
+  # actionlib
+  # cv_bridge
+  # image_transport
+  sensor_msgs
+  # control_msgs
   geometry_msgs
   genmsg
+  # actionlib_msgs
+  # set_nav_goal
   vision_msgs
-  sensor_msgs
-  message_generation
-  mmdetection_ros
 )
-find_package(OpenCV REQUIRED)
+
+find_package(OpenCV REQUIRED 
+    COMPONENTS
+    opencv_highgui)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -55,11 +59,11 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  TaskArray.msg
-  ArrayofTaskArrays.msg
-)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -67,6 +71,11 @@ add_message_files(
 #   Service1.srv
 #   Service2.srv
 # )
+add_service_files(
+  FILES
+    mmdetSrv.srv
+    cargoSrv.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -76,9 +85,12 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+# )
 generate_messages(
-  DEPENDENCIES
-  std_msgs
+  DEPENDENCIES std_msgs sensor_msgs vision_msgs
 )
 
 ################################################
@@ -111,10 +123,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- INCLUDE_DIRS include
- LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_color ${PROJECT_NAME}_QR_code
- CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime geometry_msgs genmsg vision_msgs sensor_msgs
- DEPENDS OpenCV
+#  INCLUDE_DIRS include
+#  LIBRARIES mmdetection_ros
+#  CATKIN_DEPENDS other_catkin_pkg
+#  DEPENDS system_lib
 )
 
 ###########
@@ -124,50 +136,25 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-include
-  ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
+# include
+${catkin_INCLUDE_DIRS}
+SYSTEM
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME} src/nijie.cpp src/pos.cpp src/SCS.cpp src/SCSCL.cpp src/SCSerial.cpp src/SMS_STS.cpp src/SMSBL.cpp src/SMSCL.cpp)
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/mmdetection_ros.cpp
+# )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-# target_link_libraries(${PROJECT_NAME}
-#   ${catkin_LIBRARIES}
-#   ${OpenCV_LIBRARIES}
-# )
-
-add_library(${PROJECT_NAME} src/${PROJECT_NAME}/backward_kinematics.cpp src/${PROJECT_NAME}/pose.cpp src/${PROJECT_NAME}/SCS.cpp src/${PROJECT_NAME}/SCSCL.cpp src/${PROJECT_NAME}/SCSerial.cpp src/${PROJECT_NAME}/SMS_STS.cpp src/${PROJECT_NAME}/SMSBL.cpp src/${PROJECT_NAME}/SMSCL.cpp)
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-
-add_library(${PROJECT_NAME}_color src/${PROJECT_NAME}/color_detector.cpp)
-add_dependencies(${PROJECT_NAME}_color ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_color
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-
-add_library(${PROJECT_NAME}_QR_code src/${PROJECT_NAME}/QRcode_detector.cpp)
-add_dependencies(${PROJECT_NAME}_QR_code ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_QR_code
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-
-# target_include_directories(car_go_arm  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/mmdetection_ros_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -177,42 +164,12 @@ target_link_libraries(${PROJECT_NAME}_QR_code
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_ping_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_ping_node
-#   ${PROJECT_NAME}
+# target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-
-add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
-add_dependencies(${PROJECT_NAME}_ping_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_ping_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_QR_code_node src/${PROJECT_NAME}_QR_code_node.cpp)
-add_dependencies(${PROJECT_NAME}_QR_code_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_QR_code_node
-  ${PROJECT_NAME}_QR_code
-  ${catkin_LIBRARIES} 
-)
-
-add_executable(${PROJECT_NAME}_move_node src/${PROJECT_NAME}_move_node.cpp)
-add_dependencies(${PROJECT_NAME}_move_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_move_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_client_node src/${PROJECT_NAME}_client_node.cpp)
-add_dependencies(${PROJECT_NAME}_client_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_client_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
 
 #############
 ## Install ##
@@ -226,6 +183,16 @@ target_link_libraries(${PROJECT_NAME}_client_node
 # catkin_install_python(PROGRAMS
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+catkin_install_python(PROGRAMS 
+	scripts/mmdetector.py
+	scripts/cargo_detector.py
+	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# catkin_install_python(PROGRAMS 
+# 	scripts/mask_rcnn_r50_fpn_1x_coco.py
+# 	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
 ## Mark executables for installation
@@ -261,7 +228,7 @@ target_link_libraries(${PROJECT_NAME}_client_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_my_hand_eye.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_mmdetection_ros.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

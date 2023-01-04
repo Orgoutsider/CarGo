@@ -1,5 +1,3 @@
-#include <cmath>
-#include "ros/ros.h"
 #include "my_hand_eye/backward_kinematics.hpp"
 
 namespace my_hand_eye
@@ -222,7 +220,7 @@ namespace my_hand_eye
             deg3 = j3._get_degree();
             deg4 = j4._get_degree();
         }
-        ROS_INFO_STREAM("valid:" << valid << " deg1:" << deg1 << " deg2:" << deg2 << " deg3:" << deg3 << " deg4:" << deg4);
+        // ROS_INFO_STREAM("valid:" << valid << " deg1:" << deg1 << " deg2:" << deg2 << " deg3:" << deg3 << " deg4:" << deg4);
         return valid;
     }
 
@@ -249,7 +247,7 @@ namespace my_hand_eye
         y = length * j1.sin() - ARM_P;
         if (0 <= y && z >= 0)
             valid = true;
-        ROS_INFO_STREAM("valid:" << valid << " x:" << x << " y:" << y << " z:" << z << " length:" << length << " height:" << height << " alpha:" << alpha);
+        // ROS_INFO_STREAM("valid:" << valid << " x:" << x << " y:" << y << " z:" << z << " length:" << length << " height:" << height << " alpha:" << alpha);
         return valid;
     }
 
