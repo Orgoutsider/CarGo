@@ -31,6 +31,8 @@ import numpy as np
 # ROS related imports
 import rospy
 from sensor_msgs.msg import Image
+from dynamic_reconfigure.server import Server
+from mmdetection_ros.cfg import drConfig
 
 # NOTE: 
 # CvBridge meet problems since we are using python3 env
@@ -58,25 +60,45 @@ MODEL_NAME =  'epoch_24.pth'
 # MODEL_PATH = os.path.join(os.path.dirname(sys.path[0]),'scripts', MODEL_NAME)
 MODEL_PATH = os.path.join(DIR_PATH,'scripts', MODEL_NAME)
 
-R_Low = np.array([120, 43, 10])
-R_up = np.array([200, 255, 255])
+R_Low1_add = np.array([0, -7, -10], dtype=np.uint8)
+R_up1_add = np.array([0, 0, 0], dtype=np.uint8)
 
-G_Low = np.array([20, 43, 0])
-G_up = np.array([100, 255, 255])
+R_Low2_add = np.array([0, 0, 0], dtype=np.uint8)
+R_up2_add = np.array([0, 0, 0], dtype=np.uint8)
 
-B_Low = np.array([90, 43, 10])
-B_up = np.array([124, 255, 255])
+G_Low_add = np.array([0, 0, 0], dtype=np.uint8)
+G_up_add = np.array([11, 0, 0], dtype=np.uint8)
+
+B_Low_add = np.array([-5, 0, 0], dtype=np.uint8)
+B_up_add = np.array([0, 0, 0], dtype=np.uint8)
+
+R_Low1 = np.array([0, 43, 46], dtype=np.uint8)
+R_up1 = np.array([10, 255, 255], dtype=np.uint8)
+
+R_Low2 = np.array([156, 43, 46], dtype=np.uint8)
+R_up2 = np.array([180, 255, 255], dtype=np.uint8)
+
+G_Low = np.array([35, 43, 46], dtype=np.uint8)
+G_up = np.array([77, 255, 255], dtype=np.uint8)
+
+B_Low = np.array([100, 43, 46], dtype=np.uint8)
+B_up = np.array([124, 255, 255], dtype=np.uint8)
+
+single_color = [[1], [1], [2], [3]]
 
 class Detector:
 
     def __init__(self, model):
-        # self.image_pub = rospy.Publisher("~debug_image", Image, queue_size=1)
+        self.image_pub = rospy.Publisher("~debug_image", Image, queue_size=1)
         # self.object_pub = rospy.Publisher("~objects", BoundingBox2D, queue_size=1)
         # self.bridge = CvBridge()
         self.model = model
 
-        self._low = [np.zeros(1), R_Low, G_Low, B_Low]
-        self._up = [np.zeros(1), R_up, G_up, B_up]
+        self._colors = range(1, 4)
+        self._low_raw = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
+        self._up_raw = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
+        self._low = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
+        self._up = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
         self._gain = 0.1 # 扩张比例
         self._score_thr = 0.8
 
@@ -86,42 +108,73 @@ class Detector:
         self._msg_lock = threading.Lock()
         
         self._publish_rate = rospy.get_param('~publish_rate', 1)
-        # self._visualization = rospy.get_param('~visualization', True)
+        self._visualization = rospy.get_param('~visualization', True)
+        self._param_modification = rospy.get_param('~param_modification', False)
 
     def generate_obj(self, results, src, msg):
-        # cv2.imshow("sr", src)
+        if self._param_modification:
+            cv2.imshow("src", src)
+
         flag = [False] * 4 #没有检测到
         objArray = BoundingBox2DArray()
         objArray.header = msg.header
         objArray.boxes = [BoundingBox2D()] * 4
+        if results.shape == (0, 5):
+            rospy.logwarn("Cannot detect cargo, try detecting with color...")
+            results = [0]
+            empty = True
+        else:
+            empty = False
+
         for i in range(len(results)):
-            result = results[i]
-            if result[4] < self._score_thr:
-                continue
-            size_row,size_col=result[3]-result[1], result[2]-result[0]
-            start_row,start_col=int(max(0, result[1] - size_row * self._gain)),int(max(0, result[0] - size_col * self._gain))
-            end_row,end_col=int(min(src.shape[0] ,result[3] + size_row * self._gain)),int(min(src.shape[1], result[2] + size_col * self._gain))
+            if empty:
+                im = src
+            else:
+                result = results[i]
+                if result[4] < self._score_thr:
+                    continue
+                size_row,size_col=result[3]-result[1], result[2]-result[0]
+                start_row,start_col=int(max(0, result[1] - size_row * self._gain)),int(max(0, result[0] - size_col * self._gain))
+                end_row,end_col=int(min(src.shape[0] ,result[3] + size_row * self._gain)),int(min(src.shape[1], result[2] + size_col * self._gain))
     
-            # start_row and start_col are the cordinates 
-            # from where we will start cropping
-            # end_row and end_col is the end coordinates 
-            # where we stop
-            im = src[start_row:end_row,start_col:end_col]
-            # im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
-            # cv2.imshow("raw", im)
+                # start_row and start_col are the cordinates 
+                # from where we will start cropping
+                # end_row and end_col is the end coordinates 
+                # where we stop
+                im = src[start_row:end_row,start_col:end_col]
+                # im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
+                if self._param_modification:
+                    cv2.imshow("im", im)
+
             im = cv2.GaussianBlur(im, (7, 7), 0)
-            im = cv2.cvtColor(im, cv2.COLOR_RGB2HSV)
-            # cv2.imshow("hsv", im)
+            im = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+            if self._param_modification:
+                cv2.imshow("hsv", im)
             element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
             s_max = 0
-            for color in range(1, 4):
-                if flag[color]:
-                    continue
+            colors = self._colors
+            for color in colors:
+                if not empty:
+                    if flag[color]:
+                        continue
 
-                dst = cv2.inRange(im, self._low[color], self._up[color])
+                else:
+                    s_max = 0
+
+                if color == 1:#红色
+                    # print(self._low[0])
+                    # print(self._up[0])
+                    dst1 = cv2.inRange(im, self._low[0], self._up[0])
+                    dst2 = cv2.inRange(im, self._low[1], self._up[1])
+                    dst = dst1 + dst2
+                else:
+                    dst = cv2.inRange(im, self._low[color], self._up[color])
+
+                if self._param_modification:
+                    cv2.imshow("dst", dst)
+                    cv2.waitKey(1)
                 dst = cv2.erode(dst, element)
-                # cv2.imshow("src", dst)
-                # cv2.waitKey(1)
+
                 contours, hierarchy = cv2.findContours(dst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #查找轮廓                
                 for contour in contours:
                     rect = cv2.minAreaRect(contour)
@@ -131,16 +184,33 @@ class Detector:
                         rect_max = rect
                         color_max = color
 
-            if s_max:
+                if empty and s_max:
+                    obj = BoundingBox2D()
+                    point = rect_max[0] #中心点
+                    obj.center.x = point[0]
+                    obj.center.y = point[1]
+                    obj.center.theta = rect_max[2]
+                    size = rect_max[1]
+                    obj.size_x = size[0] * (self._gain + 1)
+                    obj.size_y = size[1] * (self._gain + 1)
+                    objArray.boxes[color] = obj
+
+            if s_max and not empty:
                 flag[color_max] = True
+                # rospy.loginfo("Succeed to detect!")
                 obj = BoundingBox2D()
-                point = rect_max[0] #中心点
-                obj.center.x = point[0] + start_col
-                obj.center.y = point[1] + start_row
-                obj.center.theta = rect_max[2] #由x轴逆时针转至W(宽)的角度。
-                size = rect_max[1]
-                obj.size_x = size[0] * (self._gain + 1)#长
-                obj.size_y = size[1] * (self._gain + 1)#宽
+                obj.center.x = (result[0] + result[2]) / 2 #中心点
+                obj.center.y = (result[1] + result[3]) / 2
+                obj.center.theta = np.pi / 2 #由x轴逆时针转至W(宽)的角度。
+                obj.size_x = (result[2] - result[0]) * (self._gain + 1)#长
+                obj.size_y = (result[3] - result[1]) * (self._gain + 1)#宽
+                # point = rect_max[0]
+                # obj.center.x = point[0] + start_col
+                # obj.center.y = point[1] + start_row
+                # obj.center.theta = rect_max[2]
+                # size = rect_max[1]
+                # obj.size_x = size[0] * (self._gain + 1)
+                # obj.size_y = size[1] * (self._gain + 1)
                 objArray.boxes[color_max] = obj
 
         return objArray
@@ -152,8 +222,11 @@ class Detector:
         #     rospy.loginfo('RUNNING MMDETECTOR AS PUBLISHER NODE')
         #     image_sub = rospy.Subscriber("~image", Image, self._image_callback, queue_size=1)
         # else:
-        rospy.loginfo('RUNNING MMDETECTOR AS SERVICE')
-        rospy.loginfo('SETTING UP SRV')
+        if self._param_modification:
+            dr_server = Server(drConfig, self.cb)
+        else:
+            rospy.loginfo("Defualt setting: don't modify paramater")
+            
         srv = rospy.Service('cargoSrv', cargoSrv, self.service_handler)
 
         rate = rospy.Rate(self._publish_rate)
@@ -192,10 +265,8 @@ class Detector:
                 #         object_count += 1
                 #         objArray.detections.append(self.generate_obj(results[i], i, msg))
 
-                if bbox_result[0].shape != (0, 5): #非空
-                    objArray = self.generate_obj(bbox_result[0], im, msg)
-                else:
-                    objArray = BoundingBox2DArray()
+                objArray = self.generate_obj(bbox_result[0], im, msg)
+                
 
                 # rospy.loginfo('RESPONSING SERVICE')
                 if self._msg_lock.acquire(False):
@@ -203,37 +274,37 @@ class Detector:
                     # self._last_res_avaliable = True
                     self._msg_lock.release()
 
+
+                # Visualize results
+                if self._visualization:
+                    # NOTE: Hack the provided visualization function by mmdetection
+                    # Let's plot the result
+                    # show_result_pyplot(self.model, image_np, results, score_thr=0.3)
+                    # if hasattr(self.model, 'module'):
+                    #     m = self.model.module
+                    debug_image = self.model.show_result(
+                                    image_np,
+                                    results,
+                                    score_thr=0.8,
+                                    show=False,
+                                    wait_time=0,
+                                    win_name='result',
+                                    bbox_color=(72, 101, 241),
+                                    text_color=(72, 101, 241))
+                    # img = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+                    # image_out = Image()
+                    # try:
+                        # image_out = self.bridge.cv2_to_imgmsg(img,"bgr8")
+                    # except CvBridgeError as e:
+                    #     print(e)
+                    # image_out.header = msg.header
+                    image_out = msg
+                    # NOTE: Copy other fields from msg, modify the data field manually
+                    # (check the source code of cvbridge)
+                    image_out.data = debug_image.tobytes()
+
+                    self.image_pub.publish(image_out) 
             rate.sleep()
-
-                # # Visualize results
-                # if self._visualization:
-                #     # NOTE: Hack the provided visualization function by mmdetection
-                #     # Let's plot the result
-                #     # show_result_pyplot(self.model, image_np, results, score_thr=0.3)
-                #     # if hasattr(self.model, 'module'):
-                #     #     m = self.model.module
-                #     debug_image = self.model.show_result(
-                #                     image_np,
-                #                     results,
-                #                     score_thr=0.8,
-                #                     show=False,
-                #                     wait_time=0,
-                #                     win_name='result',
-                #                     bbox_color=(72, 101, 241),
-                #                     text_color=(72, 101, 241))
-                #     # img = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-                #     # image_out = Image()
-                #     # try:
-                #         # image_out = self.bridge.cv2_to_imgmsg(img,"bgr8")
-                #     # except CvBridgeError as e:
-                #     #     print(e)
-                #     # image_out.header = msg.header
-                #     image_out = msg
-                #     # NOTE: Copy other fields from msg, modify the data field manually
-                #     # (check the source code of cvbridge)
-                #     image_out.data = debug_image.tobytes()
-
-                #     self.image_pub.publish(image_out) 
 
     def service_handler(self, request):
         rospy.logdebug("Get an image")
@@ -242,11 +313,49 @@ class Detector:
             self._msg_lock.release()
             loop_rate = rospy.Rate(self._publish_rate)
             loop_rate.sleep()
-            rospy.logdebug('RESPONSING SERVICE')
+            # rospy.loginfo('RESPONSING SERVICE')
             return cargoSrvResponse(self._last_res)
         else:
-            rospy.logdebug('RESPONSING SERVICE')
+            # rospy.loginfo('RESPONSING SERVICE')
             return cargoSrvResponse(BoundingBox2DArray()) 
+
+    def cb(self, config, level):
+        if not self._param_modification:
+            return config
+        
+        low_raw = self._low_raw[config.color]
+        up_raw = self._up_raw[config.color]
+        low = self._low[config.color]
+        up = self._up[config.color]
+        flag = False
+        if self._colors != single_color[config.color]:
+            flag = True
+
+        if low_raw[0] + config.h_low != low[0] and low_raw[0] + config.h_low >= 0:
+            flag = True
+            low[0] = low_raw[0] + config.h_low
+
+        if low_raw[1] + config.s_low != low[1] and low_raw[1] + config.s_low >= 0:
+            flag = True
+            low[1] = low_raw[1] + config.s_low
+
+        if low_raw[2] + config.v_low != low[2] and low_raw[2] + config.v_low >= 0:
+            flag = True
+            low[2] = low_raw[2] + config.v_low
+
+        if up_raw[0] + config.h_up != up[0] and up_raw[0] + config.h_up <= 255:
+            flag = True
+            up[0] = up_raw[0] + config.h_up
+        
+        if flag and self._msg_lock.acquire(False):
+            self._colors = single_color[config.color]
+            self._low[config.color] = low
+            self._up[config.color] = up
+            self._msg_lock.release()
+            rospy.loginfo('Succeed to modify paramater!')
+
+        return config
+                
 
 def main(args):
     rospy.init_node('cargo_detector')

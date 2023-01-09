@@ -90,6 +90,5 @@
   <export> 
     <!-- Other tools can request additional information be placed here -->
     <nodelet plugin="${prefix}/QR_code_plugins.xml" />
-    <nodelet plugin="${prefix}/color_plugins.xml" />
   </export>
 </package>

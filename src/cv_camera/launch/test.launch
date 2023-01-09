@@ -1,0 +1,13 @@
+<launch>
+    <arg name="node_namespace" default="eye" />
+
+    <node pkg="nodelet" type="nodelet" name="my" args="manager" output="screen" />
+    <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load cv_camera/CvCameraNodelet my" output="screen">
+        <param name="frame_id" value="eye" />        
+        <param name="rate" value="6.0" type="double" />
+        <param name="device_path" value="/dev/video2" type="string" />
+        <param name="image_width" value="1920" type="int" />
+        <param name="image_height" value="1080" type="int" />
+    </node>
+</launch>
+  

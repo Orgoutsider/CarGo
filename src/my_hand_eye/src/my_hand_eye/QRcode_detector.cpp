@@ -10,9 +10,27 @@ namespace my_hand_eye
 	{
 		ros::NodeHandle &nh = getNodeHandle();
 		ros::NodeHandle &pnh = getPrivateNodeHandle();
-		QR_code_subscriber_ = nh.subscribe<std_msgs::String>("/barcode", 5, &QRcodeDetector::Callback, this);
-		QR_code_publisher_ = nh.advertise<my_hand_eye::ArrayofTaskArrays>("task", 10);
-		flag_ = false;
+		bool if_detect_QR_code = pnh.param<bool>("if_detect_QR_code", false);
+    	std::string transport_hint;
+    	pnh.param<std::string>("transport_hint", transport_hint, "raw");
+
+		if (if_detect_QR_code)
+		{
+			QR_code_subscriber_ = nh.subscribe<std_msgs::String>("/barcode", 5, &QRcodeDetector::Callback, this);
+			QR_code_publisher_ = nh.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10);
+			flag_ = false;
+		}
+		arm_controller_.init(nh, pnh);
+		it_ = std::shared_ptr<image_transport::ImageTransport>(
+      			new image_transport::ImageTransport(nh));
+    	camera_image_subscriber_ =
+        	it_->subscribe<QRcodeDetector>("image_rect", 1, &QRcodeDetector::imageCallback, this, image_transport::TransportHints(transport_hint));
+		pnh.param<bool>("show_detections", arm_controller_.show_detections_, false);
+        if (arm_controller_.show_detections_)
+		{
+			NODELET_INFO("show debug image...");
+            debug_image_publisher_ = nh.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
+		}
 	}
 
 	void QRcodeDetector::Callback(const std_msgs::StringConstPtr &info)
@@ -55,5 +73,13 @@ namespace my_hand_eye
 		imshow("resImg", resImg);
 		cv::waitKey(0);
 		flag_ = true;
+	}
+
+	void QRcodeDetector::imageCallback(const sensor_msgs::ImageConstPtr& image_rect)
+	{
+		sensor_msgs::ImagePtr debug_image;
+		arm_controller_.log_position_main(image_rect, z_floor, debug_image);
+		if (arm_controller_.show_detections_)
+			debug_image_publisher_.publish(*debug_image);
 	}
 }

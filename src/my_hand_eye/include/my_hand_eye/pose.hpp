@@ -5,18 +5,20 @@
 #define ARM_JOINT234_POS_WHEN_DEG0 1023.75
 #define ARM_JOINT5_POS_WHEN_CATCH 370
 #define ARM_JOINT5_POS_WHEN_LOSEN 450
-#define ARM_DEFAULT_X 0
-#define ARM_DEFAULT_Y 5
-#define ARM_DEFAULT_Z 40
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("x:" << (Pos).x << " y:" << (Pos).y << " z:" << (Pos).z)
 #include "opencv2/opencv.hpp"
 
 #include "my_hand_eye/SCServo.h"
 #include "my_hand_eye/backward_kinematics.hpp"
+#include "mmdetection_ros/cargoSrv.h"
+
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <XmlRpcException.h>
 #include <cmath>
+#include <cv_bridge/cv_bridge.h>
+#include <vision_msgs/BoundingBox2DArray.h>
+#include <image_transport/image_transport.h>
 
 namespace my_hand_eye{
     struct ArmPose
@@ -38,6 +40,7 @@ namespace my_hand_eye{
         u8 ID[6] = {0, 1, 2, 3, 4, 5};
         SMS_STS *sm_st_ptr;//舵机
         SCSCL *sc_ptr;
+        double default_x, default_y, default_z;
         const double fx = 1097.2826519484;
         const double fy = 1093.696551235277;
         const double cx = 953.2646757356512;
@@ -50,7 +53,8 @@ namespace my_hand_eye{
         Pos (SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat=false, bool look=true);//初始化
         bool begin(const char *argv);//打开串口
         void ping();
-        void get_speed_and_acc(XmlRpc::XmlRpcValue& servo_descriptions);//获取速度加速度
+        void set_speed_and_acc(XmlRpc::XmlRpcValue& servo_descriptions);//获取速度加速度
+        void set_default_position(XmlRpc::XmlRpcValue& default_action);
         bool calculate_position();
         //计算各joint运动的position
         bool go_to(double x, double y, double z, bool cat, bool look);//运动到指定位置，抓/不抓
@@ -75,8 +79,18 @@ namespace my_hand_eye{
         Pos ps_;
         SMS_STS sm_st_;
         SCSCL sc_;
+        ros::ServiceClient cargo_client_;
+        cv::Mat img_;
+        const int red = 1, green = 2, blue = 3;
     public:
-        ArmController(ros::NodeHandle pnh);
+        ArmController();
+        ~ArmController();
+        bool show_detections_;
+        void init(ros::NodeHandle nh, ros::NodeHandle pnh);
+        bool draw_image(const cv_bridge::CvImagePtr& image);
+        bool detect_cargo(const sensor_msgs::ImageConstPtr& image_rect, vision_msgs::BoundingBox2DArray& detections, sensor_msgs::ImagePtr& debug_image );
+        bool log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, sensor_msgs::ImagePtr &debug_image);
+        bool find_with_color(vision_msgs::BoundingBox2DArray& objArray, const int color, double z, double &x, double &y);
     };
     
 }

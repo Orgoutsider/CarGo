@@ -1,18 +1,18 @@
 #include "my_hand_eye/pose.hpp"
 
 namespace my_hand_eye
-{   
+{
     ArmPose::ArmPose() : empty(true){};
-    
+
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look)
     {
         this->cat = cat;
         this->look = look;
         this->sm_st_ptr = sm_st_ptr;
         this->sc_ptr = sc_ptr;
-        x = ARM_DEFAULT_X;
-        y = ARM_DEFAULT_Y;
-        z = ARM_DEFAULT_Z;
+        x = 0;
+        y = 0;
+        z = 0;
     }
 
     bool Pos::begin(const char *argv)
@@ -20,13 +20,13 @@ namespace my_hand_eye
         if (!(sm_st_ptr->begin(115200, argv)) || !(sc_ptr->begin(115200, argv)))
         {
             ROS_ERROR("Failed to init motor!");
-            return 0;
+            return false;
         }
         else
-            return 1;
+            return true;
     }
 
-    void Pos::get_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions)
+    void Pos::set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions)
     {
         // Ensure the type is correct
         ROS_ASSERT(servo_descriptions.getType() == XmlRpc::XmlRpcValue::TypeArray);
@@ -38,13 +38,13 @@ namespace my_hand_eye
             XmlRpc::XmlRpcValue &servo_description = servo_descriptions[i];
 
             // Assert the servo description is a struct
-            ROS_ASSERT(servo_descriptions.getType() ==
+            ROS_ASSERT(servo_description.getType() ==
                        XmlRpc::XmlRpcValue::TypeStruct);
             // Assert type of field "id" is an int
             ROS_ASSERT(servo_description["id"].getType() ==
                        XmlRpc::XmlRpcValue::TypeInt);
             // Assert type of field "speed" is a int
-            ROS_ASSERT(servo_description["size"].getType() ==
+            ROS_ASSERT(servo_description["speed"].getType() ==
                        XmlRpc::XmlRpcValue::TypeInt);
             // Assert type of field "acc" is a int
             ROS_ASSERT(servo_description["acc"].getType() ==
@@ -53,9 +53,20 @@ namespace my_hand_eye
             int id = (int)servo_description["id"]; // tag id
             Speed[id] = (int)servo_description["speed"];
             ACC[id] = (int)servo_description["acc"];
-            ROS_INFO_STREAM("Loaded servo desciptions id: " << id << ", speed: " << Speed[id] << ", acc: " << ACC[id]);
+            ROS_INFO_STREAM("Loaded servo desciptions id: " << id << ", speed: " << Speed[id] << ", acc: " << (int)ACC[id]);
             // 此处应注意
         }
+    }
+
+    void Pos::set_default_position(XmlRpc::XmlRpcValue &default_action)
+    {
+        ROS_ASSERT(default_action.getType() == XmlRpc::XmlRpcValue::TypeArray);
+        ROS_ASSERT(default_action[0].getType() == XmlRpc::XmlRpcValue::TypeInt);
+        ROS_ASSERT(default_action[1].getType() == XmlRpc::XmlRpcValue::TypeInt);
+        ROS_ASSERT(default_action[2].getType() == XmlRpc::XmlRpcValue::TypeInt);
+        default_x = (int)default_action[0];
+        default_y = (int)default_action[1];
+        default_z = (int)default_action[2];
     }
 
     bool Pos::calculate_position()
@@ -95,7 +106,7 @@ namespace my_hand_eye
 
     bool Pos::reset()
     {
-        return go_to(ARM_DEFAULT_X, ARM_DEFAULT_Y, ARM_DEFAULT_Z, false, true);
+        return go_to(default_x, default_y, default_z, false, true);
     }
 
     bool Pos::read_position(int ID)
@@ -217,26 +228,24 @@ namespace my_hand_eye
     }
 
     /**************************************************
-    * @brief   将旋转矩阵与平移向量合成为齐次矩阵
-    * @note     
-    * @param   Mat& R   3*3旋转矩阵
-    * @param   Mat& T   3*1平移矩阵
-    * @return  Mat      4*4齐次矩阵
-    **************************************************/
-    cv::Mat R_T2homogeneous_matrix(const cv::Mat& R,const cv::Mat& T)
+     * @brief   将旋转矩阵与平移向量合成为齐次矩阵
+     * @note
+     * @param   Mat& R   3*3旋转矩阵
+     * @param   Mat& T   3*1平移矩阵
+     * @return  Mat      4*4齐次矩阵
+     **************************************************/
+    cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T)
     {
         cv::Mat HomoMtr;
-        cv::Mat_<double> R1 = (cv::Mat_<double>(4, 3) << 
-                                            R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
-                                            R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
-                                            R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2),
-                                            0, 0, 0);
-        cv::Mat_<double> T1 = (cv::Mat_<double>(4, 1) <<
-                                            T.at<double>(0,0),
-                                            T.at<double>(1,0),
-                                            T.at<double>(2,0),
-                                            1);
-        cv::hconcat(R1, T1, HomoMtr);		//矩阵拼接
+        cv::Mat_<double> R1 = (cv::Mat_<double>(4, 3) << R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
+                               R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
+                               R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2),
+                               0, 0, 0);
+        cv::Mat_<double> T1 = (cv::Mat_<double>(4, 1) << T.at<double>(0, 0),
+                               T.at<double>(1, 0),
+                               T.at<double>(2, 0),
+                               1);
+        cv::hconcat(R1, T1, HomoMtr); // 矩阵拼接
         return HomoMtr;
     }
 
@@ -301,26 +310,38 @@ namespace my_hand_eye
         if (valid)
         {
             cv::Mat intrinsics_inv = Intrinsics().inv();
-            cv::Mat temp1 = (cv::Mat_<double>(3, 1) << 0, 0, 0);
-            cv::Mat temp2 = (cv::Mat_<double>(1, 4) << 0, 0, 0, 1);
-            cv::hconcat(intrinsics_inv, temp1, intrinsics_inv);
-            cv::vconcat(intrinsics_inv, temp2, intrinsics_inv);
-            cv::Mat point_pixel = (cv::Mat_<double>(4, 1) << u, v, 1, 1);
-            cv::Mat point_temp = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base())
-                                *R_T2homogeneous_matrix(R_cam_to_end, T_cam_to_end) * intrinsics_inv * point_pixel;
-            double tmp = z / point_pixel.at<double>(2, 0);
-            x = point_pixel.at<double>(0, 0) * tmp;
-            y = point_pixel.at<double>(1, 0) * tmp;
+            cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
+            cv::Mat point_temp = intrinsics_inv * point_pixel;
+            // 单位统一为cm  
+            cv::Mat temp = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) 
+                            * R_T2homogeneous_matrix(R_cam_to_end, T_cam_to_end * 0.1);
+            double Z = (z - temp.at<double>(2, 3)) / temp.row(2).colRange(0, 3).clone().t().dot(point_temp);
+            cv::Mat point = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0), Z * point_temp.at<double>(1, 0), Z, 1);
+            point = temp * point;
+            x = point.at<double>(0, 0);
+            y = point.at<double>(1, 0);
         }
         return valid;
     }
 
-    ArmController::ArmController(ros::NodeHandle pnh) : ps_(&sm_st_, &sc_)
+    ArmController::ArmController() : ps_(&sm_st_, &sc_){};
+
+    ArmController::~ArmController()
+    {
+        ps_.end();
+    }
+
+    void ArmController::init(ros::NodeHandle nh, ros::NodeHandle pnh)
     {
         XmlRpc::XmlRpcValue servo_descriptions;
+        XmlRpc::XmlRpcValue default_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
+        }
+        if (!pnh.getParam("default_action", default_action))
+        {
+            ROS_ERROR("No default action specified");
         }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ttyUSB0");
@@ -330,6 +351,116 @@ namespace my_hand_eye
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
         }
         ps_.ping();
-        ps_.get_speed_and_acc(servo_descriptions);
+        ps_.set_speed_and_acc(servo_descriptions);
+        ps_.set_default_position(default_action);
+        ps_.reset();
+
+        cargo_client_ = nh.serviceClient<mmdetection_ros::cargoSrv>("cargoSrv");
+    }
+
+    bool ArmController::draw_image(const cv_bridge::CvImagePtr &image)
+    {
+        if (image->image.empty())
+        {
+            ROS_ERROR("No data!");
+            return false;
+        }
+        // cv::cvtColor(image->image, image->image, cv::COLOR_RGB2BGR);
+        img_ = image->image;
+        return true;
+    }
+
+    bool ArmController::detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections, sensor_msgs::ImagePtr &debug_image)
+    {
+        if (!cargo_client_.exists())
+            cargo_client_.waitForExistence();
+        cv_bridge::CvImagePtr cv_image;
+        try
+        {
+            cv_image = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
+        }
+        catch (cv_bridge::Exception &e)
+        {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return false;
+        }
+        bool flag = draw_image(cv_image);
+        mmdetection_ros::cargoSrv cargo;
+        cargo.request.image = *image_rect;
+        // 发送请求,返回 bool 值，标记是否成功
+        if (flag)
+            flag = cargo_client_.call(cargo);
+        if (flag)
+        {
+            detections = cargo.response.results;
+            if (show_detections_)
+            {
+                // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
+                if (cargo.response.results.boxes.size())
+                {
+                    for (int color = 1; color <= 3; color++)
+                    {
+                        if (!cargo.response.results.boxes[color].center.x)
+                            continue;
+                        cv::RotatedRect rect(cv::Point2f(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
+                                            cv::Size2f(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
+                                            cargo.response.results.boxes[color].center.theta);
+                        cv::Point2f vtx[4]; // 矩形顶点容器
+                        // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
+                        rect.points(vtx);  
+                        cv::Scalar colors;                                                                               // 确定旋转矩阵的四个顶点
+                        switch (color)
+                        {
+                        case 1:
+                            colors = cv::Scalar(0, 0, 255);
+                            break;
+                        case 2:
+                            colors = cv::Scalar(0, 255, 0);
+                            break;
+                        case 3:
+                            colors = cv::Scalar(255, 0, 0);
+                            break;
+                        default:
+                            break;
+                        }
+                        for (int j = 0; j < 4; j++)
+                        {
+                            cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2); // 随机颜色绘制矩形
+                        }
+                    }
+                }
+                debug_image = (*cv_image).toImageMsg();
+
+            }
+        }
+        else
+            ROS_WARN("responce invalid!");
+        return flag;
+    }
+
+    bool ArmController::log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, sensor_msgs::ImagePtr &debug_image)
+    {
+        vision_msgs::BoundingBox2DArray objArray;
+        bool valid = detect_cargo(image_rect, objArray, debug_image);
+        if (valid)
+        {
+            double x = 0, y = 0;
+            if (find_with_color(objArray, green, z, x, y))
+                ROS_INFO_STREAM("x:" << x << " y:" << y);
+        }
+        return valid;
+    }
+
+    bool ArmController::find_with_color(vision_msgs::BoundingBox2DArray &objArray, const int color, double z, double &x, double &y)
+    {
+        if (objArray.boxes.size() == 4)
+        {
+            if (!objArray.boxes[color].center.x)
+                return false;
+            double u = objArray.boxes[color].center.x;
+            double v = objArray.boxes[color].center.y;
+            return ps_.calculate_cargo_position(u, v, z, x, y);
+        }
+        return false;
     }
 }

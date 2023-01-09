@@ -1,6 +1,13 @@
 <launch>
-    <node pkg="my_hand_eye" name="my_hand_eye_client_node" type="my_hand_eye_client_node" output="screen">
-	</node> 
+    <arg name="nodelet_manager" default="my_hand_eye_manager" />
 
-    <include file="$(find my_hand_eye)/launch/eye.launch" />
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  args="manager"/>
+    <include file="$(find my_hand_eye)/launch/eye.launch" >
+        <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
+    </include>
+    <include file="$(find my_hand_eye)/launch/include/mmdetection.launch" >
+        <arg name="param_modification" value="false" />
+    </include>
+    <node pkg="my_hand_eye" name="my_hand_eye_client_node" type="my_hand_eye_client_node" output="screen">
+    </node> 
 </launch>

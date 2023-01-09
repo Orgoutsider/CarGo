@@ -227,6 +227,6 @@ workflow = [('train', 1)]
 opencv_num_threads = 0
 mp_start_method = 'fork'
 auto_scale_lr = dict(enable=False, base_batch_size=16)
-work_dir = 'car_go_faster_rcnn_2x'
+work_dir = 'car_go_faster_rcnn_2x_new'
 auto_resume = False
 gpu_ids = range(0, 1)

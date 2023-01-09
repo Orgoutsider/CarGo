@@ -149,18 +149,12 @@ target_link_libraries(${PROJECT_NAME}
   ${OpenCV_LIBRARIES}
 )
 
-add_library(${PROJECT_NAME}_color src/${PROJECT_NAME}/color_detector.cpp)
-add_dependencies(${PROJECT_NAME}_color ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_color
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-
 add_library(${PROJECT_NAME}_QR_code src/${PROJECT_NAME}/QRcode_detector.cpp)
 add_dependencies(${PROJECT_NAME}_QR_code ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_QR_code
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
+  ${PROJECT_NAME}
 )
 
 # target_include_directories(car_go_arm  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

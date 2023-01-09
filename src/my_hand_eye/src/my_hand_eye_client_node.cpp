@@ -46,14 +46,14 @@ public:
 		}
         // 5.组织请求数据
         mmdetection_ros::cargoSrv cargo;
-        cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
+        // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
         cargo.request.image = *image_rect;
         // 6.发送请求,返回 bool 值，标记是否成功
         bool flag = client.call(cargo);
         // 7.处理响应
         if (flag)
         {
-            // ROS_INFO("请求正常处理");
+            ROS_INFO("请求正常处理");
             if (cargo.response.results.boxes.size())
             {
                 for (int color = 1; color <= 3; color++)
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     std::string transport_hint;
     pnh.param<std::string>("transport_hint", transport_hint, "raw");
     image_transport::Subscriber camera_image_subscriber =
-        it.subscribe("/usb_cam/image_raw", 1, &ImageListener::imageCallback, &imgl, image_transport::TransportHints(transport_hint));
+        it.subscribe("/eye/image_raw", 1, &ImageListener::imageCallback, &imgl, image_transport::TransportHints(transport_hint));
     ros::Rate loop_rate(5);
     // ROS_INFO("1");
     while (ros::ok())

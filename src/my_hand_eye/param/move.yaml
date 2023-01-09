@@ -6,3 +6,10 @@ servo:
     {id: 4, speed: 45, acc: 10},
     {id: 5, speed: 45, acc: 10}
   ]
+
+#x, y, z
+default_action:
+  [
+    0, 3, 44
+  ]
+  
