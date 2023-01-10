@@ -3,7 +3,8 @@
 #define ARM_A1 12.4
 #define ARM_A2 13.15
 #define ARM_A3 12.53
-#define ARM_A4 10.7
+// #define ARM_A4 10.7
+#define ARM_A4 10.8
 #define ARM_MAX_LEN ((ARM_A2)+(ARM_A3)+(ARM_A4))
 #define ARM_MAX_HIGH ((ARM_A1)+(ARM_A2)+(ARM_A3)+(ARM_A4))
 
@@ -47,6 +48,7 @@ namespace my_hand_eye{
         bool _modify_alpha(double &alpha, bool look);//自动调整alpha，look表示是否为观察模式
         bool backward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, bool look);
         //求逆解，输入机械臂角度变量
+        bool first_step(double &deg1);
         bool test_ok(double &deg1,double &deg2,double &deg3,double &deg4,bool look);
     };
     bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, double &x, double &y, double &z);

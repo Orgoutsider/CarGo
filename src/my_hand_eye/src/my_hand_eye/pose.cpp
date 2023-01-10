@@ -88,18 +88,78 @@ namespace my_hand_eye
 
     bool Pos::go_to(double x, double y, double z, bool cat, bool look)
     {
+        double time_max = 0;
+        bool valid = read_all_position();
+        s16 tmp[6] = {0};
+        if (valid)
+        {
+            memcpy(tmp, Position, 6 * sizeof(s16));
+        }
         this->x = x;
         this->y = y;
         this->z = z;
         this->cat = cat;
         this->look = look;
-        bool valid = calculate_position();
+        if (valid)
+            valid = calculate_position();
         if (valid)
         {
+            for (int ID = 1; ID <= 5; ID++)
+            {
+                double time = calculate_time(ID, tmp[ID]);
+                time_max = time > time_max ? time : time_max;
+            }
+            ROS_INFO("Done! Wait for %lf seconds", time_max);
+            ros::Time now = ros::Time::now();
+            ros::Duration du(time_max); // 以秒为单位
+            ros::Time after_now = now + du;
+            wait_time_ = after_now.toSec();
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            sm_st_ptr->SyncWritePosEx(ID + 2, 3, Position + 2, Speed + 2, ACC + 2);
+            sm_st_ptr->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
             sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            ROS_INFO("Done!");
+        }
+        return valid;
+    }
+
+    double Pos::calculate_time(int ID, s16 goal)
+    {
+        // 时间（单位s）=[(位置-目标)/速度]+(速度/(加速度*100))
+        double time = 10.0;
+        if (ID == 5)
+            time =  abs((Position[ID] - goal) * 1.0 / (Speed[ID] + 0.01));
+        else if (ID == 3 || ID == 4)
+            time =  abs((Position[ID] - goal) * 1.0 / (Speed[ID] + 0.01)) + Speed[ID] / (100.0 * ACC[ID] + 0.01);
+        else if (ID == 1 || ID == 2)
+            time = 0.8;
+        else
+            ROS_ERROR("ID error!");
+        time = time > 10.0 ? 10.0 : time;
+        ROS_INFO_STREAM("ID:" << ID << " time:" << time);
+        return time;
+    }
+
+    bool Pos::do_first_step(double x, double y)
+    {
+        this->x = x;
+        this->y = y;
+        double deg1 = 0;
+        bool valid = first_step(deg1);
+        if (valid)
+        {
+            s16 goal = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
+            double time = 10;
+            if (read_position(1))
+                time = calculate_time(1, goal);
+            else
+            {
+                valid = false;
+            }
+            ROS_INFO("Done! Wait for %lf seconds", time);
+            ros::Time now = ros::Time::now();
+            ros::Duration du(time); // 以秒为单位
+            ros::Time after_now = now + du;
+            wait_time_ = after_now.toSec();
+            sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
         }
         return valid;
     }
@@ -107,6 +167,60 @@ namespace my_hand_eye
     bool Pos::reset()
     {
         return go_to(default_x, default_y, default_z, false, true);
+    }
+
+    bool Pos::go_to_and_wait(double x, double y, double z, bool cat)
+    {
+        double time_max = 0;
+        bool valid = read_all_position();
+        s16 tmp[6] = {0};
+        if (valid)
+        {
+            memcpy(tmp, Position, 6 * sizeof(s16));
+        }
+        this->x = x;
+        this->y = y;
+        this->z = z;
+        this->cat = cat;
+        this->look = false;
+        if (valid)
+            valid = calculate_position();
+        if (valid)
+        {
+            double time = calculate_time(1, tmp[1]);
+            time_max = time > time_max ? time : time_max;
+            for (int ID = 3; ID <= 4; ID++)
+            {
+                time = calculate_time(ID, tmp[ID]);
+                time_max = time > time_max ? time : time_max;
+            }
+            ROS_INFO("Done! Wait for %lf seconds", time_max);
+            ros::Time now = ros::Time::now();
+            ros::Duration du(time_max); // 以秒为单位
+            ros::Time after_now = now + du;
+            wait_time_ = after_now.toSec();
+            sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            sm_st_ptr->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+            du.sleep();
+
+            time = calculate_time(2, tmp[2]);
+            ROS_INFO("Done! Wait for %lf seconds", time);
+            now = ros::Time::now();
+            ros::Duration du2(time); // 以秒为单位
+            after_now = now + du2;
+            wait_time_ = after_now.toSec();
+            sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
+            du2.sleep();
+
+            time = calculate_time(5, tmp[5]);
+            ROS_INFO("Done! Wait for %lf seconds", time);
+            now = ros::Time::now();
+            ros::Duration du3(time); // 以秒为单位
+            after_now = now + du3;
+            wait_time_ = after_now.toSec();
+            sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
+        }
+        return valid;
     }
 
     bool Pos::read_position(int ID)
@@ -312,9 +426,8 @@ namespace my_hand_eye
             cv::Mat intrinsics_inv = Intrinsics().inv();
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
             cv::Mat point_temp = intrinsics_inv * point_pixel;
-            // 单位统一为cm  
-            cv::Mat temp = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) 
-                            * R_T2homogeneous_matrix(R_cam_to_end, T_cam_to_end * 0.1);
+            // 单位统一为cm
+            cv::Mat temp = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) * R_T2homogeneous_matrix(R_cam_to_end, T_cam_to_end * 0.1);
             double Z = (z - temp.at<double>(2, 3)) / temp.row(2).colRange(0, 3).clone().t().dot(point_temp);
             cv::Mat point = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0), Z * point_temp.at<double>(1, 0), Z, 1);
             point = temp * point;
@@ -324,7 +437,11 @@ namespace my_hand_eye
         return valid;
     }
 
-    ArmController::ArmController() : ps_(&sm_st_, &sc_){};
+    ArmController::ArmController() : ps_(&sm_st_, &sc_), default_roi_(480, 0, 960, 1080)
+    {
+        cargo_x_.reserve(10);
+        cargo_y_.reserve(10);
+    };
 
     ArmController::~ArmController()
     {
@@ -370,7 +487,7 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections, sensor_msgs::ImagePtr &debug_image, cv::Rect &roi)
     {
         if (!cargo_client_.exists())
             cargo_client_.waitForExistence();
@@ -385,14 +502,17 @@ namespace my_hand_eye
             return false;
         }
         bool flag = draw_image(cv_image);
+        cv_image->image = cv_image->image(roi);
         mmdetection_ros::cargoSrv cargo;
-        cargo.request.image = *image_rect;
+        debug_image = (*cv_image).toImageMsg();
+        cargo.request.image = *debug_image;
         // 发送请求,返回 bool 值，标记是否成功
         if (flag)
             flag = cargo_client_.call(cargo);
         if (flag)
         {
             detections = cargo.response.results;
+
             if (show_detections_)
             {
                 // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
@@ -403,12 +523,12 @@ namespace my_hand_eye
                         if (!cargo.response.results.boxes[color].center.x)
                             continue;
                         cv::RotatedRect rect(cv::Point2f(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
-                                            cv::Size2f(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
-                                            cargo.response.results.boxes[color].center.theta);
+                                             cv::Size2f(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
+                                             cargo.response.results.boxes[color].center.theta);
                         cv::Point2f vtx[4]; // 矩形顶点容器
                         // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
-                        rect.points(vtx);  
-                        cv::Scalar colors;                                                                               // 确定旋转矩阵的四个顶点
+                        rect.points(vtx);
+                        cv::Scalar colors; // 确定旋转矩阵的四个顶点
                         switch (color)
                         {
                         case 1:
@@ -430,7 +550,16 @@ namespace my_hand_eye
                     }
                 }
                 debug_image = (*cv_image).toImageMsg();
-
+            }
+            if (detections.boxes.size())
+            {
+                for (int color = 1; color <= 3; color++)
+                {
+                    if (!detections.boxes[color].center.x)
+                        continue;
+                    detections.boxes[color].center.x += roi.x;
+                    detections.boxes[color].center.y += roi.y;
+                }
             }
         }
         else
@@ -441,7 +570,8 @@ namespace my_hand_eye
     bool ArmController::log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, sensor_msgs::ImagePtr &debug_image)
     {
         vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_cargo(image_rect, objArray, debug_image);
+        cv::Rect rect(480, 0, 960, 1080);
+        bool valid = detect_cargo(image_rect, objArray, debug_image, rect);
         if (valid)
         {
             double x = 0, y = 0;
@@ -462,5 +592,64 @@ namespace my_hand_eye
             return ps_.calculate_cargo_position(u, v, z, x, y);
         }
         return false;
+    }
+
+    void ArmController::average_position(double &x, double &y)
+    {
+        x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
+        y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
+    }
+
+    bool ArmController::catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+                                           bool &finish, sensor_msgs::ImagePtr &debug_image)
+    {
+        if (!cargo_x_.size())
+        {
+            current_color_ = color;
+            current_z_ = z;
+            ps_.wait_time_ = 0;
+        }
+        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
+        {
+            cargo_x_.clear();
+            cargo_y_.clear();
+            current_color_ = color;
+            current_z_ = z;
+            ps_.wait_time_ = 0;
+        }
+        finish = false;
+        ros::Time now = ros::Time::now();
+        if (ps_.wait_time_ && now.toSec() < ps_.wait_time_)
+            return true;
+        vision_msgs::BoundingBox2DArray objArray;
+        bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
+        if (valid)
+        {
+            double x = 0, y = 0;
+            if (find_with_color(objArray, current_color_, z, x, y))
+            {
+                ROS_INFO_STREAM("x:" << x << " y:" << y);
+                cargo_x_.push_back(x);
+                cargo_y_.push_back(y);
+                if (cargo_x_.size() == 5)
+                {
+                    double x_aver = 0, y_aver = 0;
+                    average_position(x_aver, y_aver);
+                    ps_.do_first_step(x_aver, y_aver);
+                }
+                else if (cargo_x_.size() == 10)
+                {
+                    double x_aver = 0, y_aver = 0;
+                    average_position(x_aver, y_aver);
+                    ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
+                    cargo_x_.clear();
+                    cargo_y_.clear();
+                    finish = true;
+                }
+            }
+            else
+                return false;
+        }
+        return valid;
     }
 }

@@ -179,14 +179,13 @@ namespace my_hand_eye
 
     bool Axis::_modify_alpha(double &alpha, bool look)
     {
-        alpha = look?90:180;
-        int MIN_ALPHA = look?0:90; // j2+j3+j4 最小值，最后一个joint不后仰
+        alpha = 90;
         bool valid = false;
-        while (alpha >= MIN_ALPHA && !valid)
+        while (alpha >= 0 && alpha <= 180 && !valid)
         {
             valid = _j123_length_and_height_is_valid(alpha);
             if (!valid)
-                alpha -= 1;
+                alpha = look ? alpha - 1 : alpha + 1;
         }
         return valid;
     }
@@ -195,12 +194,12 @@ namespace my_hand_eye
     {
         if (z < 0)
         {
-            std::cout << "z cannot less than 0." << std::endl;
+            ROS_ERROR("z cannot less than 0.");
             return false;
         }
         if (y < 0)
         {
-            std::cout << "y cannot less than 0." << std::endl;
+            ROS_ERROR("y cannot less than 0.");
             return false;
         }
         double alpha = 0;
@@ -222,6 +221,24 @@ namespace my_hand_eye
         }
         // ROS_INFO_STREAM("valid:" << valid << " deg1:" << deg1 << " deg2:" << deg2 << " deg3:" << deg3 << " deg4:" << deg4);
         return valid;
+    }
+
+    bool Axis::first_step(double &deg1)
+    {
+        if (z < 0)
+        {
+            ROS_ERROR("z cannot less than 0.");
+            return false;
+        }
+        if (y < 0)
+        {
+            ROS_ERROR("y cannot less than 0.");
+            return false;
+        }
+        Angle j1 = _calculate_j1();
+        j1._j_degree_convert(1);
+        deg1 = j1._get_degree();
+        return true;
     }
 
     bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, double &x, double &y, double &z)

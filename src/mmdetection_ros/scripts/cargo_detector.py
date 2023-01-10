@@ -266,14 +266,8 @@ class Detector:
                 #         objArray.detections.append(self.generate_obj(results[i], i, msg))
 
                 objArray = self.generate_obj(bbox_result[0], im, msg)
-                
-
                 # rospy.loginfo('RESPONSING SERVICE')
-                if self._msg_lock.acquire(False):
-                    self._last_res = objArray
-                    # self._last_res_avaliable = True
-                    self._msg_lock.release()
-
+                self._last_res = objArray
 
                 # Visualize results
                 if self._visualization:
@@ -302,8 +296,8 @@ class Detector:
                     # NOTE: Copy other fields from msg, modify the data field manually
                     # (check the source code of cvbridge)
                     image_out.data = debug_image.tobytes()
-
                     self.image_pub.publish(image_out) 
+
             rate.sleep()
 
     def service_handler(self, request):
@@ -329,7 +323,8 @@ class Detector:
         up = self._up[config.color]
         flag = False
         if self._colors != single_color[config.color]:
-            flag = True
+            self._colors = single_color[config.color]
+            rospy.loginfo('Succeed to modify paramater!')
 
         if low_raw[0] + config.h_low != low[0] and low_raw[0] + config.h_low >= 0:
             flag = True
@@ -344,14 +339,12 @@ class Detector:
             low[2] = low_raw[2] + config.v_low
 
         if up_raw[0] + config.h_up != up[0] and up_raw[0] + config.h_up <= 255:
-            flag = True
             up[0] = up_raw[0] + config.h_up
-        
-        if flag and self._msg_lock.acquire(False):
-            self._colors = single_color[config.color]
-            self._low[config.color] = low
             self._up[config.color] = up
-            self._msg_lock.release()
+            rospy.loginfo('Succeed to modify paramater!')
+        
+        if flag:
+            self._low[config.color] = low           
             rospy.loginfo('Succeed to modify paramater!')
 
         return config

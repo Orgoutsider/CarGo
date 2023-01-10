@@ -71,15 +71,19 @@ namespace my_hand_eye
 		cv::setWindowProperty("resImg", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
 		cv::resize(resImg, resImg, cv::Size(2240, 1680));
 		imshow("resImg", resImg);
-		cv::waitKey(0);
+		cv::waitKey(500);
 		flag_ = true;
 	}
 
 	void QRcodeDetector::imageCallback(const sensor_msgs::ImageConstPtr& image_rect)
 	{
-		sensor_msgs::ImagePtr debug_image;
-		arm_controller_.log_position_main(image_rect, z_floor, debug_image);
-		if (arm_controller_.show_detections_)
-			debug_image_publisher_.publish(*debug_image);
+		static bool finish = false;
+		if (!finish)
+		{
+			sensor_msgs::ImagePtr debug_image;
+			arm_controller_.catch_with_2_steps(image_rect, 2, z_floor, finish, debug_image);
+			if (arm_controller_.show_detections_)
+				debug_image_publisher_.publish(*debug_image);
+		}
 	}
 }
