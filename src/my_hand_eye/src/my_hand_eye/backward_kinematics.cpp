@@ -181,7 +181,7 @@ namespace my_hand_eye
     {
         alpha = 90;
         bool valid = false;
-        while (alpha >= 0 && alpha <= 180 && !valid)
+        while (alpha >= 0 && alpha <= 140 && !valid)
         {
             valid = _j123_length_and_height_is_valid(alpha);
             if (!valid)

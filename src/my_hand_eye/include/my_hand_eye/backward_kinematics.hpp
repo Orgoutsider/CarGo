@@ -4,7 +4,7 @@
 #define ARM_A2 13.15
 #define ARM_A3 12.53
 // #define ARM_A4 10.7
-#define ARM_A4 10.8
+#define ARM_A4 10.75
 #define ARM_MAX_LEN ((ARM_A2)+(ARM_A3)+(ARM_A4))
 #define ARM_MAX_HIGH ((ARM_A1)+(ARM_A2)+(ARM_A3)+(ARM_A4))
 

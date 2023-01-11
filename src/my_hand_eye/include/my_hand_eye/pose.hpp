@@ -36,6 +36,7 @@ namespace my_hand_eye{
         bool cat;//cat=true抓
         bool look;//look=true观察
         s16 Position[6] = {0};//目标舵机位置
+        s16 Position_now[6] = {0};//当前舵机位置
         u16 Speed[6] = {0};
         u8 ACC[6] = {0};
         u8 Id[6] = {0, 1, 2, 3, 4, 5};
@@ -49,24 +50,30 @@ namespace my_hand_eye{
         cv::Mat R_cam_to_end = (cv::Mat_<double>(3, 3) << 0.01762304284718308, 0.05031655330790039, 0.998577825121317,
                                                             0.9994569158454911, 0.02692675460875993, -0.01899534824262144,
                                                             -0.02784424050724299, 0.9983702691634265, -0.04981469583488352);
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -60.00245432936754);
-        cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754);
+        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
+        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754);
+        cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
     public:
         Pos (SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat=false, bool look=true);//初始化
-        double wait_time_;
+        // double wait_time_;
         bool begin(const char *argv);//打开串口
         void ping();
         void set_speed_and_acc(XmlRpc::XmlRpcValue& servo_descriptions);//获取速度加速度
         void set_default_position(XmlRpc::XmlRpcValue& default_action);
         //计算各joint运动的position
         bool calculate_position();
-        double calculate_time(int ID, s16 goal);//为指定舵机计算到达时间
+        double calculate_time(int ID);//为指定舵机计算到达时间
+        bool arrive(int ID[], int IDn);//判断所有是否到达指定位置附近
+        void wait_for_arriving(int ID[], int IDn);
         bool go_to(double x, double y, double z, bool cat, bool look);//运动到指定位置，抓/不抓
         bool do_first_step(double x, double y);//两步抓取第一步
         bool reset();
         bool go_to_and_wait(double x, double y, double z, bool cat);//运动到指定位置，运动完成后抓/不抓
         bool read_position(int ID);//读指定舵机位置
+        bool has_speed(int ID);//指定舵机速度是否0
         bool read_all_position();//读所有舵机正确位置
+        bool is_moving();//判断所有舵机速度是否0
+        void wait_until_static();//等待
         bool refresh_xyz();//更新位置
         cv::Mat R_end_to_base();//机械臂末端到基底的·旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();//机械臂末端到基底的·平移向量（不保证实时性）
@@ -105,6 +112,8 @@ namespace my_hand_eye{
         bool find_with_color(vision_msgs::BoundingBox2DArray& objArray, const int color, 
                             double z, double &x, double &y);//处理接收的图片，通过颜色确定位置
         void average_position(double &x, double &y);//求得记录位置数据的平均值
+        bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+                            bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool catch_with_2_steps(const sensor_msgs::ImageConstPtr& image_rect, const int color, double z, 
                             bool& finish, sensor_msgs::ImagePtr &debug_image);
     };

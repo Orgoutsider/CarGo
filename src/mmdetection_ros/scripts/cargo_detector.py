@@ -120,16 +120,13 @@ class Detector:
         objArray.header = msg.header
         objArray.boxes = [BoundingBox2D()] * 4
         if results.shape == (0, 5):
-            rospy.logwarn("Cannot detect cargo, try detecting with color...")
-            results = [0]
-            empty = True
+            rospy.logwarn("Cannot detect cargo!")
+            # results = [0]
         else:
-            empty = False
-
-        for i in range(len(results)):
-            if empty:
-                im = src
-            else:
+            for i in range(len(results)):
+                # if empty:
+                #     im = src
+                # else:
                 result = results[i]
                 if result[4] < self._score_thr:
                     continue
@@ -146,72 +143,68 @@ class Detector:
                 if self._param_modification:
                     cv2.imshow("im", im)
 
-            im = cv2.GaussianBlur(im, (7, 7), 0)
-            im = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
-            if self._param_modification:
-                cv2.imshow("hsv", im)
-            element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
-            s_max = 0
-            colors = self._colors
-            for color in colors:
-                if not empty:
+                im = cv2.GaussianBlur(im, (7, 7), 0)
+                im = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+                if self._param_modification:
+                    cv2.imshow("hsv", im)
+                element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+                s_max = 0
+                colors = self._colors
+                for color in colors:
                     if flag[color]:
                         continue
 
-                else:
-                    s_max = 0
+                    if color == 1:#红色
+                        # print(self._low[0])
+                        # print(self._up[0])
+                        dst1 = cv2.inRange(im, self._low[0], self._up[0])
+                        dst2 = cv2.inRange(im, self._low[1], self._up[1])
+                        dst = dst1 + dst2
+                    else:
+                        dst = cv2.inRange(im, self._low[color], self._up[color])
 
-                if color == 1:#红色
-                    # print(self._low[0])
-                    # print(self._up[0])
-                    dst1 = cv2.inRange(im, self._low[0], self._up[0])
-                    dst2 = cv2.inRange(im, self._low[1], self._up[1])
-                    dst = dst1 + dst2
-                else:
-                    dst = cv2.inRange(im, self._low[color], self._up[color])
+                    if self._param_modification:
+                        cv2.imshow("dst", dst)
+                        cv2.waitKey(1)
+                    dst = cv2.erode(dst, element)
 
-                if self._param_modification:
-                    cv2.imshow("dst", dst)
-                    cv2.waitKey(1)
-                dst = cv2.erode(dst, element)
+                    contours, hierarchy = cv2.findContours(dst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #查找轮廓                
+                    for contour in contours:
+                        rect = cv2.minAreaRect(contour)
+                        size = rect[1]
+                        if size[0] * size[1] > s_max:
+                            s_max = size[0] * size[1]
+                            rect_max = rect
+                            color_max = color
 
-                contours, hierarchy = cv2.findContours(dst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #查找轮廓                
-                for contour in contours:
-                    rect = cv2.minAreaRect(contour)
-                    size = rect[1]
-                    if size[0] * size[1] > s_max:
-                        s_max = size[0] * size[1]
-                        rect_max = rect
-                        color_max = color
+                    # if empty and s_max:
+                    #     obj = BoundingBox2D()
+                    #     point = rect_max[0] #中心点
+                    #     obj.center.x = point[0]
+                    #     obj.center.y = point[1]
+                    #     obj.center.theta = rect_max[2]
+                    #     size = rect_max[1]
+                    #     obj.size_x = size[0] * (self._gain + 1)
+                    #     obj.size_y = size[1] * (self._gain + 1)
+                    #     objArray.boxes[color] = obj
 
-                if empty and s_max:
+                if s_max:
+                    flag[color_max] = True
+                    # rospy.loginfo("Succeed to detect!")
                     obj = BoundingBox2D()
-                    point = rect_max[0] #中心点
-                    obj.center.x = point[0]
-                    obj.center.y = point[1]
-                    obj.center.theta = rect_max[2]
-                    size = rect_max[1]
-                    obj.size_x = size[0] * (self._gain + 1)
-                    obj.size_y = size[1] * (self._gain + 1)
-                    objArray.boxes[color] = obj
-
-            if s_max and not empty:
-                flag[color_max] = True
-                # rospy.loginfo("Succeed to detect!")
-                obj = BoundingBox2D()
-                obj.center.x = (result[0] + result[2]) / 2 #中心点
-                obj.center.y = (result[1] + result[3]) / 2
-                obj.center.theta = np.pi / 2 #由x轴逆时针转至W(宽)的角度。
-                obj.size_x = (result[2] - result[0]) * (self._gain + 1)#长
-                obj.size_y = (result[3] - result[1]) * (self._gain + 1)#宽
-                # point = rect_max[0]
-                # obj.center.x = point[0] + start_col
-                # obj.center.y = point[1] + start_row
-                # obj.center.theta = rect_max[2]
-                # size = rect_max[1]
-                # obj.size_x = size[0] * (self._gain + 1)
-                # obj.size_y = size[1] * (self._gain + 1)
-                objArray.boxes[color_max] = obj
+                    obj.center.x = (result[0] + result[2]) / 2 #中心点
+                    obj.center.y = (result[1] + result[3]) / 2
+                    obj.center.theta = np.pi / 2 #由x轴逆时针转至W(宽)的角度。
+                    obj.size_x = (result[2] - result[0]) * (self._gain + 1)#长
+                    obj.size_y = (result[3] - result[1]) * (self._gain + 1)#宽
+                    # point = rect_max[0]
+                    # obj.center.x = point[0] + start_col
+                    # obj.center.y = point[1] + start_row
+                    # obj.center.theta = rect_max[2]
+                    # size = rect_max[1]
+                    # obj.size_x = size[0] * (self._gain + 1)
+                    # obj.size_y = size[1] * (self._gain + 1)
+                    objArray.boxes[color_max] = obj
 
         return objArray
         
