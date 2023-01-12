@@ -58,15 +58,26 @@ namespace my_hand_eye
         }
     }
 
-    void Pos::set_default_position(XmlRpc::XmlRpcValue &default_action)
+    void Pos::set_action(XmlRpc::XmlRpcValue& action, std::string name)
     {
-        ROS_ASSERT(default_action.getType() == XmlRpc::XmlRpcValue::TypeArray);
-        ROS_ASSERT(default_action[0].getType() == XmlRpc::XmlRpcValue::TypeInt);
-        ROS_ASSERT(default_action[1].getType() == XmlRpc::XmlRpcValue::TypeInt);
-        ROS_ASSERT(default_action[2].getType() == XmlRpc::XmlRpcValue::TypeInt);
-        default_x = (int)default_action[0];
-        default_y = (int)default_action[1];
-        default_z = (int)default_action[2];
+        ROS_ASSERT(action.getType() == XmlRpc::XmlRpcValue::TypeArray);
+        ROS_ASSERT(action[0].getType() == XmlRpc::XmlRpcValue::TypeInt);
+        ROS_ASSERT(action[1].getType() == XmlRpc::XmlRpcValue::TypeInt);
+        ROS_ASSERT(action[2].getType() == XmlRpc::XmlRpcValue::TypeInt);
+        if (name == "default")
+        {
+            default_x = (int)action[0];
+            default_y = (int)action[1];
+            default_z = (int)action[2];
+        }
+        else if (name == "put")
+        {
+            put_x = (int)action[0];
+            put_y = (int)action[1];
+            put_z = (int)action[2];
+        }
+        else
+            ROS_ERROR("Name error!");
     }
 
     bool Pos::calculate_position()
@@ -114,10 +125,12 @@ namespace my_hand_eye
             // ros::Duration du(time_max); // 以秒为单位
             // ros::Time after_now = now + du;
             // wait_time_ = after_now.toSec();
+            int ID[] = {1, 2, 3, 4, 5};
+            if (read_all_position() && arrive(ID, 5))
+                return valid;
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
             sm_st_ptr->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
             sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            int ID[] = {1, 2, 3, 4, 5};
             wait_for_arriving(ID, 5);
             // du.sleep();
         }
@@ -156,6 +169,7 @@ namespace my_hand_eye
     void Pos::wait_for_arriving(int ID[], int IDn)
     {
         double time_max = 0;
+        double b = 0.5;
         read_all_position();
         for (int i = 0; i < IDn; i++)
         {
@@ -163,11 +177,12 @@ namespace my_hand_eye
             time_max = time > time_max ? time : time_max;
         }
         ROS_INFO("Done! Wait for %lf seconds", time_max);
-        ros::Duration du(time_max * 0.7); // 以秒为单位
+        ros::Duration du(time_max * b); // 以秒为单位
         du.sleep();
-        ros::Time now = ros::Time::now();du = ros::Duration(time_max * 0.3);
+        ros::Time now = ros::Time::now();
+        du = ros::Duration(time_max * (1 - b));
         ros::Time time_after_now = now + du;
-        ros::Rate rt(4);
+        ros::Rate rt(7);
         while (ros::ok() && !arrive(ID, IDn) && ros::Time::now() < time_after_now)
         {
             rt.sleep();
@@ -183,21 +198,9 @@ namespace my_hand_eye
         if (valid)
         {
             Position[1] = (s16)std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-            // double time = 10;
-            // if (read_position(1))
-            //     time = calculate_time(1, goal);
-            // else
-            // {
-            //     valid = false;
-            // }
-            // ROS_INFO("Done! Wait for %lf seconds", time);
-            // ros::Time now = ros::Time::now();
-            // ros::Duration du(time); // 以秒为单位
-            // ros::Time after_now = now + du;
-            // wait_time_ = after_now.toSec();
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            wait_until_static();
-            // du.sleep();
+            int ID[] = {1};
+            wait_for_arriving(ID, 1);
         }
         return valid;
     }
@@ -211,13 +214,6 @@ namespace my_hand_eye
 
     bool Pos::go_to_and_wait(double x, double y, double z, bool cat)
     {
-        // double time_max = 0;
-        // bool valid = read_all_position();
-        // s16 tmp[6] = {0};
-        // if (valid)
-        // {
-        //     memcpy(tmp, Position, 6 * sizeof(s16));
-        // }
         this->x = x;
         this->y = y;
         this->z = z;
@@ -226,47 +222,62 @@ namespace my_hand_eye
         bool valid = calculate_position();
         if (valid)
         {
-            // double time = calculate_time(1, tmp[1]);
-            // time_max = time > time_max ? time : time_max;
-            // for (int ID = 3; ID <= 4; ID++)
-            // {
-            //     time = calculate_time(ID, tmp[ID]);
-            //     time_max = time > time_max ? time : time_max;
-            // }
-            // ROS_INFO("Done! Wait for %lf seconds", time_max);
-            // ros::Time now = ros::Time::now();
-            // ros::Duration du(time_max); // 以秒为单位
-            // ros::Time after_now = now + du;
-            // wait_time_ = after_now.toSec();
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
             sm_st_ptr->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-            // ROS_INFO("Done!");
             int ID[] = {1, 3, 4};
             wait_for_arriving(ID, 3);
-            // du.sleep();
 
-            // time = calculate_time(2, tmp[2]);
-            // ROS_INFO("Done! Wait for %lf seconds", time);
-            // now = ros::Time::now();
-            // ros::Duration du2(time); // 以秒为单位
-            // after_now = now + du2;
-            // wait_time_ = after_now.toSec();
             sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
-            // ROS_INFO("Done!");
             int ID2[] = {2};
             wait_for_arriving(ID2, 1);
 
-            // time = calculate_time(5, tmp[5]);
-            // ROS_INFO("Done! Wait for %lf seconds", time);
-            // now = ros::Time::now();
-            // ros::Duration du3(time); // 以秒为单位
-            // after_now = now + du3;
-            // wait_time_ = after_now.toSec();
             sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            // ROS_INFO("Done!");
             int ID3[] = {5};
             wait_for_arriving(ID3, 1);
-            // du3.sleep();
+        }
+        return valid;
+    }
+
+    bool Pos::go_to_by_midpoint(double x, double y, double z)
+    {
+        this->x = x;
+        this->y = y;
+        this->z = z;
+        this->cat = true;
+        this->look = false;
+        bool valid = calculate_position();
+        if (valid)
+        {
+            s16 Position_goal[6] = {0};
+            if (valid = find_a_midpoint(Position_goal))
+            {
+                sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
+                sm_st_ptr->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+                int ID[] = {1, 3, 4};
+                wait_for_arriving(ID, 3);
+
+                sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
+                int ID2[] = {2};
+                wait_for_arriving(ID2, 1);
+
+                memcpy(Position, Position_goal, 6 * sizeof(s16));
+                
+                ros::Duration du1(0.5);
+                ros::Duration du2(1);
+                sm_st_ptr->WritePosEx(3, Position[3], Speed[3]);
+                du1.sleep();
+                sm_st_ptr->WritePosEx(4, Position[4], Speed[4]);
+                du2.sleep();               
+                sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
+                int ID3[] = {2, 3, 4};
+                wait_for_arriving(ID3, 3);
+
+                sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
+                int ID4[] = {5};
+                wait_for_arriving(ID4, 1);
+            }
+            else
+                ROS_WARN("Failed to find a midpoint");
         }
         return valid;
     }
@@ -347,16 +358,27 @@ namespace my_hand_eye
         return flag;
     }
 
-    bool Pos::refresh_xyz()
+    bool Pos::refresh_xyz(bool read)
     {
-        bool valid = read_all_position();
+        bool valid = read ? read_all_position() : true;
         if (valid)
         {
-            double deg1 = (Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
-            double deg2 = (Position_now[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-            double deg3 = (Position_now[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-            double deg4 = (Position_now[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-            valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
+            if (!read)
+            {
+                double deg1 = (Position[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
+                double deg2 = (Position[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                double deg3 = (Position[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                double deg4 = (Position[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
+            }
+            else
+            {
+                double deg1 = (Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
+                double deg2 = (Position_now[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                double deg3 = (Position_now[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                double deg4 = (Position_now[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
+            }
         }
         return valid;
     }
@@ -545,6 +567,76 @@ namespace my_hand_eye
         return valid;
     }
 
+    double Pos::distance(double length_goal, double height_goal, double &k)
+    {
+        double length_sub = length() - length_goal;
+        double height_sub = height() - height_goal;
+        k = length_sub == 0 ? 0 : -height_sub / length_sub;
+        // ROS_INFO_STREAM("k:" << k << " distance:" << sqrt(length_sub * length_sub + height_sub * height_sub));
+        return sqrt(length_sub * length_sub + height_sub * height_sub) * (length_sub > 0 ? -1 : 1);
+    }
+
+    bool Pos::dfs(double length_goal, double height_goal)
+    {
+        double dist, k;
+        double kbound = 0.5;
+        static int ind[] = {4, 3, 2};
+        static s16 sig[] = {1, -1, 1};
+        if ((dist = distance(length_goal, height_goal, k)) > 8 || dist < -0.2 || k > 4 || k < -4)
+            return false;
+        else if (dist > 4 && k < kbound && k > 0)
+        {
+            ROS_INFO("Succeeded to find a midpoint!");
+            return true;
+        }
+        double nx = x;
+        double ny = y;
+        double nz = z;
+        for (int i = 0; i < 3; i++)
+        {
+            if (dist > 0 && k > kbound && sig[i] == 1 || dist > 0 && k < 0 && sig[i] == -1)
+                continue;
+            Position[ind[i]] += sig[i];
+            if (!refresh_xyz(false))
+            {
+                continue;
+            }
+            if (dfs(length_goal, height_goal))
+            {
+                return true;
+            }
+            else
+            {
+                Position[ind[i]] -= sig[i];
+                x = nx;
+                y = ny;
+                z = nz;
+            }
+        }
+        return false;
+    }
+
+    bool Pos::find_a_midpoint(s16 Position_goal[])
+    {
+        memcpy(Position_goal, Position, 6 * sizeof(s16));
+        ROS_INFO_STREAM("length:" << length() << " height" << height());
+        bool fin = dfs(length(), height());
+        if (fin)
+        {
+            double deg1 = 0, deg2 = 0, deg3 = 0, deg4 = 0;
+            fin = backward_kinematics(deg1, deg2, deg3, deg4, false);
+            if (fin)
+            {
+                Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
+                Position[2] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg2 / 180);
+                Position[3] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg3 / 180);
+                Position[4] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg4 / 180);
+            }
+            ROS_INFO_STREAM("length:" << length() << " height" << height());
+        }
+        return fin;
+    }
+
     ArmController::ArmController() : ps_(&sm_st_, &sc_), default_roi_(480, 0, 960, 1080)
     {
         cargo_x_.reserve(10);
@@ -560,6 +652,7 @@ namespace my_hand_eye
     {
         XmlRpc::XmlRpcValue servo_descriptions;
         XmlRpc::XmlRpcValue default_action;
+        XmlRpc::XmlRpcValue put_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
@@ -567,6 +660,10 @@ namespace my_hand_eye
         if (!pnh.getParam("default_action", default_action))
         {
             ROS_ERROR("No default action specified");
+        }
+        if (!pnh.getParam("put_action", put_action))
+        {
+            ROS_ERROR("No put action specified");
         }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ttyUSB0");
@@ -577,7 +674,8 @@ namespace my_hand_eye
         }
         ps_.ping();
         ps_.set_speed_and_acc(servo_descriptions);
-        ps_.set_default_position(default_action);
+        ps_.set_action(default_action);
+        ps_.set_action(put_action, "put");
 
         cargo_client_ = nh.serviceClient<mmdetection_ros::cargoSrv>("cargoSrv");
     }
@@ -713,7 +811,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                                         bool &finish, sensor_msgs::ImagePtr &debug_image)
+                                         bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint)
     {
         if (!cargo_x_.size())
         {
@@ -747,7 +845,16 @@ namespace my_hand_eye
                     average_position(x_aver, y_aver);
                     cargo_x_.clear();
                     cargo_y_.clear();
-                    ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
+                    if (midpoint)
+                        valid = ps_.go_to_by_midpoint(x_aver, y_aver, current_z_);
+                    else
+                        valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
+                    if (valid)
+                    {
+                        ps_.go_to(ps_.default_x, ps_.default_y, ps_.default_z, true, true);
+                        if (ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false))
+                            ps_.reset();
+                    }
                     finish = true;
                 }
             }
@@ -805,5 +912,17 @@ namespace my_hand_eye
                 return false;
         }
         return valid;
+    }
+
+    bool ArmController::remember(double &x, double &y, double &z)
+    {
+        if (ps_.refresh_xyz())
+            ARM_INFO_XYZ(ps_);
+        else
+            return false;
+        x = ps_.x;
+        y = ps_.y;
+        z = ps_.z;
+        return true;
     }
 }

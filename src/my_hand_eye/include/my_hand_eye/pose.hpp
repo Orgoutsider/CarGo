@@ -5,7 +5,7 @@
 #define ARM_JOINT234_POS_WHEN_DEG0 1023.75
 #define ARM_JOINT5_POS_WHEN_CATCH 370
 #define ARM_JOINT5_POS_WHEN_LOSEN 500
-#define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("x:" << (Pos).x << " y:" << (Pos).y << " z:" << (Pos).z)
+#define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #include "opencv2/opencv.hpp"
 
 #include "my_hand_eye/SCServo.h"
@@ -42,7 +42,6 @@ namespace my_hand_eye{
         u8 Id[6] = {0, 1, 2, 3, 4, 5};
         SMS_STS *sm_st_ptr;//舵机
         SCSCL *sc_ptr;
-        double default_x, default_y, default_z;
         const double fx = 1097.2826519484;
         const double fy = 1093.696551235277;
         const double cx = 953.2646757356512;
@@ -51,15 +50,17 @@ namespace my_hand_eye{
                                                             0.9994569158454911, 0.02692675460875993, -0.01899534824262144,
                                                             -0.02784424050724299, 0.9983702691634265, -0.04981469583488352);
         // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754);
-        cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
+        cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754);
+        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
     public:
         Pos (SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat=false, bool look=true);//初始化
+        double default_x, default_y, default_z;
+        double put_x, put_y, put_z;
         // double wait_time_;
         bool begin(const char *argv);//打开串口
         void ping();
         void set_speed_and_acc(XmlRpc::XmlRpcValue& servo_descriptions);//获取速度加速度
-        void set_default_position(XmlRpc::XmlRpcValue& default_action);
+        void set_action(XmlRpc::XmlRpcValue& action, std::string name="default");//获取设定动作
         //计算各joint运动的position
         bool calculate_position();
         double calculate_time(int ID);//为指定舵机计算到达时间
@@ -69,17 +70,21 @@ namespace my_hand_eye{
         bool do_first_step(double x, double y);//两步抓取第一步
         bool reset();
         bool go_to_and_wait(double x, double y, double z, bool cat);//运动到指定位置，运动完成后抓/不抓
+        bool go_to_by_midpoint(double x, double y, double z);//通过中间点到达
         bool read_position(int ID);//读指定舵机位置
         bool has_speed(int ID);//指定舵机速度是否0
         bool read_all_position();//读所有舵机正确位置
         bool is_moving();//判断所有舵机速度是否0
         void wait_until_static();//等待
-        bool refresh_xyz();//更新位置
+        bool refresh_xyz(bool read=true);//更新位置
         cv::Mat R_end_to_base();//机械臂末端到基底的·旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();//机械臂末端到基底的·平移向量（不保证实时性）
         cv::Mat Intrinsics();//内参
         ArmPose end_to_base_now();//更新位置，并返回旋转矩阵，平移向量
         bool calculate_cargo_position(double u, double v, double z, double &x, double &y);
+        double distance(double length_goal, double height_goal, double &k);//中间点位置及移动方向
+        bool find_a_midpoint(s16 Position[]);//求中间点
+        bool dfs(double length_goal, double height_goal);
         void end();
     };
 
@@ -113,9 +118,10 @@ namespace my_hand_eye{
                             double z, double &x, double &y);//处理接收的图片，通过颜色确定位置
         void average_position(double &x, double &y);//求得记录位置数据的平均值
         bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                            bool &finish, sensor_msgs::ImagePtr &debug_image);
+                            bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint=false);
         bool catch_with_2_steps(const sensor_msgs::ImageConstPtr& image_rect, const int color, double z, 
                             bool& finish, sensor_msgs::ImagePtr &debug_image);
+        bool remember(double &x, double &y, double &z);//记忆位置
     };
     
 }

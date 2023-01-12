@@ -1,0 +1,11 @@
+<launch>
+    <arg name="node_namespace" default="my_hand_eye_remember_node" /> 
+    <arg name="ft_servo" default="ttyUSB0" />
+
+    <!-- Set parameters -->
+    <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
+    <node pkg="my_hand_eye" type="my_hand_eye_remember_node" name="$(arg node_namespace)"
+        output="screen">
+        <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
+    </node>
+</launch>

@@ -2,8 +2,6 @@
 
 namespace my_hand_eye
 {
-    const double pi = 3.1415926;
-
     Angle::Angle(double du)
     {
         this->du = du;
@@ -24,7 +22,7 @@ namespace my_hand_eye
 
     double Angle::rad()
     {
-        return du / 180 * pi;
+        return du / 180 * M_PI;
     }
 
     double Angle::cos()
@@ -51,19 +49,13 @@ namespace my_hand_eye
 
     double degree(double rad)
     {
-        return rad / pi * 180;
+        return rad / M_PI * 180;
     }
 
     bool Angle::_valid_degree(int joint)
     {
-        if (0 <= du && du <= 180)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+
+        return 0 <= du && du <= 180;
     }
 
     bool Angle::_valid_j(int joint)
@@ -181,7 +173,7 @@ namespace my_hand_eye
     {
         alpha = 90;
         bool valid = false;
-        while (alpha >= 0 && alpha <= 140 && !valid)
+        while (alpha >= 0 && alpha <= 135 && !valid)
         {
             valid = _j123_length_and_height_is_valid(alpha);
             if (!valid)
@@ -219,6 +211,8 @@ namespace my_hand_eye
             deg3 = j3._get_degree();
             deg4 = j4._get_degree();
         }
+        else
+            ROS_WARN("alpha invalid!");
         // ROS_INFO_STREAM("valid:" << valid << " deg1:" << deg1 << " deg2:" << deg2 << " deg3:" << deg3 << " deg4:" << deg4);
         return valid;
     }
@@ -276,9 +270,15 @@ namespace my_hand_eye
         if (valid)
         {
             valid = forward_kinematics(deg1, deg2, deg3, deg4, tx, ty, tz);
-            if (!valid || std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
+            if (!valid)
             {
-                ROS_WARN("Cannot move to this position");
+                ROS_WARN("Result invalid!");
+                return false;
+            }
+            else if (std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
+            {
+                ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf", 
+                            tx, ty, tz, x, y, z);
                 return false;
             }
             else

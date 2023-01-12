@@ -81,7 +81,7 @@ namespace my_hand_eye
 		if (!finish)
 		{
 			sensor_msgs::ImagePtr debug_image;
-			arm_controller_.catch_straightly(image_rect, 2, z_floor, finish, debug_image);
+			arm_controller_.catch_straightly(image_rect, 3, z_turntable, finish, debug_image, true);
 			if (arm_controller_.show_detections_)
 				debug_image_publisher_.publish(*debug_image);
 		}

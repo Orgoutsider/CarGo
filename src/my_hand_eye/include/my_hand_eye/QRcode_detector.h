@@ -34,6 +34,7 @@ namespace my_hand_eye
         //文字厚度
         const int txt_thick = 50;
         const double z_floor = 2.9;//底盘距地6mm，物块高度一半35mm
+        const double z_turntable = 7;//转盘
     public:
         QRcodeDetector() = default;
         ~QRcodeDetector() = default;

@@ -12,4 +12,9 @@ default_action:
   [
     0, 3, 44
   ]
+
+put_action:
+  [
+    -20, 19, 6
+  ]
   
