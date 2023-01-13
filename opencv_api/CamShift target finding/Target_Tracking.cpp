@@ -3,7 +3,7 @@
 
 using namespace cv;
 using namespace std;
-//ÏÈÕÒµ½ÎïÌå¾ØĞÎ¿ò£¬ÎÒÏëµÄÊÇ°ÑÕÒµ½µÄ¾ØĞÎ¿ò´«µİµ½¹ì¼£¸ú×Ùº¯ÊıÖĞ£¬ÕâÀïÎÒ½èÓÃµÄÊÇÑÕÉ«Ê¶±ğµÄÄÇÒ»Ì×
+//å…ˆæ‰¾åˆ°ç‰©ä½“çŸ©å½¢æ¡†ï¼Œæˆ‘æƒ³çš„æ˜¯æŠŠæ‰¾åˆ°çš„çŸ©å½¢æ¡†ä¼ é€’åˆ°è½¨è¿¹è·Ÿè¸ªå‡½æ•°ä¸­ï¼Œè¿™é‡Œæˆ‘å€Ÿç”¨çš„æ˜¯é¢œè‰²è¯†åˆ«çš„é‚£ä¸€å¥—
 Scalar R_Low = Scalar(156, 100, 80);
 Scalar R_up = Scalar(180, 255, 255);
 
@@ -16,14 +16,14 @@ Scalar B_up = Scalar(120, 255, 255);
 Scalar Low[3] = { B_Low, G_Low, R_Low };
 Scalar Up[3] = { B_up, G_up, R_up };
 
-Mat rectImg;//ÎïÌåÍ¼Ïñ¿ò
-Mat targetImgHSV;//ÎïÌåÍ¼ÏñHSV
+Mat rectImg;//ç‰©ä½“å›¾åƒæ¡†
+Mat targetImgHSV;//ç‰©ä½“å›¾åƒHSV
 int histSize = 200;
 float histR[] = { 0,255 };
 const float* histRange = histR;
 int channels[] = { 0,1 };
 Mat dstHist;
-vector<Point> pt; //±£´æÄ¿±ê¹ì¼£
+vector<Point> pt; //ä¿å­˜ç›®æ ‡è½¨è¿¹
 
 bool TargetFinding(Mat srcImg, Rect *rect_, unsigned COLOR)
 {
@@ -34,16 +34,16 @@ bool TargetFinding(Mat srcImg, Rect *rect_, unsigned COLOR)
 	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(13, 13));
 	inRange(srcF, Low[COLOR], Up[COLOR], srcF);
 	erode(srcF, srcF, element);
-	vector<vector<Point> >contours;//ÂÖÀªÈİÆ÷
-	findContours(srcF, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);//²éÕÒÂÖÀª
+	vector<vector<Point> >contours;//è½®å»“å®¹å™¨
+	findContours(srcF, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);//æŸ¥æ‰¾è½®å»“
 	if (!contours.empty())
 	{
-		*rect_ = boundingRect(contours[0]);//Çó½â¾ØÕó
+		*rect_ = boundingRect(contours[0]);//æ±‚è§£çŸ©é˜µï¼Œè¿™é‡Œçš„çŸ©é˜µæ˜¯æ­£å¸¸çš„çŸ©é˜µï¼Œä¸æ˜¯æ—‹è½¬çŸ©é˜µ
 		float Rect_area = (* rect_).area();
-		int tag = 0;//Ä¿±ê×î´ó¾ØÕó±êÖ¾Î»
+		int tag = 0;//ç›®æ ‡æœ€å¤§çŸ©é˜µæ ‡å¿—ä½
 		for (int i = 1; i < contours.size(); i++)
 		{
-			Rect rect_temp = boundingRect(contours[i]);//Çó½â¾ØÕó
+			Rect rect_temp = boundingRect(contours[i]);//æ±‚è§£çŸ©é˜µ
 			float Rect_area_temp = rect_temp.area();
 			if (Rect_area_temp > Rect_area)
 			{
@@ -68,6 +68,7 @@ void TargetTracking(VideoCapture* camera, unsigned RGB)
 		if(targetFound)
 		imshow("rect", srcImg(rect));
 	}
+    //ç›®æ ‡åˆå§‹åŒ–
 	rectImg = srcImg(rect);
 	imshow("target", rectImg);
 	cvtColor(rectImg, targetImgHSV, COLOR_RGB2HSV);
@@ -80,17 +81,19 @@ void TargetTracking(VideoCapture* camera, unsigned RGB)
 			break;
 		if ((char)waitKey(1) == 27)
 			break;
+        //æ ¸å¿ƒä»£ç æ®µ
 		Mat imageHSV;
 		Mat calcBackImage;
 		cvtColor(srcImg, imageHSV, COLOR_BGR2HSV);
-		calcBackProject(&imageHSV, 2, channels, dstHist, calcBackImage, &histRange); //·´ÏòÍ¶Ó°
+		calcBackProject(&imageHSV, 2, channels, dstHist, calcBackImage, &histRange); //åå‘æŠ•å½±
 		TermCriteria criteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 1000, 0.001);
-		CamShift(calcBackImage, rect, criteria);
-		Mat imageROI = imageHSV(rect); //¸üĞÂÄ£°å
+		CamShift(calcBackImage, rect, criteria);//å…³é”®å‡½æ•°
+		Mat imageROI = imageHSV(rect); //æ›´æ–°æ¨¡æ¿
 		targetImgHSV = imageHSV(rect);
 		calcHist(&imageROI, 2, channels, Mat(), dstHist, 1, &histSize, &histRange);
-		normalize(dstHist, dstHist, 0.0, 1.0, NORM_MINMAX); //¹éÒ»»¯
-		rectangle(srcImg, rect, Scalar(255, 0, 0), 3); //Ä¿±ê»æÖÆ
+		normalize(dstHist, dstHist, 0.0, 1.0, NORM_MINMAX); //å½’ä¸€åŒ–
+        //ç›®æ ‡ç»˜åˆ¶
+		rectangle(srcImg, rect, Scalar(255, 0, 0), 3);
 		pt.push_back(Point(rect.x + rect.width / 2, rect.y + rect.height / 2));
 		for (int i = 0; i < pt.size() - 1; i++)
 		{
