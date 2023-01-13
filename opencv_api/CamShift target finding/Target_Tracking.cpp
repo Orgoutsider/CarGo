@@ -56,10 +56,12 @@ bool TargetFinding(Mat srcImg, Rect *rect_, unsigned COLOR)
 	}
 	else return false;
 }
+
 void TargetTracking(VideoCapture* camera, unsigned RGB)
 {
 	Mat srcImg;
 	Rect rect;
+    //CamShift算法要求要把目标物体的矩形框传递进来，因此下面这几段是在寻找矩形框
 	bool targetFound = false;
 	while (!targetFound)
 	{
@@ -68,6 +70,7 @@ void TargetTracking(VideoCapture* camera, unsigned RGB)
 		if(targetFound)
 		imshow("rect", srcImg(rect));
 	}
+    //接下来进行正式的处理
     //目标初始化
 	rectImg = srcImg(rect);
 	imshow("target", rectImg);
