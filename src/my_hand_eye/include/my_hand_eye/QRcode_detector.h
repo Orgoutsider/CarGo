@@ -2,10 +2,9 @@
 #define _QRCODE_DETECTOR_H_
 #include "opencv2/opencv.hpp"
 
-#include "my_hand_eye/pose.hpp"
+#include "my_hand_eye/arm_controller.h"
 
 #include <std_msgs/Int16MultiArray.h>
-#include <ros/ros.h>
 #include <nodelet/nodelet.h>
 #include <std_msgs/String.h>
 #include <my_hand_eye/ArrayofTaskArrays.h>

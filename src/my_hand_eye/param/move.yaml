@@ -1,10 +1,10 @@
 servo:
   [
     {id: 1, speed: 5,  acc: 20},
-    {id: 2, speed: 20, acc: 20},
-    {id: 3, speed: 60, acc: 20},
-    {id: 4, speed: 50, acc: 20},
-    {id: 5, speed: 45, acc: 20}
+    {id: 2, speed: 13, acc: 20},
+    {id: 3, speed: 240, acc: 20},
+    {id: 4, speed: 200, acc: 20},
+    {id: 5, speed: 200, acc: 20}
   ]
 
 #x, y, z

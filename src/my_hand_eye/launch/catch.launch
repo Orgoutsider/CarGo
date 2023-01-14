@@ -1,6 +1,6 @@
 <launch>
     <arg name="node_namespace" default="my_hand_eye_QR_code_node" />
-    <arg name="ft_servo" default="ttyUSB0" />
+    <arg name="ft_servo" default="ft_servo" />
     <arg name="show_detections" default="true" />
     <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
@@ -15,8 +15,8 @@
     <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
 
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  args="manager"/>
-    <!-- <node pkg="my_hand_eye" type="my_hand_eye_QR_code_node" name="$(arg node_namespace)" output="screen" > -->
-    <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen" >
+    <node pkg="my_hand_eye" type="my_hand_eye_QR_code_node" name="$(arg node_namespace)" output="screen" >
+    <!-- <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen" > -->
         
         <!-- Remap topics from those used in code to those on the ROS network -->
         <remap from="image_rect" to="$(arg camera_name)/image_raw" />    

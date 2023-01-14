@@ -8,7 +8,7 @@
     <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
     <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml" ns="$(arg node_namespace)" />
   
-    <node pkg="apriltag_ros" type="apriltag_ros_multi_image_client_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" args="/dev/ttyUSB0">
+    <node pkg="apriltag_ros" type="apriltag_ros_multi_image_client_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" args="/dev/ft_servo">
       <!-- Remap topics from those used in code to those on the ROS network -->
       <remap from="image_rect" to="$(arg camera_name)/$(arg image_topic)" />
       <!-- Camera intrinsic parameters -->

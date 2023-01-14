@@ -14,10 +14,6 @@
 
 #include <ros/ros.h>
 #include <ros/console.h>
-#include <XmlRpcException.h>
-#include <cv_bridge/cv_bridge.h>
-#include <vision_msgs/BoundingBox2DArray.h>
-#include <image_transport/image_transport.h>
 #include <cmath>
 #include <numeric>
 
@@ -72,10 +68,11 @@ namespace my_hand_eye{
         bool go_to_and_wait(double x, double y, double z, bool cat);//运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);//通过中间点到达
         bool read_position(int ID);//读指定舵机位置
-        bool has_speed(int ID);//指定舵机速度是否0
+        bool read_move(int ID);//指定舵机运动
+        bool show_voltage();//显示电压，需要时警告
         bool read_all_position();//读所有舵机正确位置
-        bool is_moving();//判断所有舵机速度是否0
-        void wait_until_static();//等待
+        bool is_moving(int ID[], int IDn);//判断指定舵机运动
+        void wait_until_static(int ID[], int IDn);//等待静止
         bool refresh_xyz(bool read=true);//更新位置
         cv::Mat R_end_to_base();//机械臂末端到基底的·旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();//机械臂末端到基底的·平移向量（不保证实时性）
@@ -83,45 +80,12 @@ namespace my_hand_eye{
         ArmPose end_to_base_now();//更新位置，并返回旋转矩阵，平移向量
         bool calculate_cargo_position(double u, double v, double z, double &x, double &y);
         double distance(double length_goal, double height_goal, double &k);//中间点位置及移动方向
-        bool find_a_midpoint(s16 Position[]);//求中间点
         bool dfs(double length_goal, double height_goal);
+        bool find_a_midpoint(s16 Position[]);//求中间点
+        void wait_for_alpha_decrease(double alpha_bound);//等待alpha减小指定值
         void end();
     };
 
     bool generate_valid_position(double deg1, double deg2, double deg3, double deg4, double &x, double &y, double &z, bool &look);//根据舵机角度生成位姿
     cv::Mat R_T2homogeneous_matrix(const cv::Mat& R,const cv::Mat& T);
-
-    class ArmController
-    {
-    private:
-        int current_color_; double current_z_;
-        Pos ps_;
-        SMS_STS sm_st_;
-        SCSCL sc_;
-        ros::ServiceClient cargo_client_;
-        cv::Mat img_;
-        cv::Rect default_roi_;
-        std::vector<double> cargo_x_;
-        std::vector<double> cargo_y_;
-        const int red = 1, green = 2, blue = 3;
-    public:
-        ArmController();
-        ~ArmController();
-        bool show_detections_;
-        void init(ros::NodeHandle nh, ros::NodeHandle pnh);//初始化
-        bool draw_image(const cv_bridge::CvImagePtr& image);//添加图片
-        bool detect_cargo(const sensor_msgs::ImageConstPtr& image_rect, vision_msgs::BoundingBox2DArray& detections, 
-                            sensor_msgs::ImagePtr& debug_image, cv::Rect& rect );//向物块检测服务器发送请求
-        bool log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, 
-                            sensor_msgs::ImagePtr &debug_image);
-        bool find_with_color(vision_msgs::BoundingBox2DArray& objArray, const int color, 
-                            double z, double &x, double &y);//处理接收的图片，通过颜色确定位置
-        void average_position(double &x, double &y);//求得记录位置数据的平均值
-        bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                            bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint=false);
-        bool catch_with_2_steps(const sensor_msgs::ImageConstPtr& image_rect, const int color, double z, 
-                            bool& finish, sensor_msgs::ImagePtr &debug_image);
-        bool remember(double &x, double &y, double &z);//记忆位置
-    };
-    
 }

@@ -1,4 +1,4 @@
-#include "my_hand_eye/pose.hpp"
+#include "my_hand_eye/arm_controller.h"
 
 my_hand_eye::ArmController controller;
 int main(int argc, char **argv)

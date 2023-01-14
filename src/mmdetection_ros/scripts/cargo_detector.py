@@ -104,7 +104,7 @@ class Detector:
 
         self._last_msg = None
         # self._last_res_avaliable = False
-        self._last_res = BoundingBox2DArray()
+        self._last_res = {}
         self._msg_lock = threading.Lock()
         
         self._publish_rate = rospy.get_param('~publish_rate', 1)
@@ -260,7 +260,7 @@ class Detector:
 
                 objArray = self.generate_obj(bbox_result[0], im, msg)
                 # rospy.loginfo('RESPONSING SERVICE')
-                self._last_res = objArray
+                self._last_res[msg.header.stamp.to_nsec()] = objArray
 
                 # Visualize results
                 if self._visualization:
@@ -292,6 +292,7 @@ class Detector:
                     self.image_pub.publish(image_out) 
 
             rate.sleep()
+            self._last_res.clear()
 
     def service_handler(self, request):
         rospy.logdebug("Get an image")
@@ -300,8 +301,9 @@ class Detector:
             self._msg_lock.release()
             loop_rate = rospy.Rate(self._publish_rate)
             loop_rate.sleep()
+            objArray = self._last_res.get(request.image.header.stamp.to_nsec(), BoundingBox2DArray())
             # rospy.loginfo('RESPONSING SERVICE')
-            return cargoSrvResponse(self._last_res)
+            return cargoSrvResponse(objArray)
         else:
             # rospy.loginfo('RESPONSING SERVICE')
             return cargoSrvResponse(BoundingBox2DArray()) 

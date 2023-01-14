@@ -58,7 +58,7 @@ namespace my_hand_eye
         }
     }
 
-    void Pos::set_action(XmlRpc::XmlRpcValue& action, std::string name)
+    void Pos::set_action(XmlRpc::XmlRpcValue &action, std::string name)
     {
         ROS_ASSERT(action.getType() == XmlRpc::XmlRpcValue::TypeArray);
         ROS_ASSERT(action[0].getType() == XmlRpc::XmlRpcValue::TypeInt);
@@ -99,13 +99,6 @@ namespace my_hand_eye
 
     bool Pos::go_to(double x, double y, double z, bool cat, bool look)
     {
-        // double time_max = 0;
-        // bool valid = read_all_position();
-        // s16 tmp[6] = {0};
-        // if (valid)
-        // {
-        //     memcpy(tmp, Position, 6 * sizeof(s16));
-        // }
         this->x = x;
         this->y = y;
         this->z = z;
@@ -115,31 +108,20 @@ namespace my_hand_eye
         bool valid = calculate_position();
         if (valid)
         {
-            // for (int ID = 1; ID <= 5; ID++)
-            // {
-            //     double time = calculate_time(ID, tmp[ID]);
-            //     time_max = time > time_max ? time : time_max;
-            // }
-            // ROS_INFO("Done! Wait for %lf seconds", time_max);
-            // ros::Time now = ros::Time::now();
-            // ros::Duration du(time_max); // 以秒为单位
-            // ros::Time after_now = now + du;
-            // wait_time_ = after_now.toSec();
             int ID[] = {1, 2, 3, 4, 5};
             if (read_all_position() && arrive(ID, 5))
                 return valid;
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
             sm_st_ptr->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
             sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            wait_for_arriving(ID, 5);
-            // du.sleep();
+            wait_until_static(ID, 5);
         }
         return valid;
     }
 
     double Pos::calculate_time(int ID)
     {
-        // 时间（单位s）=[(位置-目标)/速度]+(速度/(加速度*100))
+        // 时间（单位s）=[(位置-目标)/速度]+(速度/(加速度*100)) or 0.1
         double time = 15.0;
         if (ID == 5)
             time = abs((Position[ID] - Position_now[ID]) * 1.0 / (Speed[ID] + 0.01)) + 0.1;
@@ -169,13 +151,17 @@ namespace my_hand_eye
     void Pos::wait_for_arriving(int ID[], int IDn)
     {
         double time_max = 0;
-        double b = 0.5;
-        read_all_position();
-        for (int i = 0; i < IDn; i++)
+        double b = 0.5; // 在估计时间的特定比例开始采样
+        if (read_all_position())
         {
-            double time = calculate_time(ID[i]);
-            time_max = time > time_max ? time : time_max;
+            for (int i = 0; i < IDn; i++)
+            {
+                double time = calculate_time(ID[i]);
+                time_max = time > time_max ? time : time_max;
+            }
         }
+        else
+            time_max = 15;
         ROS_INFO("Done! Wait for %lf seconds", time_max);
         ros::Duration du(time_max * b); // 以秒为单位
         du.sleep();
@@ -200,7 +186,7 @@ namespace my_hand_eye
             Position[1] = (s16)std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
             int ID[] = {1};
-            wait_for_arriving(ID, 1);
+            wait_until_static(ID, 1);
         }
         return valid;
     }
@@ -225,15 +211,15 @@ namespace my_hand_eye
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
             sm_st_ptr->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             int ID[] = {1, 3, 4};
-            wait_for_arriving(ID, 3);
+            wait_until_static(ID, 3);
 
             sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
             int ID2[] = {2};
-            wait_for_arriving(ID2, 1);
+            wait_until_static(ID2, 1);
 
             sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
             int ID3[] = {5};
-            wait_for_arriving(ID3, 1);
+            wait_until_static(ID3, 1);
         }
         return valid;
     }
@@ -254,27 +240,25 @@ namespace my_hand_eye
                 sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
                 sm_st_ptr->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
                 int ID[] = {1, 3, 4};
-                wait_for_arriving(ID, 3);
+                wait_until_static(ID, 3);
 
                 sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
                 int ID2[] = {2};
-                wait_for_arriving(ID2, 1);
+                wait_until_static(ID2, 1);
 
                 memcpy(Position, Position_goal, 6 * sizeof(s16));
-                
-                ros::Duration du1(0.5);
-                ros::Duration du2(1);
+
                 sm_st_ptr->WritePosEx(3, Position[3], Speed[3]);
-                du1.sleep();
                 sm_st_ptr->WritePosEx(4, Position[4], Speed[4]);
-                du2.sleep();               
-                sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
+                sm_st_ptr->RegWritePosEx(2, Position[2], Speed[2]);
+                wait_for_alpha_decrease(3);
                 int ID3[] = {2, 3, 4};
-                wait_for_arriving(ID3, 3);
+                sm_st_ptr->RegWriteAction(2);
+                wait_until_static(ID3, 3);
 
                 sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
                 int ID4[] = {5};
-                wait_for_arriving(ID4, 1);
+                wait_until_static(ID4, 1);
             }
             else
                 ROS_WARN("Failed to find a midpoint");
@@ -306,30 +290,55 @@ namespace my_hand_eye
         return true;
     }
 
-    bool Pos::has_speed(int ID)
+    bool Pos::read_move(int ID)
     {
-        int speed_now;
+        int move_now;
         if (ID == 1 || ID == 5)
-            speed_now = sc_ptr->ReadSpeed(ID);
+            move_now = sc_ptr->ReadMove(ID);
         else if (ID == 2 || ID == 3 || ID == 4)
-            speed_now = sm_st_ptr->ReadSpeed(ID);
+            move_now = sm_st_ptr->ReadMove(ID);
         else
         {
             ROS_ERROR("ID error!");
             return true;
         }
-        if (speed_now != -1)
+        if (move_now != -1)
         {
             // ROS_INFO_STREAM("speed:" << speed_now << "ID:" << ID);
             usleep(10 * 1000);
         }
         else
         {
-            ROS_ERROR("Failed to read speed!");
+            ROS_ERROR("Failed to read move!");
             sleep(1);
             return true;
         }
         return false;
+    }
+
+    bool Pos::show_voltage()
+    {
+        int Volt = sm_st_ptr->ReadVoltage(2);
+        if (Volt != -1)
+        {
+            usleep(10 * 1000);
+            if (Volt < 115)
+            {
+                ROS_WARN("Voltage %lfV is not enough", Volt / 10.0);
+                return false;
+            }
+            else
+            {
+                ROS_INFO("Voltage %lfV is enough", Volt / 10.0);
+                return true;
+            }
+        }
+        else
+        {
+            ROS_ERROR("Failed to read move!");
+            sleep(1);
+            return false;
+        }
     }
 
     bool Pos::read_all_position()
@@ -345,17 +354,14 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::is_moving()
+    bool Pos::is_moving(int ID[], int IDn)
     {
-        bool flag = false;
-        int ID = 1;
-        while (!flag)
+        for (int i = 0; i < IDn; i++)
         {
-            flag = has_speed(ID);
-            if ((++ID) > 5)
-                break;
+            if (read_move(ID[i]))
+                return false;
         }
-        return flag;
+        return true;
     }
 
     bool Pos::refresh_xyz(bool read)
@@ -383,24 +389,30 @@ namespace my_hand_eye
         return valid;
     }
 
-    void Pos::wait_until_static()
+    void Pos::wait_until_static(int ID[], int IDn)
     {
-        double r = 10;
-        ros::Rate rate(r);
-        int tim = 0; // 计时器
-        int cou = 0; // 静止计数
-        while (ros::ok() && cou < 15)
+        double time_max = 0;
+        double b = 0.5; // 在估计时间的特定比例开始采样
+        if (read_all_position())
         {
-            if (is_moving())
-                cou = 0;
-            else
-                cou++;
-            rate.sleep();
-            if (++tim > (15 * r))
+            for (int i = 0; i < IDn; i++)
             {
-                ROS_WARN("Timeout!");
-                break;
+                double time = calculate_time(ID[i]);
+                time_max = time > time_max ? time : time_max;
             }
+        }
+        else
+            time_max = 15;
+        ROS_INFO("Done! Wait for %lf seconds", time_max);
+        ros::Duration du(time_max * b); // 以秒为单位
+        du.sleep();
+        ros::Time now = ros::Time::now();
+        du = ros::Duration(time_max * (1 - b));
+        ros::Time time_after_now = now + du;
+        ros::Rate rt(7);
+        while (ros::ok() && is_moving(ID, IDn) && ros::Time::now() < time_after_now)
+        {
+            rt.sleep();
         }
     }
 
@@ -579,7 +591,7 @@ namespace my_hand_eye
     bool Pos::dfs(double length_goal, double height_goal)
     {
         double dist, k;
-        double kbound = 0.5;
+        double kbound = 0.55;
         static int ind[] = {4, 3, 2};
         static s16 sig[] = {1, -1, 1};
         if ((dist = distance(length_goal, height_goal, k)) > 8 || dist < -0.2 || k > 4 || k < -4)
@@ -619,7 +631,7 @@ namespace my_hand_eye
     bool Pos::find_a_midpoint(s16 Position_goal[])
     {
         memcpy(Position_goal, Position, 6 * sizeof(s16));
-        ROS_INFO_STREAM("length:" << length() << " height" << height());
+        // ROS_INFO_STREAM("length:" << length() << " height:" << height());
         bool fin = dfs(length(), height());
         if (fin)
         {
@@ -632,297 +644,47 @@ namespace my_hand_eye
                 Position[3] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg3 / 180);
                 Position[4] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg4 / 180);
             }
-            ROS_INFO_STREAM("length:" << length() << " height" << height());
+            // ROS_INFO_STREAM("length:" << length() << " height:" << height());
         }
         return fin;
     }
 
-    ArmController::ArmController() : ps_(&sm_st_, &sc_), default_roi_(480, 0, 960, 1080)
+    void Pos::wait_for_alpha_decrease(double alpha_bound)
     {
-        cargo_x_.reserve(10);
-        cargo_y_.reserve(10);
-    };
-
-    ArmController::~ArmController()
-    {
-        ps_.end();
-    }
-
-    void ArmController::init(ros::NodeHandle nh, ros::NodeHandle pnh)
-    {
-        XmlRpc::XmlRpcValue servo_descriptions;
-        XmlRpc::XmlRpcValue default_action;
-        XmlRpc::XmlRpcValue put_action;
-        if (!pnh.getParam("servo", servo_descriptions))
+        ros::Rate rate(7);
+        ros::Duration du(0.8);
+        ros::Time after_now = ros::Time::now() + du;
+        bool flag = false;
+        while (ros::ok() && ros::Time::now() < after_now &&
+               read_position(2) && read_position(3) && read_position(4))
         {
-            ROS_ERROR("No speed and acc specified");
-        }
-        if (!pnh.getParam("default_action", default_action))
-        {
-            ROS_ERROR("No default action specified");
-        }
-        if (!pnh.getParam("put_action", put_action))
-        {
-            ROS_ERROR("No put action specified");
-        }
-        std::string ft_servo;
-        pnh.param<std::string>("ft_servo", ft_servo, "/dev/ttyUSB0");
-        ROS_INFO_STREAM("serial:" << ft_servo);
-        if (!ps_.begin(ft_servo.c_str()))
-        {
-            ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
-        }
-        ps_.ping();
-        ps_.set_speed_and_acc(servo_descriptions);
-        ps_.set_action(default_action);
-        ps_.set_action(put_action, "put");
-
-        cargo_client_ = nh.serviceClient<mmdetection_ros::cargoSrv>("cargoSrv");
-    }
-
-    bool ArmController::draw_image(const cv_bridge::CvImagePtr &image)
-    {
-        if (image->image.empty())
-        {
-            ROS_ERROR("No data!");
-            return false;
-        }
-        // cv::cvtColor(image->image, image->image, cv::COLOR_RGB2BGR);
-        img_ = image->image;
-        return true;
-    }
-
-    bool ArmController::detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections, sensor_msgs::ImagePtr &debug_image, cv::Rect &roi)
-    {
-        if (!cargo_client_.exists())
-            cargo_client_.waitForExistence();
-        cv_bridge::CvImagePtr cv_image;
-        try
-        {
-            cv_image = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
-        }
-        catch (cv_bridge::Exception &e)
-        {
-            ROS_ERROR("cv_bridge exception: %s", e.what());
-            return false;
-        }
-        bool flag = draw_image(cv_image);
-        cv_image->image = cv_image->image(roi);
-        mmdetection_ros::cargoSrv cargo;
-        debug_image = (*cv_image).toImageMsg();
-        cargo.request.image = *debug_image;
-        // 发送请求,返回 bool 值，标记是否成功
-        if (flag)
-            flag = cargo_client_.call(cargo);
-        if (flag)
-        {
-            detections = cargo.response.results;
-
-            if (show_detections_)
+            double deg2 = (Position_now[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+            double deg3 = (Position_now[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+            double deg4 = (Position_now[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+            Angle j2 = Angle(deg2);
+            Angle j3 = Angle(deg3);
+            Angle j4 = Angle(deg4);
+            if (!(j2._valid_degree(2) && j3._valid_degree(3) && j4._valid_degree(4)))
             {
-                // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
-                if (cargo.response.results.boxes.size())
-                {
-                    for (int color = 1; color <= 3; color++)
-                    {
-                        if (!cargo.response.results.boxes[color].center.x)
-                            continue;
-                        cv::RotatedRect rect(cv::Point2f(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
-                                             cv::Size2f(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
-                                             cargo.response.results.boxes[color].center.theta);
-                        cv::Point2f vtx[4]; // 矩形顶点容器
-                        // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
-                        rect.points(vtx);
-                        cv::Scalar colors; // 确定旋转矩阵的四个顶点
-                        switch (color)
-                        {
-                        case 1:
-                            colors = cv::Scalar(0, 0, 255);
-                            break;
-                        case 2:
-                            colors = cv::Scalar(0, 255, 0);
-                            break;
-                        case 3:
-                            colors = cv::Scalar(255, 0, 0);
-                            break;
-                        default:
-                            break;
-                        }
-                        for (int j = 0; j < 4; j++)
-                        {
-                            cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2); // 随机颜色绘制矩形
-                        }
-                    }
-                }
-                debug_image = (*cv_image).toImageMsg();
+                ROS_WARN("invalid degree!");
+                return;
             }
-            if (detections.boxes.size())
+            j2._j_degree_convert(2);
+            j3._j_degree_convert(3);
+            j4._j_degree_convert(4);
+            double alpha = (j2 + j3 + j4)._get_degree();
+            ROS_INFO_STREAM("alpha:" << alpha);
+            if (!flag)
             {
-                for (int color = 1; color <= 3; color++)
-                {
-                    if (!detections.boxes[color].center.x)
-                        continue;
-                    detections.boxes[color].center.x += roi.x;
-                    detections.boxes[color].center.y += roi.y;
-                }
+                alpha_bound = alpha - alpha_bound;
+                flag = true;
             }
-        }
-        else
-            ROS_WARN("responce invalid!");
-        return flag;
-    }
-
-    bool ArmController::log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, sensor_msgs::ImagePtr &debug_image)
-    {
-        vision_msgs::BoundingBox2DArray objArray;
-        cv::Rect rect(480, 0, 960, 1080);
-        bool valid = detect_cargo(image_rect, objArray, debug_image, rect);
-        if (valid)
-        {
-            double x = 0, y = 0;
-            if (find_with_color(objArray, green, z, x, y))
-                ROS_INFO_STREAM("x:" << x << " y:" << y);
-        }
-        return valid;
-    }
-
-    bool ArmController::find_with_color(vision_msgs::BoundingBox2DArray &objArray, const int color, double z, double &x, double &y)
-    {
-        // if (ps_.wait_time_ && !objArray.header.stamp.isZero() && objArray.header.stamp.toSec() < ps_.wait_time_)
-        // {
-        //     ROS_INFO("wait...");
-        //     return false;
-        // }
-        if (objArray.boxes.size() == 4)
-        {
-            if (!objArray.boxes[color].center.x)
-                return false;
-            double u = objArray.boxes[color].center.x;
-            double v = objArray.boxes[color].center.y;
-            return ps_.calculate_cargo_position(u, v, z, x, y);
-        }
-        return false;
-    }
-
-    void ArmController::average_position(double &x, double &y)
-    {
-        x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
-        y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
-    }
-
-    bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                                         bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint)
-    {
-        if (!cargo_x_.size())
-        {
-            current_color_ = color;
-            current_z_ = z;
-            ps_.reset();
-        }
-        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
-        {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            current_color_ = color;
-            current_z_ = z;
-            ROS_INFO("3");
-            ps_.reset();
-        }
-        finish = false;
-        vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
-        if (valid)
-        {
-            double x = 0, y = 0;
-            if (find_with_color(objArray, current_color_, z, x, y))
+            else if (alpha < alpha_bound)
             {
-                ROS_INFO_STREAM("x:" << x << " y:" << y);
-                cargo_x_.push_back(x);
-                cargo_y_.push_back(y);
-                if (cargo_x_.size() == 10)
-                {
-                    double x_aver = 0, y_aver = 0;
-                    average_position(x_aver, y_aver);
-                    cargo_x_.clear();
-                    cargo_y_.clear();
-                    if (midpoint)
-                        valid = ps_.go_to_by_midpoint(x_aver, y_aver, current_z_);
-                    else
-                        valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
-                    if (valid)
-                    {
-                        ps_.go_to(ps_.default_x, ps_.default_y, ps_.default_z, true, true);
-                        if (ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false))
-                            ps_.reset();
-                    }
-                    finish = true;
-                }
+                ROS_INFO("Stop waiting because of alpha");
+                break;
             }
-            else
-                return false;
+            rate.sleep();
         }
-        return valid;
-    }
-
-    bool ArmController::catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                                           bool &finish, sensor_msgs::ImagePtr &debug_image)
-    {
-        if (!cargo_x_.size())
-        {
-            current_color_ = color;
-            current_z_ = z;
-            ps_.reset();
-        }
-        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
-        {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            current_color_ = color;
-            current_z_ = z;
-            ps_.reset();
-        }
-        finish = false;
-        vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
-        if (valid)
-        {
-            double x = 0, y = 0;
-            if (find_with_color(objArray, current_color_, z, x, y))
-            {
-                ROS_INFO_STREAM("x:" << x << " y:" << y);
-                cargo_x_.push_back(x);
-                cargo_y_.push_back(y);
-                if (cargo_x_.size() == 5)
-                {
-                    double x_aver = 0, y_aver = 0;
-                    average_position(x_aver, y_aver);
-                    ps_.do_first_step(x_aver, y_aver);
-                }
-                else if (cargo_x_.size() == 10)
-                {
-                    double x_aver = 0, y_aver = 0;
-                    average_position(x_aver, y_aver);
-                    cargo_x_.clear();
-                    cargo_y_.clear();
-                    ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
-                    finish = true;
-                }
-            }
-            else
-                return false;
-        }
-        return valid;
-    }
-
-    bool ArmController::remember(double &x, double &y, double &z)
-    {
-        if (ps_.refresh_xyz())
-            ARM_INFO_XYZ(ps_);
-        else
-            return false;
-        x = ps_.x;
-        y = ps_.y;
-        z = ps_.z;
-        return true;
     }
 }

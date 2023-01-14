@@ -77,13 +77,14 @@ namespace my_hand_eye
 
 	void QRcodeDetector::imageCallback(const sensor_msgs::ImageConstPtr& image_rect)
 	{
-		static bool finish = false;
-		if (!finish)
+		static bool stop = false;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!stop)
 		{
-			sensor_msgs::ImagePtr debug_image;
-			arm_controller_.catch_straightly(image_rect, 3, z_turntable, finish, debug_image, true);
+			double u, v;
+			arm_controller_.target_tracking(image_rect, arm_controller_.blue, u, v, stop, debug_image);
 			if (arm_controller_.show_detections_)
-				debug_image_publisher_.publish(*debug_image);
+				debug_image_publisher_.publish(debug_image);
 		}
 	}
 }
