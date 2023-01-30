@@ -30,7 +30,7 @@ namespace my_hand_eye
         SMS_STS sm_st_;
         SCSCL sc_;
         ros::ServiceClient cargo_client_; // mmdetection+颜色识别
-        ros::ServiceClient plot_client_;   // 运动范围绘制
+        ros::ServiceClient plot_client_;  // 运动范围绘制
         ros::Time last_time_;
         cv::Rect default_roi_; // 截图矩形
         cv::Rect rect_;        // CamShift算法要求要把目标物体的矩形框传递进来
@@ -43,8 +43,8 @@ namespace my_hand_eye
     public:
         ArmController();
         ~ArmController();
-        const double z_floor = 2.9;   // 底盘距地6mm，物块高度一半35mm
-        const double z_turntable = 7; // 转盘
+        const double z_floor = 3.5;   // 底盘距地6mm，物块高度一半35mm
+        const double z_turntable = 6.4; // 转盘
         bool show_detections_;
         void init(ros::NodeHandle nh, ros::NodeHandle pnh, bool emulation);                         // 初始化
         bool add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image); // 添加图片
@@ -70,7 +70,15 @@ namespace my_hand_eye
         double distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
                             double x, double y, double z); // 障碍物最短距离
         bool find_points_with_height(double h, bool done);
+        // 椭圆识别
+        bool ellipse_target_find(const sensor_msgs::ImageConstPtr &image_rect,
+                                 sensor_msgs::ImagePtr &debug_image, cv::Rect &roi);
+        bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+                              bool &finish, sensor_msgs::ImagePtr &debug_image);
     };
+
+    // 椭圆圆心十字光标绘制，用于调试观察
+    void draw_cross(cv::Mat &img, cv::Point2f point, cv::Scalar color, int size, int thickness);
 
 } // namespace my_hand_eye
 

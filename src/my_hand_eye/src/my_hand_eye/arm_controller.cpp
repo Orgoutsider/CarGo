@@ -468,4 +468,207 @@ namespace my_hand_eye
         }
         return valid;
     }
+
+    bool ArmController::ellipse_target_find(const sensor_msgs::ImageConstPtr &image_rect,
+                                            sensor_msgs::ImagePtr &debug_image, cv::Rect &roi)
+    {
+        cv_bridge::CvImagePtr cv_image;
+        if (!add_image(image_rect, cv_image))
+            return false;
+        cv_image->image = cv_image->image(roi);
+        using namespace cv;
+        Mat srcdst, srcCopy;          // 从相机传进来需要两张图片
+        Point2d _center;              // 椭圆中心
+        std::vector<Point2d> centers; // 椭圆中心容器
+        std::vector<Point2d> center;  // 目标椭圆容器
+        const int Gauss_size = 3;     // 高斯平滑内核大小
+        const int Canny_low = 50;     // 第一次Canny边缘查找的第一滞后因子
+        const int Canny_up = 100;     // 第一次Canny边缘查找的第二滞后因子
+
+        const int con_Area_min = 4500;   // 粗筛-最小面积阈值
+        const int con_Point_cont = 20;   // 粗筛-图形最少点个数阈值，即连成某个封闭轮廓的点的个数，少于该阈值表明轮廓无效
+        const int con_Area_max = 200000; // 粗筛-最大面积阈值
+
+        // 直线斜率处处相等原理的相关参数
+        int line_Point[6] = {0, 0, 10, 20, 30, 40}; // 表示围成封闭轮廓点的序号，只要不太离谱即可
+        const int line_threshold = 0.5;             // 判定阈值，小于即判定为直线
+
+        resize(cv_image->image, srcdst, cv_image->image.size()); // 重设大小，可选
+        srcCopy = srcdst.clone();
+
+        // 第一次预处理
+        GaussianBlur(srcdst, srcdst, Size(Gauss_size, Gauss_size), 0, 0);
+        cvtColor(srcdst, srcdst, COLOR_BGR2GRAY);
+        Canny(srcdst, srcdst, Canny_low, Canny_up, 3);
+        // imshow("step1.", srcdst);//用于调试
+        // ROI设置
+        Mat mm = srcCopy(Rect(0, 0, srcCopy.cols, srcCopy.rows));
+        mm = {Scalar(0, 0, 0)}; // 把ROI中的像素值改为黑色
+
+        // 第一次轮廓查找
+        std::vector<std::vector<Point2i>> contours; // 创建容器，存储轮廓
+        std::vector<Vec4i> hierarchy;               // 寻找轮廓所需参数
+        findContours(srcdst, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
+
+        // Mat imageContours = Mat::zeros(mm.size(), CV_8UC1);//创建轮廓展示图像，用于调试
+        // 如果查找到了轮廓
+        if (contours.size())
+        {
+
+            // // 轮廓展示，用于调试
+            // for (int i = 0; i < contours.size(); i++)
+            // {
+            //     drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
+            // }
+            // imshow("Contours_1", imageContours);
+            // 第一次排除
+            for (int i = 0; i < contours.size(); i++)
+            {
+                // 初筛
+                if (contourArea(contours[i]) < con_Area_min ||
+                    contours[i].size() < con_Point_cont || contourArea(contours[i]) > con_Area_max)
+                    continue;
+                // 利用直线斜率处处相等的原理
+                Point2d pt[6];
+                for (int j = 1; j < 5; j++)
+                {
+                    if (contours.size() - 1 < line_Point[5])
+                    {
+                        pt[j] = contours[j][(int)floor(contours.size() / 4.0) * (j - 1)];
+                    }
+                    else
+                        pt[j] = contours[j][line_Point[j]];
+                }
+                if (abs(((pt[3].y - pt[1].y) * 1.0 / (pt[3].x - pt[1].x) -
+                         (pt[2].y - pt[1].y) * 1.0 / (pt[2].x - pt[2].x))) < line_threshold)
+                    continue;
+                if (abs(((pt[5].y - pt[3].y) * 1.0 / (pt[5].x - pt[3].x) -
+                         (pt[4].y - pt[3].y) * 1.0 / (pt[4].x - pt[3].x))) < line_threshold)
+                    continue;
+                // // 利用凹凸性的原理
+                // if (!abs((contours[i][0].y + contours[i][20].y) / 2 - contours[i][10].y))
+                //     continue;
+                // drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
+                RotatedRect m_ellipsetemp;               // 创建接收椭圆的容器
+                m_ellipsetemp = fitEllipse(contours[i]); // 找到的第一个轮廓，放置到m_ellipsetemp
+                if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2)
+                    continue;
+                ellipse(mm, m_ellipsetemp, cv::Scalar(255, 255, 255)); // 在图像中绘制椭圆，必要
+            }
+            // imshow("Contours_1", imageContours);
+            // imshow("mm", mm); // 显示第一次排除结果，用于调试
+        }
+        // 第二次预处理
+        Mat mmdst;
+        GaussianBlur(mm, mmdst, Size(Gauss_size, Gauss_size), 0, 0);
+        cvtColor(mmdst, mmdst, COLOR_BGR2GRAY);
+        Canny(mmdst, mmdst, 50, 150, 3);
+        imshow("step2.", mmdst);//用于调试
+        // 第二次轮廓查找
+        std::vector<std::vector<Point2i>> contours1; // 创建容器，存储轮廓
+        std::vector<Vec4i> hierarchy1;        // 寻找轮廓所需参数
+        findContours(mmdst, contours1, hierarchy1, RETR_CCOMP, CHAIN_APPROX_NONE);
+        // Mat imageContours1 = Mat::zeros(mmdst.size(), CV_8UC1);//创建轮廓展示图像，用于调试
+        // 如果查找到了轮廓
+        if (contours1.size())
+        {
+            // 第二次筛除
+            for (int i = 0; i < contours1.size(); i++)
+            {
+                // 初筛
+                if (contours1[i].size() < 10 || contours1[i].size() > 1000)
+                    continue;
+                // 利用凹凸性的原理
+                // if (!abs((contours1[i][0].y + contours1[i][20].y) / 2 - contours1[i][10].y))
+                //	continue;
+                if (contourArea(contours1[i]) < 4500 || contourArea(contours1[i]) > 180000)
+                    continue;
+                // drawContours(imageContours1, contours1, i, Scalar(255), 1, 8);//用于调试
+
+                RotatedRect m_ellipsetemp1;
+                m_ellipsetemp1 = fitEllipse(contours1[i]);
+                ellipse(cv_image->image, m_ellipsetemp1, cv::Scalar(255, 0, 0)); // 绘制椭圆，用于调试
+                _center = m_ellipsetemp1.center;                        // 读取椭圆中心，必要
+                // drawCross(srcCopy, _center, Scalar(255, 0, 0), 30, 2);//绘制中心十字，用于调试
+                circle(cv_image->image, _center, 1, Scalar(0, 255, 0), -1); // 画半径为1的圆(画点）, 用于调试
+                centers.push_back(_center);
+            }
+            // imshow("Contours_2", imageContours1);//用于调试
+            // cout << centers.size() << endl;
+            bool flag[100] = {0};
+            // 聚类
+            for (int i = 0; i < centers.size() - 2; i++)
+            {
+                flag[i] = true;
+                int x_temp = centers[i].x, y_temp = centers[i].y, count = 1;
+                for (int j = 1; j < centers.size(); j++)
+                {
+                    if (abs(centers[i].x - centers[j].x) < 10 && abs(centers[i].y - centers[j].y) < 10)
+                    {
+                        if (!flag[j])
+                        {
+                            flag[j] = true;
+                            x_temp = x_temp + centers[j].x;
+                            y_temp = y_temp + centers[j].y;
+                            count++;
+                        }
+                        else
+                            continue;
+                    }
+                }
+                if (count > 2)
+                {
+                    // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
+                    center.push_back(cv::Point(x_temp / count, y_temp / count));
+                }
+            }
+            ROS_INFO_STREAM("The number of ellipse is " << center.size());
+            // 绘制中心十字，用于调试
+            for (size_t i = 0; i < center.size(); i++)
+            {
+                draw_cross(cv_image->image, center[i], Scalar(0, 0, 255), 30, 2);
+            }
+            // 颜色标定
+            // 目前就差这一步了
+        }
+        imshow("srcCopy", cv_image->image); // 用于调试
+        cv::waitKey(60);
+        if (show_detections_)
+            debug_image = cv_image->toImageMsg();
+        return true;        
+    }
+
+    bool ArmController::put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+                                         bool &finish, sensor_msgs::ImagePtr &debug_image)
+    {
+        if (!cargo_x_.size())
+        {
+            current_color_ = color;
+            current_z_ = z;
+            ps_.reset();
+        }
+        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
+        {
+            cargo_x_.clear();
+            cargo_y_.clear();
+            current_color_ = color;
+            current_z_ = z;
+            ps_.reset();
+        }
+        finish = false;
+        cargo_x_.push_back(0);
+        ellipse_target_find(image_rect, debug_image, default_roi_);
+        return true;
+    }
+
+    void draw_cross(cv::Mat &img, cv::Point2f point, cv::Scalar color, int size, int thickness)
+    {
+        // 绘制横线
+        line(img, cv::Point(point.x - size / 2, point.y),
+             cv::Point(point.x + size / 2, point.y), color, thickness, 8, 0);
+        // 绘制竖线
+        line(img, cv::Point(point.x, point.y - size / 2),
+             cv::Point(point.x, point.y + size / 2), color, thickness, 8, 0);
+    }
+
 } // namespace my_hand_eye

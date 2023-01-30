@@ -1,6 +1,7 @@
 #pragma once
 #define ARM_P 7.5
-#define ARM_A1 12.4
+// #define ARM_A1 12.4
+#define ARM_A1 13
 #define ARM_A2 13.15
 #define ARM_A3 12.53
 // #define ARM_A4 10.7

@@ -500,7 +500,9 @@ namespace my_hand_eye
         double sj1 = j1.sin();
         double calpha = alpha.cos();
         double salpha = alpha.sin();
-        cv::Mat R = (cv::Mat_<double>(3, 3) << cj1 * calpha, -sj1, cj1 * salpha, sj1 * calpha, cj1, sj1 * salpha, -salpha, 0.0, calpha);
+        cv::Mat R = (cv::Mat_<double>(3, 3) << cj1 * calpha, -sj1, cj1 * salpha,
+                     sj1 * calpha, cj1, sj1 * salpha,
+                     -salpha, 0.0, calpha);
         return R;
     }
 
@@ -877,7 +879,7 @@ namespace my_hand_eye
             // ROS_ERROR_STREAM("size:" << arr.points.size());
             if (arr.points.size())
             {
-                my_hand_eye::Plot plt;             
+                my_hand_eye::Plot plt;
                 return true;
             }
             else
