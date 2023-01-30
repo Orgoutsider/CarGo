@@ -1,33 +1,33 @@
-#include<opencv.hpp>
-#include<iostream>
+#include <opencv.hpp>
+#include <iostream>
 using namespace cv;
 using namespace std;
 
-const int Gauss_size = 3;//¸ßË¹Æ½»¬ÄÚºË´óĞ¡
-const int Canny_low = 50;//µÚÒ»´ÎCanny±ßÔµ²éÕÒµÄµÚÒ»ÖÍºóÒò×Ó
-const int Canny_up = 100;//µÚÒ»´ÎCanny±ßÔµ²éÕÒµÄµÚ¶şÖÍºóÒò×Ó
+const int Gauss_size = 3; // é«˜æ–¯å¹³æ»‘å†…æ ¸å¤§å°
+const int Canny_low = 50; // ç¬¬ä¸€æ¬¡Cannyè¾¹ç¼˜æŸ¥æ‰¾çš„ç¬¬ä¸€æ»åå› å­
+const int Canny_up = 100; // ç¬¬ä¸€æ¬¡Cannyè¾¹ç¼˜æŸ¥æ‰¾çš„ç¬¬äºŒæ»åå› å­
 
-const int con_Area_min = 4500;//´ÖÉ¸-×îĞ¡Ãæ»ıãĞÖµ
-const int con_Point_cont = 20;//´ÖÉ¸-Í¼ĞÎ×îÉÙµã¸öÊıãĞÖµ£¬¼´Á¬³ÉÄ³¸ö·â±ÕÂÖÀªµÄµãµÄ¸öÊı£¬ÉÙÓÚ¸ÃãĞÖµ±íÃ÷ÂÖÀªÎŞĞ§
-const int con_Area_max = 200000;//´ÖÉ¸-×î´óÃæ»ıãĞÖµ
+const int con_Area_min = 4500;	 // ç²—ç­›-æœ€å°é¢ç§¯é˜ˆå€¼
+const int con_Point_cont = 20;	 // ç²—ç­›-å›¾å½¢æœ€å°‘ç‚¹ä¸ªæ•°é˜ˆå€¼ï¼Œå³è¿æˆæŸä¸ªå°é—­è½®å»“çš„ç‚¹çš„ä¸ªæ•°ï¼Œå°‘äºè¯¥é˜ˆå€¼è¡¨æ˜è½®å»“æ— æ•ˆ
+const int con_Area_max = 200000; // ç²—ç­›-æœ€å¤§é¢ç§¯é˜ˆå€¼
 
-//Ö±ÏßĞ±ÂÊ´¦´¦ÏàµÈÔ­ÀíµÄÏà¹Ø²ÎÊı
-const int line_Point_1 = 10;//µã1£¬¸ÃÊı×Ö±íÊ¾Î§³É·â±ÕÂÖÀªµãµÄĞòºÅ£¬Ö»Òª²»Ì«ÀëÆ×¼´¿É
-const int line_Point_2 = 20;//µã2
-const int line_threshold = 0.5;//ÅĞ¶¨ãĞÖµ£¬Ğ¡ÓÚ¼´ÅĞ¶¨ÎªÖ±Ïß
+// ç›´çº¿æ–œç‡å¤„å¤„ç›¸ç­‰åŸç†çš„ç›¸å…³å‚æ•°
+const int line_Point_1 = 10;	// ç‚¹1ï¼Œè¯¥æ•°å­—è¡¨ç¤ºå›´æˆå°é—­è½®å»“ç‚¹çš„åºå·ï¼Œåªè¦ä¸å¤ªç¦»è°±å³å¯
+const int line_Point_2 = 20;	// ç‚¹2
+const int line_threshold = 0.5; // åˆ¤å®šé˜ˆå€¼ï¼Œå°äºå³åˆ¤å®šä¸ºç›´çº¿
 
-bool flag[100];//¾ÛÀà±êÊ¶Î»
+bool flag[100]; // èšç±»æ ‡è¯†ä½
 
-//ÍÖÔ²Ô²ĞÄÊ®×Ö¹â±ê»æÖÆ£¬ÓÃÓÚµ÷ÊÔ¹Û²ì
-void drawCross(Mat& img, Point2f point, Scalar color, int size, int thickness = 1)
+// æ¤­åœ†åœ†å¿ƒåå­—å…‰æ ‡ç»˜åˆ¶ï¼Œç”¨äºè°ƒè¯•è§‚å¯Ÿ
+void drawCross(Mat &img, Point2f point, Scalar color, int size, int thickness = 1)
 {
-	//»æÖÆºáÏß
+	// ç»˜åˆ¶æ¨ªçº¿
 	line(img, Point(point.x - size / 2, point.y), Point(point.x + size / 2, point.y), color, thickness, 8, 0);
-	//»æÖÆÊúÏß
+	// ç»˜åˆ¶ç«–çº¿
 	line(img, Point(point.x, point.y - size / 2), Point(point.x, point.y + size / 2), color, thickness, 8, 0);
 }
 
-//±êÊ¶Î»³õÊ¼»¯
+// æ ‡è¯†ä½åˆå§‹åŒ–
 void flag_init()
 {
 	for (size_t i = 0; i < 100; i++)
@@ -45,34 +45,34 @@ void ellipseTargetFind(VideoCapture camera)
 			break;
 		if ((char)waitKey(1) == 27)
 			break;
-		
-		Mat srcdst, srcCopy;//´ÓÏà»ú´«½øÀ´ĞèÒªÁ½ÕÅÍ¼Æ¬
-		Point2f _center;//ÍÖÔ²ÖĞĞÄ
-		vector<Point2f> centers;//ÍÖÔ²ÖĞĞÄÈİÆ÷
-		vector<Point2f> center;//Ä¿±êÍÖÔ²ÈİÆ÷
-		resize(srcImg, srcdst, srcImg.size());//ÖØÉè´óĞ¡£¬¿ÉÑ¡
+
+		Mat srcdst, srcCopy;				   // ä»ç›¸æœºä¼ è¿›æ¥éœ€è¦ä¸¤å¼ å›¾ç‰‡
+		Point2f _center;					   // æ¤­åœ†ä¸­å¿ƒ
+		vector<Point2f> centers;			   // æ¤­åœ†ä¸­å¿ƒå®¹å™¨
+		vector<Point2f> center;				   // ç›®æ ‡æ¤­åœ†å®¹å™¨
+		resize(srcImg, srcdst, srcImg.size()); // é‡è®¾å¤§å°ï¼Œå¯é€‰
 		srcCopy = srcdst.clone();
 
-		//µÚÒ»´ÎÔ¤´¦Àí
+		// ç¬¬ä¸€æ¬¡é¢„å¤„ç†
 		GaussianBlur(srcdst, srcdst, Size(Gauss_size, Gauss_size), 0, 0);
 		cvtColor(srcdst, srcdst, COLOR_BGR2GRAY);
 		Canny(srcdst, srcdst, Canny_low, Canny_up, 3);
-		//imshow("step1.", srcdst);//ÓÃÓÚµ÷ÊÔ
-		//ROIÉèÖÃ
+		// imshow("step1.", srcdst);//ç”¨äºè°ƒè¯•
+		// ROIè®¾ç½®
 		Mat mm = srcCopy(Rect(0, 0, srcCopy.cols, srcCopy.rows));
-		mm = { Scalar(0, 0, 0) };//°ÑROIÖĞµÄÏñËØÖµ¸ÄÎªºÚÉ«
+		mm = {Scalar(0, 0, 0)}; // æŠŠROIä¸­çš„åƒç´ å€¼æ”¹ä¸ºé»‘è‰²
 
-		//µÚÒ»´ÎÂÖÀª²éÕÒ
-		vector<vector<Point> > contours;// ´´½¨ÈİÆ÷£¬´æ´¢ÂÖÀª
-		vector<Vec4i> hierarchy;// Ñ°ÕÒÂÖÀªËùĞè²ÎÊı
+		// ç¬¬ä¸€æ¬¡è½®å»“æŸ¥æ‰¾
+		vector<vector<Point>> contours; // åˆ›å»ºå®¹å™¨ï¼Œå­˜å‚¨è½®å»“
+		vector<Vec4i> hierarchy;		// å¯»æ‰¾è½®å»“æ‰€éœ€å‚æ•°
 		findContours(srcdst, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
 
-		//Mat imageContours = Mat::zeros(mm.size(), CV_8UC1);//´´½¨ÂÖÀªÕ¹Ê¾Í¼Ïñ£¬ÓÃÓÚµ÷ÊÔ
-		//Èç¹û²éÕÒµ½ÁËÂÖÀª
+		// Mat imageContours = Mat::zeros(mm.size(), CV_8UC1);//åˆ›å»ºè½®å»“å±•ç¤ºå›¾åƒï¼Œç”¨äºè°ƒè¯•
+		// å¦‚æœæŸ¥æ‰¾åˆ°äº†è½®å»“
 		if (contours.size())
 		{
-			
-			//ÂÖÀªÕ¹Ê¾£¬ÓÃÓÚµ÷ÊÔ
+
+			// è½®å»“å±•ç¤ºï¼Œç”¨äºè°ƒè¯•
 			/*
 			for (int i = 0; i < contours.size(); i++)
 			{
@@ -80,66 +80,66 @@ void ellipseTargetFind(VideoCapture camera)
 			}
 			imshow("Contours_1", imageContours);
 			*/
-			//µÚÒ»´ÎÅÅ³ı
+			// ç¬¬ä¸€æ¬¡æ’é™¤
 			for (int i = 0; i < contours.size(); i++)
 			{
-				//³õÉ¸
+				// åˆç­›
 				if (contourArea(contours[i]) < con_Area_min || contours[i].size() < con_Point_cont || contourArea(contours[i]) > con_Area_max)
 					continue;
-				//ÀûÓÃÖ±ÏßĞ±ÂÊ´¦´¦ÏàµÈµÄÔ­Àí
+				// åˆ©ç”¨ç›´çº¿æ–œç‡å¤„å¤„ç›¸ç­‰çš„åŸç†
 				if (abs(((double)(contours[i][0].y - contours[i][line_Point_1].y) / (double)(contours[i][0].x - contours[i][line_Point_1].x) - (double)(contours[i][line_Point_1].y - contours[i][line_Point_2].y) / (double)(contours[i][line_Point_1].x - contours[i][line_Point_2].x))) < line_threshold)
 					continue;
-				//ÀûÓÃ°¼Í¹ĞÔµÄÔ­Àí
+				// åˆ©ç”¨å‡¹å‡¸æ€§çš„åŸç†
 				if (!abs((contours[i][0].y + contours[i][20].y) / 2 - contours[i][10].y))
 					continue;
-				//drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
-				RotatedRect m_ellipsetemp;//´´½¨½ÓÊÕÍÖÔ²µÄÈİÆ÷
-				m_ellipsetemp = fitEllipse(contours[i]);  //ÕÒµ½µÄµÚÒ»¸öÂÖÀª£¬·ÅÖÃµ½m_ellipsetemp
+				// drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
+				RotatedRect m_ellipsetemp;				 // åˆ›å»ºæ¥æ”¶æ¤­åœ†çš„å®¹å™¨
+				m_ellipsetemp = fitEllipse(contours[i]); // æ‰¾åˆ°çš„ç¬¬ä¸€ä¸ªè½®å»“ï¼Œæ”¾ç½®åˆ°m_ellipsetemp
 				if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2)
 					continue;
-				ellipse(mm, m_ellipsetemp, cv::Scalar(255, 255, 255));//ÔÚÍ¼ÏñÖĞ»æÖÆÍÖÔ²£¬±ØÒª
+				ellipse(mm, m_ellipsetemp, cv::Scalar(255, 255, 255)); // åœ¨å›¾åƒä¸­ç»˜åˆ¶æ¤­åœ†ï¼Œå¿…è¦
 			}
-			//imshow("Contours_1", imageContours);
-			imshow("mm", mm);//ÏÔÊ¾µÚÒ»´ÎÅÅ³ı½á¹û£¬ÓÃÓÚµ÷ÊÔ
+			// imshow("Contours_1", imageContours);
+			imshow("mm", mm); // æ˜¾ç¤ºç¬¬ä¸€æ¬¡æ’é™¤ç»“æœï¼Œç”¨äºè°ƒè¯•
 		}
-		//µÚ¶ş´ÎÔ¤´¦Àí
+		// ç¬¬äºŒæ¬¡é¢„å¤„ç†
 		Mat mmdst;
 		GaussianBlur(mm, mmdst, Size(Gauss_size, Gauss_size), 0, 0);
 		cvtColor(mmdst, mmdst, COLOR_BGR2GRAY);
 		Canny(mmdst, mmdst, 50, 150, 3);
-		//imshow("step2.", mmdst);//ÓÃÓÚµ÷ÊÔ
-		//µÚ¶ş´ÎÂÖÀª²éÕÒ
-		vector<vector<Point> > contours1;// ´´½¨ÈİÆ÷£¬´æ´¢ÂÖÀª
-		vector<Vec4i> hierarchy1;// Ñ°ÕÒÂÖÀªËùĞè²ÎÊı
+		// imshow("step2.", mmdst);//ç”¨äºè°ƒè¯•
+		// ç¬¬äºŒæ¬¡è½®å»“æŸ¥æ‰¾
+		vector<vector<Point>> contours1; // åˆ›å»ºå®¹å™¨ï¼Œå­˜å‚¨è½®å»“
+		vector<Vec4i> hierarchy1;		 // å¯»æ‰¾è½®å»“æ‰€éœ€å‚æ•°
 		findContours(mmdst, contours1, hierarchy1, RETR_CCOMP, CHAIN_APPROX_NONE);
-		//Mat imageContours1 = Mat::zeros(mmdst.size(), CV_8UC1);//´´½¨ÂÖÀªÕ¹Ê¾Í¼Ïñ£¬ÓÃÓÚµ÷ÊÔ
-		//Èç¹û²éÕÒµ½ÁËÂÖÀª
+		// Mat imageContours1 = Mat::zeros(mmdst.size(), CV_8UC1);//åˆ›å»ºè½®å»“å±•ç¤ºå›¾åƒï¼Œç”¨äºè°ƒè¯•
+		// å¦‚æœæŸ¥æ‰¾åˆ°äº†è½®å»“
 		if (contours1.size())
 		{
-			//µÚ¶ş´ÎÉ¸³ı
+			// ç¬¬äºŒæ¬¡ç­›é™¤
 			for (int i = 0; i < contours1.size(); i++)
 			{
-				//³õÉ¸
+				// åˆç­›
 				if (contours1[i].size() < 10 || contours1[i].size() > 1000)
 					continue;
-				//ÀûÓÃ°¼Í¹ĞÔµÄÔ­Àí
-				//if (!abs((contours1[i][0].y + contours1[i][20].y) / 2 - contours1[i][10].y))
+				// åˆ©ç”¨å‡¹å‡¸æ€§çš„åŸç†
+				// if (!abs((contours1[i][0].y + contours1[i][20].y) / 2 - contours1[i][10].y))
 				//	continue;
 				if (contourArea(contours1[i]) < 4500 || contourArea(contours1[i]) > 180000)
 					continue;
-				//drawContours(imageContours1, contours1, i, Scalar(255), 1, 8);//ÓÃÓÚµ÷ÊÔ
+				// drawContours(imageContours1, contours1, i, Scalar(255), 1, 8);//ç”¨äºè°ƒè¯•
 
 				RotatedRect m_ellipsetemp1;
 				m_ellipsetemp1 = fitEllipse(contours1[i]);
-				ellipse(srcImg, m_ellipsetemp1, cv::Scalar(255, 0, 0));//»æÖÆÍÖÔ²£¬ÓÃÓÚµ÷ÊÔ
-				_center = m_ellipsetemp1.center;//¶ÁÈ¡ÍÖÔ²ÖĞĞÄ£¬±ØÒª
-				//drawCross(srcCopy, _center, Scalar(255, 0, 0), 30, 2);//»æÖÆÖĞĞÄÊ®×Ö£¬ÓÃÓÚµ÷ÊÔ
-				circle(srcImg, _center, 1, Scalar(0, 255, 0), -1);  // »­°ë¾¶Îª1µÄÔ²(»­µã£©, ÓÃÓÚµ÷ÊÔ
+				ellipse(srcImg, m_ellipsetemp1, cv::Scalar(255, 0, 0)); // ç»˜åˆ¶æ¤­åœ†ï¼Œç”¨äºè°ƒè¯•
+				_center = m_ellipsetemp1.center;						// è¯»å–æ¤­åœ†ä¸­å¿ƒï¼Œå¿…è¦
+				// drawCross(srcCopy, _center, Scalar(255, 0, 0), 30, 2);//ç»˜åˆ¶ä¸­å¿ƒåå­—ï¼Œç”¨äºè°ƒè¯•
+				circle(srcImg, _center, 1, Scalar(0, 255, 0), -1); // ç”»åŠå¾„ä¸º1çš„åœ†(ç”»ç‚¹ï¼‰, ç”¨äºè°ƒè¯•
 				centers.push_back(_center);
 			}
-			//imshow("Contours_2", imageContours1);//ÓÃÓÚµ÷ÊÔ
-			//cout << centers.size() << endl;
-			//¾ÛÀà
+			// imshow("Contours_2", imageContours1);//ç”¨äºè°ƒè¯•
+			// cout << centers.size() << endl;
+			// èšç±»
 			flag_init();
 			for (int i = 0; i < centers.size() - 2; i++)
 			{
@@ -156,24 +156,25 @@ void ellipseTargetFind(VideoCapture camera)
 							y_temp = y_temp + centers[j].y;
 							count++;
 						}
-						else continue;
+						else
+							continue;
 					}
 				}
 				if (count > 2)
 				{
-				//Æ½¾ùÊıÇó¾ÛÀàÖĞĞÄ£¬¸Ğ¾õ²»Ì«Í×µ±£¬µ«ÊÇ¾«¶È¸Ğ¾õ»¹ĞĞ£¬×·Çó¾«¶ÈµÄ»°¿ÉÒÔÓÃ Weiszfeld Ëã·¨ÇóÖĞÎ»ÖĞĞÄ£¬ÄÇ¸öÒªµü´ú
-				center.push_back(Point((int)x_temp / count, (int)y_temp / count));
+					// å¹³å‡æ•°æ±‚èšç±»ä¸­å¿ƒï¼Œæ„Ÿè§‰ä¸å¤ªå¦¥å½“ï¼Œä½†æ˜¯ç²¾åº¦æ„Ÿè§‰è¿˜è¡Œï¼Œè¿½æ±‚ç²¾åº¦çš„è¯å¯ä»¥ç”¨ Weiszfeld ç®—æ³•æ±‚ä¸­ä½ä¸­å¿ƒï¼Œé‚£ä¸ªè¦è¿­ä»£
+					center.push_back(Point((int)x_temp / count, (int)y_temp / count));
 				}
 			}
-			cout << "ÍÖÔ²¸öÊı£º " << center.size() << endl;
-			//»æÖÆÖĞĞÄÊ®×Ö£¬ÓÃÓÚµ÷ÊÔ
+			cout << "æ¤­åœ†ä¸ªæ•°ï¼š " << center.size() << endl;
+			// ç»˜åˆ¶ä¸­å¿ƒåå­—ï¼Œç”¨äºè°ƒè¯•
 			for (size_t i = 0; i < center.size(); i++)
 			{
 				drawCross(srcImg, center[i], Scalar(0, 0, 255), 30, 2);
 			}
-			//ÑÕÉ«±ê¶¨
-			//Ä¿Ç°¾Í²îÕâÒ»²½ÁË
+			// é¢œè‰²æ ‡å®š
+			// ç›®å‰å°±å·®è¿™ä¸€æ­¥äº†
 		}
-		imshow("srcCopy", srcImg);//ÓÃÓÚµ÷ÊÔ
+		imshow("srcCopy", srcImg); // ç”¨äºè°ƒè¯•
 	}
 }

@@ -262,7 +262,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Axis::test_ok(double &deg1,double &deg2,double &deg3,double &deg4,bool look)
+    bool Axis::test_ok(double &deg1, double &deg2, double &deg3, double &deg4, bool look)
     {
         double tx, ty, tz;
         tx = ty = tz = 0;
@@ -277,8 +277,8 @@ namespace my_hand_eye
             }
             else if (std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
             {
-                ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf", 
-                            tx, ty, tz, x, y, z);
+                ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf",
+                          tx, ty, tz, x, y, z);
                 return false;
             }
             else
@@ -287,7 +287,7 @@ namespace my_hand_eye
             }
         }
         else
-        {    
+        {
             ROS_WARN("Cannot move to this position");
             return false;
         }

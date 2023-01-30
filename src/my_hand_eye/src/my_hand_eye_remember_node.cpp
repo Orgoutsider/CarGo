@@ -6,7 +6,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "my_hand_eye_remember_node");
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
-    controller.init(nh, pnh);
+    controller.init(nh, pnh, true);
     double x, y, z;
     controller.remember(x, y, z);
     return 0;

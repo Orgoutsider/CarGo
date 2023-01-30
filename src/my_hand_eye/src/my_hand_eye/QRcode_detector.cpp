@@ -20,7 +20,7 @@ namespace my_hand_eye
 			QR_code_publisher_ = nh.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10);
 			flag_ = false;
 		}
-		arm_controller_.init(nh, pnh);
+		arm_controller_.init(nh, pnh, false);
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
       			new image_transport::ImageTransport(nh));
     	camera_image_subscriber_ =
@@ -56,12 +56,11 @@ namespace my_hand_eye
 		for (int i = 0; i < 2; i++)
 		{
 			my_hand_eye::TaskArray tarr;
-			tarr.task.reserve(3);
-			uint16_t task;
+			uint8_t task;
 			for (int j = 0; j < 3; j++)
 			{
 				task =  num[ii++] - '0';
-				tarr.task.push_back(task);
+				tarr.task[i] = task;
 			}
 			arr.loop.push_back(tarr);		
 		}
@@ -77,12 +76,21 @@ namespace my_hand_eye
 
 	void QRcodeDetector::imageCallback(const sensor_msgs::ImageConstPtr& image_rect)
 	{
-		static bool stop = false;
+		// static bool stop = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!stop)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.target_tracking(image_rect, color_blue, u, v, stop, debug_image);
+		// 	if (arm_controller_.show_detections_)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
+		static bool finish = false;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!stop)
+		if (!finish)
 		{
 			double u, v;
-			arm_controller_.target_tracking(image_rect, arm_controller_.blue, u, v, stop, debug_image);
+			arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, true);
 			if (arm_controller_.show_detections_)
 				debug_image_publisher_.publish(debug_image);
 		}

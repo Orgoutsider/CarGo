@@ -59,14 +59,15 @@ add_message_files(
   FILES
   TaskArray.msg
   ArrayofTaskArrays.msg
+  Point.msg
+  PointArray.msg
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  Plot.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -79,6 +80,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  geometry_msgs
 )
 
 ################################################
@@ -112,7 +114,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_color ${PROJECT_NAME}_QR_code
+ LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_QR_code
  CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime geometry_msgs genmsg vision_msgs sensor_msgs
  DEPENDS OpenCV
 )
@@ -214,6 +216,13 @@ target_link_libraries(${PROJECT_NAME}_remember_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(${PROJECT_NAME}_plot_client_node src/${PROJECT_NAME}_plot_client_node.cpp)
+add_dependencies(${PROJECT_NAME}_plot_client_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_plot_client_node
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
@@ -227,6 +236,10 @@ target_link_libraries(${PROJECT_NAME}_remember_node
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
+catkin_install_python(PROGRAMS
+  scripts/plot_srv.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html

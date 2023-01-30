@@ -12,11 +12,18 @@ namespace my_hand_eye
 
     ArmController::~ArmController()
     {
-        ps_.end();
+        if (!emulation_)
+            ps_.end();
     }
 
-    void ArmController::init(ros::NodeHandle nh, ros::NodeHandle pnh)
+    void ArmController::init(ros::NodeHandle nh, ros::NodeHandle pnh, bool emulation)
     {
+        emulation_ = emulation;
+        if (emulation_)
+        {
+            plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
+            return;
+        }
         XmlRpc::XmlRpcValue servo_descriptions;
         XmlRpc::XmlRpcValue default_action;
         XmlRpc::XmlRpcValue put_action;
@@ -48,7 +55,7 @@ namespace my_hand_eye
         cargo_client_ = nh.serviceClient<mmdetection_ros::cargoSrv>("cargoSrv");
     }
 
-    bool ArmController::add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr& image)
+    bool ArmController::add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image)
     {
         try
         {
@@ -66,6 +73,20 @@ namespace my_hand_eye
         }
         cv_image_ = *image;
         // cv::cvtColor(image->image, image->image, cv::COLOR_RGB2BGR);
+        return true;
+    }
+
+    bool ArmController::take_picture()
+    {
+        if (cv_image_.image.empty())
+        {
+            ROS_WARN("Empty image!");
+            return false;
+        }
+        char str[50];
+        static int n = 0;
+        snprintf(str, sizeof(str), "/home/fu/apriltag_ws/src/my_hand_eye/img/%d.jpg", ++n);
+        cv::imwrite(str, cv_image_.image);
         return true;
     }
 
@@ -105,13 +126,13 @@ namespace my_hand_eye
                         cv::Scalar colors; // 确定旋转矩阵的四个顶点
                         switch (color)
                         {
-                        case 1:
+                        case color_red:
                             colors = cv::Scalar(0, 0, 255);
                             break;
-                        case 2:
+                        case color_green:
                             colors = cv::Scalar(0, 255, 0);
                             break;
-                        case 3:
+                        case color_blue:
                             colors = cv::Scalar(255, 0, 0);
                             break;
                         default:
@@ -150,7 +171,7 @@ namespace my_hand_eye
         if (valid)
         {
             double x = 0, y = 0;
-            if (find_with_color(objArray, green, z, x, y))
+            if (find_with_color(objArray, color_green, z, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
         }
         return valid;
@@ -221,9 +242,9 @@ namespace my_hand_eye
                     if (valid)
                     {
                         ps_.go_to(ps_.default_x, ps_.default_y, ps_.default_z, true, true);
-                        if (ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false))
-                            ps_.reset();
+                        ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false);
                     }
+                    ps_.reset();
                     finish = true;
                 }
             }
@@ -307,7 +328,7 @@ namespace my_hand_eye
             rect_ = Rect(objArray.boxes[color].center.x - width / 2, objArray.boxes[color].center.y - height / 2, width, height);
             Mat rectImg, targetImgHSV;
             rectImg = cv_image_.image(rect_);
-            imshow("target", rectImg);
+            // imshow("target", rectImg);
             cvtColor(rectImg, targetImgHSV, COLOR_BGR2HSV);
             calcHist(&targetImgHSV, 2, channels_, Mat(), dstHist, 1, &histSize_, &ranges_, true, false);
             normalize(dstHist, dstHist, 0, 255, NORM_MINMAX);
@@ -316,8 +337,36 @@ namespace my_hand_eye
         return false;
     }
 
+    bool ArmController::calculate_speed(double u, double v, double &speed)
+    {
+        if (!last_time_.is_zero() && !cv_image_.header.stamp.is_zero() && pt_.size())
+        {
+            std::vector<cv::Point>::const_iterator cit;
+            cit = pt_.cend() - 1;
+            double du = u - cit->x;
+            double dv = v - cit->y;
+            ros::Duration dr = cv_image_.header.stamp - last_time_;
+            double dt = dr.toSec();
+            speed = sqrt(du * du + dv * dv) / dt;
+            last_time_ = cv_image_.header.stamp;
+            pt_.push_back(cv::Point(u, v));
+            return true;
+        }
+        else if (cv_image_.header.stamp.is_zero())
+        {
+            ROS_WARN("Stamp is zero!");
+            return false;
+        }
+        else
+        {
+            last_time_ = cv_image_.header.stamp;
+            pt_.push_back(cv::Point(u, v));
+            return false;
+        }
+    }
+
     bool ArmController::target_tracking(const sensor_msgs::ImageConstPtr &image_rect, const int color,
-                                         double& u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image)
+                                        double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
         if (!fin_)
@@ -327,7 +376,7 @@ namespace my_hand_eye
             ROS_WARN("Color changed!");
             fin_ = false;
             current_color_ = color;
-            pt_.clear();            
+            pt_.clear();
         }
         static Mat dstHist;
         if (!fin_)
@@ -341,8 +390,9 @@ namespace my_hand_eye
                     pt_.clear();
                 u = rect_.x + rect_.width / 2;
                 v = rect_.y + rect_.height / 2;
-                ROS_INFO_STREAM("u:" << u << " v:" << v);
-                pt_.push_back(Point(u, v));
+                // ROS_INFO_STREAM("u:" << u << " v:" << v);
+                double speed = 100;
+                calculate_speed(u, v, speed);
             }
             else
                 return false;
@@ -365,8 +415,10 @@ namespace my_hand_eye
             normalize(dstHist, dstHist, 0.0, 1.0, NORM_MINMAX); // 归一化
             u = rect_.x + rect_.width / 2;
             v = rect_.y + rect_.height / 2;
-            ROS_INFO_STREAM("u:" << u << " v:" << v);
-            pt_.push_back(Point(u, v));
+            // ROS_INFO_STREAM("u:" << u << " v:" << v);
+            double speed = 100;
+            if (calculate_speed(u, v, speed))
+                ROS_INFO_STREAM("speed:" << speed);
             if (show_detections_)
             {
                 // 目标绘制
@@ -382,5 +434,38 @@ namespace my_hand_eye
             }
         }
         return true;
+    }
+
+    double ArmController::distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
+                                       double x, double y, double z)
+    {
+        double k = (ARM_P + y) / x;
+        double dist_min = 0;
+        for (int other_color = 1; other_color <= 3; other_color++)
+        {
+            if (other_color == color)
+                continue;
+            double ox = 0, oy = 0;
+            bool valid = find_with_color(objArray, other_color, z, ox, oy);
+            double dist = valid ? abs(ARM_P + oy - k * ox) / sqrt(1 + k * k) : 0;
+            dist_min = dist_min == 0 ? dist : (dist < dist_min ? dist : dist_min);
+        }
+        return dist_min;
+    }
+
+    bool ArmController::find_points_with_height(double h, bool done)
+    {
+        if (!plot_client_.exists())
+            plot_client_.waitForExistence();
+        my_hand_eye::Plot plt;
+        bool valid = ps_.find_points_with_height(h, plt.request.arr);
+        if (valid)
+        {
+            plt.request.done = done;
+            valid = plot_client_.call<my_hand_eye::Plot>(plt);
+            if (!valid)
+                ROS_ERROR("Failed to call service");
+        }
+        return valid;
     }
 } // namespace my_hand_eye
