@@ -328,7 +328,7 @@ namespace my_hand_eye
             rect_ = Rect(objArray.boxes[color].center.x - width / 2, objArray.boxes[color].center.y - height / 2, width, height);
             Mat rectImg, targetImgHSV;
             rectImg = cv_image_.image(rect_);
-            // imshow("target", rectImg);
+            imshow("target", rectImg);
             cvtColor(rectImg, targetImgHSV, COLOR_BGR2HSV);
             calcHist(&targetImgHSV, 2, channels_, Mat(), dstHist, 1, &histSize_, &ranges_, true, false);
             normalize(dstHist, dstHist, 0, 255, NORM_MINMAX);
@@ -379,11 +379,13 @@ namespace my_hand_eye
             pt_.clear();
         }
         static Mat dstHist;
+        static int cnt = 0;
         if (!fin_)
         {
             ps_.reset();
             vision_msgs::BoundingBox2DArray objArray;
-            if (detect_cargo(image_rect, objArray, debug_image, default_roi_) && target_init(objArray, color, dstHist))
+            if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
+                target_init(objArray, color, dstHist))
             {
                 fin_ = true;
                 if (pt_.size())
@@ -398,40 +400,57 @@ namespace my_hand_eye
                 return false;
         }
         else
-        {
-            cv_bridge::CvImagePtr cv_image;
-            if (!add_image(image_rect, cv_image))
-                return false;
-            // 核心代码段
-            Mat imageHSV, targetImgHSV;
-            Mat calcBackImage;
-            cvtColor(cv_image->image, imageHSV, COLOR_BGR2HSV);
-            calcBackProject(&imageHSV, 2, channels_, dstHist, calcBackImage, &ranges_); // 反向投影
-            TermCriteria criteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 1000, 0.001);
-            CamShift(calcBackImage, rect_, criteria); // 关键函数
-            Mat imageROI = imageHSV(rect_);           // 更新模板
-            targetImgHSV = imageHSV(rect_);
-            calcHist(&imageROI, 2, channels_, Mat(), dstHist, 1, &histSize_, &ranges_);
-            normalize(dstHist, dstHist, 0.0, 1.0, NORM_MINMAX); // 归一化
+        {            
+            if ((++cnt) > 10)//间隔一段时间后重新进行目标检测
+            {
+                vision_msgs::BoundingBox2DArray objArray;
+                if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
+                    target_init(objArray, color, dstHist))
+                {
+                    cnt = 0;
+                }
+                else
+                {
+                    cnt--;
+                    return false;
+                }
+            }
+            else 
+            {
+                cv_bridge::CvImagePtr cv_image;
+                if (!add_image(image_rect, cv_image))
+                    return false;
+                // 核心代码段
+                Mat imageHSV, targetImgHSV;
+                Mat calcBackImage;
+                cvtColor(cv_image->image, imageHSV, COLOR_BGR2HSV);
+                calcBackProject(&imageHSV, 2, channels_, dstHist, calcBackImage, &ranges_); // 反向投影
+                TermCriteria criteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 1000, 0.001);
+                CamShift(calcBackImage, rect_, criteria); // 关键函数
+                Mat imageROI = imageHSV(rect_);           // 更新模板
+                targetImgHSV = imageHSV(rect_);
+                calcHist(&imageROI, 2, channels_, Mat(), dstHist, 1, &histSize_, &ranges_);
+                normalize(dstHist, dstHist, 0.0, 1.0, NORM_MINMAX); // 归一化
+                if (show_detections_)
+                {
+                    // 目标绘制
+                    rectangle(cv_image->image, rect_, Scalar(255, 0, 0), 3);
+                    for (int i = 0; i < pt_.size() - 1; i++)
+                    {
+                        line(cv_image->image, pt_[i], pt_[i + 1], Scalar(0, 255, 0), 2.5);
+                    }
+                    debug_image = cv_image->toImageMsg();
+                    imshow("img", cv_image->image);
+                    waitKey(1);
+                    // flag = true;
+                }
+            }
             u = rect_.x + rect_.width / 2;
             v = rect_.y + rect_.height / 2;
             // ROS_INFO_STREAM("u:" << u << " v:" << v);
             double speed = 100;
             if (calculate_speed(u, v, speed))
                 ROS_INFO_STREAM("speed:" << speed);
-            if (show_detections_)
-            {
-                // 目标绘制
-                rectangle(cv_image->image, rect_, Scalar(255, 0, 0), 3);
-                for (int i = 0; i < pt_.size() - 1; i++)
-                {
-                    line(cv_image->image, pt_[i], pt_[i + 1], Scalar(0, 255, 0), 2.5);
-                }
-                debug_image = cv_image->toImageMsg();
-                imshow("img", cv_image->image);
-                waitKey(1);
-                // flag = true;
-            }
         }
         return true;
     }
@@ -453,10 +472,11 @@ namespace my_hand_eye
         return dist_min;
     }
 
-    bool ArmController::find_points_with_height(double h, bool done)
+    bool ArmController::find_points_with_height(double h, bool done, bool expand_y)
     {
         if (!plot_client_.exists())
             plot_client_.waitForExistence();
+        ps_.expand_y = expand_y;
         my_hand_eye::Plot plt;
         bool valid = ps_.find_points_with_height(h, plt.request.arr);
         if (valid)
@@ -554,54 +574,58 @@ namespace my_hand_eye
                 if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2)
                     continue;
                 ellipse(mm, m_ellipsetemp, cv::Scalar(255, 255, 255)); // 在图像中绘制椭圆，必要
-            }
-            // imshow("Contours_1", imageContours);
-            // imshow("mm", mm); // 显示第一次排除结果，用于调试
-        }
-        // 第二次预处理
-        Mat mmdst;
-        GaussianBlur(mm, mmdst, Size(Gauss_size, Gauss_size), 0, 0);
-        cvtColor(mmdst, mmdst, COLOR_BGR2GRAY);
-        Canny(mmdst, mmdst, 50, 150, 3);
-        imshow("step2.", mmdst);//用于调试
-        // 第二次轮廓查找
-        std::vector<std::vector<Point2i>> contours1; // 创建容器，存储轮廓
-        std::vector<Vec4i> hierarchy1;        // 寻找轮廓所需参数
-        findContours(mmdst, contours1, hierarchy1, RETR_CCOMP, CHAIN_APPROX_NONE);
-        // Mat imageContours1 = Mat::zeros(mmdst.size(), CV_8UC1);//创建轮廓展示图像，用于调试
-        // 如果查找到了轮廓
-        if (contours1.size())
-        {
-            // 第二次筛除
-            for (int i = 0; i < contours1.size(); i++)
-            {
-                // 初筛
-                if (contours1[i].size() < 10 || contours1[i].size() > 1000)
-                    continue;
-                // 利用凹凸性的原理
-                // if (!abs((contours1[i][0].y + contours1[i][20].y) / 2 - contours1[i][10].y))
-                //	continue;
-                if (contourArea(contours1[i]) < 4500 || contourArea(contours1[i]) > 180000)
-                    continue;
-                // drawContours(imageContours1, contours1, i, Scalar(255), 1, 8);//用于调试
-
-                RotatedRect m_ellipsetemp1;
-                m_ellipsetemp1 = fitEllipse(contours1[i]);
-                ellipse(cv_image->image, m_ellipsetemp1, cv::Scalar(255, 0, 0)); // 绘制椭圆，用于调试
-                _center = m_ellipsetemp1.center;                        // 读取椭圆中心，必要
+                _center = m_ellipsetemp.center;                        // 读取椭圆中心，必要
                 // drawCross(srcCopy, _center, Scalar(255, 0, 0), 30, 2);//绘制中心十字，用于调试
                 circle(cv_image->image, _center, 1, Scalar(0, 255, 0), -1); // 画半径为1的圆(画点）, 用于调试
                 centers.push_back(_center);
             }
+            // imshow("Contours_1", imageContours);
+            imshow("mm", mm); // 显示第一次排除结果，用于调试
+            // // 第二次预处理
+            // Mat mmdst;
+            // GaussianBlur(mm, mmdst, Size(Gauss_size, Gauss_size), 0, 0);
+            // cvtColor(mmdst, mmdst, COLOR_BGR2GRAY);
+            // Canny(mmdst, mmdst, 50, 150, 3);
+            // imshow("step2.", mmdst); // 用于调试
+            // // 第二次轮廓查找
+            // std::vector<std::vector<Point2i>> contours1; // 创建容器，存储轮廓
+            // std::vector<Vec4i> hierarchy1;               // 寻找轮廓所需参数
+            // findContours(mmdst, contours1, hierarchy1, RETR_CCOMP, CHAIN_APPROX_NONE);
+            // Mat imageContours1 = Mat::zeros(mmdst.size(), CV_8UC1);//创建轮廓展示图像，用于调试
+            // 如果查找到了轮廓
+            // if (contours1.size())
+            // {
+            //     // 第二次筛除
+            //     for (int i = 0; i < contours1.size(); i++)
+            //     {
+            //         // 初筛
+            //         if (contours1[i].size() < 10 || contours1[i].size() > 1000)
+            //             continue;
+            //         // 利用凹凸性的原理
+            //         // if (!abs((contours1[i][0].y + contours1[i][20].y) / 2 - contours1[i][10].y))
+            //         //	continue;
+            //         if (contourArea(contours1[i]) < 4500 || contourArea(contours1[i]) > 180000)
+            //             continue;
+            //         // drawContours(imageContours1, contours1, i, Scalar(255), 1, 8);//用于调试
+
+            //         RotatedRect m_ellipsetemp1;
+            //         m_ellipsetemp1 = fitEllipse(contours1[i]);
+            //         ellipse(cv_image->image, m_ellipsetemp1, cv::Scalar(255, 0, 0)); // 绘制椭圆，用于调试
+            //         _center = m_ellipsetemp1.center;                        // 读取椭圆中心，必要
+            //         // drawCross(srcCopy, _center, Scalar(255, 0, 0), 30, 2);//绘制中心十字，用于调试
+            //         circle(cv_image->image, _center, 1, Scalar(0, 255, 0), -1); // 画半径为1的圆(画点）, 用于调试
+            //         centers.push_back(_center);
+            //     }
             // imshow("Contours_2", imageContours1);//用于调试
             // cout << centers.size() << endl;
-            bool flag[100] = {0};
+            const int MAXN = centers.size();
+            bool flag[MAXN] = {0};
             // 聚类
-            for (int i = 0; i < centers.size() - 2; i++)
+            for (int i = 0; i < centers.size() - 1; i++)
             {
                 flag[i] = true;
                 int x_temp = centers[i].x, y_temp = centers[i].y, count = 1;
-                for (int j = 1; j < centers.size(); j++)
+                for (int j = i + 1; j < centers.size(); j++)
                 {
                     if (abs(centers[i].x - centers[j].x) < 10 && abs(centers[i].y - centers[j].y) < 10)
                     {
@@ -628,14 +652,14 @@ namespace my_hand_eye
             {
                 draw_cross(cv_image->image, center[i], Scalar(0, 0, 255), 30, 2);
             }
-            // 颜色标定
-            // 目前就差这一步了
         }
+        // 颜色标定
+        // 目前就差这一步了
         imshow("srcCopy", cv_image->image); // 用于调试
         cv::waitKey(60);
         if (show_detections_)
             debug_image = cv_image->toImageMsg();
-        return true;        
+        return true;
     }
 
     bool ArmController::put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
@@ -656,7 +680,8 @@ namespace my_hand_eye
             ps_.reset();
         }
         finish = false;
-        cargo_x_.push_back(0);
+        if (!cargo_x_.size())
+            cargo_x_.push_back(0);
         ellipse_target_find(image_rect, debug_image, default_roi_);
         return true;
     }

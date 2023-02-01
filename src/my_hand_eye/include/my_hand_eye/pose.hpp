@@ -84,7 +84,7 @@ namespace my_hand_eye
         bool calculate_cargo_position(double u, double v, double z, double &x, double &y);
         double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向
         bool dfs_midpoint(double length_goal, double height_goal);
-        // 求中间点，与calculate_position配合使用，中间点-Position,x,y,z，最终点-Position_goal,x_goal,y_goal,z_goal
+        // 求中间点(y > 0)，与calculate_position配合使用，中间点-Position,x,y,z，最终点-Position_goal,x_goal,y_goal,z_goal
         bool find_a_midpoint(s16 Position_goal[], double &x_goal, double &y_goal, double &z_goal);
         void get_points(double h, my_hand_eye::PointArray &arr);
         bool find_points_with_height(double h, my_hand_eye::PointArray &arr);

@@ -76,16 +76,16 @@ namespace my_hand_eye
 
 	void QRcodeDetector::imageCallback(const sensor_msgs::ImageConstPtr& image_rect)
 	{
-		// // 目标跟踪
-		// static bool stop = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!stop)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.target_tracking(image_rect, color_blue, u, v, stop, debug_image);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
+		// 目标跟踪
+		static bool stop = false;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!stop)
+		{
+			double u, v;
+			arm_controller_.target_tracking(image_rect, color_blue, u, v, stop, debug_image);
+			if (arm_controller_.show_detections_)
+				debug_image_publisher_.publish(debug_image);
+		}
 
 		// // 中间点抓取
 		// static bool finish = false;
@@ -98,15 +98,15 @@ namespace my_hand_eye
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
 
-		// 椭圆识别
-		static bool finish = false;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!finish)
-		{
-			double u, v;
-			arm_controller_.put_with_ellipse(image_rect, color_blue, 0, finish, debug_image);
-			if (arm_controller_.show_detections_)
-				debug_image_publisher_.publish(debug_image);
-		}
+		// // 椭圆识别
+		// static bool finish = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!finish)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.put_with_ellipse(image_rect, color_blue, 0, finish, debug_image);
+		// 	if (arm_controller_.show_detections_)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
 	}
 }

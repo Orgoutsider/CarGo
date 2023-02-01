@@ -83,6 +83,24 @@ namespace my_hand_eye
         return Angle(du - a.du);
     }
 
+    Angle Angle::operator-() const
+    {
+        return Angle(-du);
+    }
+
+    Angle Angle::operator=(const Angle &t)
+    {
+        // 如果是对象本身, 则直接返回
+        if (this == &t) {
+            return *this;
+        }
+
+        // 复制等号右边对象的成员值到等号左边对象的成员
+        du = t.du;
+        state = t.state;
+        return *this;
+    }
+
     double Axis::height()
     {
         return z;
@@ -112,7 +130,7 @@ namespace my_hand_eye
         }
         if (length() > ARM_MAX_LEN)
         {
-            ROS_WARN_STREAM("length " << length() << " is out of range " << ARM_MAX_LEN << "." << std::endl);
+            ROS_WARN_STREAM("length " << length() << " is out of range " << ARM_MAX_LEN << "." );
             return true;
         }
         return false;
@@ -124,7 +142,7 @@ namespace my_hand_eye
         {
             return Angle(0);
         }
-        else
+        else 
             return Angle(y + ARM_P, x);
     };
 
@@ -135,8 +153,6 @@ namespace my_hand_eye
         double cos3 = (L * L + H * H - ARM_A2 * ARM_A2 - ARM_A3 * ARM_A3) / (2 * ARM_A2 * ARM_A3);
         if (cos3 * cos3 > 1)
         {
-            // std::cout << "cos3:" << cos3 << " L:" << L << " H:" << H << std::endl;
-            // std::cout << "calculate j3 error" << std::endl;
             Angle j3 = Angle(0);
             j3._set_state(j3.error);
             return j3;
@@ -169,6 +185,24 @@ namespace my_hand_eye
         return j1._valid_j(1) && j2._valid_j(2) && j3._valid_j(3) && j4._valid_j(4) && !(_out_of_range());
     }
 
+    bool Axis::_modify_xy()
+    {
+        static bool flag = false;
+        if (flag)
+        {
+            y = -(y + 2 * ARM_P);
+            x = -x;
+            flag = false;
+        }
+        else if (expand_y && (y + ARM_P < 0))
+        {
+            y = -(y + 2 * ARM_P);
+            x = -x;
+            flag = true;
+        }
+        return (expand_y && (y + ARM_P < 0)) || flag;
+    }
+
     bool Axis::_modify_alpha(double &alpha, bool look)
     {
         alpha = 90;
@@ -184,12 +218,13 @@ namespace my_hand_eye
 
     bool Axis::backward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, bool look)
     {
+        bool flag = _modify_xy();
         if (z < 0)
         {
             ROS_ERROR("z cannot less than 0.");
             return false;
         }
-        if (y < 0)
+        if (!expand_y && y < 0)
         {
             ROS_ERROR("y cannot less than 0.");
             return false;
@@ -199,7 +234,7 @@ namespace my_hand_eye
         if (valid)
         {
             Angle j1 = _calculate_j1();
-            Angle j2 = _calculate_j2(alpha);
+            Angle j2 = flag ? (-_calculate_j2(alpha)) : _calculate_j2(alpha);
             Angle j3 = _calculate_j3(alpha);
             Angle j4 = _calculate_j4(alpha);
             j1._j_degree_convert(1);
@@ -213,7 +248,8 @@ namespace my_hand_eye
         }
         else
             ROS_WARN("alpha invalid!");
-        // ROS_INFO_STREAM("valid:" << valid << " deg1:" << deg1 << " deg2:" << deg2 << " deg3:" << deg3 << " deg4:" << deg4);
+        _modify_xy();
+        // ROS_ERROR_STREAM("valid:" << valid << " deg1:" << deg1 << " deg2:" << deg2 << " deg3:" << deg3 << " deg4:" << deg4);
         return valid;
     }
 
@@ -224,7 +260,7 @@ namespace my_hand_eye
             ROS_ERROR("z cannot less than 0.");
             return false;
         }
-        if (y < 0)
+        if (!expand_y && y < 0)
         {
             ROS_ERROR("y cannot less than 0.");
             return false;
@@ -235,7 +271,8 @@ namespace my_hand_eye
         return true;
     }
 
-    bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, double &x, double &y, double &z)
+    bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
+                            double &x, double &y, double &z, bool expand_y)
     {
         bool valid = false;
         Angle j1 = Angle(deg1);
@@ -250,15 +287,21 @@ namespace my_hand_eye
         j2._j_degree_convert(2);
         j3._j_degree_convert(3);
         j4._j_degree_convert(4);
-        double length = ARM_A2 * j2.sin() + ARM_A3 * (j2 + j3).sin() + ARM_A4 * (j2 + j3 + j4).sin();
-        double height = ARM_A1 + ARM_A2 * j2.cos() + ARM_A3 * (j2 + j3).cos() + ARM_A4 * (j2 + j3 + j4).cos();
+        bool flag = j2._get_degree() < 0;
+        j2 = flag? -j2 : j2;
+        double length = ARM_A2 * j2.sin() + ARM_A3 * (j2 + j3).sin() +
+                        ARM_A4 * (j2 + j3 + j4).sin();
+        double height = ARM_A1 + ARM_A2 * j2.cos() + ARM_A3 * (j2 + j3).cos() +
+                        ARM_A4 * (j2 + j3 + j4).cos();
         double alpha = (j2 + j3 + j4)._get_degree();
+        // ROS_ERROR("j2:%lf j3:%lf j4:%lf", j2._get_degree(), j3._get_degree(), j4._get_degree());
         z = height;
         x = length * j1.cos();
         y = length * j1.sin() - ARM_P;
-        if (0 <= y && z >= 0)
+        y = flag ? -y - 2 * ARM_P : y;
+        if ((0 <= y || expand_y) && z >= 0)
             valid = true;
-        // ROS_INFO_STREAM("valid:" << valid << " x:" << x << " y:" << y << " z:" << z << " length:" << length << " height:" << height << " alpha:" << alpha);
+        // ROS_ERROR_STREAM("valid:" << valid << " x:" << x << " y:" << y << " z:" << z << " length:" << length << " height:" << height << " alpha:" << alpha);
         return valid;
     }
 
@@ -269,7 +312,7 @@ namespace my_hand_eye
         bool valid = backward_kinematics(deg1, deg2, deg3, deg4, look);
         if (valid)
         {
-            valid = forward_kinematics(deg1, deg2, deg3, deg4, tx, ty, tz);
+            valid = forward_kinematics(deg1, deg2, deg3, deg4, tx, ty, tz, expand_y);
             if (!valid)
             {
                 ROS_WARN("Result invalid!");

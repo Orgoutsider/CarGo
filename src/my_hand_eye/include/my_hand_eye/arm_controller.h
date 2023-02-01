@@ -43,7 +43,7 @@ namespace my_hand_eye
     public:
         ArmController();
         ~ArmController();
-        const double z_floor = 3.5;   // 底盘距地6mm，物块高度一半35mm
+        const double z_floor = 3.5;     // 底盘距地6mm，物块高度一半35mm
         const double z_turntable = 6.4; // 转盘
         bool show_detections_;
         void init(ros::NodeHandle nh, ros::NodeHandle pnh, bool emulation);                         // 初始化
@@ -62,14 +62,15 @@ namespace my_hand_eye
                                 bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool remember(double &x, double &y, double &z); // 记忆位置
         bool target_init(vision_msgs::BoundingBox2DArray &objArray, const int color,
-                         cv::Mat &dstHist);                      // 目标初始化
-        bool calculate_speed(double u, double v, double &speed); // 计算物体速度（像素/实际）
+                         cv::Mat &dstHist); // 目标初始化
+        // 计算物体速度（像素/实际），将点push_back进pt_
+        bool calculate_speed(double u, double v, double &speed);
         // CamShift算法，目标追踪
         bool target_tracking(const sensor_msgs::ImageConstPtr &image_rect, const int color,
                              double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image);
         double distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
                             double x, double y, double z); // 障碍物最短距离
-        bool find_points_with_height(double h, bool done);
+        bool find_points_with_height(double h, bool done, bool expand_y = false);
         // 椭圆识别
         bool ellipse_target_find(const sensor_msgs::ImageConstPtr &image_rect,
                                  sensor_msgs::ImagePtr &debug_image, cv::Rect &roi);
