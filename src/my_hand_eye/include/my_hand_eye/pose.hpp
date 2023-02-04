@@ -31,25 +31,20 @@ namespace my_hand_eye
     class Pos : public Axis
     {
     private:
-        bool cat;                  // cat=true抓
-        bool look;                 // look=true观察
-        s16 Position[6] = {0};     // 目标舵机位置
-        s16 Position_now[6] = {0}; // 当前舵机位置
-        u16 Speed[6] = {0};
-        u8 ACC[6] = {0};
-        u8 Id[6] = {0, 1, 2, 3, 4, 5};
+        bool cat;            // cat=true抓
+        bool look;           // look=true观察
+        s16 Position[6];     // 目标舵机位置
+        s16 Position_now[6]; // 当前舵机位置
+        u16 Speed[6];
+        u8 ACC[6];
+        u8 Id[6];
         SMS_STS *sm_st_ptr; // 舵机
         SCSCL *sc_ptr;
         const double fx = 1097.2826519484;
         const double fy = 1093.696551235277;
         const double cx = 953.2646757356512;
         const double cy = 501.2671482091341;
-        cv::Mat R_cam_to_end = (cv::Mat_<double>(3, 3) << 0.01762304284718308, 0.05031655330790039, 0.998577825121317,
-                                0.9994569158454911, 0.02692675460875993, -0.01899534824262144,
-                                -0.02784424050724299, 0.9983702691634265, -0.04981469583488352);
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
-        cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754);
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
+
     public:
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
         double default_x, default_y, default_z;
@@ -77,10 +72,14 @@ namespace my_hand_eye
         bool is_moving(int ID[], int IDn);                                   // 判断指定舵机运动
         double wait_until_static(int ID[], int IDn, bool show_load = false); // 等待静止，如果show_load为真，返回最大load
         bool refresh_xyz(bool read = true);                                  // 更新位置
-        cv::Mat R_end_to_base();                                             // 机械臂末端到基底的·旋转矩阵（不保证实时性）
-        cv::Mat T_end_to_base();                                             // 机械臂末端到基底的·平移向量（不保证实时性）
-        cv::Mat Intrinsics();                                                // 内参
-        ArmPose end_to_base_now();                                           // 更新位置，并返回旋转矩阵，平移向量
+        cv::Mat R_cam_to_end();
+        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
+        cv::Mat T_cam_to_end();
+        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
+        cv::Mat R_end_to_base();   // 机械臂末端到基底的·旋转矩阵（不保证实时性）
+        cv::Mat T_end_to_base();   // 机械臂末端到基底的·平移向量（不保证实时性）
+        cv::Mat Intrinsics();      // 内参
+        ArmPose end_to_base_now(); // 更新位置，并返回旋转矩阵，平移向量
         bool calculate_cargo_position(double u, double v, double z, double &x, double &y);
         double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向
         bool dfs_midpoint(double length_goal, double height_goal);

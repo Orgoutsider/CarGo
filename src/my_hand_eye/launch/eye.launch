@@ -2,11 +2,11 @@
   <arg name="camera_frame_id" default="eye" />
   <arg name="nodelet_manager" default="my_hand_eye_manager"/>
   <node pkg="nodelet" type="nodelet" name="$(arg camera_frame_id)" args="load cv_camera/CvCameraNodelet $(arg nodelet_manager)" output="screen">
-      <param name="~frame_id" value="eye" />        
-      <param name="~rate" value="4.0" type="double" />
-      <param name="~device_path" value="/dev/eye" type="string" />
-      <param name="~image_width" value="1920" type="int" />
-      <param name="~image_height" value="1080" type="int" />
+      <param name="frame_id" value="$(arg camera_frame_id)" />        
+      <param name="rate" value="4.0" type="double" />
+      <param name="device_path" value="/dev/eye" type="string" />
+      <param name="image_width" value="1920" type="int" />
+      <param name="image_height" value="1080" type="int" />
       <param name="cv_cap_prop_fourcc" value="1196444237" type="double" />
   </node>
 </launch>

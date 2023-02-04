@@ -16,7 +16,7 @@ namespace my_hand_eye
     class Angle
     {
     private:
-        double du;
+        double deg;
         int state; // 目前角度计算是否出错
     public:
         const int error = 1;
@@ -35,6 +35,8 @@ namespace my_hand_eye
         Angle operator-(const Angle &t) const; // 重载减法
         Angle operator-() const;               // 重载负号
         Angle operator=(const Angle &t);       // 重载等号
+        bool operator>(const Angle &t);        // 重载>
+        bool operator<(const Angle &t);        // 重载<
     };
     double degree(double rad);
     class Axis

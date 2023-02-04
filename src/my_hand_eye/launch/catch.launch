@@ -25,5 +25,7 @@
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
         <param name="if_detect_QR_code" type="bool" value="false" />
+        <param name="white_vmin" type="int" value="160" />
+        <param name="speed_standard" type="double" value="35.0" />
     </node>
 </launch>

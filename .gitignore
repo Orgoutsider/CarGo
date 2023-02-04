@@ -21,4 +21,3 @@ devel/
 .catkin_tools/
 src/mmdetection_ros/mmdetection/
 src/mmdetection_ros/mmtracking/
-geometry2/

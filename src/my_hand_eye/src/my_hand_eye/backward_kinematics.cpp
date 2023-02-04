@@ -1,28 +1,32 @@
 #include "my_hand_eye/backward_kinematics.hpp"
 
+#ifndef M_PI
+# define M_PI 3.141592653589793238462643383279502884196
+#endif
+
 namespace my_hand_eye
 {
     Angle::Angle(double du)
     {
-        this->du = du;
+        this->deg = du;
         state = normal;
     }
 
     Angle::Angle(double v1, double v2)
     {
         double rad = std::atan2(v1, v2);
-        du = degree(rad);
+        deg = degree(rad);
         state = normal;
     }
 
     double Angle::_get_degree()
     {
-        return du;
+        return deg;
     };
 
     double Angle::rad()
     {
-        return du / 180 * M_PI;
+        return deg / 180 * M_PI;
     }
 
     double Angle::cos()
@@ -39,7 +43,7 @@ namespace my_hand_eye
     {
         if (joint == 2 || joint == 3 || joint == 4)
         {
-            du = 90 - du;
+            deg = 90 - deg;
         }
         else if (joint != 1)
         {
@@ -55,7 +59,7 @@ namespace my_hand_eye
     bool Angle::_valid_degree(int joint)
     {
 
-        return 0 <= du && du <= 180;
+        return 0 <= deg && deg <= 180;
     }
 
     bool Angle::_valid_j(int joint)
@@ -75,17 +79,17 @@ namespace my_hand_eye
 
     Angle Angle::operator+(const Angle &a) const
     {
-        return Angle(du + a.du);
+        return Angle(deg + a.deg);
     }
 
     Angle Angle::operator-(const Angle &a) const
     {
-        return Angle(du - a.du);
+        return Angle(deg - a.deg);
     }
 
     Angle Angle::operator-() const
     {
-        return Angle(-du);
+        return Angle(-deg);
     }
 
     Angle Angle::operator=(const Angle &t)
@@ -96,9 +100,19 @@ namespace my_hand_eye
         }
 
         // 复制等号右边对象的成员值到等号左边对象的成员
-        du = t.du;
+        deg = t.deg;
         state = t.state;
         return *this;
+    }
+
+    bool Angle::operator>(const Angle &t)
+    {
+        return deg > t.deg;
+    }
+
+    bool Angle::operator<(const Angle &t)
+    {
+        return deg < t.deg;
     }
 
     double Axis::height()

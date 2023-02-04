@@ -22,8 +22,8 @@ namespace my_hand_eye
         image_transport::Subscriber camera_image_subscriber_;
         bool flag_; // 是否已检测到二维码
         // 文字坐标，假定显示文字的图像为1080p，已预设好
-        int ptx_info[6] = {350, 800, 1240, 350, 800, 1240};
-        int pty_info[6] = {430, 430, 430, 950, 950, 950};
+        const int ptx_info[6] = {350, 800, 1240, 350, 800, 1240};
+        const int pty_info[6] = {430, 430, 430, 950, 950, 950};
         // 文字坐标偏移量，前期调试用
         const int txt_Xoffset = 0;
         const int txt_Yoffset = 0;

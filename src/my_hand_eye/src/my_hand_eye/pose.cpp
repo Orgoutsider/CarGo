@@ -14,6 +14,8 @@ namespace my_hand_eye
         y = 0;
         z = 0;
         expand_y = false;
+        u8 ID[] = {0, 1, 2, 3, 4, 5};
+        memcpy(Id, ID, 6 * sizeof(u8));
     }
 
     bool Pos::begin(const char *argv)
@@ -482,6 +484,18 @@ namespace my_hand_eye
         return valid;
     }
 
+    cv::Mat Pos::R_cam_to_end()
+    {
+        return (cv::Mat_<double>(3, 3) << 0.01762304284718308, 0.05031655330790039, 0.998577825121317,
+                0.9994569158454911, 0.02692675460875993, -0.01899534824262144,
+                -0.02784424050724299, 0.9983702691634265, -0.04981469583488352);
+    }
+
+    cv::Mat Pos::T_cam_to_end()
+    {
+        return (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754);
+    }
+
     cv::Mat Pos::R_end_to_base()
     {
         double deg1 = (Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180;
@@ -615,9 +629,11 @@ namespace my_hand_eye
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
             cv::Mat point_temp = intrinsics_inv * point_pixel;
             // 单位统一为cm
-            cv::Mat temp = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) * R_T2homogeneous_matrix(R_cam_to_end, T_cam_to_end * 0.1);
+            cv::Mat temp = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) *
+                           R_T2homogeneous_matrix(R_cam_to_end(), T_cam_to_end() * 0.1);
             double Z = (z - temp.at<double>(2, 3)) / temp.row(2).colRange(0, 3).clone().t().dot(point_temp);
-            cv::Mat point = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0), Z * point_temp.at<double>(1, 0), Z, 1);
+            cv::Mat point = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
+                             Z * point_temp.at<double>(1, 0), Z, 1);
             point = temp * point;
             x = point.at<double>(0, 0);
             y = point.at<double>(1, 0);
