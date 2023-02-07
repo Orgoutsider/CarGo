@@ -24,7 +24,7 @@ namespace my_hand_eye
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
       			new image_transport::ImageTransport(nh));
     	camera_image_subscriber_ =
-        	it_->subscribe<QRcodeDetector>("image_rect", 1, &QRcodeDetector::imageCallback, this, image_transport::TransportHints(transport_hint));
+        	it_->subscribe<QRcodeDetector>("image_rect", 3, &QRcodeDetector::imageCallback, this, image_transport::TransportHints(transport_hint));
 		pnh.param<bool>("show_detections", arm_controller_.show_detections_, false);
         if (arm_controller_.show_detections_)
 		{
@@ -78,7 +78,7 @@ namespace my_hand_eye
 	{
 		// 目标跟踪
 		static bool stop = false;
-		int color = color_blue;
+		int color = color_green;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		if (!stop)
 		{

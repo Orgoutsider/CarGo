@@ -43,7 +43,7 @@ namespace my_hand_eye
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
-        speed_standard_ = pnh.param<double>("speed_standard", 50.0);
+        speed_standard_ = pnh.param<double>("speed_standard", 0.12);
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -195,22 +195,21 @@ namespace my_hand_eye
         return false;
     }
 
-    bool ArmController::calculate_radius(double u, double v, double center_u, double center_v,
-                                         double &radius)
+    bool ArmController::calculate_radius_and_speed(double u, double v, double center_u, double center_v, bool reset,
+                                                   double &radius, double &speed)
     {
-        static bool flag = false;
         static double center_x = 0, center_y = 0;
         double x, y;
-        if (!flag)
+        if (reset)
         {
             if (!ps_.calculate_cargo_position(center_u, center_v, current_z_, center_x, center_y))
                 return false;
-            flag = true;
         }
         bool valid = ps_.calculate_cargo_position(u, v, current_z_, x, y);
         if (valid)
         {
             radius = sqrt((x - center_x) * (x - center_x) + (y - center_y) * (y - center_y));
+            valid = tracker_.calculate_speed(x, y, center_x, center_y, speed_standard_, speed);
             // ROS_INFO_STREAM(radius);
         }
         return valid;
@@ -384,13 +383,14 @@ namespace my_hand_eye
         if (reset)
         {
             cnt = 0;
+            return false;
         }
-        if (speed == -1)
+        if (speed < 0) //-1
             return false;
         if (speed < speed_standard_)
         {
             cnt++;
-            return cnt >= 5;
+            return cnt >= 3;
         }
         else
             cnt = 0;
@@ -423,24 +423,22 @@ namespace my_hand_eye
             current_color_ = color;
         }
         const int INTERVAL = 50; // 间隔一段时间后重新进行目标检测
+        const double PERMIT = 2.5;
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
-        double radius = 0;
+        double radius = 0, speed = -1;
         if (!fin_)
         {
             ps_.reset();
             vision_msgs::BoundingBox2DArray objArray;
-            double speed = -1;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_ellipse_center(objArray, center_u, center_v) &&
-                tracker_.target_init(cv_image_, objArray, color, speed))
+                tracker_.target_init(cv_image_, objArray, color))
             {
                 tracker_.get_center(u, v);
-                if (calculate_radius(u, v, center_u, center_v, radius))
-                {
-                    first_radius = radius;
-                    fin_ = true;
-                }
+                calculate_radius_and_speed(u, v, center_u, center_v, true, radius, speed);
+                first_radius = radius;
+                fin_ = true;
                 // ROS_INFO_STREAM("u:" << u << " v:" << v);
                 cargo_is_static(speed, true);
             }
@@ -450,16 +448,15 @@ namespace my_hand_eye
         else
         {
             cv_bridge::CvImagePtr cv_image;
-            double speed = -1;
             if ((++cnt) > INTERVAL) // 间隔一段时间后重新进行目标检测
             {
                 vision_msgs::BoundingBox2DArray objArray;
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                    tracker_.target_init(cv_image_, objArray, color, speed))
+                    tracker_.target_init(cv_image_, objArray, color))
                 {
                     tracker_.get_center(u, v);
-                    if (calculate_radius(u, v, center_u, center_v, radius) &&
-                        abs(radius - first_radius) < 2)
+                    if (calculate_radius_and_speed(u, v, center_u, center_v, false, radius, speed) &&
+                        abs(radius - first_radius) < PERMIT)
                     {
                         first_radius = radius;
                         cnt = 0;
@@ -480,15 +477,15 @@ namespace my_hand_eye
             {
                 if (!add_image(image_rect, cv_image))
                     return false;
-                if (!tracker_.target_tracking(*cv_image, speed))
+                if (!tracker_.target_tracking(*cv_image))
                 {
                     cnt = INTERVAL;
                     return false;
                 }
                 tracker_.get_center(u, v);
-                if (!calculate_radius(u, v, center_u, center_v, radius))
+                if (!calculate_radius_and_speed(u, v, center_u, center_v, false, radius, speed))
                     return false;
-                if (abs(radius - first_radius) > 2)
+                if (abs(radius - first_radius) > PERMIT)
                     cnt = INTERVAL;
                 if (show_detections_)
                 {

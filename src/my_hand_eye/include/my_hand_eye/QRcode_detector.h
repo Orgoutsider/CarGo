@@ -38,6 +38,5 @@ namespace my_hand_eye
         void Callback(const std_msgs::StringConstPtr &info);
         void imageCallback(const sensor_msgs::ImageConstPtr &image_rect);
     };
-
 }
 #endif // !_QRCODE_DETECTOR_H_

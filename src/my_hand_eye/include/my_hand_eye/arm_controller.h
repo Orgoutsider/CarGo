@@ -45,17 +45,19 @@ namespace my_hand_eye
         const int Canny_low_ = 50; // 第一次Canny边缘查找的第一滞后因子
         const int Canny_up_ = 100; // 第一次Canny边缘查找的第二滞后因子
 
-        const int con_Area_min_ = 4500;                                                             // 粗筛-最小面积阈值
-        const int con_Point_cont_ = 20;                                                             // 粗筛-图形最少点个数阈值，即连成某个封闭轮廓的点的个数，少于该阈值表明轮廓无效
-        const int con_Area_max_ = 200000;                                                           // 粗筛-最大面积阈值
-        bool add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image); // 添加图片
+        const int con_Area_min_ = 4500;   // 粗筛-最小面积阈值
+        const int con_Point_cont_ = 20;   // 粗筛-图形最少点个数阈值，即连成某个封闭轮廓的点的个数，少于该阈值表明轮廓无效
+        const int con_Area_max_ = 200000; // 粗筛-最大面积阈值
+        bool add_image(const sensor_msgs::ImageConstPtr &image_rect,
+                       cv_bridge::CvImagePtr &image); // 添加图片
         bool detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
                           sensor_msgs::ImagePtr &debug_image, cv::Rect &rect); // 向物块检测服务器发送请求
         // 处理接收的图片，通过颜色确定位置，注意objArray中的数据对应的是原图
         bool find_with_color(vision_msgs::BoundingBox2DArray &objArray, const int color,
                              double z, double &x, double &y);
         // 计算物料转动半径
-        bool calculate_radius(double u, double v, double center_u, double center_v, double &radius);
+        bool calculate_radius_and_speed(double u, double v, double center_u, double center_v, bool reset,
+                                        double &radius, double &speed);
         bool take_picture();                                                                                    // 拍照
         bool get_ellipse_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v); // 处理接收的图片，求3物料重心
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray);                                // 处理接收的图片，设置椭圆颜色顺序
@@ -97,7 +99,7 @@ namespace my_hand_eye
     double hue_value_tan(double y, double x);
     // 两色相的最小差值
     double hue_value_diff(double h_val1, double h_val2);
-    // 椭圆圆心/卡尔曼滤波十字光标绘制，用于调试观察
+    // 十字光标绘制，用于调试观察
     void draw_cross(cv::Mat &img, cv::Point2d point, cv::Scalar color, int size, int thickness);
     // 目标区域框选
     void generate_bounding_rect(int flag[], std::vector<cv::RotatedRect> &m_ellipses,

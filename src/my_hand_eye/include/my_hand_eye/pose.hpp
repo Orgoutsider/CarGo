@@ -44,6 +44,26 @@ namespace my_hand_eye
         const double fy = 1093.696551235277;
         const double cx = 953.2646757356512;
         const double cy = 501.2671482091341;
+        double calculate_time(int ID);  // 为指定舵机计算到达时间
+        bool arrive(int ID[], int IDn); // 判断所有是否到达指定位置附近
+        void wait_for_arriving(int ID[], int IDn);
+        bool calculate_position();
+        bool read_position(int ID);                                          // 读指定舵机位置
+        bool read_move(int ID);                                              // 指定舵机运动
+        int read_load(int ID);                                               // 读指定舵机负载
+        bool is_moving(int ID[], int IDn);                                   // 判断指定舵机运动
+        double wait_until_static(int ID[], int IDn, bool show_load = false); // 等待静止，如果show_load为真，返回最大load
+        cv::Mat R_cam_to_end();
+        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
+        cv::Mat T_cam_to_end();
+        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
+        cv::Mat R_end_to_base();                                            // 机械臂末端到基底的·旋转矩阵（不保证实时性）
+        cv::Mat T_end_to_base();                                            // 机械臂末端到基底的·平移向量（不保证实时性）
+        cv::Mat intrinsics();                                               // 内参
+        cv::Mat extrinsics();                                               // 外参（不保证实时性，配合refresh_xyz）
+        double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向
+        bool dfs_midpoint(double length_goal, double height_goal);
+        void get_points(double h, my_hand_eye::PointArray &arr);
 
     public:
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
@@ -55,38 +75,18 @@ namespace my_hand_eye
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions);            // 获取速度加速度
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default"); // 获取设定动作
         // 计算各joint运动的position
-        bool calculate_position();
-        double calculate_time(int ID);  // 为指定舵机计算到达时间
-        bool arrive(int ID[], int IDn); // 判断所有是否到达指定位置附近
-        void wait_for_arriving(int ID[], int IDn);
         bool go_to(double x, double y, double z, bool cat, bool look); // 运动到指定位置，抓/不抓
         bool do_first_step(double x, double y);                        // 两步抓取第一步
         bool reset();
-        bool go_to_and_wait(double x, double y, double z, bool cat);         // 运动到指定位置，运动完成后抓/不抓
-        bool go_to_by_midpoint(double x, double y, double z);                // 通过中间点到达
-        bool read_position(int ID);                                          // 读指定舵机位置
-        bool read_move(int ID);                                              // 指定舵机运动
-        int read_load(int ID);                                               // 读指定舵机负载
-        bool show_voltage();                                                 // 显示电压，需要时警告
-        bool read_all_position();                                            // 读所有舵机正确位置
-        bool is_moving(int ID[], int IDn);                                   // 判断指定舵机运动
-        double wait_until_static(int ID[], int IDn, bool show_load = false); // 等待静止，如果show_load为真，返回最大load
-        bool refresh_xyz(bool read = true);                                  // 更新位置
-        cv::Mat R_cam_to_end();
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
-        cv::Mat T_cam_to_end();
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
-        cv::Mat R_end_to_base();   // 机械臂末端到基底的·旋转矩阵（不保证实时性）
-        cv::Mat T_end_to_base();   // 机械臂末端到基底的·平移向量（不保证实时性）
-        cv::Mat intrinsics();      // 内参
-        cv::Mat extrinsics();      // 外参（不保证实时性，配合refresh_xyz）
-        ArmPose end_to_base_now(); // 更新位置，并返回旋转矩阵，平移向量
+        bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
+        bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
+        bool show_voltage();                                         // 显示电压，需要时警告
+        bool read_all_position();                                    // 读所有舵机正确位置
+        bool refresh_xyz(bool read = true);                          // 更新位置
+        ArmPose end_to_base_now();                                   // 更新位置，并返回旋转矩阵，平移向量
         bool calculate_cargo_position(double u, double v, double z, double &x, double &y);
-        double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向
-        bool dfs_midpoint(double length_goal, double height_goal);
         // 求中间点(y > 0)，与calculate_position配合使用，中间点-Position,x,y,z，最终点-Position_goal,x_goal,y_goal,z_goal
         bool find_a_midpoint(s16 Position_goal[], double &x_goal, double &y_goal, double &z_goal);
-        void get_points(double h, my_hand_eye::PointArray &arr);
         bool find_points_with_height(double h, my_hand_eye::PointArray &arr);
         void wait_for_alpha_decrease(double alpha_bound); // 等待alpha减小指定值
         void end();
