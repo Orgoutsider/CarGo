@@ -78,7 +78,8 @@ namespace my_hand_eye
         // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
         cv::Mat R_end_to_base();   // 机械臂末端到基底的·旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();   // 机械臂末端到基底的·平移向量（不保证实时性）
-        cv::Mat Intrinsics();      // 内参
+        cv::Mat intrinsics();      // 内参
+        cv::Mat extrinsics();      // 外参（不保证实时性，配合refresh_xyz）
         ArmPose end_to_base_now(); // 更新位置，并返回旋转矩阵，平移向量
         bool calculate_cargo_position(double u, double v, double z, double &x, double &y);
         double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向

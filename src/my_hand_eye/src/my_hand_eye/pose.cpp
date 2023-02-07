@@ -359,12 +359,12 @@ namespace my_hand_eye
             usleep(10 * 1000);
             if (Volt < 115)
             {
-                ROS_WARN("Voltage %lfV is not enough", Volt / 10.0);
+                ROS_WARN("Voltage %3.1lfV is not enough", Volt / 10.0);
                 return false;
             }
             else
             {
-                ROS_INFO("Voltage %lfV is enough", Volt / 10.0);
+                ROS_INFO("Voltage %3.1lfV is enough", Volt / 10.0);
                 return true;
             }
         }
@@ -493,7 +493,7 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754);
+        return (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754) * 0.1;
     }
 
     cv::Mat Pos::R_end_to_base()
@@ -614,10 +614,16 @@ namespace my_hand_eye
         }
     }
 
-    cv::Mat Pos::Intrinsics()
+    cv::Mat Pos::intrinsics()
     {
         cv::Mat intrinsics = (cv::Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0.0, 1);
         return intrinsics;
+    }
+
+    cv::Mat Pos::extrinsics()
+    {
+        return R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) *
+               R_T2homogeneous_matrix(R_cam_to_end(), T_cam_to_end());
     }
 
     bool Pos::calculate_cargo_position(double u, double v, double z, double &x, double &y)
@@ -625,12 +631,11 @@ namespace my_hand_eye
         bool valid = refresh_xyz();
         if (valid)
         {
-            cv::Mat intrinsics_inv = Intrinsics().inv();
+            cv::Mat intrinsics_inv = intrinsics().inv();
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
             cv::Mat point_temp = intrinsics_inv * point_pixel;
             // 单位统一为cm
-            cv::Mat temp = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) *
-                           R_T2homogeneous_matrix(R_cam_to_end(), T_cam_to_end() * 0.1);
+            cv::Mat temp = extrinsics();
             double Z = (z - temp.at<double>(2, 3)) / temp.row(2).colRange(0, 3).clone().t().dot(point_temp);
             cv::Mat point = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
                              Z * point_temp.at<double>(1, 0), Z, 1);

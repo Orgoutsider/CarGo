@@ -83,21 +83,21 @@ namespace my_hand_eye
 		if (!stop)
 		{
 			double u, v;
-			arm_controller_.target_tracking(image_rect, color, u, v, stop, debug_image);
+			arm_controller_.track(image_rect, color, u, v, stop, debug_image);
 			if (arm_controller_.show_detections_)
 				debug_image_publisher_.publish(debug_image);
 		}
 		else
 		{
-			// 中间点抓取
-			static bool finish = false;
-			if (!finish)
-			{
-				double u, v;
-				arm_controller_.catch_straightly(image_rect, color, arm_controller_.z_turntable, finish, debug_image, true);
-				if (arm_controller_.show_detections_)
-					debug_image_publisher_.publish(debug_image);
-			}			
+			// // 中间点抓取
+			// static bool finish = false;
+			// if (!finish)
+			// {
+			// 	double u, v;
+			// 	arm_controller_.catch_straightly(image_rect, color, arm_controller_.z_turntable, finish, debug_image, true);
+			// 	if (arm_controller_.show_detections_)
+			// 		debug_image_publisher_.publish(debug_image);
+			// }			
 		}
 
 		// // 中间点抓取

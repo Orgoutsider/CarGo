@@ -2,7 +2,7 @@
 #include <iostream>
 using namespace cv;
 using namespace std;
-//ºÍÖ®Ç°camshiftÒ»Ñù£¬ÎÒÎªÁËµ÷ÊÔ·½±ã£¬ÏÈÓÃÑÕÉ«Ê¶±ğÕÒµ½Ä¿±êÎïÌå
+//å’Œä¹‹å‰camshiftä¸€æ ·ï¼Œæˆ‘ä¸ºäº†è°ƒè¯•æ–¹ä¾¿ï¼Œå…ˆç”¨é¢œè‰²è¯†åˆ«æ‰¾åˆ°ç›®æ ‡ç‰©ä½“
 Scalar R_Low = Scalar(156, 100, 80);
 Scalar R_up = Scalar(180, 255, 255);
 
@@ -15,9 +15,9 @@ Scalar B_up = Scalar(120, 255, 255);
 Scalar Low[3] = { B_Low, G_Low, R_Low };
 Scalar Up[3] = { B_up, G_up, R_up };
 
-int scale = 1;//Í¼Æ¬Ëõ·Å±¶Êı£¬µ÷ÊÔÓÃ
+int scale = 1;//å›¾ç‰‡ç¼©æ”¾å€æ•°ï¼Œè°ƒè¯•ç”¨
 
-//Ñ°ÕÒÄ¿±ê
+//å¯»æ‰¾ç›®æ ‡
 bool TargetFinding(Mat srcImg, Rect* rect_, unsigned COLOR)
 {
 	Mat srcF;
@@ -49,9 +49,9 @@ bool TargetFinding(Mat srcImg, Rect* rect_, unsigned COLOR)
 	else return false;
 }
 
-vector<Point2f> pts;//´æ·ÅÔ¤²âµãµÄÈİÆ÷£¬ÓÃÓÚ»æÖÆÔ¤²âµÄ¹ì¼££¬µ÷ÊÔÓÃ
+vector<Point2f> pts;//å­˜æ”¾é¢„æµ‹ç‚¹çš„å®¹å™¨ï¼Œç”¨äºç»˜åˆ¶é¢„æµ‹çš„è½¨è¿¹ï¼Œè°ƒè¯•ç”¨
 
-//µÃµ½Ä¿±êµÄÖĞĞÄµã×ø±ê£¬Õâ¸öÊÇºÍTargetFindingº¯Êı½áºÏÊ¹ÓÃ
+//å¾—åˆ°ç›®æ ‡çš„ä¸­å¿ƒç‚¹åæ ‡ï¼Œè¿™ä¸ªæ˜¯å’ŒTargetFindingå‡½æ•°ç»“åˆä½¿ç”¨
 Point getCenterPoint(Rect rect)
 {
 	Point cpt;
@@ -60,7 +60,7 @@ Point getCenterPoint(Rect rect)
 	return cpt;
 }
 
-//»æÖÆÔ¤²âµÄÖĞĞÄµãÊ®×Ö£¬µ÷ÊÔÓÃ
+//ç»˜åˆ¶é¢„æµ‹çš„ä¸­å¿ƒç‚¹åå­—ï¼Œè°ƒè¯•ç”¨
 void drawCross(Mat& img, Point2f point, Scalar color, int size, int thickness = 1)
 {
 	line(img, Point(point.x - size / 2, point.y), Point(point.x + size / 2, point.y), color, thickness, 8, 0);
@@ -69,40 +69,40 @@ void drawCross(Mat& img, Point2f point, Scalar color, int size, int thickness = 
 
 int main()
 {
-	//¶ÁÈ¡ÊÓÆµ
+	//è¯»å–è§†é¢‘
 	VideoCapture video;
 	video.open("E:\\opencv_test\\car\\VID2.mp4");
 	if (!video.isOpened())
 		return -1;
 
-//ºËĞÄ´úÂë£º¿¨¶ûÂüÂË²¨³õÊ¼»¯
-	const int stateNum = 4;                                                                      //×´Ì¬Öµ4¡Á1ÏòÁ¿(x, y, ¡÷x, ¡÷y)
-	const int measureNum = 2;                                                                    //²âÁ¿Öµ2¡Á1ÏòÁ¿(x, y)
-	KalmanFilter KF(stateNum, measureNum, 0);                                                    //³õÊ¼»¯¿¨¶ûÂüÂË²¨Æ÷
-	KF.transitionMatrix = (Mat_<float>(4, 4) << 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1); //×ªÒÆ¾ØÕóA
-	setIdentity(KF.measurementMatrix);                                             //²âÁ¿¾ØÕóH
-	setIdentity(KF.processNoiseCov, Scalar::all(1e-5));                            //ÏµÍ³ÔëÉù·½²î¾ØÕóQ
-	setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));                        //²âÁ¿ÔëÉù·½²î¾ØÕóR
-	setIdentity(KF.errorCovPost, Scalar::all(1));                                  //ºóÑé´íÎó¹À¼ÆĞ­·½²î¾ØÕóP
-	Mat measurement = Mat::zeros(measureNum, 1, CV_32F);                           //³õÊ¼²âÁ¿Öµx'(0)£¬ÒòÎªºóÃæÒª¸üĞÂÕâ¸öÖµ£¬ËùÒÔ±ØĞëÏÈ¶¨
+//æ ¸å¿ƒä»£ç ï¼šå¡å°”æ›¼æ»¤æ³¢åˆå§‹åŒ–
+	const int stateNum = 4;                                                                      //çŠ¶æ€å€¼4Ã—1å‘é‡(x, y, â–³x, â–³y)
+	const int measureNum = 2;                                                                    //æµ‹é‡å€¼2Ã—1å‘é‡(x, y)
+	KalmanFilter KF(stateNum, measureNum, 0);                                                    //åˆå§‹åŒ–å¡å°”æ›¼æ»¤æ³¢å™¨
+	KF.transitionMatrix = (Mat_<float>(4, 4) << 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1); //è½¬ç§»çŸ©é˜µA
+	setIdentity(KF.measurementMatrix);                                             //æµ‹é‡çŸ©é˜µH
+	setIdentity(KF.processNoiseCov, Scalar::all(1e-5));                            //ç³»ç»Ÿå™ªå£°æ–¹å·®çŸ©é˜µQ
+	setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));                        //æµ‹é‡å™ªå£°æ–¹å·®çŸ©é˜µR
+	setIdentity(KF.errorCovPost, Scalar::all(1));                                  //åéªŒé”™è¯¯ä¼°è®¡åæ–¹å·®çŸ©é˜µP
+	Mat measurement = Mat::zeros(measureNum, 1, CV_32F);                           //åˆå§‹æµ‹é‡å€¼x'(0)ï¼Œå› ä¸ºåé¢è¦æ›´æ–°è¿™ä¸ªå€¼ï¼Œæ‰€ä»¥å¿…é¡»å…ˆå®š
 
-	namedWindow("kalman");                                                         //´´½¨´°¿Ú£¬ÓÃÓÚ²é¿´½á¹û
+	namedWindow("kalman");                                                         //åˆ›å»ºçª—å£ï¼Œç”¨äºæŸ¥çœ‹ç»“æœ
 	
-	Mat frame;     //ÊÓÆµÖ¡
+	Mat frame;     //è§†é¢‘å¸§
 
-	//ÏÈÕÒµ½Ä¿±êÎïÌå£¬ÕâÒ»²½ÊÇÎªÁËÅäºÏ¿¨¶ûÂüÂË²¨£¬Òª¸ø¿¨¶ûÂüÂË²¨Ò»¸ö³õÊ¼Öµ
-	Rect rect;     //Ä¿±êÎïÌå¾ØĞÎ
+	//å…ˆæ‰¾åˆ°ç›®æ ‡ç‰©ä½“ï¼Œè¿™ä¸€æ­¥æ˜¯ä¸ºäº†é…åˆå¡å°”æ›¼æ»¤æ³¢ï¼Œè¦ç»™å¡å°”æ›¼æ»¤æ³¢ä¸€ä¸ªåˆå§‹å€¼
+	Rect rect;     //ç›®æ ‡ç‰©ä½“çŸ©å½¢
 	bool targetFound = false;
 	while (!targetFound)
 	{
 		video >> frame;
-		resize(frame, frame, frame.size() / scale);//ÖØÉè´óĞ¡
+		resize(frame, frame, frame.size() / scale);//é‡è®¾å¤§å°
 		targetFound = TargetFinding(frame, &rect, 0);
 		if (targetFound)
 			imshow("rect", frame(rect));
 	}
 
-//ºËĞÄ´úÂë£º³õÊ¼×´Ì¬Öµx(0)£¬Ïàµ±ÓÚÊÇÄÃµ½ÁËµÚÒ»¸öÔ­Ê¼Êı¾İ
+//æ ¸å¿ƒä»£ç ï¼šåˆå§‹çŠ¶æ€å€¼x(0)ï¼Œç›¸å½“äºæ˜¯æ‹¿åˆ°äº†ç¬¬ä¸€ä¸ªåŸå§‹æ•°æ®
 	KF.statePost = (Mat_<float>(4, 1) << getCenterPoint(rect).x, getCenterPoint(rect).y, 0, 0);  
 
 	while (true)
@@ -113,17 +113,17 @@ int main()
 		if ((char)waitKey(1) == 27)
 			break;
 		resize(frame, frame, frame.size() / scale);
-//ºËĞÄ´úÂë£º¿¨¶ûÂüÔ¤²â
+//æ ¸å¿ƒä»£ç ï¼šå¡å°”æ›¼é¢„æµ‹
 		Mat prediction = KF.predict();
-		Point predict_pt = Point(prediction.at<float>(0), prediction.at<float>(1));   //Ô¤²âÖµ(x', y')
+		Point predict_pt = Point(prediction.at<float>(0), prediction.at<float>(1));   //é¢„æµ‹å€¼(x', y')
 		pts.push_back(predict_pt);
 
-//ºËĞÄ´úÂë£º½øĞĞÏÂÒ»´ÎÔ¤²â¸üĞÂ
+//æ ¸å¿ƒä»£ç ï¼šè¿›è¡Œä¸‹ä¸€æ¬¡é¢„æµ‹æ›´æ–°
 		TargetFinding(frame, &rect, 0);
 		measurement.at<float>(0) = (float)getCenterPoint(rect).x;
 		measurement.at<float>(1) = (float)getCenterPoint(rect).y;
 		KF.correct(measurement);
-//»æÖÆ
+//ç»˜åˆ¶
 		drawCross(frame, predict_pt, Scalar(255, 255, 0), 30, 3);
 		for (int i = 0; i < pts.size() - 1; i++)
 		{
