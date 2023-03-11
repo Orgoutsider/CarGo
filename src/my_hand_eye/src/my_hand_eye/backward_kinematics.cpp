@@ -58,8 +58,10 @@ namespace my_hand_eye
 
     bool Angle::_valid_degree(int joint)
     {
-
-        return 0 <= deg && deg <= 180;
+        if (joint == 1)
+            return 0 <= deg && deg <= 180;
+        else
+            return -50 <= deg && deg <= 230;
     }
 
     bool Angle::_valid_j(int joint)
@@ -249,8 +251,8 @@ namespace my_hand_eye
         {
             Angle j1 = _calculate_j1();
             Angle j2 = flag ? (-_calculate_j2(alpha)) : _calculate_j2(alpha);
-            Angle j3 = _calculate_j3(alpha);
-            Angle j4 = _calculate_j4(alpha);
+            Angle j3 = flag ? (-_calculate_j3(alpha)) : _calculate_j3(alpha);
+            Angle j4 = flag ? (-_calculate_j4(alpha)) : _calculate_j4(alpha);
             j1._j_degree_convert(1);
             j2._j_degree_convert(2);
             j3._j_degree_convert(3);
@@ -301,8 +303,6 @@ namespace my_hand_eye
         j2._j_degree_convert(2);
         j3._j_degree_convert(3);
         j4._j_degree_convert(4);
-        bool flag = j2._get_degree() < 0;
-        j2 = flag? -j2 : j2;
         double length = ARM_A2 * j2.sin() + ARM_A3 * (j2 + j3).sin() +
                         ARM_A4 * (j2 + j3 + j4).sin();
         double height = ARM_A1 + ARM_A2 * j2.cos() + ARM_A3 * (j2 + j3).cos() +
@@ -312,7 +312,6 @@ namespace my_hand_eye
         z = height;
         x = length * j1.cos();
         y = length * j1.sin() - ARM_P;
-        y = flag ? -y - 2 * ARM_P : y;
         if ((0 <= y || expand_y) && z >= 0)
             valid = true;
         // ROS_ERROR_STREAM("valid:" << valid << " x:" << x << " y:" << y << " z:" << z << " length:" << length << " height:" << height << " alpha:" << alpha);

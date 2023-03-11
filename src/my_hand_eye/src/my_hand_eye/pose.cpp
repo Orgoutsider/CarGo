@@ -668,6 +668,8 @@ namespace my_hand_eye
             ROS_INFO("Succeeded to find a midpoint!");
             return true;
         }
+        else if (dist < 0)
+            return false;
         double nx = x;
         double ny = y;
         double nz = z;
@@ -680,6 +682,9 @@ namespace my_hand_eye
             {
                 continue;
             }
+            // usleep(1e5);
+            // ARM_ERROR_XYZ(*this);
+            // ROS_ERROR_STREAM(i << " " << dist << " " << k);
             if (dfs_midpoint(length_goal, height_goal))
             {
                 return true;
@@ -732,7 +737,7 @@ namespace my_hand_eye
         double length_max = length();
         // 储存上一步状态
         bool last_ok = calculate_position();
-        bool last_mid = last_ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false;
+        bool last_mid = last_ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false; // last_ok;
         if (last_ok)
         {
             memcpy(Position, Position_goal, 6 * sizeof(s16));
@@ -749,7 +754,7 @@ namespace my_hand_eye
             if (y > 0 || (expand_y && y > -length_max - 2 * ARM_P))
             {
                 bool ok = calculate_position();
-                bool mid = ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false;
+                bool mid = ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false; // ok;
                 if (ok)
                 {
                     memcpy(Position, Position_goal, 6 * sizeof(s16));
@@ -757,16 +762,38 @@ namespace my_hand_eye
                     y = y_goal;
                     z = z_goal;
                 }
-                // ROS_ERROR_STREAM(y << "a");
                 geometry_msgs::Point pt[6];
                 if (ok == last_ok && ok) // 和上一步判断得ok状态相同，且为真
                 {
+                    memcpy(Position_goal, Position, 6 * sizeof(s16));
                     for (int i = 1; i <= 5; i++)
                     {
+                        y += dy / 5;
                         pt[i].x = x;
-                        pt[i].y = y + i * dy / 5;
+                        pt[i].y = y;
                         pt[i].z = z;
+                        double deg1, deg2, deg3, deg4;
+                        deg1 = deg2 = deg3 = deg4 = 0;
+                        if (test_ok(deg1, deg2, deg3, deg4, look))
+                        {
+                            Angle j2 = Angle(deg2);
+                            Angle j3 = Angle(deg3);
+                            Angle j4 = Angle(deg4);
+                            j2._j_degree_convert(2);
+                            j3._j_degree_convert(3);
+                            j4._j_degree_convert(4);
+                            double alpha = j2._get_degree() + j3._get_degree() + j4._get_degree();
+                            // ROS_ERROR_STREAM(deg3 << " " << deg4);
+                            // ROS_ERROR_STREAM(alpha);
+                            if (cvRound(alpha) == -90)
+                            {
+                                // ROS_ERROR_STREAM(deg2 << " " << deg3 << " " << deg4);
+                                ARM_ERROR_XYZ(*this);
+                            }
+                        }
                     }
+                    y -= dy;
+                    memcpy(Position, Position_goal, 6 * sizeof(s16));
                     if (mid == last_mid) // 和上一步判断得midpoint状态相同
                     {
                         for (int i = 1; i <= 5; i++)
@@ -787,6 +814,7 @@ namespace my_hand_eye
                             y = pt[i].y;
                             if (calculate_position())
                             {
+                                ARM_INFO_XYZ(*this);
                                 point.has_midpoint = find_a_midpoint(Position_goal, x_goal,
                                                                      y_goal, z_goal);
                                 x = x_goal;
@@ -860,7 +888,7 @@ namespace my_hand_eye
         if (refresh_xyz(false) && abs(z - h) <= err)
         {
             get_points(h, arr);
-            // ROS_ERROR_STREAM("size:" << arr.points.size());
+            ROS_ERROR_STREAM("size:" << arr.points.size());
             if (arr.points.size())
             {
                 my_hand_eye::Plot plt;

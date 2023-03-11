@@ -12,8 +12,9 @@ int main(int argc, char **argv)
     }
     ros::NodeHandle pnh("~");
     controller.init(nh, pnh, true);
-    double h;
-    for (h = controller.z_turntable + 5; h > controller.z_turntable - 5; h -= 0.2)
+    // double h = 22.5;
+    double h = 20.5;
+    for (h = 0.5; h < ARM_MAX_HIGH - 0.2; h += 0.2)
     {
         if (h < ARM_MAX_HIGH && h > 0)
             controller.find_points_with_height(h, false, true);
