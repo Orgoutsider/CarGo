@@ -19,6 +19,6 @@ logs/
 devel/
 .vscode/
 .catkin_tools/
-src/mmdetection_ros/
+src/mmdetection_ros/mmdetection/
 src/apriltag/
 src/apriltag_ros/
