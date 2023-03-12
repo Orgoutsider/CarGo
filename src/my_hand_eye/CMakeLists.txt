@@ -20,7 +20,9 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   mmdetection_ros
 )
+set(OpenCV required PATHS /home/nano/opencv4/opencv/build)
 find_package(OpenCV REQUIRED)
+ 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -128,7 +130,7 @@ catkin_package(
 include_directories(
 include
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
+  /usr/local/include/opencv4
 )
 
 ## Declare a C++ library
@@ -143,6 +145,8 @@ include
 #   ${catkin_LIBRARIES}
 #   ${OpenCV_LIBRARIES}
 # )
+
+file(GLOB OpenCV_LIBRARIES /usr/local/lib/*.so)
 
 add_library(${PROJECT_NAME} 
   src/${PROJECT_NAME}/arm_controller.cpp 

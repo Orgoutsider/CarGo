@@ -23,7 +23,7 @@ src/mmdetection_ros/mmdetection/
 src/apriltag/
 src/apriltag_ros/
 src/cv_camera/
-src/fdlink_ahrs/
+src/fdilink_ahrs/
 src/image_proc/
 src/lsn10/
 src/realsense-ros-development/
@@ -32,3 +32,4 @@ src/usb_cam/
 src/vision_msgs/
 src/wheeltec_robot_rc/
 src/zbar_ros/
+src/cv_bridge/
