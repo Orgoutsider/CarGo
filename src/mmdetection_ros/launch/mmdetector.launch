@@ -2,9 +2,9 @@
 	<!-- For find_object node use calling service -->
 	<!-- <arg name="image_topic" default="/to_mmdetector" /> -->
 	<!-- For find_object node use subscribing -->
-	<arg name="image_topic" default="/usb_cam/image_raw" />
+	<arg name="image_topic" default="/eye/image_raw" />
 
-	<arg name="mmdet_pub_rate" default="10" />
+	<arg name="mmdet_pub_rate" default="5" />
 	<arg name="is_service" default="false" />
 	<arg name="visualization" default="true" />
 

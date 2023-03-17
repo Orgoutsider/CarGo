@@ -472,7 +472,7 @@ turn_on_robot::turn_on_robot():Sampling_Time(0),Power_voltage(0)
 
   voltage_publisher = n.advertise<std_msgs::Float32>("PowerVoltage", 10); //Create a battery-voltage topic publisher //创建电池电压话题发布者
   odom_publisher    = n.advertise<nav_msgs::Odometry>("odom", 50); //Create the odometer topic publisher //创建里程计话题发布者
-  imu_publisher     = n.advertise<sensor_msgs::Imu>("imu_abandoned", 20); //Create an IMU topic publisher //创建IMU话题发布者
+  imu_publisher     = n.advertise<sensor_msgs::Imu>("imu", 20); //Create an IMU topic publisher //创建IMU话题发布者
 
   //Set the velocity control command callback function
   //速度控制命令订阅回调函数设置

@@ -27,9 +27,6 @@
   <arg name="is_cartographer"  default="false"/>
   <arg name="odom_frame_id"  default="odom_combined"/>
 
-  <!-- 开启imu -->
-  <include file="$(find turn_on_wheeltec_robot)/launch/include/ahrs_data.launch" if="$(arg if_imu)" />
-
   <group unless="$(eval (car_mode=='mini_mec_moveit_six' or car_mode=='mini_4wd_moveit_six') and if_voice==true)" >
   <!-- turn on base_serial 开启底层单片机的控制节点  -->
   <include file="$(find turn_on_wheeltec_robot)/launch/include/base_serial.launch" unless="$(arg repeat)">

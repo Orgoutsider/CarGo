@@ -11,7 +11,12 @@
     <param name="gyro_frame_id"      type="string" value="gyro_link"/> 
     <!-- 如果开启了平滑功能，则订阅平滑速度 -->
     <remap if="$(arg smoother)" from="cmd_vel" to="smoother_cmd_vel"/>
+    <remap from="/imu" to="/imu_ori"/>
   </node>
+
+  <!-- 开启IMU -->
+  <include file="$(find fdilink_ahrs)/launch/ahrs_data.launch" />
+  <!-- <include file="$(find fdilink_ahrs)/launch/tf.launch" /> -->
 
   <!-- 如果开启了速度平滑功能，则运行速度平滑功能包 -->
   <include if="$(arg smoother)" 

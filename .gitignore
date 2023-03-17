@@ -25,7 +25,6 @@ src/apriltag_ros/
 src/cv_camera/
 src/fdilink_ahrs/
 src/image_proc/
-src/lsn10/
 src/realsense-ros-development/
 src/robot_pose_ekf/
 src/usb_cam/

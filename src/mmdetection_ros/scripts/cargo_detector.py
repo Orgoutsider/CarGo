@@ -49,7 +49,7 @@ from mmdet.models import build_detector
 import threading
 
 #修改此處
-DIR_PATH = '/home/fu/apriltag_ws/src/mmdetection_ros'
+DIR_PATH = '/home/nano/car/car/car_ws/src/mmdetection_ros'
 # Choose to use a config and initialize the detector
 CONFIG_NAME = 'faster_rcnn_r101_fpn_2x_coco.py'
 # CONFIG_PATH = os.path.join(os.path.dirname(sys.path[0]),'scripts', CONFIG_NAME)
@@ -278,6 +278,7 @@ class Detector:
                                     win_name='result',
                                     bbox_color=(72, 101, 241),
                                     text_color=(72, 101, 241))
+                    cv2.imshow(debug_image)
                     # img = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
                     # image_out = Image()
                     # try:
@@ -285,11 +286,11 @@ class Detector:
                     # except CvBridgeError as e:
                     #     print(e)
                     # image_out.header = msg.header
-                    image_out = msg
+                    # image_out = msg
                     # NOTE: Copy other fields from msg, modify the data field manually
                     # (check the source code of cvbridge)
-                    image_out.data = debug_image.tobytes()
-                    self.image_pub.publish(image_out) 
+                    # image_out.data = debug_image.tobytes()
+                    # self.image_pub.publish(image_out) 
 
             rate.sleep()
             self._last_res.clear()

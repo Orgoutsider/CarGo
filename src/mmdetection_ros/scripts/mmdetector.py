@@ -48,7 +48,7 @@ from mmdet.models import build_detector
 import threading
 
 #修改此處
-DIR_PATH = '/home/fu/apriltag_ws/src/mmdetection_ros'
+DIR_PATH = '/home/nano/car/car/car_ws/src/mmdetection_ros'
 # Choose to use a config and initialize the detector
 CONFIG_NAME = 'faster_rcnn_r101_fpn_2x_coco.py'
 # CONFIG_PATH = os.path.join(os.path.dirname(sys.path[0]),'scripts', CONFIG_NAME)
