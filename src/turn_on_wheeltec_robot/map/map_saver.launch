@@ -1,0 +1,4 @@
+<launch>
+    <arg name="filename" value="$(find turn_on_wheeltec_robot)/map/WHEELTEC"/>
+    <node name="map_saver1" pkg="map_server" type="map_saver" args="-f $(arg filename)" output="screen" />
+</launch>
