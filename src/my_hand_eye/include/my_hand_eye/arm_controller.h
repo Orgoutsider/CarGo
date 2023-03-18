@@ -31,7 +31,6 @@ namespace my_hand_eye
         bool emulation_;        // 是否进行仿真
         int white_vmin_;
         Ellipse ellipse_color_order_[4];
-        Pos ps_;
         Tracker tracker_;
         SMS_STS sm_st_;
         SCSCL sc_;
@@ -73,6 +72,7 @@ namespace my_hand_eye
     public:
         ArmController();
         ~ArmController();
+        Pos ps_;
         const double z_floor = 3.5;     // 底盘距地6mm，物块高度一半35mm
         const double z_turntable = 6.4; // 转盘
         bool show_detections_;
