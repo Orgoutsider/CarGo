@@ -1,0 +1,34 @@
+<!-- Launch in the camera namespace containing "image_raw" and "camera_info" -->
+<launch>
+
+  <arg name="camera" default="eye"/>
+
+  <arg name="manager" default="my_hand_eye_manager"/>
+  <!-- Must be globally qualified -->
+  <arg name="respawn" default="false" />
+  <!-- TODO Arguments for debayer, interpolation methods -->
+
+  <arg if="$(arg respawn)" name="bond" value="" />
+  <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+
+  <!-- Push down all topics/nodelets into "camera" namespace -->
+  <group ns="$(arg camera)">
+    <!-- Debayered images -->
+    <node pkg="nodelet" type="nodelet" name="debayer" args="load image_proc/debayer /$(arg manager) $(arg bond)" respawn="$(arg respawn)" output="screen"/>
+
+    <!-- Monochrome rectified image -->
+    <node pkg="nodelet" type="nodelet" name="rectify_mono" args="load image_proc/rectify /$(arg manager) $(arg bond)" respawn="$(arg respawn)" output="screen">
+      <!-- <remap from="image_mono" to="/$(arg camera)/image_mono" />
+      <remap from="image_rect" to="/$(arg camera)/image_rect" /> -->
+    </node>
+
+    <!-- Color rectified image -->
+    <node pkg="nodelet" type="nodelet" name="rectify_color" args="load image_proc/rectify /$(arg manager) $(arg bond)" respawn="$(arg respawn)" output="screen">
+      <remap from="image_mono" to="/$(arg camera)/image_color" />
+      <remap from="image_rect" to="/$(arg camera)/image_rect_color" />
+    </node>
+
+  </group>
+  <!--camera ns-->
+
+</launch>

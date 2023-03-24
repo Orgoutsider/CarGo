@@ -50,12 +50,12 @@ import threading
 #修改此處
 DIR_PATH = '/home/nano/car/car/car_ws/src/mmdetection_ros'
 # Choose to use a config and initialize the detector
-CONFIG_NAME = 'faster_rcnn_r101_fpn_2x_coco.py'
+CONFIG_NAME = 'yolov3_d53_mstrain-608_273e_coco.py'
 # CONFIG_PATH = os.path.join(os.path.dirname(sys.path[0]),'scripts', CONFIG_NAME)
 CONFIG_PATH = os.path.join(DIR_PATH,'scripts', CONFIG_NAME)
 
 # Setup a checkpoint file to load
-MODEL_NAME =  'epoch_24.pth'
+MODEL_NAME =  'epoch_273.pth'
 # MODEL_PATH = os.path.join(os.path.dirname(sys.path[0]),'scripts', MODEL_NAME)
 MODEL_PATH = os.path.join(DIR_PATH,'scripts', MODEL_NAME)
 

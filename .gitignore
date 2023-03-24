@@ -32,3 +32,6 @@ src/vision_msgs/
 src/wheeltec_robot_rc/
 src/zbar_ros/
 src/cv_bridge/
+# src/detection_msgs/
+# src/yolov5_ros/src/yolov5
+src/lsn10/

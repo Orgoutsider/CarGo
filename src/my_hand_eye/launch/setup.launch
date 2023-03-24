@@ -4,23 +4,23 @@
     <arg name="show_detections" default="true" />
     <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
-    <include file="$(find my_hand_eye)/launch/eye.launch" >
+    <include file="$(find my_hand_eye)/launch/eye.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
     </include>
-    <include file="$(find my_hand_eye)/launch/include/mmdetection.launch" >
-        <arg name="param_modification" value="false" />
-    </include>
-    
+    <!-- <include file="$(find my_hand_eye)/launch/include/mmdetection.launch"> -->
+    <!-- <arg name="param_modification" value="false" />
+    </include> -->
+
     <!-- Set parameters -->
     <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
 
-    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  args="manager"/>
-    <!-- <node pkg="my_hand_eye" type="my_hand_eye_QR_code_node" name="$(arg node_namespace)" output="screen" > -->
-    <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen" >
-        
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
+    <!-- <node pkg="my_hand_eye" type="my_hand_eye_QR_code_node" name="$(arg node_namespace)" output="screen"> -->
+    <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen">
+
         <!-- Remap topics from those used in code to those on the ROS network -->
-        <remap from="image_rect" to="$(arg camera_name)/image_raw" />    
-    
+        <remap from="image_rect" to="$(arg camera_name)/image_rect_color" />
+
         <param name="transport_hint" type="string" value="raw" />
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
@@ -28,4 +28,9 @@
         <param name="white_vmin" type="int" value="160" />
         <param name="speed_standard" type="double" value="0.12" />
     </node>
+<!-- 
+    <node pkg="nodelet" type="nodelet" name="rectify_color" args="load image_proc/rectify $(arg nodelet_manager)" output="screen">
+        <remap from="image_mono" to="/$(arg camera_name)/image_color" />
+        <remap from="image_rect" to="/$(arg camera_name)/image_rect_color" />
+    </node> -->
 </launch>
