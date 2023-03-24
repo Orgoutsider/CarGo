@@ -61,7 +61,7 @@ namespace my_hand_eye
         if (joint == 1)
             return 0 <= deg && deg <= 180;
         else
-            return -50 <= deg && deg <= 230;
+            return -28 <= deg && deg <= 208;
     }
 
     bool Angle::_valid_j(int joint)
@@ -129,7 +129,7 @@ namespace my_hand_eye
 
     double Axis::L(double alpha)
     {
-        return length() - ARM_A4 * Angle(alpha).sin();
+        return length() - ARM_A4 * Angle(alpha).sin() - ARM_A0;
     }
 
     double Axis::H(double alpha)
@@ -156,7 +156,7 @@ namespace my_hand_eye
     {
         if (length() < 1e-2)
         {
-            return Angle(0);
+            return Angle(90);
         }
         else 
             return Angle(y + ARM_P, x);
@@ -204,19 +204,23 @@ namespace my_hand_eye
     bool Axis::_modify_xy()
     {
         static bool flag = false;
+        static double last_x = 0;
+        static double last_y = 0;
         if (flag)
         {
-            y = -(y + 2 * ARM_P);
-            x = -x;
+            x = last_x;
+            y = last_y;
             flag = false;
         }
-        else if (expand_y && (y + ARM_P < 0))
+        else if (expand_y && (y + ARM_P < 0 || (length() < ARM_A0)))
         {
-            y = -(y + 2 * ARM_P);
-            x = -x;
+            last_x = x;
+            last_y = y;
+            y = 2 * (-ARM_P + ARM_A0 * abs(_calculate_j1().sin())) - y;
+            x = 2 * ARM_A0 * abs(_calculate_j1().cos()) - x;
             flag = true;
         }
-        return (expand_y && (y + ARM_P < 0)) || flag;
+        return (expand_y && (y + ARM_P < 0 || (length() < ARM_A0))) || flag;
     }
 
     bool Axis::_modify_alpha(double &alpha, bool look)
@@ -269,23 +273,23 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Axis::first_step(double &deg1)
-    {
-        if (z < 0)
-        {
-            ROS_ERROR("z cannot less than 0.");
-            return false;
-        }
-        if (!expand_y && y < 0)
-        {
-            ROS_ERROR("y cannot less than 0.");
-            return false;
-        }
-        Angle j1 = _calculate_j1();
-        j1._j_degree_convert(1);
-        deg1 = j1._get_degree();
-        return true;
-    }
+    // bool Axis::first_step(double &deg1)
+    // {
+    //     if (z < 0)
+    //     {
+    //         ROS_ERROR("z cannot less than 0.");
+    //         return false;
+    //     }
+    //     if (!expand_y && y < 0)
+    //     {
+    //         ROS_ERROR("y cannot less than 0.");
+    //         return false;
+    //     }
+    //     Angle j1 = _calculate_j1();
+    //     j1._j_degree_convert(1);
+    //     deg1 = j1._get_degree();
+    //     return true;
+    // }
 
     bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
                             double &x, double &y, double &z, bool expand_y)
@@ -303,7 +307,7 @@ namespace my_hand_eye
         j2._j_degree_convert(2);
         j3._j_degree_convert(3);
         j4._j_degree_convert(4);
-        double length = ARM_A2 * j2.sin() + ARM_A3 * (j2 + j3).sin() +
+        double length = ARM_A0 + ARM_A2 * j2.sin() + ARM_A3 * (j2 + j3).sin() +
                         ARM_A4 * (j2 + j3 + j4).sin();
         double height = ARM_A1 + ARM_A2 * j2.cos() + ARM_A3 * (j2 + j3).cos() +
                         ARM_A4 * (j2 + j3 + j4).cos();

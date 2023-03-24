@@ -315,55 +315,55 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                                           bool &finish, sensor_msgs::ImagePtr &debug_image)
-    {
-        if (!cargo_x_.size())
-        {
-            current_color_ = color;
-            current_z_ = z;
-            ps_.reset();
-        }
-        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
-        {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            current_color_ = color;
-            current_z_ = z;
-            ps_.reset();
-        }
-        finish = false;
-        vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
-        if (valid)
-        {
-            double x = 0, y = 0;
-            if (find_with_color(objArray, current_color_, z, x, y))
-            {
-                ROS_INFO_STREAM("x:" << x << " y:" << y);
-                cargo_x_.push_back(x);
-                cargo_y_.push_back(y);
-                if (cargo_x_.size() == 5)
-                {
-                    double x_aver = 0, y_aver = 0;
-                    average_position(x_aver, y_aver);
-                    ps_.do_first_step(x_aver, y_aver);
-                }
-                else if (cargo_x_.size() == 10)
-                {
-                    double x_aver = 0, y_aver = 0;
-                    average_position(x_aver, y_aver);
-                    cargo_x_.clear();
-                    cargo_y_.clear();
-                    ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
-                    finish = true;
-                }
-            }
-            else
-                return false;
-        }
-        return valid;
-    }
+    // bool ArmController::catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+    //                                        bool &finish, sensor_msgs::ImagePtr &debug_image)
+    // {
+    //     if (!cargo_x_.size())
+    //     {
+    //         current_color_ = color;
+    //         current_z_ = z;
+    //         ps_.reset();
+    //     }
+    //     else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
+    //     {
+    //         cargo_x_.clear();
+    //         cargo_y_.clear();
+    //         current_color_ = color;
+    //         current_z_ = z;
+    //         ps_.reset();
+    //     }
+    //     finish = false;
+    //     vision_msgs::BoundingBox2DArray objArray;
+    //     bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
+    //     if (valid)
+    //     {
+    //         double x = 0, y = 0;
+    //         if (find_with_color(objArray, current_color_, z, x, y))
+    //         {
+    //             ROS_INFO_STREAM("x:" << x << " y:" << y);
+    //             cargo_x_.push_back(x);
+    //             cargo_y_.push_back(y);
+    //             if (cargo_x_.size() == 5)
+    //             {
+    //                 double x_aver = 0, y_aver = 0;
+    //                 average_position(x_aver, y_aver);
+    //                 ps_.do_first_step(x_aver, y_aver);
+    //             }
+    //             else if (cargo_x_.size() == 10)
+    //             {
+    //                 double x_aver = 0, y_aver = 0;
+    //                 average_position(x_aver, y_aver);
+    //                 cargo_x_.clear();
+    //                 cargo_y_.clear();
+    //                 ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
+    //                 finish = true;
+    //             }
+    //         }
+    //         else
+    //             return false;
+    //     }
+    //     return valid;
+    // }
 
     bool ArmController::remember(double &x, double &y, double &z)
     {

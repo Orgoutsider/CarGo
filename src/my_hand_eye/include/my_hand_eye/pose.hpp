@@ -59,6 +59,7 @@ namespace my_hand_eye
         // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
         cv::Mat T_cam_to_end();
         // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
+        // 在y > 0处使用
         cv::Mat R_end_to_base();                                            // 机械臂末端到基底的·旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();                                            // 机械臂末端到基底的·平移向量（不保证实时性）
         cv::Mat intrinsics();                                               // 内参
@@ -78,7 +79,7 @@ namespace my_hand_eye
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default"); // 获取设定动作
         // 计算各joint运动的position
         bool go_to(double x, double y, double z, bool cat, bool look); // 运动到指定位置，抓/不抓
-        bool do_first_step(double x, double y);                        // 两步抓取第一步
+        // bool do_first_step(double x, double y);                        // 两步抓取第一步
         bool reset();
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达

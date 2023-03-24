@@ -1,13 +1,12 @@
 #pragma once
-#define ARM_P 7.5
-// #define ARM_P 0
-#define ARM_A1 12.4 //当前
-// #define ARM_A1 13 //仿真
-#define ARM_A2 13.15
-#define ARM_A3 12.53 
-#define ARM_A4 10.7 //当前
-// #define ARM_A4 11.6 //仿真
-#define ARM_MAX_LEN ((ARM_A2) + (ARM_A3) + (ARM_A4))
+// ARM_P > ARM_A0
+#define ARM_P 14.85
+#define ARM_A0 10.28
+#define ARM_A1 20.074
+#define ARM_A2 13.68
+#define ARM_A3 12.47 
+#define ARM_A4 12.178
+#define ARM_MAX_LEN ((ARM_A0) + (ARM_A2) + (ARM_A3) + (ARM_A4))
 #define ARM_MAX_HIGH ((ARM_A1) + (ARM_A2) + (ARM_A3) + (ARM_A4))
 
 #include <ros/ros.h>
@@ -60,7 +59,7 @@ namespace my_hand_eye
         double height();
         // 求逆解，输入机械臂角度变量
         bool backward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, bool look);
-        bool first_step(double &deg1);
+        // bool first_step(double &deg1);
         bool test_ok(double &deg1, double &deg2, double &deg3, double &deg4, bool look);
     };
     // 求正解，输入角度，输出位置

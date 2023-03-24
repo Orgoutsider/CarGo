@@ -178,21 +178,21 @@ namespace my_hand_eye
         }
     }
 
-    bool Pos::do_first_step(double x, double y)
-    {
-        this->x = x;
-        this->y = y;
-        double deg1 = 0;
-        bool valid = first_step(deg1);
-        if (valid)
-        {
-            Position[1] = (s16)std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-            sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            int ID[] = {1};
-            wait_until_static(ID, 1);
-        }
-        return valid;
-    }
+    // bool Pos::do_first_step(double x, double y)
+    // {
+    //     this->x = x;
+    //     this->y = y;
+    //     double deg1 = 0;
+    //     bool valid = first_step(deg1);
+    //     if (valid)
+    //     {
+    //         Position[1] = (s16)std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
+    //         sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
+    //         int ID[] = {1};
+    //         wait_until_static(ID, 1);
+    //     }
+    //     return valid;
+    // }
 
     bool Pos::reset()
     {
@@ -706,9 +706,9 @@ namespace my_hand_eye
         x_goal = x;
         y_goal = y;
         z_goal = z;
-        if (y < 0)
+        if (y < 0 || z >= 20)
         {
-            ROS_WARN("y >= 0 when using find_a_midpoint!");
+            ROS_WARN("Set y >= 0 and z < 20 when using find_a_midpoint!");
             return false;
         }
         // ROS_INFO_STREAM("length:" << length() << " height:" << height());
@@ -787,12 +787,13 @@ namespace my_hand_eye
                             // ROS_ERROR_STREAM(alpha);
                             if (cvRound(alpha) == -90)
                             {
-                                // ROS_ERROR_STREAM(deg2 << " " << deg3 << " " << deg4);
+                                ROS_ERROR_STREAM(length());
                                 ARM_ERROR_XYZ(*this);
                             }
                         }
                     }
                     y -= dy;
+                    // ROS_ERROR_STREAM("c" << y);
                     memcpy(Position, Position_goal, 6 * sizeof(s16));
                     if (mid == last_mid) // 和上一步判断得midpoint状态相同
                     {
@@ -814,7 +815,7 @@ namespace my_hand_eye
                             y = pt[i].y;
                             if (calculate_position())
                             {
-                                ARM_INFO_XYZ(*this);
+                                // ARM_INFO_XYZ(*this);
                                 point.has_midpoint = find_a_midpoint(Position_goal, x_goal,
                                                                      y_goal, z_goal);
                                 x = x_goal;
