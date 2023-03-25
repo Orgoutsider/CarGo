@@ -11,9 +11,12 @@ import os
 import sys
 from rostopic import get_topic_type
 
-from sensor_msgs.msg import Image, CompressedImage
-from detection_msgs.msg import BoundingBox, BoundingBoxes
+from sensor_msgs.msg import Image
+# from detection_msgs.msg import BoundingBox, BoundingBoxes
 
+from vision_msgs.msg import BoundingBox2DArray, \
+    BoundingBox2D
+from yolov5_ros.srv import cargoSrv, cargoSrvResponse
 
 # add yolov5 submodule to path
 FILE = Path(__file__).resolve()
@@ -29,9 +32,34 @@ from utils.general import (
     non_max_suppression,
     scale_coords
 )
-from utils.plots import Annotator, colors
+from utils.plots import Annotator
 from utils.torch_utils import select_device
 from utils.augmentations import letterbox
+
+
+R_Low1_add = np.array([0, -7, -10], dtype=np.uint8)
+R_up1_add = np.array([0, 0, 0], dtype=np.uint8)
+
+R_Low2_add = np.array([0, 0, 0], dtype=np.uint8)
+R_up2_add = np.array([0, 0, 0], dtype=np.uint8)
+
+G_Low_add = np.array([0, 0, 0], dtype=np.uint8)
+G_up_add = np.array([11, 0, 0], dtype=np.uint8)
+
+B_Low_add = np.array([-5, 0, 0], dtype=np.uint8)
+B_up_add = np.array([0, 0, 0], dtype=np.uint8)
+
+R_Low1 = np.array([0, 43, 46], dtype=np.uint8)
+R_up1 = np.array([10, 255, 255], dtype=np.uint8)
+
+R_Low2 = np.array([156, 43, 46], dtype=np.uint8)
+R_up2 = np.array([180, 255, 255], dtype=np.uint8)
+
+G_Low = np.array([35, 43, 46], dtype=np.uint8)
+G_up = np.array([77, 255, 255], dtype=np.uint8)
+
+B_Low = np.array([100, 43, 46], dtype=np.uint8)
+B_up = np.array([124, 255, 255], dtype=np.uint8)
 
 
 @torch.no_grad()
@@ -59,7 +87,7 @@ class Yolov5Detector:
         )
 
         # Setting inference size
-        self.img_size = [rospy.get_param("~inference_size_w", 640), rospy.get_param("~inference_size_h",480)]
+        self.img_size = [rospy.get_param("~inference_size_w", 640), rospy.get_param("~inference_size_h",640)]
         self.img_size = check_img_size(self.img_size, s=self.stride)
 
         # Half
@@ -74,22 +102,22 @@ class Yolov5Detector:
         self.model.warmup()  # warmup        
         
         # Initialize subscriber to Image/CompressedImage topic
-        input_image_type, input_image_topic, _ = get_topic_type(rospy.get_param("~input_image_topic"), blocking = True)
-        self.compressed_input = input_image_type == "sensor_msgs/CompressedImage"
+        # input_image_type, input_image_topic, _ = get_topic_type(rospy.get_param("~input_image_topic"), blocking = True)
+        # self.compressed_input = input_image_type == "sensor_msgs/CompressedImage"
 
-        if self.compressed_input:
-            self.image_sub = rospy.Subscriber(
-                input_image_topic, CompressedImage, self.callback, queue_size=1
-            )
-        else:
-            self.image_sub = rospy.Subscriber(
-                input_image_topic, Image, self.callback, queue_size=1
-            )
+        # if self.compressed_input:
+        #     self.image_sub = rospy.Subscriber(
+        #         input_image_topic, CompressedImage, self.callback, queue_size=1
+        #     )
+        # else:
+        #     self.image_sub = rospy.Subscriber(
+        #         input_image_topic, Image, self.callback, queue_size=1
+        #     )
 
         # Initialize prediction publisher
-        self.pred_pub = rospy.Publisher(
-            rospy.get_param("~output_topic"), BoundingBoxes, queue_size=10
-        )
+        # self.pred_pub = rospy.Publisher(
+        #     rospy.get_param("~output_topic"), BoundingBoxes, queue_size=10
+        # )
         # Initialize image publisher
         self.publish_image = rospy.get_param("~publish_image")
         if self.publish_image:
@@ -100,13 +128,21 @@ class Yolov5Detector:
         # Initialize CV_Bridge
         self.bridge = CvBridge()
 
-    def callback(self, data):
+        self.colors = range(1, 4)
+        self.low_raw = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
+        self.up_raw = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
+        self.low = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
+        self.up = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
+        self.gain = 0.1 # 扩张比例
+        self.score_thr = 0.8
+        self.srv = rospy.Service('cargoSrv', cargoSrv, self.callback)
+
+    def callback(self, req):
         """adapted from yolov5/detect.py"""
         # print(data.header)
-        if self.compressed_input:
-            im = self.bridge.compressed_imgmsg_to_cv2(data, desired_encoding="bgr8")
-        else:
-            im = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
+        rospy.logdebug("Get an image")
+        data = req.image
+        im = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
         
         im, im0 = self.preprocess(im)
         # print(im.shape)
@@ -130,9 +166,10 @@ class Yolov5Detector:
         # Process predictions 
         det = pred[0].cpu().numpy()
 
-        bounding_boxes = BoundingBoxes()
-        bounding_boxes.header = data.header
-        bounding_boxes.image_header = data.header
+        objArray = BoundingBox2DArray()
+        objArray.boxes = [BoundingBox2D()] * 4
+        objArray.header = data.header
+        flag = [False] * 4 #没有检测到
         
         annotator = Annotator(im0, line_width=self.line_thickness, example=str(self.names))
         if len(det):
@@ -141,39 +178,94 @@ class Yolov5Detector:
 
             # Write results
             for *xyxy, conf, cls in reversed(det):
-                bounding_box = BoundingBox()
+                # bounding_box = BoundingBox()
                 c = int(cls)
-                # Fill in bounding box message
-                bounding_box.Class = self.names[c]
-                bounding_box.probability = conf 
-                bounding_box.xmin = int(xyxy[0])
-                bounding_box.ymin = int(xyxy[1])
-                bounding_box.xmax = int(xyxy[2])
-                bounding_box.ymax = int(xyxy[3])
+                if conf < self.conf_thres:
+                    rospy.logerr("ok")
+                    continue
 
-                bounding_boxes.bounding_boxes.append(bounding_box)
+                # start_row and start_col are the cordinates 
+                # from where we will start cropping
+                # end_row and end_col is the end coordinates 
+                # where we stop
+                size_row,size_col=xyxy[3]-xyxy[1], xyxy[2]-xyxy[0]
+                start_row,start_col=int(max(0, xyxy[1] - size_row * self.gain)),int(max(0, xyxy[0] - size_col * self.gain))
+                end_row,end_col=int(min(im0.shape[0] ,xyxy[3] + size_row * self.gain)),int(min(im0.shape[1], xyxy[2] + size_col * self.gain))
+                
+                dst = im[start_row:end_row,start_col:end_col]
+                dst = cv2.GaussianBlur(dst, (7, 7), 0)
+                dst = cv2.cvtColor(dst, cv2.COLOR_BGR2HSV)
+                # if self._param_modification:
+                #     cv2.imshow("hsv", rect)
+                element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+                s_max = 0
+                colors = self.colors
+                for color in colors:
+                    if flag[color]:
+                        continue
 
-                # Annotate the image
-                if self.publish_image or self.view_image:  # Add bbox to image
-                      # integer class
-                    label = f"{self.names[c]} {conf:.2f}"
-                    annotator.box_label(xyxy, label, color=colors(c, True))       
+                    if color == 1:#红色
+                        # print(self._low[0])
+                        # print(self._up[0])
+                        dst1 = cv2.inRange(dst, self.low[0], self.up[0])
+                        dst2 = cv2.inRange(dst, self.low[1], self.up[1])
+                        dst = dst1 + dst2
+                    else:
+                        dst = cv2.inRange(dst, self.low[color], self.up[color])
+
+                    # if self._param_modification:
+                    #     cv2.imshow("dst", dst)
+                    #     cv2.waitKey(1)
+                    dst = cv2.erode(dst, element)
+
+                    contours, hierarchy = cv2.findContours(dst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #查找轮廓                
+                    for contour in contours:
+                        rect = cv2.minAreaRect(contour)
+                        size = rect[1]
+                        if size[0] * size[1] > s_max:
+                            s_max = size[0] * size[1]
+                            color_max = color
+
+                if s_max:
+                    flag[color_max] = True
+                    # rospy.loginfo("Succeed to detect!")
+                    obj = BoundingBox2D()
+                    obj.center.x = (xyxy[0] + xyxy[2]) / 2 #中心点
+                    obj.center.y = (xyxy[1] + xyxy[3]) / 2
+                    obj.center.theta = np.pi / 2 #由x轴逆时针转至W(宽)的角度。
+                    obj.size_x = (xyxy[2] - xyxy[0])#长
+                    obj.size_y = (xyxy[3] - xyxy[1])#宽
+                    objArray.boxes[color_max] = obj
+
+                    # Annotate the image
+                    if self.publish_image:  # Add bbox to image
+                        # integer class
+                        label = f"{self.names[c]} {conf:.2f}"
+                        box_color = [0] * 3
+                        box_color[color_max - 1] = 128
+                        box_color = tuple(box_color)
+                        annotator.box_label(xyxy, label, color=box_color)       
 
                 
                 ### POPULATE THE DETECTION MESSAGE HERE
 
             # Stream results
             im0 = annotator.result()
+        
+        else:
+            rospy.logwarn("Cannot detect cargo!")
 
         # Publish prediction
-        self.pred_pub.publish(bounding_boxes)
+        # self.pred_pub.publish(bounding_boxes)
 
         # Publish & visualize images
-        if self.view_image:
-            cv2.imshow(str(0), im0)
-            cv2.waitKey(1)  # 1 millisecond
+        # if self.view_image:
+        #     cv2.imshow(str(0), im0)
+        #     cv2.waitKey(1)  # 1 millisecond
         if self.publish_image:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im0, "bgr8"))
+
+        return cargoSrvResponse(objArray)
         
 
     def preprocess(self, img):

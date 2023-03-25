@@ -3,6 +3,7 @@
 #include "my_hand_eye/pose.hpp"
 #include "my_hand_eye/tracker.h"
 
+#include <yolov5_ros/cargoSrv.h>
 #include <XmlRpcException.h>
 #include <image_transport/image_transport.h>
 

@@ -21,7 +21,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <vision_msgs/BoundingBox2DArray.h>
 
-#include "mmdetection_ros/cargoSrv.h"
+#include "yolov5_ros/cargoSrv.h"
 cv::RNG rngs = { 12345 };
 class ImageListener
 {
@@ -45,7 +45,7 @@ public:
 			return;
 		}
         // 5.组织请求数据
-        mmdetection_ros::cargoSrv cargo;
+        yolov5_ros::cargoSrv cargo;
         // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
         cargo.request.image = *image_rect;
         // 6.发送请求,返回 bool 值，标记是否成功
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     ros::NodeHandle pnh("~");
     ImageListener imgl;
     // 4.创建 客户端 对象
-    imgl.client = nh.serviceClient<mmdetection_ros::cargoSrv>("cargoSrv");
+    imgl.client = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
     // 等待服务启动成功
     // 方式1
     ros::service::waitForService("cargoSrv");

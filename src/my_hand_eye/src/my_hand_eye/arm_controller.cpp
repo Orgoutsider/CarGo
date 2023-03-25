@@ -54,7 +54,7 @@ namespace my_hand_eye
         ps_.set_action(put_action, "put");
         ps_.show_voltage();
 
-        cargo_client_ = nh.serviceClient<mmdetection_ros::cargoSrv>("cargoSrv");
+        cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
     }
 
     bool ArmController::add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image)
@@ -103,7 +103,7 @@ namespace my_hand_eye
         cv_bridge::CvImagePtr cv_image;
         bool flag = add_image(image_rect, cv_image);
         cv_image->image = cv_image->image(roi);
-        mmdetection_ros::cargoSrv cargo;
+        yolov5_ros::cargoSrv cargo;
         sensor_msgs::ImagePtr image = (*cv_image).toImageMsg();
         cargo.request.image = *image;
         // 发送请求,返回 bool 值，标记是否成功

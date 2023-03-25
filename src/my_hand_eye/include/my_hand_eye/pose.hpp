@@ -13,7 +13,6 @@
 #include "my_hand_eye/SCServo.h"
 #include "my_hand_eye/backward_kinematics.hpp"
 #include "my_hand_eye/Plot.h"
-#include "mmdetection_ros/cargoSrv.h"
 
 #include <ros/ros.h>
 #include <ros/console.h>

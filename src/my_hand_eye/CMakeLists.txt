@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   vision_msgs
   sensor_msgs
   message_generation
-  mmdetection_ros
+  yolov5_ros
 )
 set(OpenCV required PATHS /home/nano/opencv4/opencv/build)
 find_package(OpenCV REQUIRED)
