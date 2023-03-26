@@ -20,7 +20,7 @@ devel/
 .vscode/
 .catkin_tools/
 src/mmdetection_ros/mmdetection/
-src/apriltag/
+# src/apriltag/
 src/apriltag_ros/
 src/cv_camera/
 src/fdilink_ahrs/
