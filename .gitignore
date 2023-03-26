@@ -20,7 +20,7 @@ devel/
 .vscode/
 .catkin_tools/
 src/mmdetection_ros/mmdetection/
-# src/apriltag/
+src/apriltag/
 src/apriltag_ros/
 src/cv_camera/
 src/fdilink_ahrs/
@@ -33,5 +33,5 @@ src/wheeltec_robot_rc/
 src/zbar_ros/
 src/cv_bridge/
 src/detection_msgs/
-# src/yolov5_ros/src/yolov5
+src/yolov5_ros/src/yolov5
 src/lsn10/
