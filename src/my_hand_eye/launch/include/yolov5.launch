@@ -3,13 +3,14 @@
     <arg name="weights" default="$(find yolov5_ros)/src/yolov5/best.pt"/>
     <arg name="data" default="$(find yolov5_ros)/src/yolov5/data/datasets.yaml"/>
     <arg name="confidence_threshold" default="0.75"/>
-    <arg name="iou_threshold" default="0.25"/>
+    <arg name="iou_threshold" default="0.4"/>
     <arg name="maximum_detections" default="3"/>
     <arg name="device" default="0"/>
     <arg name="agnostic_nms" default="true"/>
     <arg name="line_thickness" default="3"/>
     <arg name="dnn" default="true"/>
-    <arg name="half" default="true"/>
+    <!-- 与权重文件匹配 -->
+    <arg name="half" default="false"/>
 
     <!-- replace imgsz -->
     <arg name="inference_size_h" default="640"/>
@@ -23,11 +24,12 @@
     <!-- <arg name="output_topic" default="/yolov5/detections"/> -->
 
     <!-- Optional topic (publishing annotated image) -->
-    <!-- <arg name="publish_image" default="true"/> -->
-    <!-- <arg name="output_image_topic" default="/yolov5/image_out"/> -->
+    <arg name="publish_image" default="true"/>
+    <arg name="output_image_topic" default="/yolov5/image_out"/>
+    <arg name="param_modification" default="false"/>
 
 
-    <node pkg="yolov5_ros" name="detect" type="detect.py" output="screen">
+    <node pkg="yolov5_ros" name="cargo_detect" type="cargo_detect.py" output="screen">
         <param name="weights" value="$(arg weights)"/>
         <param name="data" value="$(arg data)"/>
         <param name="confidence_threshold" value="$(arg confidence_threshold)"/>
@@ -49,6 +51,7 @@
 
         <param name="publish_image" value="$(arg publish_image)"/>
         <param name="output_image_topic" value="$(arg output_image_topic)"/>
+        <param name="param_modification" value="$(arg param_modification)"/>
     </node>
     <!-- <include file="$(find camera_launch)/launch/d435.launch"/> -->
 

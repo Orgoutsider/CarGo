@@ -54,29 +54,29 @@ public:
         if (flag)
         {
             ROS_INFO("请求正常处理");
-            if (cargo.response.results.boxes.size())
-            {
-                for (int color = 1; color <= 3; color++)
-                {
-                    if (!cargo.response.results.boxes[color].center.x)
-                        continue;
-                    cv::RotatedRect rect(cv::Point2f(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y), 
-                                        cv::Size2f(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y), 
-                                        cargo.response.results.boxes[color].center.theta); 
-                    cv::Point2f vtx[4];//矩形顶点容器
-                    // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
-                    rect.points(vtx);//确定旋转矩阵的四个顶点
-                    cv::Scalar colors = cv::Scalar(rngs.uniform(0, 255), rngs.uniform(0, 255), rngs.uniform(0, 255)); //创建随机颜色，便于区分
-                    for (int j = 0; j < 4;j++)
-                    {
-                        cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2);//随机颜色绘制矩形
-                    }
+            // if (cargo.response.results.boxes.size())
+            // {
+            //     for (int color = 1; color <= 3; color++)
+            //     {
+            //         if (!cargo.response.results.boxes[color].center.x)
+            //             continue;
+            //         cv::RotatedRect rect(cv::Point2f(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y), 
+            //                             cv::Size2f(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y), 
+            //                             cargo.response.results.boxes[color].center.theta); 
+            //         cv::Point2f vtx[4];//矩形顶点容器
+            //         // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
+            //         rect.points(vtx);//确定旋转矩阵的四个顶点
+            //         cv::Scalar colors = cv::Scalar(rngs.uniform(0, 255), rngs.uniform(0, 255), rngs.uniform(0, 255)); //创建随机颜色，便于区分
+            //         for (int j = 0; j < 4;j++)
+            //         {
+            //             cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2);//随机颜色绘制矩形
+            //         }
 
-                }
+            //     }
 
-            }
-		    cv::imshow("COLOR_Result", cv_image->image);
-            cv::waitKey(100);
+            // }
+		    // cv::imshow("COLOR_Result", cv_image->image);
+            // cv::waitKey(100);
         }
     }
 };
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     std::string transport_hint;
     pnh.param<std::string>("transport_hint", transport_hint, "raw");
     image_transport::Subscriber camera_image_subscriber =
-        it.subscribe("/eye/image_raw", 1, &ImageListener::imageCallback, &imgl, image_transport::TransportHints(transport_hint));
+        it.subscribe("/eye/image_rect_color", 1, &ImageListener::imageCallback, &imgl, image_transport::TransportHints(transport_hint));
     ros::Rate loop_rate(5);
     // ROS_INFO("1");
     while (ros::ok())

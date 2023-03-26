@@ -1,7 +1,12 @@
 <launch>
   <arg name="camera_frame_id" default="eye" />
   <arg name="nodelet_manager" default="my_hand_eye_manager"/>
-  <node pkg="nodelet" type="nodelet" name="$(arg camera_frame_id)" args="load cv_camera/CvCameraNodelet $(arg nodelet_manager)" output="screen">
+  <arg name="respawn" default="true"/>
+
+  <arg if="$(arg respawn)" name="bond" value="" />
+  <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+  
+  <node pkg="nodelet" type="nodelet" name="$(arg camera_frame_id)" args="load cv_camera/CvCameraNodelet /$(arg nodelet_manager) $(arg bond)" respawn="$(arg respawn)" output="screen">
     <param name="frame_id" value="$(arg camera_frame_id)" />
     <param name="rate" value="30.0" type="double" />
     <param name="device_path" value="/dev/eye" type="string" />
@@ -18,6 +23,6 @@
   <include file="$(find my_hand_eye)/launch/include/image_proc.launch">
     <arg name="camera" value="$(arg camera_frame_id)"/>
     <arg name="manager" value="$(arg nodelet_manager)"/>
-    <arg name="respawn" value="true"/>
+    <arg name="respawn" value="$(arg respawn)"/>
   </include>
 </launch>
