@@ -179,7 +179,7 @@ namespace my_hand_eye
         return false;
     }
 
-    bool MultiTracker::tracking(cv_bridge::CvImage &cv_image);
+    bool MultiTracker::tracking(cv_bridge::CvImage &cv_image)
     {
         // 用新帧更新跟踪结果
         multi_tracker_ptr_->update(frame);
