@@ -11,7 +11,7 @@ namespace my_hand_eye
     }
 
     bool Tracker::target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                              const int color)
+                              const int color, int method)
     {
         using namespace cv;
         if (objArray.boxes.size() == 4)
@@ -23,7 +23,7 @@ namespace my_hand_eye
             // CamShift算法要求要把目标物体的矩形框传递进来
             rect_ = Rect(objArray.boxes[color].center.x - width / 2,
                          objArray.boxes[color].center.y - height / 2, width, height);
-            tracker_ptr_ = cv::TrackerCSRT::create();
+            create_tracker_by_method(method);
             bool ok = tracker_ptr_->init(cv_image.image, rect_);
             if (ok)
                 _update_time(cv_image);
@@ -126,5 +126,63 @@ namespace my_hand_eye
             last_pt_ = cv::Point2d(x, y);
             return false;
         }
+    }
+
+    bool Tracker::create_tracker_by_method(int method)
+    {
+        switch (method)
+        {
+        case tracker_CRST:
+            tracker_ptr_ = cv::TrackerCSRT::create();
+            break;
+        case tracker_KCF:
+            tracker_ptr_ = cv::TrackerKCF::create();
+            break;
+        case tracker_MOSSE:
+            tracker_ptr_ = cv::TrackerMOSSE::create();
+            break;
+        default:
+            ROS_ERROR("Incorrect track method!");
+            return false;
+        }
+        return true;
+    }
+
+    MultiTracker::MultiTracker()
+    {
+        multi_tracker_ptr_ = cv::MultiTracker::create();
+    }
+
+    bool MultiTracker::init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
+                            const int color, int method)
+    {
+        using namespace cv;
+        color_now_ = color;
+        if (objArray.boxes.size() == 4)
+        {
+            for (int color = 1; color <= 4; color++)
+            {
+                if (!objArray.boxes[color].center.x)
+                    return false;
+                double width = objArray.boxes[color].size_x;
+                double height = objArray.boxes[color].size_y;
+                Rect2d rect(objArray.boxes[color].center.x - width / 2,
+                               objArray.boxes[color].center.y - height / 2, width, height);
+                create_tracker_by_method(method);
+                multi_tracker_ptr_->add(tracker_ptr_, cv_image.image, rect);
+                if (color == color_now_)
+                    rect_ = rect;
+            }
+            _update_time(cv_image);
+            return true;
+        }
+        return false;
+    }
+
+    bool MultiTracker::tracking(cv_bridge::CvImage &cv_image);
+    {
+        // 用新帧更新跟踪结果
+        multi_tracker_ptr_->update(frame);
+        _update_time(cv_image);
     }
 } // namespace my_hand_eye
