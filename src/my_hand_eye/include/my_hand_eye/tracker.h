@@ -18,11 +18,17 @@ namespace my_hand_eye
         tracker_MOSSE
     };
 
+    enum Color
+    {
+        color_red = 1,
+        color_green,
+        color_blue
+    };
+
     class Tracker
     {
     private:
         // 椭圆圆心坐标
-        cv::Point2d last_pt_;
         ros::Time last_time_;
         ros::Time this_time_;
         // cv::Mat hist_;
@@ -32,23 +38,24 @@ namespace my_hand_eye
         // const float *ranges_;
 
     protected:
+        cv::Point2d last_pt_;
         cv::Ptr<cv::Tracker> tracker_ptr_;
         //  更新时间
         bool _update_time(cv_bridge::CvImage &cv_image);
+        bool _create_tracker_by_method(int method);
 
     public:
         Tracker();
         cv::Rect2d rect_; // CamShift算法要求要把目标物体的矩形框传递进来
         void get_center(double &u, double &v);
         bool target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                         const int color, int method=tracker_CRST); // 目标初始化
+                         const int color, int method = tracker_CRST); // 目标初始化
         //  目标追踪
         bool target_tracking(cv_bridge::CvImage &cv_image);
-        
-        // 计算物体速度像素
+
+        // 计算物体速度
         bool calculate_speed(double x, double y, double center_x, double center_y,
                              double speed_standard, double &speed);
-        bool create_tracker_by_method(int method);
     };
 
     class MultiTracker : public Tracker
@@ -56,12 +63,17 @@ namespace my_hand_eye
     private:
         cv::Ptr<cv::MultiTracker> multi_tracker_ptr_;
         int color_now_;
+        std::array<cv::Point2d, 4> last_pt_arr_;
+
     public:
         MultiTracker();
         bool init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                  const int color, int method=tracker_CRST); // 目标初始化
+                  const int color, int method = tracker_CRST); // 目标初始化
         //  目标追踪
         bool tracking(cv_bridge::CvImage &cv_image);
+        // 计算物体速度
+        bool speed(double x[4], double y[4], double center_x, double center_y,
+                   double speed_standard, double speed[4]);
     };
 } // namespace my_hand_eye
 

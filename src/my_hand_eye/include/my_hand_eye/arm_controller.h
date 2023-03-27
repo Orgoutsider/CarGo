@@ -9,12 +9,6 @@
 
 namespace my_hand_eye
 {
-    enum Color
-    {
-        color_red = 1,
-        color_green,
-        color_blue
-    };
 
     struct Ellipse
     {
@@ -32,7 +26,7 @@ namespace my_hand_eye
         bool emulation_;        // 是否进行仿真
         int white_vmin_;
         Ellipse ellipse_color_order_[4];
-        Tracker tracker_;
+        MultiTracker tracker_;
         SMS_STS sm_st_;
         SCSCL sc_;
         ros::ServiceClient cargo_client_; // mmdetection+颜色识别
