@@ -20,7 +20,8 @@ namespace my_hand_eye
 			QR_code_publisher_ = nh.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10);
 			flag_ = false;
 		}
-		arm_controller_.init(nh, pnh, true);
+		bool if_emulation = pnh.param<bool>("if_emulation", false);
+		arm_controller_.init(nh, pnh, if_emulation);
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
       			new image_transport::ImageTransport(nh));
     	camera_image_subscriber_ =

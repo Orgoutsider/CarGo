@@ -22,6 +22,8 @@ namespace my_hand_eye
         if (emulation_)
         {
             plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
+            white_vmin_ = pnh.param<int>("white_vmin", 170);
+            cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
             return;
         }
         XmlRpc::XmlRpcValue servo_descriptions;
@@ -98,74 +100,77 @@ namespace my_hand_eye
     bool ArmController::detect_cargo(const sensor_msgs::ImageConstPtr &image_rect,
                                      vision_msgs::BoundingBox2DArray &detections, sensor_msgs::ImagePtr &debug_image, cv::Rect &roi)
     {
-        if (!cargo_client_.exists())
-            cargo_client_.waitForExistence();
-        cv_bridge::CvImagePtr cv_image;
-        bool flag = add_image(image_rect, cv_image);
-        cv_image->image = cv_image->image(roi);
-        yolov5_ros::cargoSrv cargo;
-        sensor_msgs::ImagePtr image = (*cv_image).toImageMsg();
-        cargo.request.image = *image;
-        // 发送请求,返回 bool 值，标记是否成功
-        if (flag)
-            flag = cargo_client_.call(cargo);
-        if (flag)
+        if (cargo_client_.exists())
         {
-            detections = cargo.response.results;
-
-            if (show_detections_)
+            cv_bridge::CvImagePtr cv_image;
+            bool flag = add_image(image_rect, cv_image);
+            cv_image->image = cv_image->image(roi);
+            yolov5_ros::cargoSrv cargo;
+            sensor_msgs::ImagePtr image = (*cv_image).toImageMsg();
+            cargo.request.image = *image;
+            // 发送请求,返回 bool 值，标记是否成功
+            if (flag)
+                flag = cargo_client_.call(cargo);
+            if (flag)
             {
-                // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
-                if (cargo.response.results.boxes.size())
+                detections = cargo.response.results;
+                if (show_detections_)
+                {
+                    // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
+                    if (cargo.response.results.boxes.size())
+                    {
+                        for (int color = 1; color <= 3; color++)
+                        {
+                            if (!cargo.response.results.boxes[color].center.x)
+                                continue;
+                            cv::RotatedRect rect(cv::Point2d(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
+                                                cv::Size2d(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
+                                                cargo.response.results.boxes[color].center.theta);
+                            cv::Point2f vtx[4]; // 矩形顶点容器
+                            // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
+                            rect.points(vtx);
+                            cv::Scalar colors; // 确定旋转矩阵的四个顶点
+                            switch (color)
+                            {
+                            case color_red:
+                                colors = cv::Scalar(0, 0, 255);
+                                break;
+                            case color_green:
+                                colors = cv::Scalar(0, 255, 0);
+                                break;
+                            case color_blue:
+                                colors = cv::Scalar(255, 0, 0);
+                                break;
+                            default:
+                                break;
+                            }
+                            // for (int j = 0; j < 4; j++)
+                            // {
+                            //     cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2); // 随机颜色绘制矩形
+                            // }
+                        }
+                    }
+                    // imshow("det", cv_image->image);
+                    // cv::waitKey(10);
+                    debug_image = (*cv_image).toImageMsg();
+                }
+                if (detections.boxes.size())
                 {
                     for (int color = 1; color <= 3; color++)
                     {
-                        if (!cargo.response.results.boxes[color].center.x)
+                        if (!detections.boxes[color].center.x)
                             continue;
-                        cv::RotatedRect rect(cv::Point2d(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
-                                             cv::Size2d(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
-                                             cargo.response.results.boxes[color].center.theta);
-                        cv::Point2f vtx[4]; // 矩形顶点容器
-                        // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
-                        rect.points(vtx);
-                        cv::Scalar colors; // 确定旋转矩阵的四个顶点
-                        switch (color)
-                        {
-                        case color_red:
-                            colors = cv::Scalar(0, 0, 255);
-                            break;
-                        case color_green:
-                            colors = cv::Scalar(0, 255, 0);
-                            break;
-                        case color_blue:
-                            colors = cv::Scalar(255, 0, 0);
-                            break;
-                        default:
-                            break;
-                        }
-                        for (int j = 0; j < 4; j++)
-                        {
-                            cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2); // 随机颜色绘制矩形
-                        }
+                        detections.boxes[color].center.x += roi.x;
+                        detections.boxes[color].center.y += roi.y;
                     }
                 }
-                // imshow("det", cv_image->image);
-                debug_image = (*cv_image).toImageMsg();
             }
-            if (detections.boxes.size())
-            {
-                for (int color = 1; color <= 3; color++)
-                {
-                    if (!detections.boxes[color].center.x)
-                        continue;
-                    detections.boxes[color].center.x += roi.x;
-                    detections.boxes[color].center.y += roi.y;
-                }
-            }
+            else
+                ROS_WARN("Responce invalid or failed to add image!");
+            return flag;    
         }
         else
-            ROS_WARN("responce invalid!");
-        return flag;
+            return false;
     }
 
     bool ArmController::log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, sensor_msgs::ImagePtr &debug_image)
@@ -434,7 +439,7 @@ namespace my_hand_eye
             vision_msgs::BoundingBox2DArray objArray;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_ellipse_center(objArray, center_u, center_v) &&
-                tracker_.target_init(cv_image_, objArray, color))
+                tracker_.target_init(cv_image_, objArray, color, tracker_KCF))
             {
                 tracker_.get_center(u, v);
                 if (!emulation_)
@@ -444,6 +449,7 @@ namespace my_hand_eye
                     cargo_is_static(speed, true);
                 }
                 fin_ = true;
+                ROS_INFO("Succeeded to find cargo!");
                 // ROS_INFO_STREAM("u:" << u << " v:" << v);
             }
             else
@@ -454,12 +460,13 @@ namespace my_hand_eye
             cv_bridge::CvImagePtr cv_image;
             if ((++cnt) > INTERVAL) // 间隔一段时间后重新进行目标检测
             {
+                // ROS_INFO("Target detect again...");
                 vision_msgs::BoundingBox2DArray objArray;
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                    tracker_.target_init(cv_image_, objArray, color))
+                    tracker_.target_init(cv_image_, objArray, color, tracker_KCF))
                 {
                     tracker_.get_center(u, v);
-                    if (emulation_)
+                    if (!emulation_)
                     {
                         if (calculate_radius_and_speed(u, v, center_u, center_v, false, radius, speed) &&
                             abs(radius - first_radius) < PERMIT)
@@ -518,13 +525,19 @@ namespace my_hand_eye
                 }
             }
             pt.push_back(cv::Point(u, v));
-            ROS_INFO_STREAM("speed:" << speed);
-            if (cargo_is_static(speed, false))
+            if (!emulation_)
             {
-                ROS_INFO("static!");
-                stop = true;
+
+                ROS_INFO_STREAM("speed:" << speed);
+                if (cargo_is_static(speed, false))
+                {
+                    ROS_INFO("static!");
+                    stop = true;
+                }
+                else
+                    stop = false;
             }
-            else
+            else 
                 stop = false;
         }
         return true;
@@ -550,7 +563,10 @@ namespace my_hand_eye
     bool ArmController::find_points_with_height(double h, bool done, bool expand_y)
     {
         if (!plot_client_.exists())
-            plot_client_.waitForExistence();
+        {
+            plot_client_.waitForExistence(ros::Duration(1));
+            return false;
+        }
         ps_.expand_y = expand_y;
         my_hand_eye::Plot plt;
         bool valid = ps_.find_points_with_height(h, plt.request.arr);

@@ -4,12 +4,14 @@
     <arg name="show_detections" default="true" />
     <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
+    <arg name="if_emulation" default="true" />
+
     <include file="$(find my_hand_eye)/launch/eye.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
     </include>
-    <!-- <include file="$(find my_hand_eye)/launch/include/mmdetection.launch"> -->
-    <!-- <arg name="param_modification" value="false" />
-    </include> -->
+    <include file="$(find my_hand_eye)/launch/include/yolov5.launch" >
+        <arg name="param_modification" value="false" />
+    </include>
 
     <!-- Set parameters -->
     <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
@@ -27,6 +29,7 @@
         <param name="if_detect_QR_code" type="bool" value="false" />
         <param name="white_vmin" type="int" value="160" />
         <param name="speed_standard" type="double" value="0.12" />
+        <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
     </node>
 <!-- 
     <node pkg="nodelet" type="nodelet" name="rectify_color" args="load image_proc/rectify $(arg nodelet_manager)" output="screen">
