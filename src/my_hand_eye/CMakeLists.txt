@@ -153,6 +153,7 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/tracker.cpp
   src/${PROJECT_NAME}/backward_kinematics.cpp 
   src/${PROJECT_NAME}/pose.cpp 
+  src/${PROJECT_NAME}/my_eye.cpp
   src/${PROJECT_NAME}/SCS.cpp 
   src/${PROJECT_NAME}/SCSCL.cpp 
   src/${PROJECT_NAME}/SCSerial.cpp 
@@ -172,7 +173,6 @@ add_dependencies(${PROJECT_NAME}_QR_code ${${PROJECT_NAME}_EXPORTED_TARGETS} ${c
 target_link_libraries(${PROJECT_NAME}_QR_code
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
-  ${PROJECT_NAME}
 )
 
 # target_include_directories(car_go_arm  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

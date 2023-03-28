@@ -11,7 +11,7 @@ int main(int argc, char **argv)
         ros::console::notifyLoggerLevelsChanged();
     }
     ros::NodeHandle pnh("~");
-    controller.init(nh, pnh, true);
+    controller.init(nh, pnh);
     // double h = 22.5;
     double h = 32.23;
     // for (h = 0; h < ARM_MAX_HIGH-10; h += 0.2)

@@ -1,7 +1,5 @@
 #ifndef _QRCODE_DETECTOR_H_
 #define _QRCODE_DETECTOR_H_
-#include "opencv2/opencv.hpp"
-
 #include "my_hand_eye/arm_controller.h"
 
 #include <std_msgs/Int16MultiArray.h>
@@ -16,10 +14,6 @@ namespace my_hand_eye
     private:
         ros::Subscriber QR_code_subscriber_;
         ros::Publisher QR_code_publisher_;
-        ros::Publisher debug_image_publisher_;
-        my_hand_eye::ArmController arm_controller_;
-        std::shared_ptr<image_transport::ImageTransport> it_;
-        image_transport::Subscriber camera_image_subscriber_;
         bool flag_; // 是否已检测到二维码
         // 文字坐标，假定显示文字的图像为1080p，已预设好
         const int ptx_info[6] = {350, 800, 1240, 350, 800, 1240};

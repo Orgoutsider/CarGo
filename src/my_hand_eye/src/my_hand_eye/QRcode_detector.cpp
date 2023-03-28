@@ -10,28 +10,9 @@ namespace my_hand_eye
 	{
 		ros::NodeHandle &nh = getNodeHandle();
 		ros::NodeHandle &pnh = getPrivateNodeHandle();
-		bool if_detect_QR_code = pnh.param<bool>("if_detect_QR_code", false);
-    	std::string transport_hint;
-    	pnh.param<std::string>("transport_hint", transport_hint, "raw");
-
-		if (if_detect_QR_code)
-		{
-			QR_code_subscriber_ = nh.subscribe<std_msgs::String>("/barcode", 5, &QRcodeDetector::Callback, this);
-			QR_code_publisher_ = nh.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10);
-			flag_ = false;
-		}
-		bool if_emulation = pnh.param<bool>("if_emulation", false);
-		arm_controller_.init(nh, pnh, if_emulation);
-		it_ = std::shared_ptr<image_transport::ImageTransport>(
-      			new image_transport::ImageTransport(nh));
-    	camera_image_subscriber_ =
-        	it_->subscribe<QRcodeDetector>("image_rect", 3, &QRcodeDetector::imageCallback, this, image_transport::TransportHints(transport_hint));
-		pnh.param<bool>("show_detections", arm_controller_.show_detections_, false);
-        if (arm_controller_.show_detections_)
-		{
-			NODELET_INFO("show debug image...");
-            debug_image_publisher_ = nh.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
-		}
+		QR_code_subscriber_ = nh.subscribe<std_msgs::String>("/barcode", 5, &QRcodeDetector::Callback, this);
+		QR_code_publisher_ = nh.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10);
+		flag_ = false;
 	}
 
 	void QRcodeDetector::Callback(const std_msgs::StringConstPtr &info)
@@ -73,54 +54,5 @@ namespace my_hand_eye
 		imshow("resImg", resImg);
 		cv::waitKey(500);
 		flag_ = true;
-	}
-
-	void QRcodeDetector::imageCallback(const sensor_msgs::ImageConstPtr& image_rect)
-	{
-		// 目标跟踪
-		static bool stop = false;
-		int color = color_green;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!stop)
-		{
-			double u, v;
-			arm_controller_.track(image_rect, color, u, v, stop, debug_image);
-			if (arm_controller_.show_detections_)
-				debug_image_publisher_.publish(debug_image);
-		}
-		else
-		{
-			// // 中间点抓取
-			// static bool finish = false;
-			// if (!finish)
-			// {
-			// 	double u, v;
-			// 	arm_controller_.catch_straightly(image_rect, color, arm_controller_.z_turntable, finish, debug_image, true);
-			// 	if (arm_controller_.show_detections_)
-			// 		debug_image_publisher_.publish(debug_image);
-			// }			
-		}
-
-		// // 中间点抓取
-		// static bool finish = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, true);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
-
-		// // 椭圆识别
-		// static bool finish = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.put_with_ellipse(image_rect, color_green, 0, finish, debug_image);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
 	}
 }

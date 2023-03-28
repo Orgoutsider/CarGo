@@ -3,12 +3,59 @@
 namespace my_hand_eye
 {
 
-    ArmController::ArmController() : ps_(&sm_st_, &sc_), default_roi_(480, 0, 960, 1080),
-                                     fin_(false)
+    ArmController::ArmController()
+        : ps_(&sm_st_, &sc_), default_roi_(480, 0, 960, 1080),
+          fin_(false)
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
     };
+
+    ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
+        : ps_(&sm_st_, &sc_),
+          default_roi_(480, 0, 960, 1080),
+          fin_(false)
+    {
+        emulation_ = pnh.param<bool>("if_emulation", false);
+        if (emulation_)
+        {
+            plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
+            white_vmin_ = pnh.param<int>("white_vmin", 170);
+            cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
+            return;
+        }
+        XmlRpc::XmlRpcValue servo_descriptions;
+        XmlRpc::XmlRpcValue default_action;
+        XmlRpc::XmlRpcValue put_action;
+        if (!pnh.getParam("servo", servo_descriptions))
+        {
+            ROS_ERROR("No speed and acc specified");
+        }
+        if (!pnh.getParam("default_action", default_action))
+        {
+            ROS_ERROR("No default action specified");
+        }
+        if (!pnh.getParam("put_action", put_action))
+        {
+            ROS_ERROR("No put action specified");
+        }
+        std::string ft_servo;
+        pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
+        ROS_INFO_STREAM("serial:" << ft_servo);
+        white_vmin_ = pnh.param<int>("white_vmin", 170);
+        speed_standard_ = pnh.param<double>("speed_standard", 0.12);
+        if (!ps_.begin(ft_servo.c_str()))
+        {
+            ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
+        }
+        ps_.ping();
+        ps_.set_speed_and_acc(servo_descriptions);
+        ps_.set_action(default_action);
+        ps_.set_action(put_action, "put");
+        ps_.show_voltage();
+
+        cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
+    }
 
     ArmController::~ArmController()
     {
@@ -16,9 +63,9 @@ namespace my_hand_eye
             ps_.end();
     }
 
-    void ArmController::init(ros::NodeHandle nh, ros::NodeHandle pnh, bool emulation)
+    void ArmController::init(ros::NodeHandle &nh, ros::NodeHandle &pnh)
     {
-        emulation_ = emulation;
+        emulation_ = pnh.param<bool>("if_emulation", false);
         if (emulation_)
         {
             plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
@@ -124,8 +171,8 @@ namespace my_hand_eye
                             if (!cargo.response.results.boxes[color].center.x)
                                 continue;
                             cv::RotatedRect rect(cv::Point2d(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
-                                                cv::Size2d(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
-                                                cargo.response.results.boxes[color].center.theta);
+                                                 cv::Size2d(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
+                                                 cargo.response.results.boxes[color].center.theta);
                             cv::Point2f vtx[4]; // 矩形顶点容器
                             // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
                             rect.points(vtx);
@@ -167,7 +214,7 @@ namespace my_hand_eye
             }
             else
                 ROS_WARN("Responce invalid or failed to add image!");
-            return flag;    
+            return flag;
         }
         else
             return false;
@@ -537,7 +584,7 @@ namespace my_hand_eye
                 else
                     stop = false;
             }
-            else 
+            else
                 stop = false;
         }
         return true;
