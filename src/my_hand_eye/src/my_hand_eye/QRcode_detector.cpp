@@ -77,18 +77,18 @@ namespace my_hand_eye
 	void QRcodeDetector::imageCallback(const sensor_msgs::ImageConstPtr& image_rect)
 	{
 		// 目标跟踪
-		// static bool stop = false;
-		// int color = color_green;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!stop)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.track(image_rect, color, u, v, stop, debug_image);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
-		// else
-		// {
+		static bool stop = false;
+		int color = color_green;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!stop)
+		{
+			double u, v;
+			arm_controller_.track(image_rect, color, u, v, stop, debug_image);
+			if (arm_controller_.show_detections_)
+				debug_image_publisher_.publish(debug_image);
+		}
+		else
+		{
 			// // 中间点抓取
 			// static bool finish = false;
 			// if (!finish)
@@ -98,7 +98,7 @@ namespace my_hand_eye
 			// 	if (arm_controller_.show_detections_)
 			// 		debug_image_publisher_.publish(debug_image);
 			// }			
-		// }
+		}
 
 		// // 中间点抓取
 		// static bool finish = false;

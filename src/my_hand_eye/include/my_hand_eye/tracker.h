@@ -70,7 +70,7 @@ namespace my_hand_eye
         bool init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
                   const int color, int method = tracker_CRST); // 目标初始化
         //  目标追踪
-        bool tracking(cv_bridge::CvImage &cv_image);
+        void tracking(cv_bridge::CvImage &cv_image);
         // 计算物体速度
         bool speed(double x[4], double y[4], double center_x, double center_y,
                    double speed_standard, double speed[4]);

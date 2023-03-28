@@ -429,18 +429,22 @@ namespace my_hand_eye
         double radius = 0, speed = -1;
         if (!fin_)
         {
-            ps_.reset();
+            if (!emulation_)
+                ps_.reset();
             vision_msgs::BoundingBox2DArray objArray;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_ellipse_center(objArray, center_u, center_v) &&
                 tracker_.target_init(cv_image_, objArray, color))
             {
                 tracker_.get_center(u, v);
-                calculate_radius_and_speed(u, v, center_u, center_v, true, radius, speed);
-                first_radius = radius;
+                if (!emulation_)
+                {
+                    calculate_radius_and_speed(u, v, center_u, center_v, true, radius, speed);
+                    first_radius = radius;
+                    cargo_is_static(speed, true);
+                }
                 fin_ = true;
                 // ROS_INFO_STREAM("u:" << u << " v:" << v);
-                cargo_is_static(speed, true);
             }
             else
                 return false;
@@ -455,17 +459,22 @@ namespace my_hand_eye
                     tracker_.target_init(cv_image_, objArray, color))
                 {
                     tracker_.get_center(u, v);
-                    if (calculate_radius_and_speed(u, v, center_u, center_v, false, radius, speed) &&
-                        abs(radius - first_radius) < PERMIT)
+                    if (emulation_)
                     {
-                        first_radius = radius;
-                        cnt = 0;
+                        if (calculate_radius_and_speed(u, v, center_u, center_v, false, radius, speed) &&
+                            abs(radius - first_radius) < PERMIT)
+                        {
+                            first_radius = radius;
+                            cnt = 0;
+                        }
+                        else
+                        {
+                            cnt--;
+                            return false;
+                        }
                     }
                     else
-                    {
-                        cnt--;
-                        return false;
-                    }
+                        cnt = 0;
                 }
                 else
                 {
@@ -483,10 +492,13 @@ namespace my_hand_eye
                     return false;
                 }
                 tracker_.get_center(u, v);
-                if (!calculate_radius_and_speed(u, v, center_u, center_v, false, radius, speed))
-                    return false;
-                if (abs(radius - first_radius) > PERMIT)
-                    cnt = INTERVAL;
+                if (!emulation_)
+                {
+                    if (!calculate_radius_and_speed(u, v, center_u, center_v, false, radius, speed))
+                        return false;
+                    if (abs(radius - first_radius) > PERMIT)
+                        cnt = INTERVAL;
+                }
                 if (show_detections_)
                 {
                     // 目标绘制
@@ -502,7 +514,7 @@ namespace my_hand_eye
                     }
                     debug_image = cv_image->toImageMsg();
                     imshow("img", cv_image->image);
-                    waitKey(1);
+                    waitKey(20);
                 }
             }
             pt.push_back(cv::Point(u, v));

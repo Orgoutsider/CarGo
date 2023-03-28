@@ -23,7 +23,7 @@ namespace my_hand_eye
         double current_z_;
         double speed_standard_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         bool fin_;              // 是否找到指定颜色物料
-        bool emulation_;        // 是否进行仿真
+        bool emulation_;        // 是否进行仿真或摄像头测试
         int white_vmin_;
         Ellipse ellipse_color_order_[4];
         MultiTracker tracker_;

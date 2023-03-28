@@ -181,7 +181,7 @@ namespace my_hand_eye
         return false;
     }
 
-    bool MultiTracker::tracking(cv_bridge::CvImage &cv_image)
+    void MultiTracker::tracking(cv_bridge::CvImage &cv_image)
     {
         // 用新帧更新跟踪结果
         multi_tracker_ptr_->update(cv_image.image);
@@ -194,8 +194,10 @@ namespace my_hand_eye
         for (int color = color_red; color <= color_blue; color++)
         {
             last_pt_ = last_pt_arr_[color];
-            calculate_speed(x[color], y[color], center_x, center_y, speed_standard, speed[color]);
+            if (calculate_speed(x[color], y[color], center_x, center_y, speed_standard, speed[color]))
+                return false;
             last_pt_arr_[color] = last_pt_;
         }
+        return true;
     }
 } // namespace my_hand_eye
