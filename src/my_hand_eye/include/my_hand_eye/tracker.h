@@ -15,7 +15,8 @@ namespace my_hand_eye
     {
         tracker_CRST,
         tracker_KCF,
-        tracker_MOSSE
+        tracker_MOSSE,
+        tracker_camshift
     };
 
     enum Color
@@ -31,11 +32,12 @@ namespace my_hand_eye
         // 椭圆圆心坐标
         ros::Time last_time_;
         ros::Time this_time_;
-        // cv::Mat hist_;
-        // const int channels_[2] = {0, 1};
-        // const int histSize_ = 200;
-        // const float histRange_[2] = {0, 255};
-        // const float *ranges_;
+        cv::Mat hist_;
+        int method_;
+        const int channels_[2] = {0, 1};
+        const int histSize_;
+        const float histRange_[2] = {0, 255};
+        const float *ranges_;
 
     protected:
         cv::Point2d last_pt_;

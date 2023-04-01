@@ -239,6 +239,13 @@ target_link_libraries(${PROJECT_NAME}_plot_client_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(${PROJECT_NAME}_setup_node src/${PROJECT_NAME}_setup_node.cpp)
+add_dependencies(${PROJECT_NAME}_setup_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_setup_node
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############

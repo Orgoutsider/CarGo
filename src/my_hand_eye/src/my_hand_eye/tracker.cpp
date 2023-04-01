@@ -2,7 +2,7 @@
 
 namespace my_hand_eye
 {
-    Tracker::Tracker(){};
+    Tracker::Tracker() : ranges_(histRange_), histSize_(200){};
 
     void Tracker::get_center(double &u, double &v)
     {
@@ -23,20 +23,30 @@ namespace my_hand_eye
             // CamShift算法要求要把目标物体的矩形框传递进来
             rect_ = Rect(objArray.boxes[color].center.x - width / 2,
                          objArray.boxes[color].center.y - height / 2, width, height);
-            _create_tracker_by_method(method);
-            bool ok = tracker_ptr_->init(cv_image.image, rect_);
-            if (ok)
+            if (method == tracker_camshift)
             {
+                method_ = method;
+                Mat rectImg, targetImgHSV;
+                rectImg = cv_image.image(rect_);
+                // imshow("target", rectImg);
+                cvtColor(rectImg, targetImgHSV, COLOR_BGR2HSV);
+                calcHist(&targetImgHSV, 2, channels_, Mat(), hist_, 1, &histSize_, &ranges_, true, false);
+                normalize(hist_, hist_, 0, 255, NORM_MINMAX);
                 _update_time(cv_image);
+                return true;
                 last_pt_.x = last_pt_.y = 0;
             }
-            return ok;
-            // Mat rectImg, targetImgHSV;
-            // rectImg = cv_image.image(rect_);
-            // imshow("target", rectImg);
-            // cvtColor(rectImg, targetImgHSV, COLOR_BGR2HSV);
-            // calcHist(&targetImgHSV, 2, channels_, Mat(), hist_, 1, &histSize_, &ranges_, true, false);
-            // normalize(hist_, hist_, 0, 255, NORM_MINMAX);
+            else
+            {
+                _create_tracker_by_method(method);
+                bool ok = tracker_ptr_->init(cv_image.image, rect_);
+                if (ok)
+                {
+                    _update_time(cv_image);
+                    last_pt_.x = last_pt_.y = 0;
+                }
+                return ok;
+            }
             // int rows = cv_image.image.rows;
             // int cols = cv_image.image.cols;
         }
@@ -46,21 +56,33 @@ namespace my_hand_eye
     bool Tracker::target_tracking(cv_bridge::CvImage &cv_image)
     {
         using namespace cv;
-        bool valid = tracker_ptr_->update(cv_image.image, rect_);
-        if (valid)
-            valid = _update_time(cv_image);
-        // Mat imageHSV, targetImgHSV;
-        // Mat calcBackImage;
-        // cvtColor(cv_image.image, imageHSV, COLOR_BGR2HSV);
-        // calcBackProject(&imageHSV, 2, channels_, hist_, calcBackImage, &ranges_); // 反向投影
-        // TermCriteria criteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 1000, 0.001);
-        // CamShift(calcBackImage, rect_, criteria); // 关键函数
-        // Mat imageROI = imageHSV(rect_); // 更新模板
-        // targetImgHSV = imageHSV(rect_);
-        // calcHist(&imageROI, 2, channels_, Mat(), hist_, 1, &histSize_, &ranges_);
-        // normalize(hist_, hist_, 0.0, 1.0, NORM_MINMAX); // 归一化
-        // ROS_INFO("u:%lf v:%lf", u, v);
-        return valid;
+        if (method_ == tracker_camshift)
+        {
+            Mat imageHSV, targetImgHSV;
+            Mat calcBackImage;
+            cvtColor(cv_image.image, imageHSV, COLOR_BGR2HSV);
+            calcBackProject(&imageHSV, 2, channels_, hist_, calcBackImage, &ranges_); // 反向投影
+            TermCriteria criteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 1000, 0.001);
+            cv::Rect rect = rect_;
+            CamShift(calcBackImage, rect, criteria); // 关键函数
+            rect_ = rect;
+            Mat imageROI = imageHSV(rect_); // 更新模板
+            targetImgHSV = imageHSV(rect_);
+            calcHist(&imageROI, 2, channels_, Mat(), hist_, 1, &histSize_, &ranges_);
+            normalize(hist_, hist_, 0.0, 1.0, NORM_MINMAX); // 归一化
+            // ROS_INFO("u:%lf v:%lf", u, v);
+            bool valid = _update_time(cv_image);
+            return valid;
+        }
+        else if (method_ == tracker_CRST || method_ == tracker_KCF || method_ == tracker_MOSSE)
+        {
+            bool valid = tracker_ptr_->update(cv_image.image, rect_);
+            if (valid)
+                valid = _update_time(cv_image);
+            return valid;
+        }
+        ROS_ERROR("Incorrect track method!");
+        return false;
     }
 
     bool Tracker::_update_time(cv_bridge::CvImage &cv_image)
@@ -148,6 +170,7 @@ namespace my_hand_eye
             ROS_ERROR("Incorrect track method!");
             return false;
         }
+        method_ = method;
         return true;
     }
 
