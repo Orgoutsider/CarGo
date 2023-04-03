@@ -81,7 +81,7 @@ namespace my_hand_eye
         // bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool remember(double &x, double &y, double &z); // 记忆位置
         // 目标检测到物料并目标追踪
-        bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color,
+        bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color, const int method,
                    double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image);
         bool find_points_with_height(double h, bool done, bool expand_y = false);
         // 椭圆识别

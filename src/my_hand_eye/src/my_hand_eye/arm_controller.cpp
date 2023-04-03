@@ -449,7 +449,7 @@ namespace my_hand_eye
         return false;
     }
 
-    bool ArmController::track(const sensor_msgs::ImageConstPtr &image_rect, const int color,
+    bool ArmController::track(const sensor_msgs::ImageConstPtr &image_rect, const int color, const int method,
                               double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
@@ -486,7 +486,7 @@ namespace my_hand_eye
             vision_msgs::BoundingBox2DArray objArray;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_ellipse_center(objArray, center_u, center_v) &&
-                tracker_.target_init(cv_image_, objArray, color, tracker_KCF))
+                tracker_.target_init(cv_image_, objArray, color, method))
             {
                 tracker_.get_center(u, v);
                 if (!emulation_)
@@ -510,7 +510,7 @@ namespace my_hand_eye
                 // ROS_INFO("Target detect again...");
                 vision_msgs::BoundingBox2DArray objArray;
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                    tracker_.target_init(cv_image_, objArray, color, tracker_KCF))
+                    tracker_.target_init(cv_image_, objArray, color, method))
                 {
                     tracker_.get_center(u, v);
                     if (!emulation_)

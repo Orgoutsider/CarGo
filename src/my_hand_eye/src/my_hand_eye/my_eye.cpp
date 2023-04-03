@@ -27,7 +27,7 @@ namespace my_hand_eye
 		if (!stop)
 		{
 			double u, v;
-			arm_controller_.track(image_rect, color, u, v, stop, debug_image);
+			arm_controller_.track(image_rect, color, tracker_camshift, u, v, stop, debug_image);
 			if (arm_controller_.show_detections_)
 				debug_image_publisher_.publish(debug_image);
 		}

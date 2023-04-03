@@ -1,20 +1,42 @@
 #!/usr/bin/env python3
 
+import rospy
+import cv2
+import torch
+import torch.backends.cudnn as cudnn
+import numpy as np
+from cv_bridge import CvBridge
+from pathlib import Path
 import os
 import sys
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-import cv2
-import numpy as np
-import rospy
-import time
-import ctypes
-# import tracker_trt
+# from rostopic import get_topic_type
 
-# add yolov5_deepsort_tensorrt submodule to path
-path = os.path.abspath(".")
-# 核心
-sys.path.insert(0,path + "/src/yolov5_ros/src/yolov5_deepsort_tensorrt")
-from detector_trt import Detector
+from sensor_msgs.msg import Image
+# from detection_msgs.msg import BoundingBox, BoundingBoxes
+
+from vision_msgs.msg import BoundingBox2DArray, \
+    BoundingBox2D
+from yolov5_ros.srv import cargoSrv, cargoSrvResponse
+from dynamic_reconfigure.server import Server
+from yolov5_ros.cfg import drConfig
+
+# add yolov5 submodule to path
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[0] / "yolov5"
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))  # add ROOT to PATH
+ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative path
+
+# import from yolov5 submodules
+from models.common import DetectMultiBackend
+from utils.general import (
+    check_img_size,
+    non_max_suppression,
+    scale_coords
+)
+from utils.plots import Annotator
+from utils.torch_utils import select_device
+from utils.augmentations import letterbox
 
 
 R_Low1_add = np.array([0, 0, 13], dtype=np.uint8)
@@ -43,6 +65,7 @@ B_up = np.array([124, 255, 255], dtype=np.uint8)
 
 single_color = [[1], [1], [2], [3]]
 
+@torch.no_grad()
 class Yolov5Detector:
     def __init__(self):
         self.conf_thres = rospy.get_param("~confidence_threshold")
@@ -54,7 +77,6 @@ class Yolov5Detector:
         # self.view_image = rospy.get_param("~view_image")
         # Initialize weights 
         weights = rospy.get_param("~weights")
-        self.detector = Detector(engine_file_path)
         # Initialize model
         self.device = select_device(str(rospy.get_param("~device","")))
         self.model = DetectMultiBackend(weights, device=self.device, dnn=rospy.get_param("~dnn"), data=rospy.get_param("~data"))
@@ -131,7 +153,6 @@ class Yolov5Detector:
         data = req.image
         im = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
         
-        bboxes = self.detector.detect(im)
         im, im0 = self.preprocess(im)
         # print(im.shape)
         # print(img0.shape)
