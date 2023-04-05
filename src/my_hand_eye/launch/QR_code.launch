@@ -1,17 +1,42 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="nodelet_manager" default="my_hand_eye_manager" />
+    <arg name="node_namespace" default="my_hand_eye_setup_node" />
+    <arg name="respawn" default="true"/>
+    <arg name="camera_name" default="/eye" />
+    <arg name="ft_servo" default="ft_servo" />
+    <arg name="show_detections" default="true" />
+    <arg name="if_detect_QR_code" default="true" />
+    <arg name="if_emulation" default="true" />
 
-    <node pkg="nodelet" type="nodelet" name="my_hand_eye_manager"  args="manager"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
 
     <!-- Example camera launch -->
-    <include file="$(find my_hand_eye)/launch/eye.launch" />
+    <include file="$(find my_hand_eye)/launch/eye.launch">
+        <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
+        <arg name="respawn" value="$(arg respawn)"/>
+    </include>
 
+    <include file="$(find my_hand_eye)/launch/include/zbar_ros.launch">
+        <arg name="manager" value="$(arg nodelet_manager)"/>
+        <arg name="respawn" value="$(arg respawn)"/>
+    </include>
 
-    <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector my_hand_eye_manager" output="screen"></node>
+    <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector my_hand_eye_manager" output="screen"/>
 
-    <node pkg="zbar_ros" type="barcode_reader_node" name="barcode_reader" output="screen">
-        <param name="throttle_repeated_barcodes" type="double" value="2.0"/>
-        <remap from="image" to="/usb_cam/image_raw" />
+    <node pkg="my_hand_eye" type="my_hand_eye_setup_node" name="$(arg node_namespace)" output="screen">
+        <!-- <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen"> -->
+
+        <!-- Remap topics from those used in code to those on the ROS network -->
+        <remap from="image_rect" to="$(arg camera_name)/image_rect_color" />
+
+        <param name="transport_hint" type="string" value="raw" />
+        <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
+        <param name="show_detections" type="bool" value="$(arg show_detections)" />
+        <param name="if_detect_QR_code" type="bool" value="$(arg if_detect_QR_code)" />
+        <param name="white_vmin" type="int" value="160" />
+        <param name="speed_standard" type="double" value="0.12" />
+        <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
     </node>
 
 </launch>

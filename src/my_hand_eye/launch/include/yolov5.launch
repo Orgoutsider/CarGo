@@ -1,20 +1,23 @@
 <launch>
     <!-- Detection configuration -->
-    <arg name="weights" default="$(find yolov5_ros)/src/yolov5/best.pt"/>
+    <!-- <arg name="weights" default="$(find yolov5_ros)/src/yolov5/best.pt"/>
     <arg name="data" default="$(find yolov5_ros)/src/yolov5/data/datasets.yaml"/>
     <arg name="confidence_threshold" default="0.75"/>
     <arg name="iou_threshold" default="0.4"/>
     <arg name="maximum_detections" default="3"/>
     <arg name="device" default="0"/>
-    <arg name="agnostic_nms" default="true"/>
+    <arg name="agnostic_nms" default="true"/> -->
     <arg name="line_thickness" default="3"/>
-    <arg name="dnn" default="true"/>
+    <arg name="weights" default="$(find yolov5_ros)/src/yolov5_deepsort_tensorrt/weights" />
+    <arg name="engine_file_path" default="$(arg weights)/best.engine" />
+    <arg name="plugin_library" default="$(arg weights)/libmyplugins.so" />
+    <!-- <arg name="dnn" default="true"/> -->
     <!-- 与权重文件匹配 -->
-    <arg name="half" default="false"/>
+    <!-- <arg name="half" default="false"/> -->
 
     <!-- replace imgsz -->
-    <arg name="inference_size_h" default="640"/>
-    <arg name="inference_size_w" default="640"/>
+    <!-- <arg name="inference_size_h" default="640"/>
+    <arg name="inference_size_w" default="640"/> -->
 
     <!-- Visualize using OpenCV window -->
     <!-- <arg name="view_image" default="false"/> -->
@@ -30,19 +33,21 @@
 
 
     <node pkg="yolov5_ros" name="cargo_detect" type="cargo_detect.py" output="screen">
-        <param name="weights" value="$(arg weights)"/>
+        <!-- <param name="weights" value="$(arg weights)"/>
         <param name="data" value="$(arg data)"/>
         <param name="confidence_threshold" value="$(arg confidence_threshold)"/>
         <param name="iou_threshold" value="$(arg iou_threshold)" />
         <param name="maximum_detections" value="$(arg maximum_detections)"/>
         <param name="device" value="$(arg device)" />
-        <param name="agnostic_nms" value="$(arg agnostic_nms)" />
+        <param name="agnostic_nms" value="$(arg agnostic_nms)" /> -->
         <param name="line_thickness" value="$(arg line_thickness)"/>
-        <param name="dnn" value="$(arg dnn)"/>
+        <param name="engine_file_path" value="$(arg engine_file_path)"/>
+        <param name="plugin_library" value="$(arg plugin_library)"/>
+        <!-- <param name="dnn" value="$(arg dnn)"/>
         <param name="half" value="$(arg half)"/>
 
         <param name="inference_size_h" value="$(arg inference_size_h)"/>
-        <param name="inference_size_w" value="$(arg inference_size_w)"/>
+        <param name="inference_size_w" value="$(arg inference_size_w)"/> -->
 
         <!-- <param name="input_image_topic" value="$(arg input_image_topic)"/> -->
         <!-- <param name="output_topic" value="$(arg output_topic)"/> -->

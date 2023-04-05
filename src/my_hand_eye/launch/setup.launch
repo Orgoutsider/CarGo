@@ -4,6 +4,7 @@
     <arg name="show_detections" default="true" />
     <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
+    <arg name="if_detect_QR_code" default="false" />
     <arg name="if_emulation" default="true" />
 
     <include file="$(find my_hand_eye)/launch/eye.launch">
@@ -26,7 +27,7 @@
         <param name="transport_hint" type="string" value="raw" />
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
-        <param name="if_detect_QR_code" type="bool" value="false" />
+        <param name="if_detect_QR_code" type="bool" value="$(arg if_detect_QR_code)" />
         <param name="white_vmin" type="int" value="160" />
         <param name="speed_standard" type="double" value="0.12" />
         <param name="if_emulation" type="bool" value="$(arg if_emulation)" />

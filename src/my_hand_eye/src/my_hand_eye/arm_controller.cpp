@@ -754,7 +754,7 @@ namespace my_hand_eye
             generate_bounding_rect(flag, m_ellipses, cv_image, RectTarget);
             if (RectTarget.size() != center.size())
             {
-                ROS_ERROR("RectTarget: Size error!");
+                ROS_ERROR_STREAM("RectTarget Size error!" << "RectTarget:" << RectTarget.size() << "center:" << center.size());
                 return false;
             }
             std::vector<int> color_id;
@@ -765,7 +765,7 @@ namespace my_hand_eye
             color_classification(RectTarget, cv_image, white_vmin_, color_id, hypothesis);
             if (color_id.size() != center.size() || hypothesis.size() != center.size())
             {
-                ROS_ERROR("color_id or hypothesis: Size error!");
+                ROS_ERROR("color_id or hypothesis Size error!");
                 return false;
             }
             objArray.header = image_rect->header;
@@ -822,15 +822,19 @@ namespace my_hand_eye
         {
             current_color_ = color;
             current_z_ = z;
-            ps_.reset();
+            if (!emulation_)
+            {
+                ps_.reset();
+            }
         }
         else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
         {
             cargo_x_.clear();
             cargo_y_.clear();
+            if (!emulation_)
+                ps_.reset();
             current_color_ = color;
             current_z_ = z;
-            ps_.reset();
         }
         finish = false;
         vision_msgs::BoundingBox2DArray objArray;
@@ -838,6 +842,12 @@ namespace my_hand_eye
         if (valid)
         {
             double x = 0, y = 0;
+            if (emulation_)
+            {
+                if (!cargo_x_.size())
+                    cargo_x_.push_back(x);
+                return valid;
+            }
             if (find_with_color(objArray, color, current_z_, x, y))
             {
                 ROS_INFO_STREAM("x:" << x << " y:" << y);

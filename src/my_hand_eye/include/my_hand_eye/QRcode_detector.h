@@ -2,7 +2,6 @@
 #define _QRCODE_DETECTOR_H_
 #include "my_hand_eye/arm_controller.h"
 
-#include <std_msgs/Int16MultiArray.h>
 #include <nodelet/nodelet.h>
 #include <std_msgs/String.h>
 #include <my_hand_eye/ArrayofTaskArrays.h>
@@ -12,6 +11,8 @@ namespace my_hand_eye
     class QRcodeDetector : public nodelet::Nodelet
     {
     private:
+        ros::NodeHandle nh_;
+        ros::NodeHandle pnh_;
         ros::Subscriber QR_code_subscriber_;
         ros::Publisher QR_code_publisher_;
         bool flag_; // 是否已检测到二维码
@@ -30,7 +31,8 @@ namespace my_hand_eye
         ~QRcodeDetector() = default;
         void onInit();
         void Callback(const std_msgs::StringConstPtr &info);
-        void imageCallback(const sensor_msgs::ImageConstPtr &image_rect);
+        void connectCallback();
+        void disconnectCallback();
     };
 }
 #endif // !_QRCODE_DETECTOR_H_
