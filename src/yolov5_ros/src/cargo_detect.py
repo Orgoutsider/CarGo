@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os
 import sys
@@ -6,16 +6,60 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import cv2
 import numpy as np
 import rospy
-import time
-import ctypes
-# import tracker_trt
+import random
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
+# from detection_msgs.msg import BoundingBox, BoundingBoxes
+
+from vision_msgs.msg import BoundingBox2DArray, \
+    BoundingBox2D
+from yolov5_ros.srv import cargoSrv, cargoSrvResponse
+from dynamic_reconfigure.server import Server
+from yolov5_ros.cfg import drConfig
 
 # add yolov5_deepsort_tensorrt submodule to path
 path = os.path.abspath(".")
 # 核心
-sys.path.insert(0,path + "/src/yolov5_ros/src/yolov5_deepsort_tensorrt")
+sys.path.insert(0,path + "/src/yolov5_ros/src/")
 from detector_trt import Detector
+# import tracker_trt
+import ctypes
 
+def plot_one_box(x, img, color=None, label=None, line_thickness=None):
+    """
+    description: Plots one bounding box on image img,
+                 this function comes from YoLov5 project.
+    param: 
+        x:      a box likes [x1,y1,x2,y2]
+        img:    a opencv image object
+        color:  color to draw rectangle, such as (0,255,0)
+        label:  str
+        line_thickness: int
+    return:
+        no return
+
+    """
+    tl = (
+        line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
+    )  # line/font thickness
+    color = color or [random.randint(0, 255) for _ in range(3)]
+    c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+    cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
+    if label:
+        tf = max(tl - 1, 1)  # font thickness
+        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
+        c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+        cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
+        cv2.putText(
+            img,
+            label,
+            (c1[0], c1[1] - 2),
+            0,
+            tl / 3,
+            [225, 255, 255],
+            thickness=tf,
+            lineType=cv2.LINE_AA,
+        )
 
 R_Low1_add = np.array([0, 0, 13], dtype=np.uint8)
 R_up1_add = np.array([0, 0, 0], dtype=np.uint8)
@@ -45,65 +89,17 @@ single_color = [[1], [1], [2], [3]]
 
 class Yolov5Detector:
     def __init__(self):
-        self.conf_thres = rospy.get_param("~confidence_threshold")
-        self.iou_thres = rospy.get_param("~iou_threshold")
-        self.agnostic_nms = rospy.get_param("~agnostic_nms")
-        self.max_det = rospy.get_param("~maximum_detections")
-        self.classes = rospy.get_param("~classes", None)
-        self.line_thickness = rospy.get_param("~line_thickness")
-        # self.view_image = rospy.get_param("~view_image")
-        # Initialize weights 
-        weights = rospy.get_param("~weights")
+        self.line_thickness = rospy.get_param("~line_thickness", 3)
+        PLUGIN_LIBRARY = rospy.get_param("~plugin_library", "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/libmyplugins.so")
+        ctypes.CDLL(PLUGIN_LIBRARY)
+        engine_file_path = rospy.get_param("~engine_file_path", "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/best.engine")
         self.detector = Detector(engine_file_path)
-        # Initialize model
-        self.device = select_device(str(rospy.get_param("~device","")))
-        self.model = DetectMultiBackend(weights, device=self.device, dnn=rospy.get_param("~dnn"), data=rospy.get_param("~data"))
-        self.stride, self.names, self.pt, self.jit, self.onnx, self.engine = (
-            self.model.stride,
-            self.model.names,
-            self.model.pt,
-            self.model.jit,
-            self.model.onnx,
-            self.model.engine,
-        )
 
-        # Setting inference size
-        self.img_size = [rospy.get_param("~inference_size_w", 640), rospy.get_param("~inference_size_h",480)]
-        self.img_size = check_img_size(self.img_size, s=self.stride)
-
-        # Half
-        self.half = rospy.get_param("~half", False)
-        self.half &= (
-            self.pt or self.jit or self.onnx or self.engine
-        ) and self.device.type != "cpu"  # FP16 supported on limited backends with CUDA
-        if self.pt or self.jit:
-            self.model.model.half() if self.half else self.model.model.float()
-        bs = 1  # batch_size
-        cudnn.benchmark = True  # set True to speed up constant image size inference
-        self.model.warmup()  # warmup        
-        
-        # Initialize subscriber to Image/CompressedImage topic
-        # input_image_type, input_image_topic, _ = get_topic_type(rospy.get_param("~input_image_topic"), blocking = True)
-        # self.compressed_input = input_image_type == "sensor_msgs/CompressedImage"
-
-        # if self.compressed_input:
-        #     self.image_sub = rospy.Subscriber(
-        #         input_image_topic, CompressedImage, self.callback, queue_size=1
-        #     )
-        # else:
-        #     self.image_sub = rospy.Subscriber(
-        #         input_image_topic, Image, self.callback, queue_size=1
-        #     )
-
-        # Initialize prediction publisher
-        # self.pred_pub = rospy.Publisher(
-        #     rospy.get_param("~output_topic"), BoundingBoxes, queue_size=10
-        # )
         # Initialize image publisher
-        self.publish_image = rospy.get_param("~publish_image")
+        self.publish_image = rospy.get_param("~publish_image", True)
         if self.publish_image:
             self.image_pub = rospy.Publisher(
-                rospy.get_param("~output_image_topic"), Image, queue_size=1
+                rospy.get_param("~output_image_topic", "/yolov5/image_out"), Image, queue_size=1
             )
         
         # Initialize CV_Bridge
@@ -115,7 +111,6 @@ class Yolov5Detector:
         self.low = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
         self.up = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
         self.gain = 0.1 # 扩张比例
-        self.score_thr = 0.8
         self.srv = rospy.Service('cargoSrv', cargoSrv, self.callback)
         rospy.loginfo("Service set up!")
         self.param_modification = rospy.get_param('~param_modification', False)
@@ -125,62 +120,30 @@ class Yolov5Detector:
             rospy.loginfo("Defualt setting: don't modify paramater")
 
     def callback(self, req):
-        """adapted from yolov5/detect.py"""
         # print(data.header)
         rospy.logdebug("Get an image")
         data = req.image
         im = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
         
-        bboxes = self.detector.detect(im)
-        im, im0 = self.preprocess(im)
-        # print(im.shape)
-        # print(img0.shape)
-        # print(img.shape)
-
-        # Run inference
-        im = torch.from_numpy(im).to(self.device) 
-        im = im.half() if self.half else im.float()
-        im /= 255
-        if len(im.shape) == 3:
-            im = im[None]
-
-        pred = self.model(im, augment=False, visualize=False)
-        pred = non_max_suppression(
-            pred, self.conf_thres, self.iou_thres, self.classes, self.agnostic_nms, max_det=self.max_det
-        )
-
-        ### To-do move pred to CPU and fill BoundingBox messages
-        
-        # Process predictions 
-        det = pred[0].cpu().numpy()
-
+        result_boxes, result_scores, result_classid = self.detector.detect(im)
         objArray = BoundingBox2DArray()
         objArray.boxes = [BoundingBox2D()] * 4
         objArray.header = data.header
         flag = [False] * 4 #没有检测到
-        im_plot = im0.copy()
-        annotator = Annotator(im_plot, line_width=self.line_thickness, example=str(self.names))
         color_id = [0, 2, 1, 0]
-        if len(det):
-            # Rescale boxes from img_size to im0 size
-            det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
-
-            # Write results
-            for *xyxy, conf, cls in reversed(det):
-                # bounding_box = BoundingBox()
-                c = int(cls)
-                # if conf < self.conf_thres:
-                #     rospy.logerr("ok")
-                #     continue
-
+        im_plot = im.copy()
+        if len(result_boxes) > 0:
+            for i in range(len(result_boxes)):
+                result_box = result_boxes[i]
                 # start_row and start_col are the cordinates 
                 # from where we will start cropping
                 # end_row and end_col is the end coordinates 
                 # where we stop
-                size_row,size_col=xyxy[3]-xyxy[1], xyxy[2]-xyxy[0]
-                start_row,start_col=int(max(0, xyxy[1] - size_row * self.gain)),int(max(0, xyxy[0] - size_col * self.gain))
-                end_row,end_col=int(min(im0.shape[0] ,xyxy[3] + size_row * self.gain)),int(min(im0.shape[1], xyxy[2] + size_col * self.gain))
-                roi = im0[start_row:end_row,start_col:end_col]
+                size_row,size_col=result_box[3]-result_box[1], result_box[2]-result_box[0]
+                start_row,start_col=int(max(0, result_box[1] - size_row * self.gain)),int(max(0, result_box[0] - size_col * self.gain))
+                end_row,end_col=int(min(im.shape[0] ,result_box[3] + size_row * self.gain)),int(min(im.shape[1], result_box[2] + size_col * self.gain))
+                
+                roi = im[start_row:end_row,start_col:end_col]
                 if self.param_modification:
                     cv2.imshow("roi", roi)
                     cv2.waitKey(100)
@@ -223,27 +186,27 @@ class Yolov5Detector:
                     flag[color_max] = True
                     # rospy.loginfo("Succeed to detect!")
                     obj = BoundingBox2D()
-                    obj.center.x = (xyxy[0] + xyxy[2]) / 2 #中心点
-                    obj.center.y = (xyxy[1] + xyxy[3]) / 2
+                    obj.center.x = (result_box[0] + result_box[2]) / 2 #中心点
+                    obj.center.y = (result_box[1] + result_box[3]) / 2
                     obj.center.theta = np.pi / 2 #由x轴逆时针转至W(宽)的角度。
-                    obj.size_x = (xyxy[2] - xyxy[0])#长
-                    obj.size_y = (xyxy[3] - xyxy[1])#宽
+                    obj.size_x = (result_box[2] - result_box[0])#长
+                    obj.size_y = (result_box[3] - result_box[1])#宽
                     objArray.boxes[color_max] = obj
 
                     # Annotate the image
                     if self.publish_image:  # Add bbox to image
                         # integer class
-                        label = f"{self.names[c]} {conf:.2f}"
                         box_color = [0] * 3
                         box_color[color_id[color_max]] = 128
-                        box_color = tuple(box_color)
-                        annotator.box_label(xyxy, label, color=box_color)       
-
-                
-                ### POPULATE THE DETECTION MESSAGE HERE
-
-            # Stream results
-            im_plot = annotator.result()
+                        plot_one_box(
+                            result_box,
+                            im_plot,
+                            label="{}:{:.2f}".format(
+                                categories[int(result_classid[i])], result_scores[i]
+                            ),
+                            color=tuple(box_color),
+                            line_thickness=self.line_thickness
+                        )
         
         else:
             rospy.logwarn("Cannot detect cargo!")
@@ -259,19 +222,6 @@ class Yolov5Detector:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_plot, "bgr8"))
 
         return cargoSrvResponse(objArray)
-        
-
-    def preprocess(self, img):
-        """
-        Adapted from yolov5/utils/datasets.py LoadStreams class
-        """
-        img0 = img.copy()
-        img = np.array([letterbox(img, self.img_size, stride=self.stride, auto=self.pt)[0]])
-        # Convert
-        img = img[..., ::-1].transpose((0, 3, 1, 2))  # BGR to RGB, BHWC to BCHW
-        img = np.ascontiguousarray(img)
-
-        return img, img0 
     
 
     def dr_callback(self, config, level):
@@ -309,13 +259,18 @@ class Yolov5Detector:
             rospy.loginfo('Succeed to modify paramater!')
 
         return config
+    
+    def destroy(self):
+        self.detector.destroy()
 
 
 if __name__ == "__main__":
 
-    # check_requirements(exclude=("tensorboard", "thop"))
-    
+    # load coco labels
+    categories = ["cargo"]
     rospy.init_node("yolov5", anonymous=True)
     detector = Yolov5Detector()
     
     rospy.spin()
+    # cv2.destroyAllWindows()
+    detector.destroy()
