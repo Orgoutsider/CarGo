@@ -1,6 +1,8 @@
 <launch>
     <node pkg="my_hand_eye" type="my_hand_eye_plot_client_node" name="my_hand_eye_plot_client_node"
-        output="screen"/>
+        output="screen">
+        <param name="if_emulation" value="true" type="bool" />
+    </node>
     <node pkg="my_hand_eye" type="plot_srv.py" name="my_hand_eye_plot_srv_node"
         output="screen"/>
 </launch>

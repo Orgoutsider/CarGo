@@ -1,11 +1,11 @@
 #pragma once
 // ARM_P > ARM_A0
 #define ARM_P 14.85
-#define ARM_A0 10.28
-#define ARM_A1 20.074
-#define ARM_A2 13.68
-#define ARM_A3 12.47 
-#define ARM_A4 12.178
+#define ARM_A0 9.8
+#define ARM_A1 20.636
+#define ARM_A2 13.626
+#define ARM_A3 12.524
+#define ARM_A4 12.27216
 #define ARM_MAX_LEN ((ARM_A0) + (ARM_A2) + (ARM_A3) + (ARM_A4))
 #define ARM_MAX_HIGH ((ARM_A1) + (ARM_A2) + (ARM_A3) + (ARM_A4))
 

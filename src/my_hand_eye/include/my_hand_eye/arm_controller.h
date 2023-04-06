@@ -9,11 +9,37 @@
 
 namespace my_hand_eye
 {
-
     struct Ellipse
+    {
+        cv::Point2d center; // 目标椭圆容器
+        cv::Rect rect_target;
+        int color;
+        double hypothesis;
+    };
+
+    struct EllipseColor
     {
         int color;
         double center_x;
+    };
+
+    class EllipseArray
+    {
+    private:
+        std::vector<Ellipse> ellipse_;
+        std::vector<int> flag_; // 聚类标识
+    public:
+        EllipseArray();
+        // 聚类
+        bool clustering(std::vector<cv::Point2d> &centers);
+        bool generate_bounding_rect(std::vector<cv::RotatedRect> &m_ellipses,
+                                    cv_bridge::CvImagePtr &cv_image);
+        // 颜色分类
+        bool color_classification(cv_bridge::CvImagePtr &cv_image,
+                                  int white_vmin);
+        // 找到最多3个椭圆并绘制
+        bool detection(vision_msgs::BoundingBox2DArray &objArray,
+                       cv::Rect &roi, cv_bridge::CvImagePtr &cv_image, bool show_detection);
     };
 
     class ArmController
@@ -25,7 +51,7 @@ namespace my_hand_eye
         bool fin_;              // 是否找到指定颜色物料
         bool emulation_;        // 是否进行仿真或摄像头测试
         int white_vmin_;
-        Ellipse ellipse_color_order_[4];
+        EllipseColor ellipse_color_order_[4];
         MultiTracker tracker_;
         SMS_STS sm_st_;
         SCSCL sc_;
@@ -54,8 +80,9 @@ namespace my_hand_eye
                                         double &radius, double &speed);
         bool take_picture();                                                                                    // 拍照
         bool get_ellipse_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v); // 处理接收的图片，求3物料重心
-        bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray);                                // 处理接收的图片，设置椭圆颜色顺序
-        void average_position(double &x, double &y);                                                            // 求得记录位置数据的平均值
+        // 中心点按从左往右排序
+        bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序
+        void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
         double distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
                             double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
@@ -98,12 +125,7 @@ namespace my_hand_eye
     // 十字光标绘制，用于调试观察
     void draw_cross(cv::Mat &img, cv::Point2d point, cv::Scalar color, int size, int thickness);
     // 目标区域框选
-    void generate_bounding_rect(int flag[], std::vector<cv::RotatedRect> &m_ellipses,
-                                cv_bridge::CvImagePtr &cv_image, std::vector<cv::Rect> &RectTarget);
     double color_hypothesis(double h_val, int lower_bound, int upper_bound);
-    // 颜色分类
-    void color_classification(std::vector<cv::Rect> &RectTarget, cv_bridge::CvImagePtr &cv_image,
-                              int white_vmin, std::vector<int> &color_id, std::vector<double> &hypothesis); // 中心点按从左往右排序
 } // namespace my_hand_eye
 
 #endif // !_ARM_CONTROLLER_H_

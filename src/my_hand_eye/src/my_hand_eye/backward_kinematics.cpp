@@ -335,6 +335,8 @@ namespace my_hand_eye
                 ROS_WARN("Result invalid!");
                 return false;
             }
+            else if (abs(ty + ARM_P) < 1 || abs(y + ARM_P) < 1)//距离底部圆心过近时的数值计算问题s
+                return false;
             else if (std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
             {
                 ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf",
