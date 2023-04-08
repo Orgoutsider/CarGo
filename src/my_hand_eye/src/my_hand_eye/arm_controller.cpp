@@ -7,9 +7,9 @@ namespace my_hand_eye
         ellipse_.reserve(3);
     };
 
-    bool EllipseArray::clustering(std::vector<cv::Point2d> &centers)
+    bool EllipseArray::clustering(std::vector<cv::Point2d> &centers, std::vector<cv::RotatedRect> &ellipses)
     {
-        if (centers.empty())
+        if (centers.empty() || ellipses.empty())
             return false;
         if (!ellipse_.empty())
             ellipse_.clear();
@@ -24,8 +24,12 @@ namespace my_hand_eye
             int x_temp = centers[i].x, y_temp = centers[i].y, count = 1, now = i;
             for (int j = i + 1; j < centers.size(); j++)
             {
-                if (abs(centers[i].x - centers[j].x) < 10 &&
-                    abs(centers[i].y - centers[j].y) < 10 && !flag_[j])
+                float thr = std::min<float>(std::min<float>(ellipses[i].size.width, ellipses[i].size.height),
+                                            std::min<float>(ellipses[j].size.width, ellipses[j].size.height)) /
+                            2;
+                if ((abs(centers[i].x - centers[j].x) < thr) &&
+                    (abs(centers[i].y - centers[j].y) < thr) &&
+                    !flag_[j])
                 {
 
                     flag_[now] = j;
@@ -47,6 +51,7 @@ namespace my_hand_eye
                 ellipse_.push_back(e);
             }
         }
+        // ROS_INFO_STREAM(ellipse_.size());
         return true;
     };
 
@@ -208,7 +213,7 @@ namespace my_hand_eye
             if (flag)
             {
                 detections = cargo.response.results;
-                if (show_detections_)
+                if (show_detections_ && !cv_image->image.empty())
                 {
                     // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
                     if (cargo.response.results.boxes.size())
@@ -600,7 +605,7 @@ namespace my_hand_eye
                     if (abs(radius - first_radius) > PERMIT)
                         cnt = INTERVAL;
                 }
-                if (show_detections_)
+                if (show_detections_ && !cv_image->image.empty())
                 {
                     // 目标绘制
                     rectangle(cv_image->image, tracker_.rect_, Scalar(255, 0, 0), 3);
@@ -614,8 +619,8 @@ namespace my_hand_eye
                         }
                     }
                     debug_image = cv_image->toImageMsg();
-                    imshow("img", cv_image->image);
-                    waitKey(20);
+                    // imshow("img", cv_image->image);
+                    // waitKey(20);
                 }
             }
             pt.push_back(cv::Point(u, v));
@@ -683,16 +688,20 @@ namespace my_hand_eye
             return false;
         cv_image->image = cv_image->image(roi);
         using namespace cv;
-        Mat srcdst, srcCopy;          // 从相机传进来需要两张图片
-        Point2d _center;              // 椭圆中心
-        std::vector<Point2d> centers; // 椭圆中心容器
-        centers.reserve(10);
+        Mat srcdst, srcCopy;                        // 从相机传进来需要两张图片
+        Point2d _center;                            // 椭圆中心
+        std::vector<Point2d> centers;               // 椭圆中心容器
+        std::vector<std::vector<Point2i>> contours; // 创建容器，存储轮廓
+        std::vector<Vec4i> hierarchy;               // 寻找轮廓所需参数
+        std::vector<RotatedRect> m_ellipses;        // 第一次初筛后椭圆容器
+        EllipseArray arr;
 
         // 直线斜率处处相等原理的相关参数
         int line_Point[6] = {0, 0, 10, 20, 30, 40}; // 表示围成封闭轮廓点的序号，只要不太离谱即可
         const int line_threshold = 0.5;             // 判定阈值，小于即判定为直线
 
-        resize(cv_image->image, srcdst, cv_image->image.size()); // 重设大小，可选
+        // resize(cv_image->image, srcdst, cv_image->image.size()); // 重设大小，可选
+        srcdst = cv_image->image.clone();
         srcCopy = srcdst.clone();
 
         // 第一次预处理
@@ -705,10 +714,6 @@ namespace my_hand_eye
         mm = {Scalar(0, 0, 0)}; // 把ROI中的像素值改为黑色
 
         // 第一次轮廓查找
-        std::vector<std::vector<Point2i>> contours; // 创建容器，存储轮廓
-        std::vector<Vec4i> hierarchy;               // 寻找轮廓所需参数
-        std::vector<RotatedRect> m_ellipses;        // 第一次初筛后椭圆容器
-        EllipseArray arr;
         findContours(srcdst, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
 
         // Mat imageContours = Mat::zeros(mm.size(), CV_8UC1);//创建轮廓展示图像，用于调试
@@ -723,22 +728,22 @@ namespace my_hand_eye
             // }
             // imshow("Contours_1", imageContours);
             // 第一次排除
-            for (int i = 0; i < contours.size(); i++)
+            for (std::vector<cv::Point> contour : contours)
             {
                 // 初筛
-                if (contourArea(contours[i]) < con_Area_min_ ||
-                    contours[i].size() < con_Point_cont_ || contourArea(contours[i]) > con_Area_max_)
+                if (contourArea(contour) < con_Area_min_ ||
+                    contour.size() < con_Point_cont_ || contourArea(contour) > con_Area_max_)
                     continue;
                 // 利用直线斜率处处相等的原理
                 Point2d pt[6];
-                for (int j = 1; j < 5; j++)
+                for (int i = 1; i < 5; i++)
                 {
                     if (contours.size() - 1 < line_Point[5])
                     {
-                        pt[j] = contours[j][(int)floor(contours.size() / 4.0) * (j - 1)];
+                        pt[i] = contour[(int)floor(contours.size() / 4.0) * (i - 1)];
                     }
                     else
-                        pt[j] = contours[j][line_Point[j]];
+                        pt[i] = contour[line_Point[i]];
                 }
                 if (abs(((pt[3].y - pt[1].y) * 1.0 / (pt[3].x - pt[1].x) -
                          (pt[2].y - pt[1].y) * 1.0 / (pt[2].x - pt[2].x))) < line_threshold)
@@ -750,9 +755,10 @@ namespace my_hand_eye
                 // if (!abs((contours[i][0].y + contours[i][20].y) / 2 - contours[i][10].y))
                 //     continue;
                 // drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
-                RotatedRect m_ellipsetemp;               // 创建接收椭圆的容器
-                m_ellipsetemp = fitEllipse(contours[i]); // 找到的第一个轮廓，放置到m_ellipsetemp
-                if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2)
+                RotatedRect m_ellipsetemp;           // 创建接收椭圆的容器
+                m_ellipsetemp = fitEllipse(contour); // 找到的第一个轮廓，放置到m_ellipsetemp
+                if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2 ||
+                    m_ellipsetemp.size.height / m_ellipsetemp.size.width < 0.2)
                     continue;
                 ellipse(mm, m_ellipsetemp, cv::Scalar(255, 255, 255)); // 在图像中绘制椭圆，必要
                 _center = m_ellipsetemp.center;                        // 读取椭圆中心，必要
@@ -763,7 +769,8 @@ namespace my_hand_eye
             }
             // imshow("Contours_1", imageContours);
             // imshow("mm", mm); // 显示第一次排除结果，用于调试
-            if (!arr.clustering(centers))
+            // cv::waitKey(10);
+            if (!arr.clustering(centers, m_ellipses))
                 return false;
             if (!arr.generate_bounding_rect(m_ellipses, cv_image))
                 return false;
@@ -774,7 +781,7 @@ namespace my_hand_eye
             if (!arr.detection(objArray, roi, cv_image, show_detections_))
                 return false;
         }
-        if (show_detections_)
+        if (show_detections_ && !cv_image->image.empty())
             debug_image = cv_image->toImageMsg();
         return true;
     }
@@ -855,6 +862,8 @@ namespace my_hand_eye
 
     void draw_cross(cv::Mat &img, cv::Point2d point, cv::Scalar color, int size, int thickness)
     {
+        if (!point.inside(cv::Rect2d(0, 0, img.cols, img.rows)))
+            ROS_WARN("Point is out of range! point:(%lf, %lf)", point.x, point.y);
         // 绘制横线
         line(img, cv::Point(point.x - size / 2, point.y),
              cv::Point(point.x + size / 2, point.y), color, thickness, 8, 0);
@@ -870,16 +879,18 @@ namespace my_hand_eye
             return false;
         bool note[flag_.size()] = {false};
         // for (int i = 0; i < m_ellipses.size(); i++)
-        //     ROS_INFO_STREAM(flag[i]);
+        //     ROS_INFO_STREAM(flag_[i]);
+        int num = 0;
         for (int i = 0; i < m_ellipses.size(); i++)
         {
             if (note[i])
                 continue;
-            int now = i, area_max = (m_ellipses[now].boundingRect()).area(), cnt = 1, num = 0, ind_max = i;
+            int now = i, area_max = (m_ellipses[now].boundingRect()).area(), cnt = 1, ind_max = i;
             // ROS_INFO_STREAM(now);
             note[now] = true;
             while (flag_[now] != -1)
             {
+                cnt++;
                 now = flag_[now];
                 note[now] = true;
                 int area_temp = (m_ellipses[now].boundingRect()).area();
@@ -904,6 +915,11 @@ namespace my_hand_eye
                 }
                 num++;
             }
+        }
+        if (num != ellipse_.size())
+        {
+            ROS_ERROR("Incorrect num! num:%d, ellipse size:%ld", num, ellipse_.size());
+            return false;
         }
         return true;
     }
@@ -934,7 +950,7 @@ namespace my_hand_eye
     bool EllipseArray::color_classification(cv_bridge::CvImagePtr &cv_image,
                                             int white_vmin)
     {
-        if (ellipse_.empty())
+        if (ellipse_.empty() || cv_image->image.empty())
             return false;
         const int WHITE_SMAX = 46;
         const int WHITE_VMIN = white_vmin;
@@ -946,12 +962,16 @@ namespace my_hand_eye
         const int BLUE_HMAX = 124;
         int upper_bound[] = {0, RED_HMAX, GREEN_HMAX, BLUE_HMAX};
         int lower_bound[] = {0, RED_HMIN, GREEN_HMIN, BLUE_HMIN};
-        for (Ellipse e : ellipse_)
+        for (Ellipse &e : ellipse_)
         {
-            cv::Mat mask = cv_image->image(e.rect_target);
+            if (e.rect_target.empty())
+            {
+                ROS_ERROR("rect target is empty!");
+                return false;
+            }
+            cv::Mat mask = (cv_image->image(e.rect_target)).clone();
             cv::Mat mask_Img = mask.clone();        // 用于调试
             mask_Img = {cv::Scalar(255, 255, 255)}; // 用于调试
-
             cvtColor(mask, mask, cv::COLOR_BGR2HSV);
             // 设置像素遍历迭代器
             cv::MatConstIterator_<cv::Vec3b> maskStart = mask.begin<cv::Vec3b>();
@@ -981,7 +1001,8 @@ namespace my_hand_eye
                 //     usleep(1e5);
                 // }
             }
-            // cv::imshow("mask_Img", mask_Img);       // 用于调试
+            // cv::imshow("mask_Img", mask_Img); // 用于调试
+            // cv::waitKey(10);
             double H_Average = hue_value_tan(y, x); // 保存当前区域色相H的平均值
             H_Average = (H_Average < 0) ? H_Average + 180 : H_Average;
             // ROS_INFO_STREAM("H_Average:" << H_Average << " cnt:" << cnt << " " << mask.cols * mask.rows);
@@ -1010,8 +1031,9 @@ namespace my_hand_eye
             objArray.boxes.clear();
         objArray.boxes.resize(4);
         double hyp_max[4] = {0};
-        for (Ellipse e : ellipse_)
+        for (Ellipse &e : ellipse_)
         {
+            // ROS_INFO_STREAM(e.hypothesis << hyp_max[e.color]);
             if (e.hypothesis > hyp_max[e.color])
             {
                 vision_msgs::BoundingBox2D obj = vision_msgs::BoundingBox2D();
@@ -1020,36 +1042,34 @@ namespace my_hand_eye
                 obj.size_x = e.rect_target.width;
                 obj.size_y = e.rect_target.height;
                 objArray.boxes[e.color] = obj;
-            }
-        }
-        if (show_detection)
-        {
-            // 绘制中心十字，用于调试
-            cv::Scalar c;
-            for (int color = color_red; color <= color_blue; color++)
-            {
-                switch (color)
+                hyp_max[e.color] = e.hypothesis;
+                if (show_detection)
                 {
-                case color_red:
-                    c = cv::Scalar(0, 0, 255);
-                    break;
+                    // 绘制中心十字，用于调试
+                    cv::Scalar c;
+                    switch (e.color)
+                    {
+                    case color_red:
+                        c = cv::Scalar(0, 0, 255);
+                        break;
 
-                case color_green:
-                    c = cv::Scalar(0, 255, 0);
-                    break;
+                    case color_green:
+                        c = cv::Scalar(0, 255, 0);
+                        break;
 
-                case color_blue:
-                    c = cv::Scalar(255, 0, 0);
-                    break;
+                    case color_blue:
+                        c = cv::Scalar(255, 0, 0);
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                    }
+                    draw_cross(cv_image->image,
+                               e.center,
+                               c, 30, 2);
+                    // imshow("srcCopy", cv_image->image); // 用于调试
+                    // cv::waitKey(60);
                 }
-                draw_cross(cv_image->image,
-                           cv::Point2d(objArray.boxes[color].center.x, objArray.boxes[color].center.y),
-                           c, 30, 2);
-                // imshow("srcCopy", cv_image->image); // 用于调试
-                // cv::waitKey(60);
             }
         }
         return true;

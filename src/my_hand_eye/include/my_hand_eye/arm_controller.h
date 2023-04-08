@@ -31,7 +31,7 @@ namespace my_hand_eye
     public:
         EllipseArray();
         // 聚类
-        bool clustering(std::vector<cv::Point2d> &centers);
+        bool clustering(std::vector<cv::Point2d> &centers, std::vector<cv::RotatedRect> &ellipses);
         bool generate_bounding_rect(std::vector<cv::RotatedRect> &m_ellipses,
                                     cv_bridge::CvImagePtr &cv_image);
         // 颜色分类
@@ -52,7 +52,7 @@ namespace my_hand_eye
         bool emulation_;        // 是否进行仿真或摄像头测试
         int white_vmin_;
         EllipseColor ellipse_color_order_[4];
-        MultiTracker tracker_;
+        Tracker tracker_;
         SMS_STS sm_st_;
         SCSCL sc_;
         ros::ServiceClient cargo_client_; // mmdetection+颜色识别

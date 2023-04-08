@@ -211,6 +211,7 @@ namespace my_hand_eye
         _update_time(cv_image);
         rect_ = multi_tracker_ptr_->getObjects()[color_now_ - 1];
     }
+    
     bool MultiTracker::speed(double x[4], double y[4], double center_x, double center_y,
                              double speed_standard, double speed[4])
     {

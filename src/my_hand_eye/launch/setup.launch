@@ -28,7 +28,7 @@
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
         <param name="if_detect_QR_code" type="bool" value="$(arg if_detect_QR_code)" />
-        <param name="white_vmin" type="int" value="160" />
+        <param name="white_vmin" type="int" value="120" />
         <param name="speed_standard" type="double" value="0.12" />
         <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
     </node>
