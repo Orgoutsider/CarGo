@@ -12,11 +12,11 @@ namespace motion_controller
     class MotionServer
     {
     private:
-        int where;
-        bool service_on;
+        Server server_;
     public:
         MotionServer(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~MotionServer();
+        void call_back(const motion_controller::MoveActionGoalConstPtr &goal,Server* server);
     };
     
 } // namespace motion_controller

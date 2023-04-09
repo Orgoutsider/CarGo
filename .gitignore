@@ -29,7 +29,7 @@ src/cv_camera/
 src/fdilink_ahrs/
 src/image_proc/
 src/realsense-ros-development/
-src/robot_pose_ekf/
+# src/robot_pose_ekf/
 src/usb_cam/
 src/vision_msgs/
 src/wheeltec_robot_rc/

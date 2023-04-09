@@ -219,15 +219,15 @@ target_link_libraries(image_saver
 )
 
 
-add_executable(avoidance src/avoidance.cpp)
-add_dependencies(avoidance ${${PROJECT_NAME}_EXPORTED_TARGETS})
-target_link_libraries(avoidance ${catkin_LIBRARIES})
+# add_executable(avoidance src/avoidance.cpp)
+# add_dependencies(avoidance ${${PROJECT_NAME}_EXPORTED_TARGETS})
+# target_link_libraries(avoidance ${catkin_LIBRARIES})
 
 
 
-add_executable(obs_avo src/obs_avo.cpp)
-add_dependencies(obs_avo ${${PROJECT_NAME}_EXPORTED_TARGETS})
-target_link_libraries(obs_avo ${catkin_LIBRARIES})
+# add_executable(obs_avo src/obs_avo.cpp)
+# add_dependencies(obs_avo ${${PROJECT_NAME}_EXPORTED_TARGETS})
+# target_link_libraries(obs_avo ${catkin_LIBRARIES})
 
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
