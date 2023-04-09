@@ -1,0 +1,10 @@
+#目标位置
+geometry_msgs/Pose2D pose
+bool turn_corners
+---
+#最终结果
+geometry_msgs/Pose2D pose_final
+---
+#连续反馈
+geometry_msgs/Pose2D pose_now
+bool is_paning
