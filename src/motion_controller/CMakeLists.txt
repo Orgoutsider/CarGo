@@ -16,6 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   actionlib
   actionlib_msgs
+  tf2
+  tf2_ros 
+  tf2_geometry_msgs
 )
 
 # generate_dynamic_reconfigure_options(
@@ -120,7 +123,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES motion_controller
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime cv_bridge image_transport geometry_msgs actionlib actionlib_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime cv_bridge image_transport geometry_msgs actionlib actionlib_msgs tf2 tf2_ros tf2_geometry_msgs
 #  DEPENDS system_lib
 )
 

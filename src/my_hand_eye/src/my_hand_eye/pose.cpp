@@ -91,9 +91,9 @@ namespace my_hand_eye
         if (valid)
         {
             Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-            Position[2] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg2 / 180);
-            Position[3] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg3 / 180);
-            Position[4] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg4 / 180);
+            Position[2] = std::round(ARM_JOINT2_POS_WHEN_DEG0 + (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * deg2 / 180);
+            Position[3] = std::round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
+            Position[4] = std::round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
             Position[5] = std::round(cat ? ARM_JOINT5_POS_WHEN_CATCH : ARM_JOINT5_POS_WHEN_LOSEN);
             // ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
         }
@@ -407,17 +407,17 @@ namespace my_hand_eye
             if (!read)
             {
                 double deg1 = (Position[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
-                double deg2 = (Position[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-                double deg3 = (Position[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-                double deg4 = (Position[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                double deg2 = (Position[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
+                double deg3 = (Position[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
+                double deg4 = (Position[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
                 valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
             }
             else
             {
                 double deg1 = (Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
-                double deg2 = (Position_now[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-                double deg3 = (Position_now[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-                double deg4 = (Position_now[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+                double deg2 = (Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
+                double deg3 = (Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
+                double deg4 = (Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
                 valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
             }
         }
@@ -499,9 +499,9 @@ namespace my_hand_eye
     cv::Mat Pos::R_end_to_base()
     {
         double deg1 = (Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180;
-        double deg2 = (Position_now[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180;
-        double deg3 = (Position_now[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180;
-        double deg4 = (Position_now[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180;
+        double deg2 = (Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180;
+        double deg3 = (Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180;
+        double deg4 = (Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180;
         Angle j1 = Angle(deg1);
         j1._j_degree_convert(1);
         Angle j2 = Angle(deg2);
@@ -720,9 +720,9 @@ namespace my_hand_eye
             if (fin)
             {
                 Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-                Position[2] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg2 / 180);
-                Position[3] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg3 / 180);
-                Position[4] = std::round(ARM_JOINT234_POS_WHEN_DEG0 + (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * deg4 / 180);
+                Position[2] = std::round(ARM_JOINT2_POS_WHEN_DEG0 + (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * deg2 / 180);
+                Position[3] = std::round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
+                Position[4] = std::round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
             }
             // ROS_INFO_STREAM("length:" << length() << " height:" << height());
         }
@@ -862,8 +862,9 @@ namespace my_hand_eye
     bool Pos::find_points_with_height(double h, my_hand_eye::PointArray &arr)
     {
         Position[1] = round((ARM_JOINT1_POS_WHEN_DEG0 + ARM_JOINT1_POS_WHEN_DEG180) / 2);
-        Position[2] = round(ARM_JOINT234_POS_WHEN_DEG0);
-        Position[3] = Position[4] = round((ARM_JOINT234_POS_WHEN_DEG0 + ARM_JOINT234_POS_WHEN_DEG180) / 2);
+        Position[2] = round(ARM_JOINT2_POS_WHEN_DEG0);
+        Position[3] = round((ARM_JOINT3_POS_WHEN_DEG0 + ARM_JOINT3_POS_WHEN_DEG180) / 2);
+        Position[4] = round((ARM_JOINT4_POS_WHEN_DEG0 + ARM_JOINT4_POS_WHEN_DEG180) / 2);
         double err = 0.1;
         if (!refresh_xyz(false))
             return false;
@@ -914,9 +915,9 @@ namespace my_hand_eye
         while (ros::ok() && ros::Time::now() < after_now &&
                read_position(2) && read_position(3) && read_position(4))
         {
-            double deg2 = (Position_now[2] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-            double deg3 = (Position_now[3] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
-            double deg4 = (Position_now[4] - ARM_JOINT234_POS_WHEN_DEG0) / (ARM_JOINT234_POS_WHEN_DEG180 - ARM_JOINT234_POS_WHEN_DEG0) * 180.0;
+            double deg2 = (Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
+            double deg3 = (Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
+            double deg4 = (Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
             Angle j2 = Angle(deg2);
             Angle j3 = Angle(deg3);
             Angle j4 = Angle(deg4);
