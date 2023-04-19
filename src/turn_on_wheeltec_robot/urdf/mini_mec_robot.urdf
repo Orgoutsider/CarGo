@@ -14,7 +14,7 @@
     </link>   
 
     <joint name="left_wheel_joint" type="continuous">
-        <origin xyz="-0.107715 0.1344 0.04" rpy="1.57 0 0"/>
+        <origin xyz="-0.107715 0.1305 0.04" rpy="1.57 0 0"/>
         <parent link="base_link"/>
         <child link="left_wheel_link"/>
         <axis xyz="0 1 0"/>
@@ -24,7 +24,7 @@
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
-                <cylinder radius="0.04" length = "0.0372"/>
+                <cylinder radius="0.04" length = "0.0374"/>
             </geometry>
             <material name="black">
                 <color rgba="0 0 0 1"/>
@@ -33,7 +33,7 @@
     </link>
 
     <joint name="right_wheel_joint" type="continuous">
-        <origin xyz="-0.107715 -0.1344 0.04" rpy="1.57 0 0"/>
+        <origin xyz="-0.107715 -0.1305 0.04" rpy="1.57 0 0"/>
         <parent link="base_link"/>
         <child link="right_wheel_link"/>
         <axis xyz="0 1 0"/>
@@ -43,7 +43,7 @@
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
-                <cylinder radius="0.04" length = "0.0372"/>
+                <cylinder radius="0.04" length = "0.0374"/>
             </geometry>
             <material name="black">
                 <color rgba="0 0 0 1"/>
@@ -52,7 +52,7 @@
     </link>
 
       <joint name="left_front_joint" type="continuous">
-        <origin xyz="0.107715 0.1344 0.04" rpy="1.57 0 0"/>
+        <origin xyz="0.107715 0.1305 0.04" rpy="1.57 0 0"/>
         <parent link="base_link"/>
         <child link="left_front_link"/>
         <axis xyz="0 1 0"/>
@@ -62,7 +62,7 @@
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
-                <cylinder radius="0.04" length = "0.0372"/>
+                <cylinder radius="0.04" length = "0.0374"/>
             </geometry>
             <material name="black">
                 <color rgba="0 0 0 1"/>
@@ -71,7 +71,7 @@
     </link>
 
     <joint name="right_front_joint" type="continuous">
-        <origin xyz="0.107715 -0.1344 0.04" rpy="1.57 0 0"/>
+        <origin xyz="0.107715 -0.1305 0.04" rpy="1.57 0 0"/>
         <parent link="base_link"/>
         <child link="right_front_link"/>
         <axis xyz="0 1 0"/>
@@ -81,7 +81,7 @@
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
-                <cylinder radius="0.04" length = "0.0372"/>
+                <cylinder radius="0.04" length = "0.0374"/>
             </geometry>
             <material name="black">
                 <color rgba="0 0 0 1"/>

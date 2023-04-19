@@ -612,6 +612,12 @@ namespace my_hand_eye
         {
             ROS_WARN("Ping servo ID error!");
         }
+        ID = sm_st_ptr->Ping(6);
+        if(ID!=-1){
+            ROS_INFO_STREAM("ID:"<<ID);
+        }else{
+            ROS_WARN("Ping servo ID error!");
+        }
     }
 
     cv::Mat Pos::intrinsics()

@@ -2,7 +2,7 @@
 // ARM_P > ARM_A0
 #define ARM_P 14.85
 #define ARM_A0 9.8
-#define ARM_A1 20.636
+#define ARM_A1 20.936
 #define ARM_A2 13.626
 #define ARM_A3 12.524
 #define ARM_A4 12.27216
