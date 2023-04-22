@@ -67,6 +67,7 @@ add_message_files(
   FILES
 #  position.msg
   status.msg
+  TwistMightEnd.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -135,6 +136,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -148,6 +150,12 @@ include_directories(
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(motion_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_library(motion_controller
+  src/${PROJECT_NAME}/motion_server.cpp
+  src/${PROJECT_NAME}/pid_controller.cpp
+)
+add_dependencies(motion_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # ## Declare a C++ executable
 # add_executable(auto_drive src/auto_drive.cpp)

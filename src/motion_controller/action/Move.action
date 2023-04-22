@@ -1,4 +1,4 @@
-#目标位置
+#目标位置，其中theta从-pi到pi
 geometry_msgs/Pose2D pose
 ---
 #最终结果

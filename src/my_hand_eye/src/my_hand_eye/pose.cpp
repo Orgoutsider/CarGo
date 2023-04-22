@@ -16,6 +16,10 @@ namespace my_hand_eye
         expand_y = false;
         u8 ID[] = {0, 1, 2, 3, 4, 5};
         memcpy(Id, ID, 6 * sizeof(u8));
+        memset(Position, 0, sizeof(Position));
+        memset(Position_now, 0, sizeof(Position_now));
+        memset(Speed, 0, sizeof(Speed));
+        memset(ACC, 0, sizeof(ACC));
     }
 
     bool Pos::begin(const char *argv)
@@ -851,7 +855,7 @@ namespace my_hand_eye
                             x = x_goal;
                             y = y_goal;
                             z = z_goal;
-                            memcpy(Position, Position_goal, 6 * sizeof(s16));
+                            (Position, Position_goal, 6 * sizeof(s16));
                             // ROS_ERROR_STREAM(pt[i].y << " 3");
                             arr.points.push_back(point);
                         }

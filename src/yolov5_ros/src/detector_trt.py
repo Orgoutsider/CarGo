@@ -88,7 +88,7 @@ class Detector:
         # Copy input image to host buffer
         np.copyto(host_inputs[0], input_image.ravel())
         # Transfer input data  to the GPU.
-        cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream)
+        cuda._htod_async(cuda_inputs[0], host_inputs[0], stream)
         # Run inference.
         context.execute_async(bindings=bindings, stream_handle=stream.handle)
         # Transfer predictions back from the GPU.
