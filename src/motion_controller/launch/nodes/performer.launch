@@ -1,0 +1,3 @@
+<launch>
+    <node name="motion_controller_performer_node" pkg="motion_controller" type="motion_controller_performer_node" respawn="false" output="screen" /> 
+</launch>

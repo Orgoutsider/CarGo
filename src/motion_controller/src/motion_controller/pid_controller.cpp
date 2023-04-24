@@ -43,7 +43,7 @@ namespace motion_controller
         {
             for (int i = 0; i < target_.size(); i++)
             {
-                double error = target_.at(i) - current.at(i);
+                double error = current.at(i) - target_.at(i);
                 // 偏差较小时停止移动
                 if (error < threshold_.at(i))
                     error = 0;

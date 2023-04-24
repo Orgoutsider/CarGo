@@ -1,0 +1,8 @@
+<launch>
+    <!-- 开启机器人底层相关节点  -->
+    <include file="$(find turn_on_wheeltec_robot)/launch/turn_on_wheeltec_robot.launch" />
+    <!-- 开启执行节点  -->
+    <include file="$(find motion_controller)/launch/nodes/performer.launch" />
+    <!-- 选择调节pid的节点 -->
+    <include file="$(find motion_controller/launch/nodes/stm32_pid.launch" />
+</launch>

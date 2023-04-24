@@ -21,13 +21,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
 )
 
-# generate_dynamic_reconfigure_options(
-#   cfg/arPID.cfg
-#   cfg/laser_params.cfg
-#   cfg/Params_color.cfg
-#   cfg/Params_PID.cfg
-# )
-
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
@@ -76,13 +69,13 @@ add_message_files(
 #   Service1.srv
 #   Service2.srv
 # )
-
+  
 ## Generate actions in the 'action' folder
 add_action_files(
   FILES
   Move.action
 )
-
+    
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
@@ -111,6 +104,13 @@ generate_messages(
 #   cfg/DynReconf1.cfg
 #   cfg/DynReconf2.cfg
 # )
+generate_dynamic_reconfigure_options(
+#   cfg/arPID.cfg
+#   cfg/laser_params.cfg
+#   cfg/Params_color.cfg
+  cfg/params_PID_srv.cfg
+  cfg/params_PID_stm32.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -124,7 +124,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES motion_controller
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime cv_bridge image_transport geometry_msgs actionlib actionlib_msgs tf2 tf2_ros tf2_geometry_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime cv_bridge image_transport geometry_msgs actionlib actionlib_msgs tf2 tf2_ros tf2_geometry_msgs dynamic_reconfigure
 #  DEPENDS system_lib
 )
 
@@ -151,11 +151,12 @@ include
 ## either from message generation or dynamic reconfigure
 # add_dependencies(motion_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_library(motion_controller
+add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/motion_server.cpp
   src/${PROJECT_NAME}/pid_controller.cpp
+  src/${PROJECT_NAME}/motion_performer.cpp
 )
-add_dependencies(motion_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # ## Declare a C++ executable
 # add_executable(auto_drive src/auto_drive.cpp)
@@ -205,13 +206,11 @@ target_link_libraries(auto_drive
   ${OpenCV_LIBRARIES}
 )
 
-
 add_executable(corners src/corners.cpp)
 add_dependencies(corners ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(corners
   ${catkin_LIBRARIES}
 )
-
 
 add_executable(corners_judge src/corners_judge.cpp)
 add_dependencies(corners_judge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -220,8 +219,6 @@ target_link_libraries(corners_judge
   ${OpenCV_LIBRARIES}
 )
 
-
-
 add_executable(image_saver src/image_saver.cpp)
 add_dependencies(image_saver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(image_saver
@@ -229,6 +226,25 @@ target_link_libraries(image_saver
   ${OpenCV_LIBRARIES}
 )
 
+add_executable(${PROJECT_NAME}_server_node src/${PROJECT_NAME}_server_node.cpp)
+add_dependencies(${PROJECT_NAME}_server_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_server_node
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+add_executable(${PROJECT_NAME}_performer_node src/${PROJECT_NAME}_performer_node.cpp)
+add_dependencies(${PROJECT_NAME}_performer_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_performer_node
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+add_executable(${PROJECT_NAME}_stm32_pid_node src/${PROJECT_NAME}_stm32_pid_node.cpp)
+add_dependencies(${PROJECT_NAME}_stm32_pid_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_stm32_pid_node
+  ${catkin_LIBRARIES}
+)
 
 # add_executable(avoidance src/avoidance.cpp)
 # add_dependencies(avoidance ${${PROJECT_NAME}_EXPORTED_TARGETS})
