@@ -259,6 +259,12 @@ target_link_libraries(${PROJECT_NAME}_follower_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(${PROJECT_NAME}_client_node src/${PROJECT_NAME}_client_node.cpp)
+add_dependencies(${PROJECT_NAME}_client_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_client_node
+  ${catkin_LIBRARIES}
+)
+
 # add_executable(avoidance src/avoidance.cpp)
 # add_dependencies(avoidance ${${PROJECT_NAME}_EXPORTED_TARGETS})
 # target_link_libraries(avoidance ${catkin_LIBRARIES})
