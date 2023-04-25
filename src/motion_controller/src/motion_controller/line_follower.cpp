@@ -3,9 +3,9 @@
 namespace motion_controller
 {
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : r_start_(130), r_end_(200),
+        : r_start_(100), r_end_(160),
           c_start_(20), c_end_(width_ - c_start_), threshold_(50),
-          judge_line_(20), linear_velocity_(0.2),
+          judge_line_(10), linear_velocity_(0.2),
           kp_(0.0015), kd_(0.001),
           black_low_(0, 0, 0), black_up_(180, 255, 100), motor_status_(false)
     {
@@ -41,7 +41,7 @@ namespace motion_controller
         }
         Mat srcF;
         resize(cv_image->image, srcF, Size(width_, height_));
-        srcF = srcF(Range(c_start_, c_end_), Range(r_start_, r_end_));
+        srcF = srcF(Range(r_start_, r_end_), Range(c_start_, c_end_));
         // srcF.convertTo(srcF, CV_8UC3);
         cvtColor(srcF, srcF, COLOR_BGR2HSV);
         inRange(srcF, black_low_, black_up_, srcF);
@@ -79,6 +79,7 @@ namespace motion_controller
                     pt2.x = cvRound(x0 - 1000 * (-b));
                     pt2.y = cvRound(y0 - 1000 * (a));
                     line(res, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
+                    line(res, Point(0, judge_line_), Point(c_end_ - c_start_, judge_line_), Scalar(255, 0, 0), 1, LINE_AA);
                     imshow("res", res);
                     waitKey(1);
                 }
@@ -139,6 +140,8 @@ namespace motion_controller
             c_start_ = config.c_start;
             c_end_ = width_ - c_start_;
         }
+        if (threshold_ != config.threshold)
+            threshold_ = config.threshold;
         if (judge_line_ != config.judge_line)
         {
             if (config.judge_line < r_end_ - r_start_)

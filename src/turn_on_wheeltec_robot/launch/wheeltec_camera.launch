@@ -1,21 +1,14 @@
 <launch>
-    <arg name="camera_mode"  default="usb_cam"/>
-
-    <arg name="if_usb_cam" default="true"/>
-
-    <group if="$(eval if_usb_cam and (camera_mode=='d435' or camera_mode=='usb_cam' ))" >
-        <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-            <param if="$(eval camera_mode=='d435' or camera_mode=='usb_cam')" 
-                              name="video_device" value="/dev/$(arg camera_mode)"/>
-            <param name="image_width" value="640" />
-            <param name="image_height" value="480" />
-            <param name="pixel_format" value="yuyv" />
-            <param name="camera_frame_id" value="usb_cam" />
-            <param name="io_method" value="mmap"/>
-            <remap from="/usb_cam/image_raw/compressed" to="/image_raw/compressed"/>
-        </node>
-        <node name="image_proc" pkg="image_proc" type="image_proc" output="screen" ns="usb_cam" />
-    </group>
+    <arg name="camera_name" default="usb_cam"/>
+    <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen">
+        <param name="video_device" value="/dev/$(arg camera_name)"/>
+        <param name="image_width" value="640" />
+        <param name="image_height" value="480" />
+        <param name="pixel_format" value="yuyv" />
+        <param name="camera_frame_id" value="usb_cam" />
+        <param name="io_method" value="mmap"/>
+    </node>
+    <node name="image_proc" pkg="image_proc" type="image_proc" output="screen" ns="usb_cam" />
 
     <!-- 启动intel d435相机
     <group if="$(eval if_usb_cam and (camera_mode == 'd435' or camera_mode == 'd435+RgbCam'))">

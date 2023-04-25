@@ -25,8 +25,8 @@ namespace motion_controller
         {
             if (level_vision > level_)
             {
-                // std::lock_guard对象构造时，自动调用mtx.lock()进行上锁
-                // std::lock_guard对象析构时，自动调用mtx.unlock()释放锁
+                // boost::lock_guard对象构造时，自动调用mtx.lock()进行上锁
+                // boost::lock_guard对象析构时，自动调用mtx.unlock()释放锁
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_vision;
             }
@@ -47,8 +47,8 @@ namespace motion_controller
         {
             if (level_service > level_)
             {
-                // std::lock_guard对象构造时，自动调用mtx.lock()进行上锁
-                // std::lock_guard对象析构时，自动调用mtx.unlock()释放锁
+                // boost::lock_guard对象构造时，自动调用mtx.lock()进行上锁
+                // boost::lock_guard对象析构时，自动调用mtx.unlock()释放锁
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_service;
             }
