@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "motion_controller_stm32_pid_node");
     ros::NodeHandle nh;
-    pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 3);
+    pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 3);
     dynamic_reconfigure::Server<motion_controller::params_PID_stm32Config> srv;
     srv.setCallback(boost::bind(&cb, _1, _2));
     ros::spin();

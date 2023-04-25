@@ -4,5 +4,9 @@
     <!-- 开启执行节点  -->
     <include file="$(find motion_controller)/launch/nodes/performer.launch" />
     <!-- 选择调节pid的节点 -->
-    <include file="$(find motion_controller/launch/nodes/stm32_pid.launch" />
+    <!-- <include file="$(find motion_controller)/launch/nodes/server.launch">
+        <arg name="param_modification" value="true" />
+    </include> -->
+    <!-- stm32pid不用开启执行节点 -->
+    <!-- <include file="$(find motion_controller)/launch/nodes/stm32_pid.launch" /> -->
 </launch>

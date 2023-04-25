@@ -1,7 +1,9 @@
 #ifndef _MOTION_PERFORMER_H_
 #define _MOTION_PERFORMER_H_
 
-#include <thread>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <motion_controller/TwistMightEnd.h>
@@ -19,7 +21,7 @@ namespace motion_controller
     {
     private:
         int level_; // 当前接受的消息优先级，service最高，vision次之
-        std::mutex mtx_;
+        boost::mutex mtx_;
         ros::Publisher publisher_;
         ros::Subscriber subscriber_line_;
         ros::Subscriber subscriber_vision_;

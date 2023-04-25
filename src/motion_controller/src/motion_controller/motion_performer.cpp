@@ -16,7 +16,7 @@ namespace motion_controller
         if (level_line >= level_)
             publisher_.publish<geometry_msgs::Twist>(*msg);
         else
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     }
 
     void MotionPerformer::_vision_callback(const TwistMightEndConstPtr &msg)
@@ -27,18 +27,18 @@ namespace motion_controller
             {
                 // std::lock_guard对象构造时，自动调用mtx.lock()进行上锁
                 // std::lock_guard对象析构时，自动调用mtx.unlock()释放锁
-                std::lock_guard<std::mutex> lk(mtx_);
+                boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_vision;
             }
             else if (msg->end)
             {
-                std::lock_guard<std::mutex> lk(mtx_);
+                boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_line;
             }
             publisher_.publish<geometry_msgs::Twist>(msg->velocity);
         }
         else
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     }
 
     void MotionPerformer::_service_callback(const TwistMightEndConstPtr &msg)
@@ -49,12 +49,12 @@ namespace motion_controller
             {
                 // std::lock_guard对象构造时，自动调用mtx.lock()进行上锁
                 // std::lock_guard对象析构时，自动调用mtx.unlock()释放锁
-                std::lock_guard<std::mutex> lk(mtx_);
+                boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_service;
             }
             else if (msg->end)
             {
-                std::lock_guard<std::mutex> lk(mtx_);
+                boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_line;
             }
             publisher_.publish<geometry_msgs::Twist>(msg->velocity);

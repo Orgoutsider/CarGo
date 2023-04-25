@@ -1,0 +1,4 @@
+<launch>
+    <arg name="param_modification" default="false" />
+    <node name="motion_controller_server_node" pkg="motion_controller" type="motion_controller_server_node" respawn="false" output="screen" />
+</launch>
