@@ -105,11 +105,10 @@ generate_messages(
 #   cfg/DynReconf2.cfg
 # )
 generate_dynamic_reconfigure_options(
-#   cfg/arPID.cfg
 #   cfg/laser_params.cfg
-#   cfg/Params_color.cfg
   cfg/params_PID_srv.cfg
   cfg/params_PID_stm32.cfg
+  cfg/line.cfg
 )
 
 ###################################
@@ -155,6 +154,7 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/motion_server.cpp
   src/${PROJECT_NAME}/pid_controller.cpp
   src/${PROJECT_NAME}/motion_performer.cpp
+  src/${PROJECT_NAME}/line_follower.cpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
@@ -199,12 +199,12 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 #   PATTERN ".svn" EXCLUDE
 # )
 
-add_executable(auto_drive src/auto_drive.cpp)
-add_dependencies(auto_drive ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(auto_drive
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
+# add_executable(auto_drive src/auto_drive.cpp)
+# add_dependencies(auto_drive ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(auto_drive
+#   ${catkin_LIBRARIES}
+#   ${OpenCV_LIBRARIES}
+# )
 
 add_executable(corners src/corners.cpp)
 add_dependencies(corners ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -243,6 +243,13 @@ target_link_libraries(${PROJECT_NAME}_performer_node
 add_executable(${PROJECT_NAME}_stm32_pid_node src/${PROJECT_NAME}_stm32_pid_node.cpp)
 add_dependencies(${PROJECT_NAME}_stm32_pid_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_stm32_pid_node
+  ${catkin_LIBRARIES}
+)
+
+add_executable(${PROJECT_NAME}_follower_node src/${PROJECT_NAME}_follower_node.cpp)
+add_dependencies(${PROJECT_NAME}_follower_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_follower_node
+  ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 

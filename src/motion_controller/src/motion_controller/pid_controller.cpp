@@ -1,6 +1,6 @@
 #include "motion_controller/pid_controller.h"
 
-#define LIMIT(x, bound) x = (x < (bound)) ? x : (bound)
+#define LIMIT(x, bound) x = (x < (bound)) ? ((x > -(bound)) ? x : -(bound)) : (bound)
 
 namespace motion_controller
 {
