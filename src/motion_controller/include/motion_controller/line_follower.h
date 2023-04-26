@@ -15,7 +15,7 @@ namespace motion_controller
     {
     private:
         bool param_modification_; // 动态调参
-        bool motor_status_;               // 调参，即停选项
+        bool motor_status_;       // 调参，即停选项
         // 默认（320，240）图片
         const int width_ = 320;
         const int height_ = 240;
