@@ -5,15 +5,18 @@ namespace motion_controller
     MotionServer::MotionServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
-          kp_angular_(0), ki_angular_(0), kd_angular_(0),
-          kp_linear_(0), ki_linear_(0), kd_linear_(0)
+          kp_angular_(1), ki_angular_(0.6), kd_angular_(0),
+          kp_linear_(0.6), ki_linear_(0.15), kd_linear_(0)
     {
-        pnh.param("param_modification", param_modification_);
+        pnh.param<bool>("param_modification", param_modification_, false);
         server_.registerPreemptCallback(boost::bind(&MotionServer::_preempt_callback, this));
         server_.start();
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
         if (param_modification_)
+        {
             dr_server_.setCallback(boost::bind(&MotionServer::_dr_callback, this, _1, _2));
+            ROS_INFO("PID adjusting...");
+        }
     }
 
     void MotionServer::_execute_callback(const MoveGoalConstPtr &goal)
@@ -39,7 +42,7 @@ namespace motion_controller
         std::vector<double> controll;
         if (goal->pose.theta)
         {
-            PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.1}, {0.1}, {0.6});
+            PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.01}, {0.1}, {0.8});
             while (!success && ros::ok())
             {
                 if (_get_pose_now(pose, now))
@@ -75,7 +78,7 @@ namespace motion_controller
         {
             PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_},
                                {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
-                               {0.05, 0.05, 0.1}, {0.05, 0.05, 0.1}, {0.3, 0.3, 0.6});
+                               {0.005, 0.005, 0.01}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
             success = false;
             while (!success && ros::ok())
             {
@@ -133,7 +136,6 @@ namespace motion_controller
     {
         if (!param_modification_)
             return;
-        bool flag = false;
         if (config.kp_angular != kp_angular_)
             kp_angular_ = config.kp_angular;
         if (config.ki_angular != ki_angular_)
@@ -141,7 +143,7 @@ namespace motion_controller
         if (config.kd_angular != kd_angular_)
             kd_angular_ = config.kd_angular;
         if (config.kp_linear != kp_linear_)
-            kp_angular_ = config.kp_angular;
+            kp_linear_ = config.kp_linear;
         if (config.ki_linear != ki_linear_)
             ki_linear_ = config.ki_linear;
         if (config.kd_linear != kd_linear_)
@@ -157,7 +159,10 @@ namespace motion_controller
         geometry_msgs::Pose p3D;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
         p3D.orientation.w = cos(pose.theta / 2);
-        p3D.orientation.z = cos(pose.theta / 2);
+        p3D.orientation.z = sin(pose.theta / 2);
+        p3D.position.x = pose.x;
+        p3D.position.y = pose.y;
+        pose_footprint.pose = p3D;
         // 由于延时可能转换失败报错
         try
         {
@@ -186,7 +191,8 @@ namespace motion_controller
             return false;
         }
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
-        pose.theta = atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w);
+        // ROS_INFO_STREAM(pose_footprint.pose.orientation.z << " " << pose_footprint.pose.orientation.w);
+        pose.theta = atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w) * 2;
         pose.x = pose_footprint.pose.position.x;
         pose.y = pose_footprint.pose.position.y;
         now = pose_footprint.header.stamp;

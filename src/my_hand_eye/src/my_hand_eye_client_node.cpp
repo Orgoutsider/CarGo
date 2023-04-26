@@ -104,7 +104,6 @@ int main(int argc, char *argv[])
     image_transport::Subscriber camera_image_subscriber =
         it.subscribe("/eye/image_rect_color", 1, &ImageListener::imageCallback, &imgl, image_transport::TransportHints(transport_hint));
     ros::Rate loop_rate(5);
-    // ROS_INFO("1");
     while (ros::ok())
     {
         ros::spinOnce();

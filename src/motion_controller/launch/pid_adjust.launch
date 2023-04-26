@@ -4,15 +4,17 @@
     <!-- 开启执行节点  -->
     <include file="$(find motion_controller)/launch/nodes/performer.launch" />
     <!-- 选择调节pid的节点 -->
+    <!-- 循线节点 -->
     <!-- 开启摄像头 -->
-    <include file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch" />
+    <!-- <include file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch" />
     <include file="$(find motion_controller)/launch/nodes/follower.launch">
         <arg name="param_modification" value="true" />
-    </include>
-    
-    <!-- <include file="$(find motion_controller)/launch/nodes/server.launch">
-        <arg name="param_modification" value="true" />
     </include> -->
+    
+    <!-- 服务节点 -->
+    <include file="$(find motion_controller)/launch/nodes/server.launch">
+        <arg name="param_modification" value="true" />
+    </include>
     <!-- stm32pid不用开启执行节点 -->
     <!-- <include file="$(find motion_controller)/launch/nodes/stm32_pid.launch" /> -->
 </launch>

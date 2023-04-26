@@ -45,7 +45,7 @@ namespace motion_controller
             {
                 double error = current.at(i) - target_.at(i);
                 // 偏差较小时停止移动
-                if (error < threshold_.at(i))
+                if (abs(error) < threshold_.at(i))
                     error = 0;
                 else if (success)
                     success = false;

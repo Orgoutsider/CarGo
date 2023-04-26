@@ -24,22 +24,24 @@ void active_cb()
 // 处理连续反馈
 void feedback_cb(const motion_controller::MoveFeedbackConstPtr &feedback)
 {
+    ROS_INFO_STREAM("is_paning:" << (bool)feedback->is_paning << " theta:"
+                                 << feedback->pose_now.theta << " x:" << feedback->pose_now.x << " y:" << feedback->pose_now.y);
 }
 
 int main(int argc, char *argv[])
 {
     // 传参 theta x y
-    if (argc != 4)
+    if (argc < 4)
         return 1;
     ros::init(argc, argv, "motion_controller_client_node");
     ros::NodeHandle nh;
     Client client(nh, "Move", true);
     client.waitForServer();
     motion_controller::MoveGoal goal;
-    goal.pose.theta = atoi(argv[1]);
-    goal.pose.x = atoi(argv[2]);
-    goal.pose.y = atoi(argv[3]);
-    client.sendGoal(goal);
+    goal.pose.theta = atof(argv[1]);
+    goal.pose.x = atof(argv[2]);
+    goal.pose.y = atof(argv[3]);
+    client.sendGoal(goal, &done_cb, &active_cb, &feedback_cb);
     ros::spin();
     return 0;
 }
