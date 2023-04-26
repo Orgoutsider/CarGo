@@ -63,42 +63,80 @@ namespace motion_controller
         // int bar = 400, last_maxx, last_minx;
         // int err_t = 0;
         geometry_msgs::Twist twist;
+
+        //直线筛选参数
+        //double rho_Derta = ;//差值阈值
+        //double theta_Derta = ;//差值阈值
+        double rho_NUM = 0;//平均值
+        double theta_NUM = 0;//平均值
+        int NUM_of_RightLINE = 0;//筛选后的直线参数
+
+        //直线拟合参数 左0右1
+        double rho[2] = {0, 0};
+        double theta[2] = {0, 0};
+
         if (lines.size() > 1)
         {
+            //求rho和theta平均
             for (int i = 0; i < lines.size(); i++)
             {
 
+                rho_NUM += lines[i][0];
+                theta_NUM += lines[i][1];
+            }
+            rho_NUM /= lines.size();
+            theta_NUM /= lines.size();
+
+            //去除错误直线并拟合左右车道线
+            for(int i = 0; i < lines.size(); i++)
+            {
                 double rho = lines[i][0], theta = lines[i][1];
-                double a = cos(theta), b = sin(theta);
+                //if(abs(rho-rho_NUM)>rho_Derta && abs(theta-theta_NUM)>theta_Derta || abs(theta) < 3)//最后这个是滤去一些theta错误的直线，可以不加
+                //    continue;
+                if(theta > 0)
+                {
+                    rho[0] += rho;
+                    theta[0] += theta;
+                }
+                else if(theta < 0)
+                {
+                    rho[1] += rho;
+                    theta[1] += theta;
+                }
+                NUM_of_RightLINE++;
+            }
+            rho[0] /= NUM_of_RightLINE;
+            theta[0] /= NUM_of_RightLINE;
+            rho[1] /= NUM_of_RightLINE;
+            theta[1] /= NUM_of_RightLINE;
+            //直线绘制
+            for(i = 0; i < 2; i++)
+            {
+                double a = cos(theta[i]), b = sin(theta[i]);
+                double x0 = a * rho[i], y0 = b * rho[i];
                 if (param_modification_)
                 {
                     Point pt1, pt2;
-                    double x0 = a * rho, y0 = b * rho;
                     pt1.x = cvRound(x0 + 1000 * (-b));
                     pt1.y = cvRound(y0 + 1000 * (a));
                     pt2.x = cvRound(x0 - 1000 * (-b));
                     pt2.y = cvRound(y0 - 1000 * (a));
                     line(res, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
                     line(res, Point(0, judge_line_), Point(c_end_ - c_start_, judge_line_), Scalar(255, 0, 0), 1, LINE_AA);
-                    imshow("res", res);
-                    waitKey(1);
                 }
-                nowx = cvRound((rho - b * judge_line_) / a);
-                if (i == 0)
-                {
-                    minx = maxx = nowx;
-                }
-
-                minx = (nowx < minx) ? nowx : minx;
-                maxx = (nowx > maxx) ? nowx : maxx;
-                // if (i != 0)
-                // {
-                //     minx = ((minx - last_minx) * (minx - last_minx) > bar) ? last_minx : minx;
-                //     maxx = ((maxx - last_maxx) * (maxx - last_maxx) > bar) ? last_maxx : maxx;
-                // }
-                // last_minx = minx;
-                // last_maxx = maxx;
             }
+            imshow("res", res);
+            waitKey(1);
+
+            nowx = cvRound((rho - b * judge_line_) / a);
+            if (i = 0)
+            {
+                minx = maxx = nowx;
+                flag_for = false;
+            }
+
+            minx = (nowx < minx) ? nowx : minx;
+            maxx = (nowx > maxx) ? nowx : maxx;
             int err = (minx + maxx) / 2 - srcF.cols / 2;
             err = (abs(err) > 40) ? last_err : err;
             if (tmp = 0)
