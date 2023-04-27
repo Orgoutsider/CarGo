@@ -3,9 +3,11 @@
 namespace motion_controller
 {
     MotionController::MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : r_start_(100), r_end_(160),
+        : clockwise_(false),
+          r_start_(100), r_end_(160),
           c_start_(20), c_end_(width_ - c_start_), threshold_(50),
-          black_low_(0, 0, 0), black_up_(180, 255, 100), client_(nh, "Move", true)
+          black_low_(0, 0, 0), black_up_(180, 255, 100),
+          listener_(buffer_), client_(nh, "Move", true)
     {
         pnh.param<bool>("param_modification", param_modification_, false);
         it_ = std::shared_ptr<image_transport::ImageTransport>(
@@ -14,12 +16,16 @@ namespace motion_controller
         pnh.param<std::string>("transport_hint", transport_hint, "raw");
         image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1, &MotionController::_image_callback, this, image_transport::TransportHints(transport_hint));
         vision_publisher = nh.advertise<std_msgs::Float64>("/vision_motion", 5);
+        timer_ = nh.createTimer(ros::Rate(2), &MotionController::_timer_callback, this);
     }
 
-    bool MotionController::_turn(bool left)
+    void MotionController::_turn(bool left)
     {
         if (!client_.isServerConnected())
             client_.waitForServer();
+        motion_controller::MoveGoal goal;
+        goal.pose.theta = left ? CV_PI / 2 : -CV_PI / 2;
+        client_.sendGoalAndWait(goal, ros::Duration(10), ros::Duration(0.1));
     }
 
     void MotionController::_image_callback(const sensor_msgs::ImageConstPtr &image_rect)
@@ -84,7 +90,7 @@ namespace motion_controller
                         y_sum += cvRound((rho - a * srcF.cols / 2) / b);
                     }
                 }
-                else  
+                else
                     cnt = 0;
                 if (param_modification_)
                 {
@@ -117,6 +123,7 @@ namespace motion_controller
                     cnt = 0;
                     vision_publisher.publish(std_msgs::Float64());
                     // 客户端转弯
+                    _turn(!clockwise_);
                 }
                 else
                 {
@@ -126,6 +133,52 @@ namespace motion_controller
                 }
             }
         }
+    }
+
+    void MotionController::_timer_callback(const ros::TimerEvent &event)
+    {
+        double x = 0, y = 0;
+        if (get_position(x, y))
+        {
+            //
+        }
+    }
+
+    bool MotionController::set_position(double x, double y)
+    {
+        geometry_msgs::PointStamped point_odom;
+        point_odom.point.x = x;
+        point_odom.point.y = y;
+        point_odom.header.stamp = ros::Time();
+        point_odom.header.frame_id = "odom_combined";
+        try
+        {
+            point_footprint_ = buffer_.transform(point_odom, "base_footprint");
+            point_footprint_.header.stamp = ros::Time();
+        }
+        catch (const std::exception &e)
+        {
+            ROS_INFO("error:%s", e.what());
+            return false;
+        }
+        return true;
+    }
+
+    bool MotionController::get_position(double &x, double &y)
+    {
+        geometry_msgs::PointStamped point_odom;
+        try
+        {
+            point_odom = buffer_.transform(point_footprint_, "base_footprint");
+        }
+        catch (const std::exception &e)
+        {
+            ROS_INFO("error:%s", e.what());
+            return false;
+        }
+        x = point_odom.point.x;
+        y = point_odom.point.y;
+        return true;
     }
 
 } // namespace motion_controller

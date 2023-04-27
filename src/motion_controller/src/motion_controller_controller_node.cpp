@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
 
     motion_controller::MotionController controller(nh, pnh);
     
-    ros::spin();
+    ros::MultiThreadedSpinner s(2);
+    s.spin();
     return 0;
 }
