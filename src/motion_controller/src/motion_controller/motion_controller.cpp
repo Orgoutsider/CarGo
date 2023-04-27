@@ -15,7 +15,7 @@ namespace motion_controller
         std::string transport_hint;
         pnh.param<std::string>("transport_hint", transport_hint, "raw");
         image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1, &MotionController::_image_callback, this, image_transport::TransportHints(transport_hint));
-        vision_publisher = nh.advertise<std_msgs::Float64>("/vision_motion", 5);
+        vision_publisher = nh.advertise<std_msgs::Float64>("/vision_usb_cam", 5);
         timer_ = nh.createTimer(ros::Rate(2), &MotionController::_timer_callback, this);
     }
 

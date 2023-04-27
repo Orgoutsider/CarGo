@@ -1,8 +1,8 @@
 #ifndef _TRACKER_H_
 #define _TRACKER_H_
 
-#include "opencv2/opencv.hpp"
-#include "opencv2/tracking/tracker.hpp"
+#include <opencv2/opencv.hpp>
+#include <opencv2/tracking/tracker.hpp>
 
 #include <ros/ros.h>
 #include <vision_msgs/BoundingBox2DArray.h>

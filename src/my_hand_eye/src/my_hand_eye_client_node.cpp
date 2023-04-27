@@ -13,7 +13,7 @@
 
 */
 // 1.包含头文件
-#include "opencv2/opencv.hpp"
+#include ""
 
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>

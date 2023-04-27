@@ -12,7 +12,7 @@
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_ERROR_XYZ(Pos) ROS_ERROR_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
-#include "opencv2/opencv.hpp"
+#include <opencv2/opencv.hpp>
 
 #include "my_hand_eye/SCServo.h"
 #include "my_hand_eye/backward_kinematics.hpp"
