@@ -3,8 +3,8 @@
 namespace motion_controller
 {
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : r_start_(100), r_end_(160),
-          c_start_(20), c_end_(width_ - c_start_), threshold_(50),
+        : r_start_(110), r_end_(150),
+          c_start_(10), c_end_(width_ - c_start_), threshold_(50),
           judge_line_(10), linear_velocity_(0.2),
           rho_thr_(5), theta_thr_(3),
           kp_(0.0015), kd_(0.001),
@@ -14,14 +14,14 @@ namespace motion_controller
             new image_transport::ImageTransport(nh));
         std::string transport_hint;
         pnh.param<std::string>("transport_hint", transport_hint, "raw");
-        image_subscriber_ = it_->subscribe("/usb_cam/image_raw", 1, &LineFollower::_image_callback, this, image_transport::TransportHints(transport_hint));
+        image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1, &LineFollower::_image_callback, this, image_transport::TransportHints(transport_hint));
         cmd_vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 1);
         pnh.param<bool>("param_modification", param_modification_, false);
         if (param_modification_)
             server_.setCallback(boost::bind(&LineFollower::_dr_callback, this, _1, _2));
     }
 
-    void LineFollower::_clean_lines(cv::Vec2d lines[], int num, double &rho_aver, double &theta_aver)
+    void LineFollower::_clean_lines(cv::Vec2f lines[], int num, double &rho_aver, double &theta_aver)
     {
         if (num == 0)
         {
@@ -62,7 +62,7 @@ namespace motion_controller
         cv_bridge::CvImagePtr cv_image;
         try
         {
-            cv_image = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
+            cv_image = cv_bridge::toCvCopy(image_rect, "bgr8");
         }
         catch (cv_bridge::Exception &e)
         {
@@ -73,19 +73,35 @@ namespace motion_controller
         resize(cv_image->image, srcF, Size(width_, height_));
         srcF = srcF(Range(r_start_, r_end_), Range(c_start_, c_end_));
         // srcF.convertTo(srcF, CV_8UC3);
+        // GaussianBlur(srcF, srcF, Size(3, 3), 0, 0);
+        // if (param_modification_)
+        // {
+        //     imshow("Gaussian", srcF);
+        //     waitKey(1);
+        // }
         cvtColor(srcF, srcF, COLOR_BGR2HSV);
         inRange(srcF, black_low_, black_up_, srcF);
+        if (param_modification_)
+        {
+            imshow("inRange", srcF);
+            waitKey(1);
+        }
         // threshold(srcF, srcF, 100, 255, THRESH_BINARY);
-        Mat element = getStructuringElement(MORPH_RECT, Size(3, 1));
+        Mat element = getStructuringElement(MORPH_RECT, Size(7, 5));
         // morphologyEx(srcF, srcF, MORPH_CLOSE, element);
         dilate(srcF, srcF, element);
+        if (param_modification_)
+        {
+            imshow("line1", srcF);
+            waitKey(1);
+        }
         Canny(srcF, srcF, 50, 100, 3);
         if (param_modification_)
         {
-            imshow("line", srcF);
+            imshow("line2", srcF);
             waitKey(1);
         }
-        std::vector<Vec2d> lines;
+        std::vector<Vec2f> lines;
         HoughLines(srcF, lines, 1, CV_PI / 180, threshold_, 0, 0); // 根据实际调整，夜晚40，下午50
         int minx, maxx, nowx;
         static int last_err = 0, flag = 0;
@@ -100,13 +116,13 @@ namespace motion_controller
         const int MAXN = lines.size();
         double rho_aver[2] = {0, 0};
         double theta_aver[2] = {0, 0};
-        Vec2d lines_left_right[2][MAXN];
+        Vec2f lines_left_right[2][MAXN];
         double x[2] = {0};
 
         if (lines.size() > 1)
         {
             // 遍历直线求平均，分成左右两边
-            for (Vec2d &line : lines)
+            for (Vec2f &line : lines)
             {
                 double rho = line[0], theta = line[1];
                 // if(abs(rho-rho_NUM)>rho_Derta && abs(theta-theta_NUM)>theta_Derta || abs(theta) < 3)//最后这个是滤去一些theta错误的直线，可以不加
@@ -124,6 +140,20 @@ namespace motion_controller
                     theta_aver[right] += theta;
                     lines_left_right[right][num[right]] = line;
                     num[right]++;
+                }
+                if (param_modification_)
+                {
+                    double a = cos(theta), b = sin(theta);
+                    Mat res(srcF.size(), CV_8UC3, Scalar::all(0));
+                    double x0 = a * rho, y0 = b * rho;
+                    Point pt1, pt2;
+                    pt1.x = cvRound(x0 + 1000 * (-b));
+                    pt1.y = cvRound(y0 + 1000 * (a));
+                    pt2.x = cvRound(x0 - 1000 * (-b));
+                    pt2.y = cvRound(y0 - 1000 * (a));
+                    cv::line(res, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
+                    imshow("HoughLines", res);
+                    waitKey(1);
                 }
             }
             if ((num[left] == 0) || (num[right] == 0))

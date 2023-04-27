@@ -38,7 +38,7 @@ namespace motion_controller
         image_transport::Subscriber image_subscriber_;
         dynamic_reconfigure::Server<lineConfig> server_;
         // 去除错误直线，重新求rho和theta平均值
-        void _clean_lines(cv::Vec2d lines[], int num, double &rho_aver, double &theta_aver);
+        void _clean_lines(cv::Vec2f lines[], int num, double &rho_aver, double &theta_aver);
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         void _dr_callback(lineConfig &config, uint32_t level);
 
