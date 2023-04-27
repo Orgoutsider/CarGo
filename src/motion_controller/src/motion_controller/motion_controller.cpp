@@ -5,7 +5,7 @@ namespace motion_controller
     MotionController::MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : r_start_(100), r_end_(160),
           c_start_(20), c_end_(width_ - c_start_), threshold_(50),
-          black_low_(0, 0, 0), black_up_(180, 255, 100)
+          black_low_(0, 0, 0), black_up_(180, 255, 100), client_(nh, "Move", true)
     {
         pnh.param<bool>("param_modification", param_modification_, false);
         it_ = std::shared_ptr<image_transport::ImageTransport>(
@@ -13,6 +13,13 @@ namespace motion_controller
         std::string transport_hint;
         pnh.param<std::string>("transport_hint", transport_hint, "raw");
         image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1, &MotionController::_image_callback, this, image_transport::TransportHints(transport_hint));
+        vision_publisher = nh.advertise<std_msgs::Float64>("/vision_motion", 5);
+    }
+
+    bool MotionController::_turn(bool left)
+    {
+        if (!client_.isServerConnected())
+            client_.waitForServer();
     }
 
     void MotionController::_image_callback(const sensor_msgs::ImageConstPtr &image_rect)
@@ -63,10 +70,10 @@ namespace motion_controller
 
                 // 计算斜率
                 double theta_d = theta * 180 / CV_PI;
-                if (87 < theta_d && theta_d < 93 && !flag_)
+                if (87 < theta_d && theta_d < 93)
                 {
                     // ROS_INFO_STREAM("theta_d:" << theta_d << " cnt:" << judge_cnt_);
-                    if (cnt < fault_tolerance_)
+                    if (cnt < cnt_tolerance_)
                     {
                         cnt++;
                         continue;
@@ -88,12 +95,12 @@ namespace motion_controller
                     pt2.x = cvRound(x0 - 1000 * (-b));
                     pt2.y = cvRound(y0 - 1000 * (a));
                     line(res, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
-                    line(res, Point(0, y_ground_), Point(c_end_ - c_start_, y_ground_));
+                    line(res, Point(0, y_ground_), Point(c_end_ - c_start_, y_ground_), Scalar(255, 0, 0), 1, LINE_AA);
                     imshow("res", res);
                     waitKey(1);
                 }
             }
-            if (cnt >= fault_tolerance_ && tot != 0 && !flag_)
+            if (cnt >= cnt_tolerance_ && tot != 0)
             {
                 double y_now = y_sum * 1.0 / tot;
                 // ROS_INFO_STREAM(y_now);
@@ -105,24 +112,18 @@ namespace motion_controller
                     ROS_WARN("y_ground is invalid!");
                     return;
                 }
-                if (distance < 1)
+                if (distance < distance_thr_)
                 {
-                    judge_pub_.publish(status);
-                    ROS_INFO("Turning...");
-                    flag_ = true;
+                    cnt = 0;
+                    vision_publisher.publish(std_msgs::Float64());
+                    // 客户端转弯
                 }
                 else
                 {
-                    status.err = goal_y_ - now_y;
-                    status.judge = status.ADJUSTING;
-                    judge_pub_.publish(status);
+                    std_msgs::Float64 msg;
+                    msg.data = distance;
+                    vision_publisher.publish(msg);
                 }
-            }
-            if (flag_)
-            {
-                flag_ = false;
-                judge_cnt_ = 0;
-                cnt = -400;
             }
         }
     }

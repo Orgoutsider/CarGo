@@ -24,17 +24,21 @@ namespace motion_controller
         int r_end_;
         int c_start_;
         int c_end_;
-        int threshold_;  // 根据实际调整，夜晚40，下午50
-        int judge_line_; // 判断线高度，0~(r_end_ - r_start_)
+        int threshold_;          // 根据实际调整，夜晚40，下午50
+        int judge_line_;         // 判断线高度，0~(r_end_ - r_start_)
+        double linear_velocity_; // 速度
+        double rho_thr_;         // 滤除直线时，rho阈值
+        double theta_thr_;       // theta阈值（单位度）
         double kp_;
         double kd_;
-        double linear_velocity_; // 速度
-        cv::Scalar black_low_;   // 黑色车道分割
-        cv::Scalar black_up_;    // 夜晚80左右，下午100
+        cv::Scalar black_low_; // 黑色车道分割
+        cv::Scalar black_up_;  // 夜晚80左右，下午100
         ros::Publisher cmd_vel_publisher_;
         std::shared_ptr<image_transport::ImageTransport> it_;
         image_transport::Subscriber image_subscriber_;
         dynamic_reconfigure::Server<lineConfig> server_;
+        // 去除错误直线，重新求rho和theta平均值
+        void _clean_lines(cv::Vec2d lines[], int num, double &rho_aver, double &theta_aver);
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         void _dr_callback(lineConfig &config, uint32_t level);
 

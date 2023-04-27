@@ -6,6 +6,7 @@ namespace motion_controller
         : r_start_(100), r_end_(160),
           c_start_(20), c_end_(width_ - c_start_), threshold_(50),
           judge_line_(10), linear_velocity_(0.2),
+          rho_thr_(5), theta_thr_(3),
           kp_(0.0015), kd_(0.001),
           black_low_(0, 0, 0), black_up_(180, 255, 100), motor_status_(false)
     {
@@ -18,6 +19,35 @@ namespace motion_controller
         pnh.param<bool>("param_modification", param_modification_, false);
         if (param_modification_)
             server_.setCallback(boost::bind(&LineFollower::_dr_callback, this, _1, _2));
+    }
+
+    void LineFollower::_clean_lines(cv::Vec2d lines[], int num, double &rho_aver, double &theta_aver)
+    {
+        if (num == 0)
+        {
+            ROS_ERROR("num is zero!");
+            return;
+        }
+        double rho_aver_ori = rho_aver;
+        double theta_aver_ori = theta_aver;
+        rho_aver *= num;
+        theta_aver *= num;
+        int num_ori = num;
+        for (size_t i = 0; i < num_ori; i++)
+        {
+            double rho = lines[i][0];
+            double theta = lines[i][1];
+            if ((abs(rho_aver_ori - rho) > rho_thr_ ||
+                 abs(theta_aver_ori - theta) > theta_thr_ / 180 * CV_PI) &&
+                num > 1)
+            {
+                rho_aver -= rho;
+                theta_aver -= theta;
+                num--;
+            }
+        }
+        theta_aver /= num;
+        rho_aver /= num;
     }
 
     void LineFollower::_image_callback(const sensor_msgs::ImageConstPtr &image_rect)
@@ -55,67 +85,66 @@ namespace motion_controller
             imshow("line", srcF);
             waitKey(1);
         }
-        std::vector<Vec2f> lines;
+        std::vector<Vec2d> lines;
         HoughLines(srcF, lines, 1, CV_PI / 180, threshold_, 0, 0); // 根据实际调整，夜晚40，下午50
-        Mat res(srcF.size(), CV_8UC3, Scalar::all(0));             // int flag1 = 0;
         int minx, maxx, nowx;
-        static int last_err = 0, tmp = 0;
-        // int bar = 400, last_maxx, last_minx;
-        // int err_t = 0;
+        static int last_err = 0, flag = 0;
         geometry_msgs::Twist twist;
 
-        //直线筛选参数
-        //double rho_Derta = ;//差值阈值
-        //double theta_Derta = ;//差值阈值
-        double rho_NUM = 0;//平均值
-        double theta_NUM = 0;//平均值
-        int NUM_of_RightLINE = 0;//筛选后的直线参数
+        // 直线筛选参数
+        int num[2] = {0}; // 筛选后的直线参数
 
-        //直线拟合参数 左0右1
-        double rho[2] = {0, 0};
-        double theta[2] = {0, 0};
+        // 直线拟合参数 左0右1
+        const int left = 0;
+        const int right = 1;
+        const int MAXN = lines.size();
+        double rho_aver[2] = {0, 0};
+        double theta_aver[2] = {0, 0};
+        Vec2d lines_left_right[2][MAXN];
+        double x[2] = {0};
 
         if (lines.size() > 1)
         {
-            //求rho和theta平均
-            for (int i = 0; i < lines.size(); i++)
+            // 遍历直线求平均，分成左右两边
+            for (Vec2d &line : lines)
             {
-
-                rho_NUM += lines[i][0];
-                theta_NUM += lines[i][1];
-            }
-            rho_NUM /= lines.size();
-            theta_NUM /= lines.size();
-
-            //去除错误直线并拟合左右车道线
-            for(int i = 0; i < lines.size(); i++)
-            {
-                double rho = lines[i][0], theta = lines[i][1];
-                //if(abs(rho-rho_NUM)>rho_Derta && abs(theta-theta_NUM)>theta_Derta || abs(theta) < 3)//最后这个是滤去一些theta错误的直线，可以不加
-                //    continue;
-                if(theta > 0)
+                double rho = line[0], theta = line[1];
+                // if(abs(rho-rho_NUM)>rho_Derta && abs(theta-theta_NUM)>theta_Derta || abs(theta) < 3)//最后这个是滤去一些theta错误的直线，可以不加
+                //     continue;
+                if (theta > 0)
                 {
-                    rho[0] += rho;
-                    theta[0] += theta;
+                    rho_aver[left] += rho;
+                    theta_aver[left] += theta;
+                    lines_left_right[left][num[left]] = line;
+                    num[left]++;
                 }
-                else if(theta < 0)
+                else if (theta < 0)
                 {
-                    rho[1] += rho;
-                    theta[1] += theta;
+                    rho_aver[right] += rho;
+                    theta_aver[right] += theta;
+                    lines_left_right[right][num[right]] = line;
+                    num[right]++;
                 }
-                NUM_of_RightLINE++;
             }
-            rho[0] /= NUM_of_RightLINE;
-            theta[0] /= NUM_of_RightLINE;
-            rho[1] /= NUM_of_RightLINE;
-            theta[1] /= NUM_of_RightLINE;
-            //直线绘制
-            for(i = 0; i < 2; i++)
+            if ((num[left] == 0) || (num[right] == 0))
+                return;
+            rho_aver[left] /= num[left];
+            theta_aver[left] /= num[left];
+            rho_aver[right] /= num[right];
+            theta_aver[right] /= num[right];
+            // 去除错误直线并拟合左右车道线
+            _clean_lines(lines_left_right[left], num[left], rho_aver[left], theta_aver[left]);
+            _clean_lines(lines_left_right[right], num[right], rho_aver[right], theta_aver[right]);
+
+            for (int i = left; i <= right; i++)
             {
-                double a = cos(theta[i]), b = sin(theta[i]);
-                double x0 = a * rho[i], y0 = b * rho[i];
+                double a = cos(theta_aver[i]), b = sin(theta_aver[i]);
+                x[i] = ((rho_aver[i] - b * judge_line_) / a);
+                // 直线绘制
                 if (param_modification_)
                 {
+                    Mat res(srcF.size(), CV_8UC3, Scalar::all(0));
+                    double x0 = a * rho_aver[i], y0 = b * rho_aver[i];
                     Point pt1, pt2;
                     pt1.x = cvRound(x0 + 1000 * (-b));
                     pt1.y = cvRound(y0 + 1000 * (a));
@@ -123,28 +152,19 @@ namespace motion_controller
                     pt2.y = cvRound(y0 - 1000 * (a));
                     line(res, pt1, pt2, Scalar(0, 0, 255), 1, LINE_AA);
                     line(res, Point(0, judge_line_), Point(c_end_ - c_start_, judge_line_), Scalar(255, 0, 0), 1, LINE_AA);
+                    imshow("res", res);
+                    waitKey(1);
                 }
             }
-            imshow("res", res);
-            waitKey(1);
-
-            nowx = cvRound((rho - b * judge_line_) / a);
-            if (i = 0)
+            double err = (x[left] + x[right]) / 2 - srcF.cols / 2;
+            // 滤除不正常的误差
+            err = (abs(err) > (c_end_ - c_start_) / 7.0) ? last_err : err;
+            if (flag = 0)
             {
-                minx = maxx = nowx;
-                flag_for = false;
-            }
-
-            minx = (nowx < minx) ? nowx : minx;
-            maxx = (nowx > maxx) ? nowx : maxx;
-            int err = (minx + maxx) / 2 - srcF.cols / 2;
-            err = (abs(err) > 40) ? last_err : err;
-            if (tmp = 0)
-            {
-                tmp = 1;
+                flag = 1;
                 last_err = err;
             }
-            int d_err = err - last_err;
+            double d_err = err - last_err;
             twist.linear.x = linear_velocity_;
             twist.angular.z = (err != 0) ? -kp_ * err - kd_ * d_err : 0;
             last_err = err;
@@ -153,6 +173,7 @@ namespace motion_controller
         }
         else
         {
+            // 即使没有车道线的参照，仍然前进
             twist.linear.x = linear_velocity_;
         }
         // ROS_INFO_STREAM(lines.size());
@@ -170,7 +191,7 @@ namespace motion_controller
         {
             if (config.r_end > r_start_)
                 r_end_ = config.r_end;
-            else    
+            else
                 ROS_WARN("r_end must be larger than r_start!");
         }
         if (c_start_ != config.c_start)
@@ -191,6 +212,10 @@ namespace motion_controller
         {
             linear_velocity_ = config.linear_velocity;
         }
+        if (rho_thr_ != config.rho_thr)
+            rho_thr_ = config.rho_thr;
+        if (theta_thr_ != config.theta_thr)
+            theta_thr_ = config.theta_thr;
         if (kp_ != config.kp)
             kp_ = config.kp;
         if (kd_ != config.kd)

@@ -59,7 +59,6 @@ find_package(OpenCV REQUIRED)
 add_message_files(
   FILES
 #  position.msg
-  status.msg
   TwistMightEnd.msg
 )
 
@@ -156,6 +155,7 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/pid_controller.cpp
   src/${PROJECT_NAME}/motion_performer.cpp
   src/${PROJECT_NAME}/line_follower.cpp
+  src/${PROJECT_NAME}/motion_controller.cpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}
@@ -212,25 +212,25 @@ target_link_libraries(${PROJECT_NAME}
 #   ${OpenCV_LIBRARIES}
 # )
 
-add_executable(corners src/corners.cpp)
-add_dependencies(corners ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(corners
-  ${catkin_LIBRARIES}
-)
+# add_executable(corners src/corners.cpp)
+# add_dependencies(corners ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(corners
+#   ${catkin_LIBRARIES}
+# )
 
-add_executable(corners_judge src/corners_judge.cpp)
-add_dependencies(corners_judge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(corners_judge
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
+# add_executable(corners_judge src/corners_judge.cpp)
+# add_dependencies(corners_judge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(corners_judge
+#   ${catkin_LIBRARIES}
+#   ${OpenCV_LIBRARIES}
+# )
 
-add_executable(image_saver src/image_saver.cpp)
-add_dependencies(image_saver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(image_saver
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
+# add_executable(image_saver src/image_saver.cpp)
+# add_dependencies(image_saver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(image_saver
+#   ${catkin_LIBRARIES}
+#   ${OpenCV_LIBRARIES}
+# )
 
 add_executable(${PROJECT_NAME}_server_node src/${PROJECT_NAME}_server_node.cpp)
 add_dependencies(${PROJECT_NAME}_server_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -262,6 +262,13 @@ target_link_libraries(${PROJECT_NAME}_follower_node
 add_executable(${PROJECT_NAME}_client_node src/${PROJECT_NAME}_client_node.cpp)
 add_dependencies(${PROJECT_NAME}_client_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_client_node
+  ${catkin_LIBRARIES}
+)
+
+add_executable(${PROJECT_NAME}_controller_node src/${PROJECT_NAME}_controller_node.cpp)
+add_dependencies(${PROJECT_NAME}_controller_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_controller_node
+  ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
