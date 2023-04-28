@@ -108,6 +108,7 @@ generate_dynamic_reconfigure_options(
   cfg/params_PID_srv.cfg
   cfg/params_PID_stm32.cfg
   cfg/line.cfg
+  cfg/corners.cfg
 )
 
 ###################################

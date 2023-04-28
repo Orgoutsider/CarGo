@@ -7,6 +7,7 @@ int main(int argc, char *argv[])
     ros::NodeHandle pnh("~");
 
     motion_controller::LineFollower follower(nh, pnh);
+    
     ros::spin();
     return 0;
 }

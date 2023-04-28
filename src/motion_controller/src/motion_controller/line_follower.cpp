@@ -72,35 +72,105 @@ namespace motion_controller
         Mat srcF;
         resize(cv_image->image, srcF, Size(width_, height_));
         srcF = srcF(Range(r_start_, r_end_), Range(c_start_, c_end_));
-        // srcF.convertTo(srcF, CV_8UC3);
-        // GaussianBlur(srcF, srcF, Size(3, 3), 0, 0);
+        srcF.convertTo(srcF, CV_8UC3);
+        // // 原先代码
+        // // 色彩分离查找车道线
+        // cvtColor(srcF, srcF, COLOR_BGR2HSV);
+        // inRange(srcF, black_low_, black_up_, srcF);
         // if (param_modification_)
         // {
-        //     imshow("Gaussian", srcF);
+        //     imshow("inRange", srcF);
         //     waitKey(1);
         // }
-        cvtColor(srcF, srcF, COLOR_BGR2HSV);
-        inRange(srcF, black_low_, black_up_, srcF);
+        // // 可能需要去除干扰轮廓,(5, 3)可能更好一点
+        // Mat element = getStructuringElement(MORPH_RECT, Size(7, 5));
+        // // morphologyEx(srcF, srcF, MORPH_CLOSE, element);
+        // dilate(srcF, srcF, element);
+        // if (param_modification_)
+        // {
+        //     imshow("line1", srcF);
+        //     waitKey(1);
+        // }
+        // Canny(srcF, srcF, 50, 100, 3);
+        // if (param_modification_)
+        // {
+        //     imshow("line2", srcF);
+        //     waitKey(1);
+        // }
+        // 分水岭代码
+        Mat srcF_FenGe;
+        cvtColor(srcF, srcF_FenGe, COLOR_BGR2GRAY);
+        GaussianBlur(srcF_FenGe, srcF_FenGe, Size(3, 3), 0, 0);
+        Canny(srcF_FenGe, srcF_FenGe, 50, 100, 3);
+
+        std::vector<std::vector<Point>> contours;
+        std::vector<Vec4i> hierarchy;
+        findContours(srcF_FenGe, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point());
+        Mat imageContours = Mat::zeros(srcF.size(), CV_8UC1); // 轮廓
+        Mat marks(srcF.size(), CV_32S);
+        marks = Scalar::all(0);
+        int index = 0;
+        int compCount = 0;
+        // 这个循环在使用时注意一下，可能会出问题
+        for (; index >= 0; index = hierarchy[index][0], compCount++)
+        {
+            drawContours(marks, contours, index, Scalar::all(compCount + 1), 1, 8, hierarchy);
+            if (param_modification_)
+                drawContours(imageContours, contours, index, Scalar(255), 1, 8, hierarchy);
+        }
+        // 中间图像，调试用
         if (param_modification_)
         {
-            imshow("inRange", srcF);
+            Mat marksShows;
+            convertScaleAbs(marks, marksShows);
+            imshow("marksShow", marksShows);
+            imshow("Contours", imageContours);
             waitKey(1);
         }
-        // threshold(srcF, srcF, 100, 255, THRESH_BINARY);
-        Mat element = getStructuringElement(MORPH_RECT, Size(7, 5));
-        // morphologyEx(srcF, srcF, MORPH_CLOSE, element);
-        dilate(srcF, srcF, element);
+        watershed(srcF, marks); // 分水岭检测
+
+        // 中间图像，调试用
         if (param_modification_)
         {
-            imshow("line1", srcF);
-            waitKey(1);
+            Mat afterWatershed;
+            convertScaleAbs(marks, afterWatershed);
+            imshow("After Watershed", afterWatershed);
         }
-        Canny(srcF, srcF, 50, 100, 3);
+
+        // 对每一个区域进行颜色填充，调试用
+        Mat PerspectiveImage = Mat::zeros(srcF.size(), CV_8UC3);
+        for (int i = 0; i < marks.rows; i++)
+        {
+            for (int j = 0; j < marks.cols; j++)
+            {
+                int index = marks.at<int>(i, j);
+                if (marks.at<int>(i, j) == -1)
+                {
+                    PerspectiveImage.at<Vec3b>(i, j) = Vec3b(255, 255, 255);
+                }
+                else
+                {
+                    // 随机颜色生成
+                    int value = index % 255;
+                    RNG rng;
+                    int aa = rng.uniform(0, value);
+                    int bb = rng.uniform(0, value);
+                    int cc = rng.uniform(0, value);
+                    PerspectiveImage.at<Vec3b>(i, j) = Vec3b(aa, bb, cc);
+                }
+            }
+        }
+        imshow("After ColorFill", PerspectiveImage);
+
+        // 分割并填充颜色的结果跟原始图像融合，调试用
         if (param_modification_)
         {
-            imshow("line2", srcF);
-            waitKey(1);
+            Mat wshed;
+            addWeighted(srcF, 0.4, PerspectiveImage, 0.6, 0, wshed);
+            imshow("AddWeighted Image", wshed);
         }
+
+        // 然后在这里接入轮廓的一些筛选和排除，然后进行直线识别
         std::vector<Vec2f> lines;
         HoughLines(srcF, lines, 1, CV_PI / 180, threshold_, 0, 0); // 根据实际调整，夜晚40，下午50
         int minx, maxx, nowx;
@@ -222,7 +292,7 @@ namespace motion_controller
             if (config.r_end > r_start_)
                 r_end_ = config.r_end;
             else
-                ROS_WARN("r_end must be larger than r_start!");
+                ROS_WARN("r_end must be greater than r_start!");
         }
         if (c_start_ != config.c_start)
         {
