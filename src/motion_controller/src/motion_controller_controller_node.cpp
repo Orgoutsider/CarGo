@@ -7,8 +7,16 @@ int main(int argc, char *argv[])
     ros::NodeHandle pnh("~");
 
     motion_controller::MotionController controller(nh, pnh);
-    
-    ros::MultiThreadedSpinner s(2);
-    s.spin();
-    return 0;
+
+    ros::MultiThreadedSpinner spinner(2);
+    spinner.spin();
+    // ros::CallbackQueue callback_queue_t;
+    // nh_t.setCallbackQueue(&callback_queue_t);
+    // boost::thread spinner_thread_t([&callback_queue_t]()
+    //                                {
+    //  ros::SingleThreadedSpinner spinner_t;
+    //  spinner_t.spin(&callback_queue_t); });
+    // ros::spin();
+    // spinner_thread_t.join();
+    return 0;   
 }

@@ -3,13 +3,15 @@
 namespace motion_controller
 {
     MotionController::MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : clockwise_(false),
+        : left_(true),
           r_start_(100), r_end_(160),
           c_start_(20), c_end_(width_ - c_start_), threshold_(50),
           black_low_(0, 0, 0), black_up_(180, 255, 100),
           listener_(buffer_), client_(nh, "Move", true)
     {
         pnh.param<bool>("param_modification", param_modification_, false);
+        if (param_modification_)
+            dr_server_.setCallback(boost::bind(&MotionController::_dr_callback, this, _1, _2));
         it_ = std::shared_ptr<image_transport::ImageTransport>(
             new image_transport::ImageTransport(nh));
         std::string transport_hint;
@@ -111,19 +113,25 @@ namespace motion_controller
                 double y_now = y_sum * 1.0 / tot;
                 // ROS_INFO_STREAM(y_now);
                 double distance;
-                if (y_ground_ < y_now - 0.01)
-                    distance = 1 / (1 / y_ground_ - 1 / y_now);
+                if (y_ground_ < y_now - 0.01 || y_ground_ < y_goal_)
+                    distance = 1 / (1.0 / y_ground_ - 1.0 / y_now) - 1 / (1.0 / y_ground_ - 1.0 / y_goal_);
                 else
                 {
-                    ROS_WARN("y_ground is invalid!");
+                    ROS_WARN("y_ground or y_goal is invalid!");
                     return;
                 }
-                if (distance < distance_thr_)
+                if (abs(distance) < distance_thr_ && !param_modification_)
                 {
                     cnt = 0;
                     vision_publisher.publish(std_msgs::Float64());
-                    // 客户端转弯
-                    _turn(!clockwise_);
+                    // 客户端转弯，顺时针对应右转
+                    _turn(left_);
+                }
+                else if (param_modification_ && !motor_status_)
+                {
+                    cnt = 0;
+                    // 即停
+                    vision_publisher.publish(std_msgs::Float64());
                 }
                 else
                 {
@@ -137,11 +145,34 @@ namespace motion_controller
 
     void MotionController::_timer_callback(const ros::TimerEvent &event)
     {
-        double x = 0, y = 0;
-        if (get_position(x, y))
+    }
+
+    void MotionController::_dr_callback(motion_controller::cornersConfig &config, uint32_t level)
+    {
+        if (param_modification_)
+            return;
+        if (r_start_ != config.r_start)
+            r_start_ = config.r_start;
+        if (r_end_ != config.r_end)
         {
-            //
+            if (config.r_end > r_start_)
+                r_end_ = config.r_end;
+            else
+                ROS_WARN("r_end must be greater than r_start!");
         }
+        if (c_start_ != config.c_start)
+        {
+            c_start_ = config.c_start;
+            c_end_ = width_ - c_start_;
+        }
+        if (threshold_ != config.threshold)
+            threshold_ = config.threshold;
+        if (black_up_[0] != config.h_black_up)
+            black_up_[0] = config.h_black_up;
+        if (black_up_[2] != config.v_black_up)
+            black_up_[2] = config.v_black_up;
+        if (motor_status_ != config.motor_status)
+            motor_status_ = config.motor_status;
     }
 
     bool MotionController::set_position(double x, double y)

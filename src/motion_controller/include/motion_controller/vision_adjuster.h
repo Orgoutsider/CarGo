@@ -3,6 +3,8 @@
 
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
+#include <geometry_msgs/Pose2D.h>
+#include <motion_controller/TwistMightEnd.h>
 
 #include "motion_controller/pid_controller.h"
 
@@ -31,7 +33,9 @@ namespace motion_controller
         ros::Subscriber eye_subscriber_;
         // 机械手摄像头pid
         // PIDController pid_eye_;
+        ros::Publisher cmd_vel_publisher_;
         void _usb_cam_callback(const std_msgs::Float64ConstPtr &msg);
+        void _eye_callback(const geometry_msgs::Pose2DConstPtr &msg);
     public:
         VisionAdjuster();
     };

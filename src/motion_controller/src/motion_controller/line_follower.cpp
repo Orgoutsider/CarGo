@@ -222,7 +222,7 @@ namespace motion_controller
             if (config.r_end > r_start_)
                 r_end_ = config.r_end;
             else
-                ROS_WARN("r_end must be larger than r_start!");
+                ROS_WARN("r_end must be greater than r_start!");
         }
         if (c_start_ != config.c_start)
         {
