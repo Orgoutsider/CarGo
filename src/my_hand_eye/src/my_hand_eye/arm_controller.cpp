@@ -162,7 +162,7 @@ namespace my_hand_eye
     {
         try
         {
-            image = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
+            image = cv_bridge::toCvCopy(image_rect, "bgr8");
         }
         catch (cv_bridge::Exception &e)
         {

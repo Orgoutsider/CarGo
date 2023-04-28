@@ -32,7 +32,7 @@ public:
         }
         try
         {
-            cv_image_ = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
+            cv_image_ = cv_bridge::toCvCopy(image_rect, "bgr8");
         }
         catch (cv_bridge::Exception &e)
         {
