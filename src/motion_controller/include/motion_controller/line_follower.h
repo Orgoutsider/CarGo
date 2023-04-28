@@ -24,7 +24,8 @@ namespace motion_controller
         int r_end_;
         int c_start_;
         int c_end_;
-        int threshold_;          // 根据实际调整，夜晚40，下午50
+        int threshold_;
+        int Hough_threshold_;    // 根据实际调整，夜晚40，下午50
         int judge_line_;         // 判断线高度，0~(r_end_ - r_start_)
         double linear_velocity_; // 速度
         double rho_thr_;         // 滤除直线时，rho阈值
@@ -39,6 +40,8 @@ namespace motion_controller
         dynamic_reconfigure::Server<lineConfig> server_;
         // 去除错误直线，重新求rho和theta平均值
         void _clean_lines(cv::Vec2f lines[], int num, double &rho_aver, double &theta_aver);
+        bool _find_lines(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
+        bool _find_road(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         void _dr_callback(lineConfig &config, uint32_t level);
 
