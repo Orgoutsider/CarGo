@@ -15,6 +15,9 @@
     <!-- 开启摄像头 -->
     <include file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch" />
     <!-- 开启视觉pid节点 -->
+    <include file="$(find motion_controller)/launch/nodes/adjuster.launch" >
+        <arg name="param_modification" value="true" />
+    </include>
     <include file="$(find motion_controller)/launch/nodes/controller.launch">
         <arg name="param_modification" value="true" />
     </include>

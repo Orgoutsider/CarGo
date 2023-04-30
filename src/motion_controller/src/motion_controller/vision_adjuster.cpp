@@ -3,6 +3,8 @@
 namespace motion_controller
 {
     VisionAdjuster::VisionAdjuster()
+        : level_(level_usb_cam), kp_usb_cam_(1.94),
+          ki_usb_cam_(0), kd_usb_cam_(0.46)
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
@@ -27,16 +29,18 @@ namespace motion_controller
                 tme.end = true;
                 cmd_vel_publisher_.publish(tme);
                 // 一轮调节完毕，赋值新的PIDController
-                pid_usb_cam = PIDController({0}, {kp_usb_cam_}, {ki_usb_cam_}, {kd_usb_cam_}, {0.02}, {0.1}, {0.5});
+                pid_usb_cam = PIDController({0}, {kp_usb_cam_}, {ki_usb_cam_}, {kd_usb_cam_}, {0.03}, {0.1}, {0.5});
                 return;
             }
             std::vector<double> controll;
             bool success;
-            pid_usb_cam.update({msg->distance}, msg->header.stamp, controll, success);
-            TwistMightEnd tme;
-            tme.end = false;
-            tme.velocity.linear.x = controll[0];
-            cmd_vel_publisher_.publish(tme);
+            if (pid_usb_cam.update({msg->distance}, msg->header.stamp, controll, success))
+            {
+                TwistMightEnd tme;
+                tme.end = false;
+                tme.velocity.linear.x = controll[0];
+                cmd_vel_publisher_.publish(tme);
+            }
         }
     }
 

@@ -34,6 +34,8 @@ namespace motion_controller
             // PID第一次被调用，我们还不知道时间差
             // 没有控制信号被应用
             last_time_ = now;
+            // 第一次的controll不能用！
+            controll = target_;
             return false;
         }
         if (!controll.empty())

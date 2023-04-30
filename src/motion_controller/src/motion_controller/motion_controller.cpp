@@ -24,7 +24,7 @@ namespace motion_controller
                                                &MotionController::_image_callback, this,
                                                image_transport::TransportHints(transport_hint_));
         }
-        vision_publisher = nh.advertise<std_msgs::Float64>("/vision_usb_cam", 5);
+        vision_publisher = nh.advertise<Distance>("/vision_usb_cam", 5);
         timer_ = nh.createTimer(ros::Rate(2), &MotionController::_timer_callback, this);
         start_client_ = nh.serviceClient<Start>("Start");
     }
@@ -65,6 +65,12 @@ namespace motion_controller
 
     void MotionController::_image_callback(const sensor_msgs::ImageConstPtr &image_rect)
     {
+        static int count = 0;
+        if (count < 15) // 等待摄像头适应光线
+        {
+            count++;
+            return;
+        }
         using namespace cv;
         static int cnt = 0;
         cv_bridge::CvImagePtr cv_image;
@@ -210,7 +216,7 @@ namespace motion_controller
                     flag = true;
                 }
                 // ROS_INFO_STREAM(y_now);
-                y_aver = (y_now > 0.2 * (r_end_ - r_start_)) ? 0.9 * y_now + 0.1 * y_aver : y_aver;
+                y_aver = (y_now > 0.3 * (r_end_ - r_start_)) ? 0.9 * y_now + 0.1 * y_aver : y_aver;
                 double distance;
                 if (y_ground_ < y_aver - 0.01 || y_ground_ < y_goal_)
                     distance = 1 / (1.0 / y_ground_ - 1.0 / y_aver) - 1 / (1.0 / y_ground_ - 1.0 / y_goal_);
@@ -222,7 +228,7 @@ namespace motion_controller
                 if (abs(distance) < distance_thr_ && !param_modification_)
                 {
                     cnt = 0;
-                    vision_publisher.publish(std_msgs::Float64());
+                    vision_publisher.publish(Distance());
                     // 客户端转弯，顺时针对应右转
                     _turn(left_);
                     if (!timer_.hasStarted())
@@ -232,11 +238,11 @@ namespace motion_controller
                 }
                 else if (param_modification_ && !motor_status_)
                 {
-                    ROS_INFO("Corner is in front of my car.");
+                    // ROS_INFO("Corner is in front of my car.");
                     cnt = 0;
                     // 即停
-                    vision_publisher.publish(std_msgs::Float64());
-                    ROS_INFO_STREAM("distance: " << distance);
+                    vision_publisher.publish(Distance());
+                    // ROS_INFO_STREAM("distance: " << distance);
                 }
                 else // (param_modification_ && motor_status_) || !param_modification_
                 {
@@ -245,8 +251,9 @@ namespace motion_controller
                         line(res, Point(0, y_now), Point(width_, y_now), Scalar(0, 0, 255), 1, LINE_AA);
                         ROS_INFO_STREAM("distance: " << distance);
                     }
-                    std_msgs::Float64 msg;
-                    msg.data = distance;
+                    Distance msg;
+                    msg.distance = distance;
+                    msg.header = image_rect->header;
                     vision_publisher.publish(msg);
                 }
             }
@@ -254,7 +261,7 @@ namespace motion_controller
             {
                 // 可能是超出了能够检测线的范围，使用全局定位信息转弯
                 ROS_WARN("Line might be out of limit!");
-                vision_publisher.publish(std_msgs::Float64());
+                vision_publisher.publish(Distance());
             }
             if (param_modification_)
             {
@@ -266,12 +273,12 @@ namespace motion_controller
         {
             // 可能是超出了能够检测线的范围，使用全局定位信息转弯
             ROS_WARN("Line might be out of limit!");
-            vision_publisher.publish(std_msgs::Float64());
+            vision_publisher.publish(Distance());
         }
         else if (cnt >= cnt_tolerance_ && param_modification_ && motor_status_)
         {
             ROS_WARN("Line might be out of limit!");
-            vision_publisher.publish(std_msgs::Float64());
+            vision_publisher.publish(Distance());
         }
     }
 

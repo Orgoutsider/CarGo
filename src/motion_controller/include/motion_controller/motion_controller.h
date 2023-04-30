@@ -3,7 +3,6 @@
 
 #include <opencv2/opencv.hpp>
 #include <ros/ros.h>
-#include <std_msgs/Float64.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <tf2_ros/transform_listener.h>
@@ -15,6 +14,7 @@
 #include <motion_controller/MoveAction.h>
 #include <motion_controller/cornersConfig.h>
 #include <motion_controller/Start.h>
+#include <motion_controller/Distance.h>
 
 typedef actionlib::SimpleActionClient<motion_controller::MoveAction> Client;
 
