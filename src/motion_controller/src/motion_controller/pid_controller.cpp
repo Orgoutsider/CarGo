@@ -4,6 +4,7 @@
 
 namespace motion_controller
 {
+    
     PIDController::PIDController(std::vector<double> &&target,
                                  std::vector<double> &&p, std::vector<double> &&i, std::vector<double> &&d,
                                  std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&controll_max)
@@ -21,7 +22,7 @@ namespace motion_controller
     }
 
     bool PIDController::update(std::vector<double> &&current,
-                               ros::Time &now, std::vector<double> &controll, bool &success)
+                               const ros::Time &now, std::vector<double> &controll, bool &success)
     {
         if (current.size() != target_.size())
         {

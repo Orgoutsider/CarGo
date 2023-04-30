@@ -23,7 +23,7 @@ namespace motion_controller
         PIDController(std::vector<double> &&target,
                       std::vector<double> &&p, std::vector<double> &&i, std::vector<double> &&d,
                       std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&controll_max);
-        bool update(std::vector<double> &&current, ros::Time &now,
+        bool update(std::vector<double> &&current, const ros::Time &now,
                     std::vector<double> &controll, bool &success);
     };
 

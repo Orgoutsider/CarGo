@@ -210,7 +210,7 @@ namespace motion_controller
                     flag = true;
                 }
                 // ROS_INFO_STREAM(y_now);
-                y_aver = 0.9 * y_now + 0.1 * y_aver;
+                y_aver = (y_now > 0.2 * (r_end_ - r_start_)) ? 0.9 * y_now + 0.1 * y_aver : y_aver;
                 double distance;
                 if (y_ground_ < y_aver - 0.01 || y_ground_ < y_goal_)
                     distance = 1 / (1.0 / y_ground_ - 1.0 / y_aver) - 1 / (1.0 / y_ground_ - 1.0 / y_goal_);

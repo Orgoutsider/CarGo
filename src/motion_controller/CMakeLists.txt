@@ -58,8 +58,9 @@ find_package(OpenCV REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-#  position.msg
   TwistMightEnd.msg
+  Distance.msg
+  Pose2DMightEnd.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -108,6 +109,7 @@ generate_dynamic_reconfigure_options(
   cfg/params_PID_stm32.cfg
   cfg/line.cfg
   cfg/corners.cfg
+  cfg/params_PID_vision.cfg
 )
 
 ###################################
