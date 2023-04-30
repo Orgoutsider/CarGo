@@ -27,6 +27,8 @@ namespace motion_controller
         int r_end_;
         int c_start_;
         int c_end_;
+        int mask_r_start_; // 图片掩膜
+        int mask_c_start_;
         // int threshold_;
         int Hough_threshold_;    // 根据实际调整，夜晚40，下午50
         int judge_line_;         // 判断线高度，0~(r_end_ - r_start_)

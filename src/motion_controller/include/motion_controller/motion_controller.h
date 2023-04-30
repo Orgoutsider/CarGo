@@ -64,6 +64,8 @@ namespace motion_controller
         bool set_position(double x, double y);
         // 获取当前位置
         bool get_position(double &x, double &y);
+        // 开/关循线回调
+        bool start_line_follower(bool start);
     };
 
 } // namespace motion_controller

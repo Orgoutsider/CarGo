@@ -5,10 +5,11 @@ namespace motion_controller
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : r_start_(131), r_end_(195),
           c_start_(16), c_end_(width_ - c_start_),
+          mask_r_start_(35), mask_c_start_(100),
           Hough_threshold_(40),
           judge_line_(20), linear_velocity_(0.2),
           rho_thr_(5), theta_thr_(3),
-          kp_(0.05), kd_(0.0),
+          kp_(0.03), kd_(0.015),
           black_low_(0, 0, 0), black_up_(180, 255, 100),
           motor_status_(false), start_image_sub_(false)
     {
@@ -79,12 +80,22 @@ namespace motion_controller
             waitKey(1);
         }
         Canny(srcF, srcF, 50, 100, 3);
+        // 然后在这里接入轮廓的一些筛选和排除，然后进行直线识别
+        // mask掩膜
+        Mat mask = Mat::zeros(srcF.size(), CV_8UC1);
+        Point p[6] = {Point(0, mask_r_start_), Point(mask_c_start_, 0),
+                      Point(c_end_ - c_start_ - mask_c_start_, 0), Point(c_end_ - c_start_, mask_r_start_),
+                      Point(c_end_ - c_start_, r_end_ - r_start_), Point(0, r_end_ - r_start_)};
+        const Point *pp[] = {p};
+        int n[] = {6};
+        fillPoly(mask, pp, n, 1, Scalar(255));
+        bitwise_and(srcF, mask, srcF);
         if (param_modification_ && !motor_status_)
         {
+            imshow("mask", mask);
             imshow("line2", srcF);
             waitKey(1);
         }
-        // 然后在这里接入轮廓的一些筛选和排除，然后进行直线识别
         std::vector<Vec2f> lines;
         HoughLines(srcF, lines, 1, CV_PI / 180, Hough_threshold_, 0, 0); // 根据实际调整，夜晚40，下午50
         int minx, maxx, nowx;
@@ -209,9 +220,10 @@ namespace motion_controller
             double d_err = err_aver_last - err_aver;
             twist = geometry_msgs::Twist();
             twist.linear.x = linear_velocity_;
-            twist.angular.z = (err != 0) ? -kp_ * err - kd_ * d_err : 0;
+            twist.angular.z = (err_aver != 0) ? -kp_ * err_aver - kd_ * d_err : 0;
             err_aver_last = err_aver;
-            ROS_INFO_STREAM("err:" << err_aver);
+            if (param_modification_ && motor_status_)
+                ROS_INFO_STREAM("err:" << err_aver);
             // ROS_INFO_STREAM(minx << ' ' << maxx);
             return true;
         }
@@ -352,6 +364,8 @@ namespace motion_controller
         _find_lines(cv_image, twist);
         if (!param_modification_ || (param_modification_ && motor_status_))
             cmd_vel_publisher_.publish(twist);
+        else
+            cmd_vel_publisher_.publish(geometry_msgs::Twist());
     }
 
     void LineFollower::_dr_callback(lineConfig &config, uint32_t level)
@@ -360,22 +374,41 @@ namespace motion_controller
             return;
         if (r_start_ != config.r_start)
         {
-            if (config.r_start < r_end_ && judge_line_ < r_end_ - config.r_start)
+            if (config.r_start < r_end_ && judge_line_ < r_end_ - config.r_start && mask_r_start_ < r_end_ - config.r_start)
                 r_start_ = config.r_start;
             else
-                ROS_WARN("Assertion failed: r_start < r_end && judge_line < r_end - r_start");
+                ROS_WARN("Assertion failed: r_start < r_end && judge_line < r_end - r_start && mask_r_start < r_end - r_start");
         }
         if (r_end_ != config.r_end)
         {
-            if (config.r_end > r_start_ && judge_line_ < config.r_end - r_start_)
+            if (config.r_end > r_start_ && judge_line_ < config.r_end - r_start_ && mask_r_start_ < config.r_end - r_start_)
                 r_end_ = config.r_end;
             else
-                ROS_WARN("Assertion failed: r_start < r_end && judge_line < r_end - r_start");
+                ROS_WARN("Assertion failed: r_start < r_end && judge_line < r_end - r_start && mask_r_start < r_end - r_start");
         }
         if (c_start_ != config.c_start)
         {
-            c_start_ = config.c_start;
-            c_end_ = width_ - c_start_;
+            if (mask_c_start_ < ((width_ - config.c_start) - config.c_start) / 2.0)
+            {
+                c_start_ = config.c_start;
+                c_end_ = width_ - c_start_;
+            }
+            else
+                ROS_WARN("Assertion failed: mask_c_start < ((width - c_start) - c_start) / 2.0");
+        }
+        if (mask_r_start_ != config.mask_r_start)
+        {
+            if (config.mask_r_start < r_end_ - r_start_)
+                mask_r_start_ = config.mask_r_start;
+            else
+                ROS_WARN("Assertion failed: mask_r_start < r_end - r_start");
+        }
+        if (mask_c_start_ != config.mask_c_start)
+        {
+            if (config.mask_c_start < (c_end_ - c_start_) / 2.0)
+                mask_c_start_ = config.mask_c_start;
+            else
+                ROS_WARN("Assertion failed: mask_c_start < ((width - c_start) - c_start) / 2.0");
         }
         // if (threshold_ != config.threshold)
         //     threshold_ = config.threshold;
@@ -403,7 +436,11 @@ namespace motion_controller
         if (black_up_[2] != config.v_black_up)
             black_up_[2] = config.v_black_up;
         if (motor_status_ != config.motor_status)
+        {
             motor_status_ = config.motor_status;
+            if (motor_status_)
+                cv::destroyAllWindows();
+        }
     }
 
     bool LineFollower::_do_start_req(Start::Request &req, Start::Response &resp)
@@ -417,7 +454,7 @@ namespace motion_controller
                                                    &LineFollower::_image_callback, this,
                                                    image_transport::TransportHints(transport_hint_));
             }
-            else   
+            else
                 return false;
         }
         else if (start_image_sub_)

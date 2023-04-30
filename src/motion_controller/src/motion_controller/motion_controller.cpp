@@ -33,6 +33,7 @@ namespace motion_controller
             ac_.waitForServer();
         motion_controller::MoveGoal goal;
         goal.pose.theta = left ? CV_PI / 2 : -CV_PI / 2;
+        goal.pose.y = left ? 0.1 : -0.1;
         ac_.sendGoalAndWait(goal, ros::Duration(10), ros::Duration(0.1));
     }
 
@@ -93,6 +94,18 @@ namespace motion_controller
                     if (cnt < cnt_tolerance_)
                     {
                         cnt++;
+                        if (cnt >= cnt_tolerance_)
+                        {
+                            ROS_INFO("Turning corners ...");
+                            if (timer_.hasStarted())
+                                timer_.stop();
+                            if (!param_modification_)
+                            {
+                                start_line_follower(false);
+                            }
+                            tot = 0;
+                            break;
+                        }
                         continue;
                     }
                     else
@@ -119,8 +132,6 @@ namespace motion_controller
             }
             if (cnt >= cnt_tolerance_ && tot != 0) // 弯道pid
             {
-                if (timer_.hasStarted())
-                    timer_.stop();
                 double y_now = y_sum * 1.0 / tot;
                 // ROS_INFO_STREAM(y_now);
                 double distance;
@@ -139,9 +150,12 @@ namespace motion_controller
                     _turn(left_);
                     if (!timer_.hasStarted())
                         timer_.start();
+                    if (!param_modification_)
+                        start_line_follower(true);
                 }
                 else if (param_modification_ && !motor_status_)
                 {
+                    ROS_INFO("Corner is in front of my car.");
                     cnt = 0;
                     // 即停
                     vision_publisher.publish(std_msgs::Float64());
@@ -248,4 +262,19 @@ namespace motion_controller
         return true;
     }
 
+    bool MotionController::start_line_follower(bool start)
+    {
+        if (!start_client_.exists())
+            start_client_.waitForExistence();
+        Start srv;
+        srv.request.start = start;
+        bool flag = start_client_.call(srv);
+        if (flag)
+        {
+            if (start)
+                ROS_INFO("start LineFollower.");
+            else
+                ROS_INFO("shut down LineFollower.");
+        }
+    }
 } // namespace motion_controller
