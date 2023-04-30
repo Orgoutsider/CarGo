@@ -276,5 +276,6 @@ namespace motion_controller
             else
                 ROS_INFO("shut down LineFollower.");
         }
+        return flag;
     }
 } // namespace motion_controller
