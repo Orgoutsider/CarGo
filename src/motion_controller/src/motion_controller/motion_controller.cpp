@@ -7,27 +7,33 @@ namespace motion_controller
           r_start_(100), r_end_(160),
           c_start_(20), c_end_(width_ - c_start_), threshold_(50),
           black_low_(0, 0, 0), black_up_(180, 255, 100),
-          listener_(buffer_), client_(nh, "Move", true)
+          y_goal_(20), y_ground_(10),
+          cnt_tolerance_(10), distance_thr_(0.05), motor_status_(false),
+          listener_(buffer_), ac_(nh, "Move", true)
     {
         pnh.param<bool>("param_modification", param_modification_, false);
-        if (param_modification_)
-            dr_server_.setCallback(boost::bind(&MotionController::_dr_callback, this, _1, _2));
+        pnh.param<std::string>("transport_hint", transport_hint_, "raw");
         it_ = std::shared_ptr<image_transport::ImageTransport>(
             new image_transport::ImageTransport(nh));
-        std::string transport_hint;
-        pnh.param<std::string>("transport_hint", transport_hint, "raw");
-        image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1, &MotionController::_image_callback, this, image_transport::TransportHints(transport_hint));
+        if (param_modification_)
+        {
+            dr_server_.setCallback(boost::bind(&MotionController::_dr_callback, this, _1, _2));
+            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
+                                               &MotionController::_image_callback, this,
+                                               image_transport::TransportHints(transport_hint_));
+        }
         vision_publisher = nh.advertise<std_msgs::Float64>("/vision_usb_cam", 5);
         timer_ = nh.createTimer(ros::Rate(2), &MotionController::_timer_callback, this);
+        start_client_ = nh.serviceClient<Start>("Start");
     }
 
     void MotionController::_turn(bool left)
     {
-        if (!client_.isServerConnected())
-            client_.waitForServer();
+        if (!ac_.isServerConnected())
+            ac_.waitForServer();
         motion_controller::MoveGoal goal;
         goal.pose.theta = left ? CV_PI / 2 : -CV_PI / 2;
-        client_.sendGoalAndWait(goal, ros::Duration(10), ros::Duration(0.1));
+        ac_.sendGoalAndWait(goal, ros::Duration(10), ros::Duration(0.1));
     }
 
     void MotionController::_image_callback(const sensor_msgs::ImageConstPtr &image_rect)
@@ -66,78 +72,6 @@ namespace motion_controller
             waitKey(1);
         }
         Canny(srcF, srcF, 50, 100, 3);
-        // // 分水岭代码
-        // Mat srcF_FenGe;
-        // cvtColor(srcF, srcF_FenGe, COLOR_BGR2GRAY);
-        // GaussianBlur(srcF_FenGe, srcF_FenGe, Size(3, 3), 0, 0);
-        // Canny(srcF_FenGe, srcF_FenGe, 50, 100, 3);
-
-        // std::vector<std::vector<Point>> contours;
-        // std::vector<Vec4i> hierarchy;
-        // findContours(srcF_FenGe, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point());
-        // Mat imageContours = Mat::zeros(srcF.size(), CV_8UC1); // 轮廓
-        // Mat marks(srcF.size(), CV_32S);
-        // marks = Scalar::all(0);
-        // int index = 0;
-        // int compCount = 0;
-        // // 这个循环在使用时注意一下，可能会出问题
-        // for (; index >= 0; index = hierarchy[index][0], compCount++)
-        // {
-        //     drawContours(marks, contours, index, Scalar::all(compCount + 1), 1, 8, hierarchy);
-        //     if (param_modification_)
-        //         drawContours(imageContours, contours, index, Scalar(255), 1, 8, hierarchy);
-        // }
-        // // 中间图像，调试用
-        // if (param_modification_)
-        // {
-        //     Mat marksShows;
-        //     convertScaleAbs(marks, marksShows);
-        //     imshow("marksShow", marksShows);
-        //     imshow("轮廓", imageContours);
-        //     waitKey(1);
-        // }
-        // watershed(srcF, marks); // 分水岭检测
-
-        // // 中间图像，调试用
-        // if (param_modification_)
-        // {
-        //     Mat afterWatershed;
-        //     convertScaleAbs(marks, afterWatershed);
-        //     imshow("After Watershed", afterWatershed);
-        // }
-
-        // // 对每一个区域进行颜色填充，调试用
-        // Mat PerspectiveImage = Mat::zeros(srcF.size(), CV_8UC3);
-        // for (int i = 0; i < marks.rows; i++)
-        // {
-        //     for (int j = 0; j < marks.cols; j++)
-        //     {
-        //         int index = marks.at<int>(i, j);
-        //         if (marks.at<int>(i, j) == -1)
-        //         {
-        //             PerspectiveImage.at<Vec3b>(i, j) = Vec3b(255, 255, 255);
-        //         }
-        //         else
-        //         {
-        //             // 随机颜色生成
-        //             int value = index % 255;
-        //             RNG rng;
-        //             int aa = rng.uniform(0, value);
-        //             int bb = rng.uniform(0, value);
-        //             int cc = rng.uniform(0, value);
-        //             PerspectiveImage.at<Vec3b>(i, j) = Vec3b(aa, bb, cc);
-        //         }
-        //     }
-        // }
-        // imshow("After ColorFill", PerspectiveImage);
-
-        // // 分割并填充颜色的结果跟原始图像融合，调试用
-        // if (param_modification_)
-        // {
-        //     Mat wshed;
-        //     addWeighted(srcF, 0.4, PerspectiveImage, 0.6, 0, wshed);
-        //     imshow("AddWeighted Image", wshed);
-        // }
 
         // 然后在这里接入轮廓的一些筛选和排除，然后进行直线识别
         std::vector<Vec2f> lines;
@@ -183,8 +117,10 @@ namespace motion_controller
                     waitKey(1);
                 }
             }
-            if (cnt >= cnt_tolerance_ && tot != 0)
+            if (cnt >= cnt_tolerance_ && tot != 0) // 弯道pid
             {
+                if (timer_.hasStarted())
+                    timer_.stop();
                 double y_now = y_sum * 1.0 / tot;
                 // ROS_INFO_STREAM(y_now);
                 double distance;
@@ -201,6 +137,8 @@ namespace motion_controller
                     vision_publisher.publish(std_msgs::Float64());
                     // 客户端转弯，顺时针对应右转
                     _turn(left_);
+                    if (!timer_.hasStarted())
+                        timer_.start();
                 }
                 else if (param_modification_ && !motor_status_)
                 {
@@ -227,13 +165,20 @@ namespace motion_controller
         if (param_modification_)
             return;
         if (r_start_ != config.r_start)
-            r_start_ = config.r_start;
+        {
+            if (config.r_start < r_end_ &&
+                y_goal_ < r_end_ - config.r_start && y_ground_ < r_end_ - config.r_start)
+                r_start_ = config.r_start;
+            else
+                ROS_WARN("Assertion failed: r_start < r_end && y_goal < r_end - r_start && y_ground < r_end - r_start");
+        }
         if (r_end_ != config.r_end)
         {
-            if (config.r_end > r_start_)
+            if (config.r_end > r_start_ &&
+                y_goal_ < config.r_end - r_start_ && y_ground_ < config.r_end - r_start_)
                 r_end_ = config.r_end;
             else
-                ROS_WARN("r_end must be greater than r_start!");
+                ROS_WARN("Assertion failed: r_start < r_end && y_goal < r_end - r_start && y_ground < r_end - r_start");
         }
         if (c_start_ != config.c_start)
         {
@@ -242,10 +187,26 @@ namespace motion_controller
         }
         if (threshold_ != config.threshold)
             threshold_ = config.threshold;
-        if (black_up_[0] != config.h_black_up)
-            black_up_[0] = config.h_black_up;
         if (black_up_[2] != config.v_black_up)
             black_up_[2] = config.v_black_up;
+        if (y_goal_ != config.y_goal)
+        {
+            if (config.y_goal < r_end_ - r_start_ && config.y_goal > y_ground_)
+                y_goal_ = config.y_goal;
+            else
+                ROS_WARN("Assertion failed: y_goal < r_end - r_start && y_goal > y_ground");
+        }
+        if (y_ground_ != config.y_ground)
+        {
+            if (config.y_ground < y_goal_)
+                y_ground_ = config.y_ground;
+            else
+                ROS_WARN("Assertion failed: y_goal > y_ground");
+        }
+        if (cnt_tolerance_ != config.cnt_tolerance)
+            cnt_tolerance_ = config.cnt_tolerance;
+        if (distance_thr_ != config.distance_thr)
+            distance_thr_ = config.distance_thr;
         if (motor_status_ != config.motor_status)
             motor_status_ = config.motor_status;
     }

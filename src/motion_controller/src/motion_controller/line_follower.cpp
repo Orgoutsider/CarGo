@@ -9,17 +9,23 @@ namespace motion_controller
           judge_line_(20), linear_velocity_(0.2),
           rho_thr_(5), theta_thr_(3),
           kp_(0.05), kd_(0.0),
-          black_low_(0, 0, 0), black_up_(180, 255, 100), motor_status_(false)
+          black_low_(0, 0, 0), black_up_(180, 255, 100),
+          motor_status_(false), start_image_sub_(false)
     {
         it_ = std::shared_ptr<image_transport::ImageTransport>(
             new image_transport::ImageTransport(nh));
-        std::string transport_hint;
-        pnh.param<std::string>("transport_hint", transport_hint, "raw");
-        image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1, &LineFollower::_image_callback, this, image_transport::TransportHints(transport_hint));
+        pnh.param<std::string>("transport_hint", transport_hint_, "raw");
         cmd_vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 1);
         pnh.param<bool>("param_modification", param_modification_, false);
+        start_server_ = nh.advertiseService("Start", &LineFollower::_do_start_req, this);
         if (param_modification_)
-            server_.setCallback(boost::bind(&LineFollower::_dr_callback, this, _1, _2));
+        {
+            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
+                                               &LineFollower::_image_callback, this,
+                                               image_transport::TransportHints(transport_hint_));
+            start_image_sub_ = true;
+            dr_server_.setCallback(boost::bind(&LineFollower::_dr_callback, this, _1, _2));
+        }
     }
 
     void LineFollower::_clean_lines(cv::Vec2f lines[], int num, double &rho_aver, double &theta_aver)
@@ -398,5 +404,29 @@ namespace motion_controller
             black_up_[2] = config.v_black_up;
         if (motor_status_ != config.motor_status)
             motor_status_ = config.motor_status;
+    }
+
+    bool LineFollower::_do_start_req(Start::Request &req, Start::Response &resp)
+    {
+        if (req.start)
+        {
+            if (!start_image_sub_)
+            {
+                start_image_sub_ = true;
+                image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
+                                                   &LineFollower::_image_callback, this,
+                                                   image_transport::TransportHints(transport_hint_));
+            }
+            else   
+                return false;
+        }
+        else if (start_image_sub_)
+        {
+            start_image_sub_ = false;
+            image_subscriber_.shutdown();
+        }
+        else
+            return false;
+        return true;
     }
 } // namespace motion_controller

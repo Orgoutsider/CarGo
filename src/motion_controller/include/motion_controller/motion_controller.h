@@ -14,6 +14,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <motion_controller/MoveAction.h>
 #include <motion_controller/cornersConfig.h>
+#include <motion_controller/Start.h>
 
 typedef actionlib::SimpleActionClient<motion_controller::MoveAction> Client;
 
@@ -25,6 +26,7 @@ namespace motion_controller
         bool param_modification_; // 动态调参
         bool motor_status_;       // 调参，即停选项
         bool left_;               // 移动方向，是否逆时针（左转）
+        std::string transport_hint_;
         // 默认（320，240）图片
         const int width_ = 320;
         const int height_ = 240;
@@ -47,8 +49,9 @@ namespace motion_controller
         image_transport::Subscriber image_subscriber_; // 弯道检测订阅者
         ros::Publisher vision_publisher;               // 视觉信息发布者
         ros::Timer timer_;                             // 全局定位定时器
-        Client client_;                                // move client
+        Client ac_;                                    // 移动服务客户端
         dynamic_reconfigure::Server<motion_controller::cornersConfig> dr_server_;
+        ros::ServiceClient start_client_; // 开启循线客户端
         // 转弯，为true时向左
         void _turn(bool left);
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);

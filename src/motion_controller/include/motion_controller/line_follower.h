@@ -8,6 +8,7 @@
 #include <geometry_msgs/Twist.h>
 #include <dynamic_reconfigure/server.h>
 #include <motion_controller/lineConfig.h>
+#include <motion_controller/Start.h>
 
 namespace motion_controller
 {
@@ -16,6 +17,8 @@ namespace motion_controller
     private:
         bool param_modification_; // 动态调参
         bool motor_status_;       // 调参，即停选项
+        bool start_image_sub_;    // 是否开启订阅
+        std::string transport_hint_;
         // 默认（320，240）图片
         const int width_ = 320;
         const int height_ = 240;
@@ -35,15 +38,17 @@ namespace motion_controller
         cv::Scalar black_low_; // 黑色车道分割
         cv::Scalar black_up_;  // 夜晚80左右，下午100
         ros::Publisher cmd_vel_publisher_;
+        ros::ServiceServer start_server_; // 开关回调函数服务端
         std::shared_ptr<image_transport::ImageTransport> it_;
         image_transport::Subscriber image_subscriber_;
-        dynamic_reconfigure::Server<lineConfig> server_;
+        dynamic_reconfigure::Server<lineConfig> dr_server_;
         // 去除错误直线，重新求rho和theta平均值
         void _clean_lines(cv::Vec2f lines[], int num, double &rho_aver, double &theta_aver);
         bool _find_lines(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
         // bool _find_road(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         void _dr_callback(lineConfig &config, uint32_t level);
+        bool _do_start_req(Start::Request &req, Start::Response &resp);
 
     public:
         LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);
