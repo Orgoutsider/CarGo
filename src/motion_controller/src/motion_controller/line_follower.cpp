@@ -460,6 +460,7 @@ namespace motion_controller
         else if (start_image_sub_)
         {
             start_image_sub_ = false;
+            cmd_vel_publisher_.publish(geometry_msgs::Twist());
             image_subscriber_.shutdown();
         }
         else

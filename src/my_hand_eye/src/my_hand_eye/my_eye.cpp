@@ -2,7 +2,9 @@
 
 namespace my_hand_eye
 {
-	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh) : arm_controller_(nh, pnh)
+	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
+		: arm_controller_(nh, pnh),
+		  as_(nh, "Arm", boost::bind(&MyEye::execute_callback, this, _1), false)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
@@ -20,6 +22,8 @@ namespace my_hand_eye
 			ROS_INFO("show debug image...");
 			debug_image_publisher_ = nh.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
 		}
+		as_.registerPreemptCallback(boost::bind(&MyEye::preempt_callback, this));
+		as_.start();
 	}
 
 	void MyEye::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
@@ -80,5 +84,20 @@ namespace my_hand_eye
 			if (arm_controller_.show_detections_)
 				debug_image_publisher_.publish(debug_image);
 		}
+	}
+
+	void MyEye::execute_callback(const ArmGoalConstPtr &goal)
+	{
+		if (goal->route != goal->route_parking_area)
+			ros::Duration(2).sleep();
+		ArmResult ar;
+		as_.setSucceeded(ar, "Arm finish tasks");
+	}
+
+	void MyEye::preempt_callback()
+	{
+		ROS_ERROR("Arm Preempt Requested!");
+		// 不正常现象，需要停止所有与底盘相关的联系，避免后续受到影响
+		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 	}
 } // namespace my_hand_eye

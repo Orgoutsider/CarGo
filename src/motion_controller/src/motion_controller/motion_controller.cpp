@@ -11,8 +11,11 @@ namespace motion_controller
           y_goal_(48), y_ground_(3),
           cnt_tolerance_(15), y_thr_(3),
           distance_thr_(0.05), motor_status_(false),
-          listener_(buffer_), ac_(nh, "Move", true)
+          delta_x_(0), delta_y_(0), finish_turning_(false),
+          listener_(buffer_),
+          ac_move_(nh, "Move", true), ac_arm_(nh, "Arm", true)
     {
+        nh.setParam("/width_road", width_road_);
         pnh.param<bool>("param_modification", param_modification_, false);
         pnh.param<std::string>("transport_hint", transport_hint_, "raw");
         it_ = std::shared_ptr<image_transport::ImageTransport>(
@@ -25,23 +28,37 @@ namespace motion_controller
                                                image_transport::TransportHints(transport_hint_));
         }
         vision_publisher = nh.advertise<Distance>("/vision_usb_cam", 5);
-        timer_ = nh.createTimer(ros::Rate(2), &MotionController::_timer_callback, this);
+        timer_ = nh.createTimer(ros::Rate(3), &MotionController::_timer_callback, this);
+        go_client_ = nh.advertiseService("Go", &MotionController::go, this);
         start_client_ = nh.serviceClient<Start>("Start");
     }
 
-    void MotionController::_turn(bool left)
+    void MotionController::_turn()
     {
-        if (!ac_.isServerConnected())
-            ac_.waitForServer();
-        // 矫正pid结束位置与转弯位置的8mm误差
+        if (!ac_move_.isServerConnected())
+            ac_move_.waitForServer();
+        // 矫正pid结束位置与转弯位置的8cm误差
         motion_controller::MoveGoal goal1;
         goal1.pose.x = 0.08;
-        ac_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
-        // 转弯后前进一段距离
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
         motion_controller::MoveGoal goal2;
-        goal2.pose.theta = left ? CV_PI / 2 : -CV_PI / 2;
-        goal2.pose.y = left ? 0.1 : -0.1;
-        ac_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
+        goal2.pose.theta = left_ ? CV_PI / 2 : -CV_PI / 2;
+        // 转弯后前进一段距离
+        goal2.pose.y = left_ ? 0.1 : -0.1;
+        ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
+        // 转弯后定时器将订阅关闭
+        finish_turning_ = true;
+    }
+
+    void MotionController::_U_turn()
+    {
+        if (!ac_move_.isServerConnected())
+            ac_move_.waitForServer();
+        motion_controller::MoveGoal goal;
+        goal.pose.theta = CV_PI;
+        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+        // 需要改变之后的转弯方向
+        left_ = !left_;
     }
 
     void MotionController::_clean_lines(double y[], double &y_sum, int &tot)
@@ -230,7 +247,7 @@ namespace motion_controller
                     cnt = 0;
                     vision_publisher.publish(Distance());
                     // 客户端转弯，顺时针对应右转
-                    _turn(left_);
+                    _turn();
                     if (!timer_.hasStarted())
                         timer_.start();
                     if (!param_modification_)
@@ -284,6 +301,48 @@ namespace motion_controller
 
     void MotionController::_timer_callback(const ros::TimerEvent &event)
     {
+        if (get_position())
+        {
+            // 转弯结束关闭转弯订阅
+            if (finish_turning_ && !can_turn())
+                image_subscriber_.shutdown();
+            if (arrive())
+            {
+                if (!ac_arm_.isServerConnected())
+                    ac_arm_.waitForServer();
+                my_hand_eye::ArmGoal goal;
+                switch (where_is_car())
+                {
+                case route_QR_code_board:
+                    goal.route = goal.route_QR_code_board;
+                    break;
+
+                case route_raw_material_area:
+                    goal.route = goal.route_raw_material_area;
+                    break;
+
+                case route_roughing_area:
+                    goal.route = goal.route_roughing_area;
+                    break;
+
+                case route_semi_finishing_area:
+                    goal.route = goal.route_semi_finishing_area;
+                    break;
+
+                case route_parking_area:
+                    goal.route = goal.route_parking_area;
+                    break;
+
+                default:
+                    ROS_ERROR("where_is_car returns invalid value!");
+                    return;
+                }
+                ac_arm_.sendGoal(goal, boost::bind(&MotionController::_done_callback, this, _1, _2),
+                                 boost::bind(&MotionController::_active_callback, this),
+                                 boost::bind(&MotionController::_feedback_callback, this));
+                doing();
+            }
+        }
     }
 
     void MotionController::_dr_callback(motion_controller::cornersConfig &config, uint32_t level)
@@ -363,40 +422,96 @@ namespace motion_controller
         }
     }
 
+    void MotionController::_active_callback()
+    {
+        if (timer_.hasStarted())
+            timer_.stop();
+    }
+
+    void MotionController::_feedback_callback() {}
+
+    void MotionController::_done_callback(const actionlib::SimpleClientGoalState &state, const my_hand_eye::ArmResultConstPtr &result)
+    {
+        if (where_is_car() == route_raw_material_area)
+        {
+            if (loop_ == 1)
+                _U_turn();
+            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
+                                               &MotionController::_image_callback, this,
+                                               image_transport::TransportHints(transport_hint_));
+        }
+        else if (where_is_car() == route_roughing_area)
+            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
+                                               &MotionController::_image_callback, this,
+                                               image_transport::TransportHints(transport_hint_));
+        else if (where_is_car() == route_semi_finishing_area)
+        {
+            if (loop_ == 0)
+                _U_turn();
+            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
+                                               &MotionController::_image_callback, this,
+                                               image_transport::TransportHints(transport_hint_));
+        }
+        else if (where_is_car() == route_parking_area)
+        {
+            if (!ac_move_.isServerConnected())
+                ac_move_.waitForServer();
+            // 先移动到停车区的下侧
+            motion_controller::MoveGoal goal1;
+            goal1.pose.x = y_parking_area_ - (y_road_up_up_ + length_car_ / 2);
+            goal1.pose.theta = CV_PI / 2;
+            goal1.pose.y = -(width_road_ / 2 - length_car_ / 2);
+            ac_move_.sendGoalAndWait(goal1, ros::Duration(20), ros::Duration(0.1));
+            motion_controller::MoveGoal goal2;
+            goal2.pose.y = -(y_road_up_up_ + length_car_ / 2 - length_parking_area_ / 2);
+            ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
+            if (get_position())
+                ROS_INFO_STREAM("Finish! x: " << x_ << " y: " << y_);
+            return;
+        }
+
+        finish();
+        if (!timer_.hasStarted())
+            timer_.start();
+        start_line_follower(true);
+    }
+
     bool MotionController::set_position(double x, double y)
     {
-        geometry_msgs::PointStamped point_odom;
-        point_odom.point.x = x;
-        point_odom.point.y = y;
-        point_odom.header.stamp = ros::Time();
-        point_odom.header.frame_id = "odom_combined";
+        x_ = x;
+        y_ = y;
         try
         {
-            point_footprint_ = buffer_.transform(point_odom, "base_footprint");
-            point_footprint_.header.stamp = ros::Time();
+            //   解析 base_footprint 中的点相对于 odom_combined 的坐标
+            geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",
+                                                                          "base_footprint", ros::Time(0));
+            delta_x_ = x - tfs.transform.translation.x;
+            delta_y_ = y - tfs.transform.translation.y;
         }
         catch (const std::exception &e)
         {
-            ROS_INFO("error:%s", e.what());
+            ROS_WARN("set_position exception:%s", e.what());
             return false;
         }
         return true;
     }
 
-    bool MotionController::get_position(double &x, double &y)
+    bool MotionController::get_position()
     {
         geometry_msgs::PointStamped point_odom;
         try
         {
-            point_odom = buffer_.transform(point_footprint_, "base_footprint");
+            //   解析 base_footprint 中的点相对于 odom_combined 的坐标
+            geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",
+                                                                          "base_footprint", ros::Time(0));
+            x_ = delta_x_ + tfs.transform.translation.x;
+            y_ = delta_y_ + tfs.transform.translation.y;
         }
         catch (const std::exception &e)
         {
-            ROS_INFO("error:%s", e.what());
+            ROS_WARN("get_position exception:%s", e.what());
             return false;
         }
-        x = point_odom.point.x;
-        y = point_odom.point.y;
         return true;
     }
 
@@ -415,5 +530,26 @@ namespace motion_controller
                 ROS_INFO("shut down LineFollower.");
         }
         return flag;
+    }
+
+    bool MotionController::go(Go::Request &req, Go::Response &resp)
+    {
+        if (!ac_move_.isServerConnected())
+            ac_move_.waitForServer();
+        if (!set_position(length_car_ / 2, length_car_ / 2))
+        {
+            ROS_ERROR("Failed to initialize position!");
+            return false;
+        }
+        // 横向移动出停止区
+        motion_controller::MoveGoal goal1;
+        goal1.pose.y = y_road_up_up_ + width_road_ / 2 - length_car_ / 2;
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
+        // 前进一段距离
+        motion_controller::MoveGoal goal2;
+        goal2.pose.x = 0.3;
+        ac_move_.sendGoalAndWait(goal2, ros::Duration(9), ros::Duration(0.1));
+        start_line_follower(true);
+        return true;
     }
 } // namespace motion_controller

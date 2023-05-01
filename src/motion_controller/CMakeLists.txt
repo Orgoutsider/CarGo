@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
   tf2_ros 
   tf2_geometry_msgs
+  my_hand_eye
 )
 
 ## System dependencies are found with CMake's conventions
@@ -67,6 +68,7 @@ add_message_files(
 add_service_files(
   FILES
   Start.srv
+  Go.srv
 )
   
 ## Generate actions in the 'action' folder
@@ -122,10 +124,10 @@ generate_dynamic_reconfigure_options(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES motion_controller
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime cv_bridge image_transport geometry_msgs actionlib actionlib_msgs tf2 tf2_ros tf2_geometry_msgs dynamic_reconfigure
-#  DEPENDS system_lib
+ INCLUDE_DIRS include
+ LIBRARIES motion_controller
+ CATKIN_DEPENDS roscpp rospy std_msgs message_runtime cv_bridge image_transport geometry_msgs actionlib actionlib_msgs tf2 tf2_ros tf2_geometry_msgs dynamic_reconfigure
+ DEPENDS OpenCV
 )
 
 ###########
@@ -159,6 +161,7 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/line_follower.cpp
   src/${PROJECT_NAME}/motion_controller.cpp
   src/${PROJECT_NAME}/vision_adjuster.cpp
+  src/${PROJECT_NAME}/field_guide.cpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}

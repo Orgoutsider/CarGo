@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   message_generation
   yolov5_ros
+  actionlib
+  actionlib_msgs
 )
 set(OpenCV required PATHS /home/nano/opencv4/opencv/build)
 find_package(OpenCV REQUIRED)
@@ -72,17 +74,17 @@ add_service_files(
 )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  FILES
+  Arm.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
   std_msgs
   geometry_msgs
+  actionlib_msgs
 )
 
 ################################################
@@ -117,7 +119,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_QR_code
- CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime geometry_msgs genmsg vision_msgs sensor_msgs
+ CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime geometry_msgs genmsg vision_msgs sensor_msgs actionlib actionlib_msgs
  DEPENDS OpenCV
 )
 
