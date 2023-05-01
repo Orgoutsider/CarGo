@@ -7,13 +7,18 @@ import time
 from motion_controller.srv import Go, GoRequest
 
 button_pin = 11  # 开关管脚pin
+already_go = False
 
 
 def cb(channel):
+    global already_go
+    if already_go:
+        return
     client = rospy.ServiceProxy("Go", Go)
     client.wait_for_service()
     req = GoRequest()
     client.call(req)
+    already_go = True
 
 
 # GPIO定义

@@ -71,4 +71,7 @@
   <include file="$(find turn_on_wheeltec_robot)/launch/include/robot_pose_ekf.launch" unless="$(arg repeat)">
     <arg name="is_cartographer" value="$(arg is_cartographer)"/>
   </include>
+
+  <!-- 一键式节点 -->
+  <node name="touch" pkg="turn_on_wheeltec_robot" type="touch.py" respawn="false" output="screen" />
  </launch>

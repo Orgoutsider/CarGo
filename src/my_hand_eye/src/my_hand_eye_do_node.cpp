@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "my_hand_eye_setup_node");
+    ros::init(argc, argv, "my_hand_eye_do_node");
 
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");

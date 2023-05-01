@@ -1,5 +1,5 @@
 <launch>
-    <arg name="node_namespace" default="my_hand_eye_setup_node" />
+    <arg name="node_namespace" default="my_hand_eye_do_node" />
     <arg name="ft_servo" default="ft_servo" />
     <arg name="show_detections" default="true" />
     <arg name="camera_name" default="/eye" />
@@ -7,18 +7,18 @@
     <arg name="if_detect_QR_code" default="false" />
     <arg name="if_emulation" default="true" />
 
-    <include file="$(find my_hand_eye)/launch/eye.launch">
+    <!-- <include file="$(find my_hand_eye)/launch/eye.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
     </include>
     <include file="$(find my_hand_eye)/launch/include/yolov5.launch" >
         <arg name="param_modification" value="false" />
-    </include>
+    </include> -->
 
     <!-- Set parameters -->
     <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
 
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
-    <node pkg="my_hand_eye" type="my_hand_eye_setup_node" name="$(arg node_namespace)" output="screen">
+    <node pkg="my_hand_eye" type="my_hand_eye_do_node" name="$(arg node_namespace)" output="screen">
     <!-- <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen"> -->
 
         <!-- Remap topics from those used in code to those on the ROS network -->

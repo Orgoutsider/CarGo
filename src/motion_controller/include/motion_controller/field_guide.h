@@ -20,7 +20,6 @@ namespace motion_controller
         bool doing_;
         int where_; // route索引
         std::array<int, 8> route_;
-        double x_QR_code_board_;
         double x_raw_material_area_;
         double y_roughing_area_;
         double x_semi_finishing_area_;
@@ -33,6 +32,7 @@ namespace motion_controller
         double width_road_;          // 路宽
         double length_parking_area_; // 停车区长宽
         double y_road_up_up_;        // 从停车区上侧挡板到上路上沿
+        double x_QR_code_board_;     // 二维码板
         double y_parking_area_;      // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
         FieldGuide();
         int where_is_car();

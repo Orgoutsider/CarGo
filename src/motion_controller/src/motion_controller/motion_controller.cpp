@@ -28,7 +28,7 @@ namespace motion_controller
                                                image_transport::TransportHints(transport_hint_));
         }
         vision_publisher = nh.advertise<Distance>("/vision_usb_cam", 5);
-        timer_ = nh.createTimer(ros::Rate(3), &MotionController::_timer_callback, this);
+        timer_ = nh.createTimer(ros::Rate(3), &MotionController::_timer_callback, this, false, false);
         go_client_ = nh.advertiseService("Go", &MotionController::go, this);
         start_client_ = nh.serviceClient<Start>("Start");
     }
@@ -304,6 +304,7 @@ namespace motion_controller
         if (get_position())
         {
             // 转弯结束关闭转弯订阅
+            ROS_INFO_STREAM("x: " << x_ << " y: " << y_);
             if (finish_turning_ && !can_turn())
                 image_subscriber_.shutdown();
             if (arrive())
@@ -341,6 +342,7 @@ namespace motion_controller
                                  boost::bind(&MotionController::_active_callback, this),
                                  boost::bind(&MotionController::_feedback_callback, this));
                 doing();
+                start_line_follower(false);
             }
         }
     }
@@ -544,12 +546,13 @@ namespace motion_controller
         // 横向移动出停止区
         motion_controller::MoveGoal goal1;
         goal1.pose.y = y_road_up_up_ + width_road_ / 2 - length_car_ / 2;
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
-        // 前进一段距离
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(10), ros::Duration(0.1));
+        // 直接前进到二维码板
         motion_controller::MoveGoal goal2;
-        goal2.pose.x = 0.3;
-        ac_move_.sendGoalAndWait(goal2, ros::Duration(9), ros::Duration(0.1));
+        goal2.pose.x = x_QR_code_board_ - length_car_ / 2;
+        ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
         start_line_follower(true);
+        timer_.start();
         return true;
     }
 } // namespace motion_controller
