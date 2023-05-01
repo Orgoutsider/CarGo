@@ -35,7 +35,6 @@ namespace motion_controller
         ros::Publisher cmd_vel_publisher_;                            // 速度话题发布者
         dynamic_reconfigure::Server<params_PID_srvConfig> dr_server_; // 创建动态参数服务器对象
         // pid速度参考：线速度0.2，角速度0.5
-        // PIDController pid_;
         // Optional callback that gets called in a separate thread whenever a new goal is received, allowing users to have blocking callbacks.
         void _execute_callback(const motion_controller::MoveGoalConstPtr &goal);
         // 挤占服务时回调函数

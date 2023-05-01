@@ -1,0 +1,11 @@
+# 任务点编号
+uint8 route
+uint8 route_QR_code_board=0
+uint8 route_raw_material_area=1
+uint8 route_roughing_area=2
+uint8 route_semi_finishing_area=3
+uint8 route_parking_area=4
+---
+---
+# 反馈：是否已完成位姿调整
+bool finish_adjusting
