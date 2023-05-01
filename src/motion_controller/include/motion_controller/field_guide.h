@@ -20,6 +20,7 @@ namespace motion_controller
         bool doing_;
         int where_; // route索引
         std::array<int, 8> route_;
+        double length_field_; // 场地（车道部分）长宽
         double x_raw_material_area_;
         double y_roughing_area_;
         double x_semi_finishing_area_;
@@ -27,6 +28,7 @@ namespace motion_controller
     public:
         double x_;
         double y_;
+        bool left_;                  // 移动方向，是否逆时针（左转）
         int loop_;                   // 当前为第几轮
         double length_car_;          // 车长
         double width_road_;          // 路宽
@@ -43,6 +45,10 @@ namespace motion_controller
         bool arrive();
         // 下一路段没有任务，可以直接转弯
         bool can_turn();
+        // 位于任务点所在道路，距离下一任务点的距离
+        double length_route();
+        // 位于弯道，到弯道中心线的距离，不位于弯道时返回0
+        double length_corner();
     };
 } // namespace motion_controller
 

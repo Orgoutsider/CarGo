@@ -17,6 +17,7 @@ _deps
 *.ipynb
 *.engine
 *.wts
+*.pyc
 build/
 logs/
 devel/

@@ -3,8 +3,7 @@
 namespace motion_controller
 {
     MotionController::MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : left_(true),
-          r_start_(131), r_end_(195),
+        : r_start_(131), r_end_(195),
           c_start_(16), c_end_(width_ - c_start_),
           mask_c_start1_(100), mask_c_start2_(50), threshold_(40),
           black_low_(0, 0, 0), black_up_(180, 255, 105), theta_thr_(8),
@@ -44,8 +43,19 @@ namespace motion_controller
         motion_controller::MoveGoal goal2;
         goal2.pose.theta = left_ ? CV_PI / 2 : -CV_PI / 2;
         // 转弯后前进一段距离
-        goal2.pose.y = left_ ? 0.1 : -0.1;
-        ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
+        if (get_position())
+        {
+            double len = length_route();
+            if (!can_turn() && len <= 0.8) // 下一路段有任务
+            {
+                goal2.pose.y = left_ ? len : -len;
+            }
+            else
+                goal2.pose.y = left_ ? 0.5 : -0.5;
+        }
+        else
+            goal2.pose.y = left_ ? 0.5 : -0.5;
+        ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
         // 转弯后定时器将订阅关闭
         finish_turning_ = true;
     }
@@ -59,6 +69,38 @@ namespace motion_controller
         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
         // 需要改变之后的转弯方向
         left_ = !left_;
+    }
+
+    void MotionController::_turn_by_position()
+    {
+        if (!ac_move_.isServerConnected())
+            ac_move_.waitForServer();
+        if (get_position())
+        {
+            // 矫正误差
+            motion_controller::MoveGoal goal1;
+            goal1.pose.x = length_corner();
+            if (goal1.pose.x)
+                ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+        }
+        motion_controller::MoveGoal goal2;
+        goal2.pose.theta = left_ ? CV_PI / 2 : -CV_PI / 2;
+        // 转弯后前进一段距离
+        if (get_position())
+        {
+            double len = length_route();
+            if (!can_turn() && len <= 0.8) // 下一路段有任务
+            {
+                goal2.pose.y = left_ ? len : -len;
+            }
+            else
+                goal2.pose.y = left_ ? 0.5 : -0.5;
+        }
+        else
+            goal2.pose.y = left_ ? 0.5 : -0.5;
+        ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
+        // 转弯后定时器将订阅关闭
+        finish_turning_ = true;
     }
 
     void MotionController::_clean_lines(double y[], double &y_sum, int &tot)
@@ -144,7 +186,8 @@ namespace motion_controller
             waitKey(1);
         }
         std::vector<Vec2f> lines;
-        HoughLines(srcF, lines, 1, CV_PI / 180, threshold_, 0, 0); // 根据实际调整，夜晚40，下午50
+        HoughLines(srcF, lines, 1, CV_PI / 180, threshold_, 0, 0); // 根据实际调整
+        static int err_cnt = 0;                                    // 防错误识别计数器
         if (lines.size())
         {
             int tot = 0;
@@ -233,7 +276,13 @@ namespace motion_controller
                     flag = true;
                 }
                 // ROS_INFO_STREAM(y_now);
-                y_aver = (y_now > 0.3 * (r_end_ - r_start_)) ? 0.9 * y_now + 0.1 * y_aver : y_aver;
+                if (abs(y_now - y_aver) > (r_end_ - r_start_) / 6)
+                {
+                    err_cnt++;
+                    ROS_WARN("Line might be out of limit!");
+                }
+                else
+                    y_aver = 0.9 * y_now + 0.1 * y_aver;
                 double distance;
                 if (y_ground_ < y_aver - 0.01 || y_ground_ < y_goal_)
                     distance = 1 / (1.0 / y_ground_ - 1.0 / y_aver) - 1 / (1.0 / y_ground_ - 1.0 / y_goal_);
@@ -245,6 +294,7 @@ namespace motion_controller
                 if (abs(distance) < distance_thr_ && !param_modification_)
                 {
                     cnt = 0;
+                    err_cnt = 0;
                     vision_publisher.publish(Distance());
                     // 客户端转弯，顺时针对应右转
                     _turn();
@@ -272,6 +322,7 @@ namespace motion_controller
                     msg.distance = distance;
                     msg.header = image_rect->header;
                     vision_publisher.publish(msg);
+                    err_cnt++;
                 }
             }
             else if (cnt >= cnt_tolerance_ && !param_modification_)
@@ -279,6 +330,7 @@ namespace motion_controller
                 // 可能是超出了能够检测线的范围，使用全局定位信息转弯
                 ROS_WARN("Line might be out of limit!");
                 vision_publisher.publish(Distance());
+                err_cnt++;
             }
             if (param_modification_)
             {
@@ -296,6 +348,19 @@ namespace motion_controller
         {
             ROS_WARN("Line might be out of limit!");
             vision_publisher.publish(Distance());
+        }
+        if (err_cnt > 10)
+        {
+            // 使用全局定位信息转弯
+            cnt = 0;
+            err_cnt = 0;
+            vision_publisher.publish(Distance());
+            // 客户端转弯，顺时针对应右转
+            _turn_by_position();
+            if (!timer_.hasStarted())
+                timer_.start();
+            if (!param_modification_)
+                start_line_follower(true);
         }
     }
 

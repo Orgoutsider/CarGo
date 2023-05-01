@@ -31,7 +31,6 @@ namespace motion_controller
     private:
         bool param_modification_; // 动态调参
         bool motor_status_;       // 调参，即停选项
-        bool left_;               // 移动方向，是否逆时针（左转）
         std::string transport_hint_;
         // 默认（320，240）图片
         const int width_ = 320;
@@ -71,6 +70,8 @@ namespace motion_controller
         void _turn();
         // 掉头，需要改变之后的转弯方向
         void _U_turn();
+        // 通过全局定位信息转弯
+        void _turn_by_position();
         // 此算法要注意弯道外界，场地外有黑色物体的情况
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         void _timer_callback(const ros::TimerEvent &event);
