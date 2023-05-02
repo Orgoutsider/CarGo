@@ -44,7 +44,10 @@ namespace motion_controller
         goal1.pose.x = 0.08;
         ac_move_.sendGoalAndWait(goal1, ros::Duration(8), ros::Duration(0.1));
         motion_controller::MoveGoal goal2;
-        goal2.pose.theta = left_ ? CV_PI / 2 : -CV_PI / 2;
+        if (get_position())
+            goal2.pose.theta = angle_corner();
+        else
+            goal2.pose.theta = CV_PI / 2;
         // 转弯后前进一段距离
         goal2.pose.y = 0.1;
         ac_move_.sendGoalAndWait(goal2, ros::Duration(6), ros::Duration(0.1));
@@ -497,21 +500,15 @@ namespace motion_controller
     {
         if (timer_.hasStarted())
             timer_.stop();
+        if (where_is_car() == route_raw_material_area && loop_ == 1)
+            _U_turn();
     }
 
     void MotionController::_feedback_callback() {}
 
     void MotionController::_done_callback(const actionlib::SimpleClientGoalState &state, const my_hand_eye::ArmResultConstPtr &result)
     {
-        if (where_is_car() == route_raw_material_area)
-        {
-            if (loop_ == 1)
-                _U_turn();
-            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
-                                               &MotionController::_image_callback, this,
-                                               image_transport::TransportHints(transport_hint_));
-        }
-        else if (where_is_car() == route_roughing_area)
+        if (where_is_car() == route_raw_material_area && where_is_car() == route_roughing_area)
             image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
                                                &MotionController::_image_callback, this,
                                                image_transport::TransportHints(transport_hint_));
@@ -547,10 +544,11 @@ namespace motion_controller
         start_line_follower(true);
     }
 
-    bool MotionController::set_position(double x, double y)
+    bool MotionController::set_position(double x, double y, double theta)
     {
         x_ = x;
         y_ = y;
+        theta_ = (theta > -CV_PI) ? theta + CV_PI : (theta <= -CV_PI ? theta - CV_PI : theta);
         try
         {
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
@@ -558,6 +556,8 @@ namespace motion_controller
                                                                           "base_footprint", ros::Time(0));
             delta_x_ = x - tfs.transform.translation.x;
             delta_y_ = y - tfs.transform.translation.y;
+            // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
+            delta_theta_ = theta_ - atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
         }
         catch (const std::exception &e)
         {
@@ -577,6 +577,8 @@ namespace motion_controller
                                                                           "base_footprint", ros::Time(0));
             x_ = delta_x_ + tfs.transform.translation.x;
             y_ = delta_y_ + tfs.transform.translation.y;
+            theta_ = delta_theta_ + atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
+            theta_ = (theta_ > -CV_PI) ? theta_ + CV_PI : (theta_ <= -CV_PI ? theta_ - CV_PI : theta_);
         }
         catch (const std::exception &e)
         {
@@ -607,7 +609,7 @@ namespace motion_controller
     {
         if (!ac_move_.isServerConnected())
             ac_move_.waitForServer();
-        if (!set_position(length_car_ / 2, length_car_ / 2))
+        if (!set_position(length_car_ / 2, length_car_ / 2, 0))
         {
             ROS_ERROR("Failed to initialize position!");
             return false;

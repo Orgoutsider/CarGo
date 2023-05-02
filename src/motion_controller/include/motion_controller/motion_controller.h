@@ -57,6 +57,7 @@ namespace motion_controller
         double distance_thr_;  // 等效阈值小于此值时判定退出pid，转弯
         double delta_x_;       // 设置位置时，真实坐标与tf坐标转换关系的偏移量
         double delta_y_;
+        double delta_theta_;
         bool finish_turning_; // 转弯之后关闭弯道视觉订阅
         std::shared_ptr<image_transport::ImageTransport> it_;
         tf2_ros::Buffer buffer_;
@@ -88,7 +89,7 @@ namespace motion_controller
     public:
         MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         // 设置当前位置
-        bool set_position(double x, double y);
+        bool set_position(double x, double y, double theta);
         // 获取当前位置
         bool get_position();
         // 开/关循线回调

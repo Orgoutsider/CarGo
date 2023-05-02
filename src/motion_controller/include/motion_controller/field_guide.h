@@ -28,6 +28,7 @@ namespace motion_controller
     public:
         double x_;
         double y_;
+        double theta_;               // 位姿
         bool left_;                  // 移动方向，是否逆时针（左转）
         int loop_;                   // 当前为第几轮
         double length_car_;          // 车长
@@ -49,6 +50,8 @@ namespace motion_controller
         double length_route();
         // 位于弯道，到弯道中心线的距离，不位于弯道时返回0
         double length_corner();
+        // 位于弯道
+        double angle_corner();
     };
 } // namespace motion_controller
 
