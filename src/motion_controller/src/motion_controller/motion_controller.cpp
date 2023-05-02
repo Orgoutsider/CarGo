@@ -8,7 +8,7 @@ namespace motion_controller
           c_start_(16), c_end_(width_ - c_start_),
           mask_c_start1_(100), mask_c_start2_(50), threshold_(40),
           black_low_(0, 0, 0), black_up_(180, 255, 100),
-          yellow_low_(26, 43, 46), yellow_up_(34, 255, 255),
+          yellow_low_(26, 20, 46), yellow_up_(50, 255, 255),
           grey_low_(0, 0, 46), grey_up_(180, yellow_low_[1], 220),
           theta_thr_(10),
           y_goal_(48), y_ground_(3),
@@ -363,6 +363,13 @@ namespace motion_controller
                         if (!param_modification_)
                             start_line_follower(true);
                     }
+                    else
+                    {
+                        Distance msg;
+                        msg.distance = distance;
+                        msg.header = image_rect->header;
+                        vision_publisher.publish(msg);
+                    }
                 }
                 else 
                 {
@@ -388,7 +395,6 @@ namespace motion_controller
                         msg.distance = distance;
                         msg.header = image_rect->header;
                         vision_publisher.publish(msg);
-                        // err_cnt++;
                     }
                 }
             }
