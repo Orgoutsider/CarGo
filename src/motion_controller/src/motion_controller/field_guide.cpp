@@ -47,19 +47,19 @@ namespace motion_controller
     switch (where_is_car())
     {
     case route_QR_code_board:
-      return x_ > x_QR_code_board_ - 0.1;
+      return x_ > x_QR_code_board_ - 0.1 && y_ < y_road_up_up_ + width_road_ - length_car_ / 2;
     
     case route_raw_material_area:
-      return abs(x_ - x_raw_material_area_) < 0.1;
+      return abs(x_ - x_raw_material_area_) < 0.1 && y_ < y_road_up_up_ + width_road_ - length_car_ / 2;
     
     case route_roughing_area:
-      return y_ > y_roughing_area_ - 0.1;
+      return y_ > y_roughing_area_ - 0.1 && x_ > length_field_ - width_road_ + length_car_ / 2;
 
     case route_semi_finishing_area:
-      return x_ < x_semi_finishing_area_ + 0.1;
+      return x_ < x_semi_finishing_area_ + 0.1 && y_ > y_road_up_up_ + length_field_ - width_road_ + length_car_ / 2;
 
     case route_parking_area:
-      return y_ < y_parking_area_ + 0.1;
+      return y_ < y_parking_area_ + 0.1 && x_ < width_road_ - length_car_ / 2;
     
     default:
       ROS_ERROR("where_is_car returns invalid value!");
