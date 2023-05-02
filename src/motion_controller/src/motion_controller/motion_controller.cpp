@@ -285,20 +285,25 @@ namespace motion_controller
                     }
                 }
             }
-            if (flag_cnt && cnt_ < cnt_tolerance_)
+            if (cnt_ < cnt_tolerance_)
             {
-                cnt_++;
-                if (cnt_ >= cnt_tolerance_)
+                if (flag_cnt)
                 {
-                    if (timer_.hasStarted())
-                        timer_.stop();
-                    if (!param_modification_)
+                    cnt_++;
+                    if (cnt_ >= cnt_tolerance_)
                     {
-                        ROS_INFO("Turning corners ...");
-                        start_line_follower(false);
-                        return;
+                        if (timer_.hasStarted())
+                            timer_.stop();
+                        if (!param_modification_)
+                        {
+                            ROS_INFO("Turning corners ...");
+                            start_line_follower(false);
+                            return;
+                        }
                     }
                 }
+                else if (cnt_ != 0) // 必须连续检测到
+                    cnt_ = 0;
             }
             if (param_modification_ && !motor_status_)
             {
