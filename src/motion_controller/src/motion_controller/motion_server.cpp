@@ -42,7 +42,7 @@ namespace motion_controller
         std::vector<double> controll;
         if (goal->pose.theta)
         {
-            PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.01}, {0.1}, {0.8});
+            PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
             while (!success && ros::ok())
             {
                 if (_get_pose_now(pose, now))
@@ -78,7 +78,7 @@ namespace motion_controller
         {
             PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_},
                                {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
-                               {0.005, 0.005, 0.01}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
+                               {0.01, 0.01, 0.02}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
             success = false;
             while (!success && ros::ok())
             {

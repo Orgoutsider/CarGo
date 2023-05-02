@@ -178,7 +178,7 @@ namespace motion_controller
         return -theta_;
 
     default:
-      ROS_WARN("Car is not in the corner. Do not use length_corner.");
+      ROS_WARN("Car is not in the corner. Do not use angle_corner.");
       return 0;
     }
   }

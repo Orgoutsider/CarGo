@@ -35,6 +35,7 @@ namespace motion_controller
         // 默认（320，240）图片
         const int width_ = 320;
         const int height_ = 240;
+        int cnt_; 
         // （320，240）图片截图
         int r_start_;
         int r_end_;
@@ -73,7 +74,7 @@ namespace motion_controller
         void _clean_lines(double y[], double &y_sum, int &tot);
         bool _color_judge(cv::Mat &img, bool note[], cv::Vec2f &line);
         // 转弯
-        void _turn();
+        bool _turn();
         // 掉头，需要改变之后的转弯方向
         void _U_turn();
         // 通过全局定位信息转弯
@@ -94,6 +95,7 @@ namespace motion_controller
         bool get_position();
         // 开/关循线回调
         bool start_line_follower(bool start);
+        void start_image_subscriber(bool start);
         bool go(Go::Request &req, Go::Response &resp);
         void plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color);
     };

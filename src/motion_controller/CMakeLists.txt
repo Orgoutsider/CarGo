@@ -211,26 +211,6 @@ target_link_libraries(${PROJECT_NAME}
 #   PATTERN ".svn" EXCLUDE
 # )
 
-# add_executable(auto_drive src/auto_drive.cpp)
-# add_dependencies(auto_drive ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(auto_drive
-#   ${catkin_LIBRARIES}
-#   ${OpenCV_LIBRARIES}
-# )
-
-# add_executable(corners src/corners.cpp)
-# add_dependencies(corners ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(corners
-#   ${catkin_LIBRARIES}
-# )
-
-# add_executable(corners_judge src/corners_judge.cpp)
-# add_dependencies(corners_judge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(corners_judge
-#   ${catkin_LIBRARIES}
-#   ${OpenCV_LIBRARIES}
-# )
-
 # add_executable(image_saver src/image_saver.cpp)
 # add_dependencies(image_saver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # target_link_libraries(image_saver

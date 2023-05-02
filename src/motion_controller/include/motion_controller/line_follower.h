@@ -33,18 +33,13 @@ namespace motion_controller
         int Hough_threshold_;    // 根据实际调整，夜晚40，下午50
         int judge_line_;         // 判断线高度，0~(r_end_ - r_start_)
         double linear_velocity_; // 速度
+        double theta_thr_horizontal_;     // theta与90度差别少于此值时判定为横线
         double rho_thr_;         // 滤除直线时，rho阈值
         double theta_thr_;       // theta阈值（单位度）
         double kp_;
         double kd_;
-        cv::Mat yellow_; // 黄色inRange，用于颜色滤除
-        cv::Mat grey_;
         cv::Scalar black_low_; // 黑色车道分割
         cv::Scalar black_up_;  // 夜晚80左右，下午100
-        cv::Scalar yellow_low_; // 黄色
-        cv::Scalar yellow_up_;
-        cv::Scalar grey_low_; // 灰色
-        cv::Scalar grey_up_;
         ros::Publisher cmd_vel_publisher_;
         ros::ServiceServer start_server_; // 开关回调函数服务端
         std::shared_ptr<image_transport::ImageTransport> it_;
@@ -53,7 +48,6 @@ namespace motion_controller
         // 去除错误直线，重新求rho和theta平均值
         void _clean_lines(cv::Vec2f lines[], int num, double &rho_aver, double &theta_aver);
         // 利用颜色排除直线
-        bool _color_judge(cv::Vec2f &line, bool left);
         bool _find_lines(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
         // bool _find_road(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);

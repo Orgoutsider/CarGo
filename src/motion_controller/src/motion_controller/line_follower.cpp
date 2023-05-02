@@ -8,11 +8,9 @@ namespace motion_controller
           mask_r_start_(35), mask_c_start_(100),
           Hough_threshold_(28),
           judge_line_(20), linear_velocity_(0.2),
-          rho_thr_(5), theta_thr_(3),
+          rho_thr_(5), theta_thr_(3), theta_thr_horizontal_(16),
           kp_(0.03), kd_(0.015),
-          black_low_(0, 0, 0), black_up_(180, 255, 100),
-          yellow_low_(26, 43, 46), yellow_up_(34, 255, 255),
-          grey_low_(0, 0, 46), grey_up_(180, yellow_low_[1], 220),
+          black_low_(0, 0, 0), black_up_(180, 255, 94),
           motor_status_(false), start_image_sub_(false)
     {
         it_ = std::shared_ptr<image_transport::ImageTransport>(
@@ -59,60 +57,56 @@ namespace motion_controller
         }
     }
 
-    bool LineFollower::_color_judge(cv::Vec2f &line, bool left)
-    {
-        double rho = line[0];
-        double theta = line[1];
-        if (yellow_.size() != grey_.size())
-        {
-            ROS_ERROR("yellow & grey size error!");
-            return false;
-        }
-        double rho_left = rho - 3;
-        double rho_right = rho + 3;
-        if (param_modification_ && !motor_status_)
-        {
-            cv::imshow("yellow", yellow_);
-            cv::imshow("grey", grey_);
-            cv::waitKey(1);
-        }
-        // 画白线
-        cv::Mat line_left = cv::Mat::zeros(yellow_.size(), CV_8UC1);
-        plot_line(line_left, rho_left, theta, cv::Scalar(255), 3);
-        cv::Mat line_right = cv::Mat::zeros(yellow_.size(), CV_8UC1);
-        plot_line(line_right, rho_right, theta, cv::Scalar(255), 3);
-        if (left) // 判断左边线
-        {
-            cv::Mat mask_yellow, mask_grey;
-            cv::bitwise_and(line_left, yellow_, mask_yellow);
-            cv::bitwise_and(line_right, grey_, mask_grey);
-            double yellow = cv::sum(mask_yellow)[0] / cv::sum(line_left)[0];
-            double grey = cv::sum(mask_grey)[0] / cv::sum(line_right)[0];
-            ROS_INFO_STREAM("yellow:" << yellow << " grey:" << grey);
-            return yellow > 0.3 && grey > 0.3;
-        }
-        else // 判断右边线
-        {
-            cv::Mat mask_yellow, mask_grey;
-            cv::bitwise_and(line_left, grey_, mask_grey);
-            cv::bitwise_and(line_right, yellow_, mask_yellow);
-            double yellow = cv::sum(mask_yellow)[0] / cv::sum(line_right)[0];
-            double grey = cv::sum(mask_grey)[0] / cv::sum(line_left)[0];
-            ROS_INFO_STREAM("yellow:" << yellow << " grey:" << grey);
-            return yellow > 0.2 && grey > 0.2;
-        }
-    }
+    // bool LineFollower::_color_judge(cv::Vec2f &line, bool left)
+    // {
+    //     double rho = line[0];
+    //     double theta = line[1];
+    //     if (yellow_.size() != grey_.size())
+    //     {
+    //         ROS_ERROR("yellow & grey size error!");
+    //         return false;
+    //     }
+    //     double rho_left = rho - 3;
+    //     double rho_right = rho + 3;
+    //     // 画白线
+    //     cv::Mat line_left = cv::Mat::zeros(yellow_.size(), CV_8UC1);
+    //     plot_line(line_left, rho_left, theta, cv::Scalar(255), 3);
+    //     cv::Mat line_right = cv::Mat::zeros(yellow_.size(), CV_8UC1);
+    //     plot_line(line_right, rho_right, theta, cv::Scalar(255), 3);
+    //     if (param_modification_ && !motor_status_)
+    //     {
+    //         cv::imshow("yellow", yellow_);
+    //         cv::imshow("grey", grey_);
+    //         cv::waitKey(1);
+    //     }
+    //     if (left) // 判断左边线
+    //     {
+    //         cv::Mat mask_yellow, mask_grey;
+    //         cv::bitwise_and(line_left, yellow_, mask_yellow);
+    //         cv::bitwise_and(line_right, grey_, mask_grey);
+    //         double yellow = cv::sum(mask_yellow)[0] / cv::sum(line_left)[0];
+    //         double grey = cv::sum(mask_grey)[0] / cv::sum(line_right)[0];
+    //         ROS_INFO_STREAM("yellow:" << yellow << " grey:" << grey);
+    //         return yellow > 0.3 && grey > 0.3;
+    //     }
+    //     else // 判断右边线
+    //     {
+    //         cv::Mat mask_yellow, mask_grey;
+    //         cv::bitwise_and(line_left, grey_, mask_grey);
+    //         cv::bitwise_and(line_right, yellow_, mask_yellow);
+    //         double yellow = cv::sum(mask_yellow)[0] / cv::sum(line_right)[0];
+    //         double grey = cv::sum(mask_grey)[0] / cv::sum(line_left)[0];
+    //         ROS_INFO_STREAM("yellow:" << yellow << " grey:" << grey);
+    //         return yellow > 0.2 && grey > 0.2;
+    //     }
+    // }
 
     bool LineFollower::_find_lines(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist)
     {
         using namespace cv;
-        // 原先代码
         // 色彩分离查找车道线
         Mat srcF;
         cvtColor(cv_image->image, srcF, COLOR_BGR2HSV);
-        // 黄色和灰色，滤车道线时使用
-        inRange(srcF, yellow_low_, yellow_up_, yellow_);
-        inRange(srcF, grey_low_, grey_up_, grey_);
         inRange(srcF, black_low_, black_up_, srcF);
         if (param_modification_ && !motor_status_)
         {
@@ -172,9 +166,10 @@ namespace motion_controller
                 double rho = line[0], theta = line[1];
                 // if(abs(rho-rho_NUM)>rho_Derta && abs(theta-theta_NUM)>theta_Derta || abs(theta) < 3)//最后这个是滤去一些theta错误的直线，可以不加
                 //     continue;
+                double theta_d = theta / CV_PI * 180;
                 if (theta < CV_PI / 2)
                 {
-                    if (!_color_judge(line, true))
+                    if (abs(theta_d - 90) < theta_thr_horizontal_)
                     {
                         // 排除的直线绘制绿色
                         plot_line(Hough, rho, theta, Scalar(0, 255, 0));
@@ -192,7 +187,7 @@ namespace motion_controller
                 }
                 else
                 {
-                    if (!_color_judge(line, false))
+                    if (abs(theta_d - 90) < theta_thr_horizontal_)
                     {
                         // 排除的直线绘制绿色
                         plot_line(Hough, rho, theta, Scalar(0, 255, 0));
@@ -470,20 +465,14 @@ namespace motion_controller
             rho_thr_ = config.rho_thr;
         if (theta_thr_ != config.theta_thr)
             theta_thr_ = config.theta_thr;
+        if (theta_thr_horizontal_ != config.theta_thr_horizontal)
+            theta_thr_horizontal_ = config.theta_thr_horizontal;
         if (kp_ != config.kp)
             kp_ = config.kp;
         if (kd_ != config.kd)
             kd_ = config.kd;
         if (black_up_[2] != config.v_black_up)
             black_up_[2] = config.v_black_up;
-        if (yellow_low_[0] != config.h_yellow_low)
-            yellow_low_[0] = config.h_yellow_low;
-        if (yellow_up_[0] != config.h_yellow_up)
-            yellow_up_[0] = config.h_yellow_up;
-        if (yellow_up_[1] != config.s_yellow_up)
-            yellow_up_[1] = config.s_yellow_up;
-        if (grey_low_[1] != config.s_yellow_up)
-            grey_low_[1] = config.s_yellow_up;
         if (motor_status_ != config.motor_status)
         {
             motor_status_ = config.motor_status;
