@@ -26,9 +26,7 @@ namespace motion_controller
         if (param_modification_)
         {
             dr_server_.setCallback(boost::bind(&MotionController::_dr_callback, this, _1, _2));
-            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
-                                               &MotionController::_image_callback, this,
-                                               image_transport::TransportHints(transport_hint_));
+            start_image_subscriber(true);
         }
         vision_publisher = nh.advertise<Distance>("/vision_usb_cam", 5);
         timer_ = nh.createTimer(ros::Rate(3), &MotionController::_timer_callback, this, false, false);
@@ -330,7 +328,11 @@ namespace motion_controller
                 {
                     vision_publisher.publish(Distance());
                     // 客户端转弯，顺时针对应右转
-                    _turn();
+                    if (!_turn()) // 出现了错误识别，重新开启弯道节点
+                    {
+                        ROS_WARN("Corner detection error, restart ...");
+                        return;
+                    }
                     if (!timer_.hasStarted())
                         timer_.start();
                     if (!param_modification_)
@@ -374,9 +376,7 @@ namespace motion_controller
             // ROS_INFO_STREAM("x: " << x_ << " y: " << y_);
             if (finish_turning_ && !can_turn())
             {
-                ROS_INFO("image subscriber shutdown.");
-                image_subscriber_.shutdown();
-                finish_turning_ = false;
+                start_image_subscriber(false);
             }
             if (arrive())
             {
@@ -508,16 +508,12 @@ namespace motion_controller
     void MotionController::_done_callback(const actionlib::SimpleClientGoalState &state, const my_hand_eye::ArmResultConstPtr &result)
     {
         if (where_is_car() == route_raw_material_area || where_is_car() == route_roughing_area)
-            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
-                                               &MotionController::_image_callback, this,
-                                               image_transport::TransportHints(transport_hint_));
+            start_image_subscriber(true);
         else if (where_is_car() == route_semi_finishing_area)
         {
             if (loop_ == 0)
                 _U_turn();
-            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
-                                               &MotionController::_image_callback, this,
-                                               image_transport::TransportHints(transport_hint_));
+            start_line_follower(true);
         }
         else if (where_is_car() == route_parking_area)
         {
@@ -618,6 +614,7 @@ namespace motion_controller
         }
         else
         {
+            finish_turning_ = false;
             image_subscriber_.shutdown();
             ROS_INFO("shutdown image subscriber.");
         }

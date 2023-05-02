@@ -69,7 +69,7 @@ namespace motion_controller
 
   bool FieldGuide::can_turn()
   {
-    return (loop_ == 1 && y_ > y_road_up_up_ + width_road_ && where_is_car() == route_parking_area);
+    return (loop_ == 1 && y_ > y_road_up_up_ + width_road_ && where_is_car() == route_raw_material_area);
   }
 
   double FieldGuide::length_route()
