@@ -611,11 +611,15 @@ namespace motion_controller
         if (start)
         {
             cnt_ = 0;
+            image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
+                                               &MotionController::_image_callback, this,
+                                               image_transport::TransportHints(transport_hint_));
+            ROS_INFO("start image subscriber.");
         }
         else
         {
             image_subscriber_.shutdown();
-
+            ROS_INFO("shutdown image subscriber.");
         }
     }
 
