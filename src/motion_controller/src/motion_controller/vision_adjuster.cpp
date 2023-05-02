@@ -27,6 +27,7 @@ namespace motion_controller
             {
                 TwistMightEnd tme;
                 tme.end = true;
+                tme.velocity = geometry_msgs::Twist();
                 cmd_vel_publisher_.publish(tme);
                 // 一轮调节完毕，赋值新的PIDController
                 pid_usb_cam = PIDController({0}, {kp_usb_cam_}, {ki_usb_cam_}, {kd_usb_cam_}, {0.03}, {0.1}, {0.5});

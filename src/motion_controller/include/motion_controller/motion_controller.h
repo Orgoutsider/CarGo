@@ -45,6 +45,10 @@ namespace motion_controller
         int threshold_;        // 根据实际调整，夜晚40，下午50
         cv::Scalar black_low_; // 黑色车道分割
         cv::Scalar black_up_;  // 夜晚80左右，下午100
+        cv::Scalar yellow_low_; // 黄色
+        cv::Scalar yellow_up_;
+        cv::Scalar grey_low_; // 灰色
+        cv::Scalar grey_up_;
         double theta_thr_;     // theta与90度差别少于此值时判定为横线
         int y_goal_;           // 目标位置
         int y_ground_;         // 地平线对应的y
@@ -66,6 +70,7 @@ namespace motion_controller
         ros::ServiceServer go_client_;    // 一键式客户端
         ros::ServiceClient start_client_; // 开启循线客户端
         void _clean_lines(double y[], double &y_sum, int &tot);
+        bool _color_judge(cv::Mat &img, bool note[], cv::Vec2f &line);
         // 转弯
         void _turn();
         // 掉头，需要改变之后的转弯方向
@@ -89,6 +94,7 @@ namespace motion_controller
         // 开/关循线回调
         bool start_line_follower(bool start);
         bool go(Go::Request &req, Go::Response &resp);
+        void plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color);
     };
 
 } // namespace motion_controller

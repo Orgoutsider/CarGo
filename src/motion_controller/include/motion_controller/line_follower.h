@@ -37,8 +37,14 @@ namespace motion_controller
         double theta_thr_;       // theta阈值（单位度）
         double kp_;
         double kd_;
+        cv::Mat yellow_; // 黄色inRange，用于颜色滤除
+        cv::Mat grey_;
         cv::Scalar black_low_; // 黑色车道分割
         cv::Scalar black_up_;  // 夜晚80左右，下午100
+        cv::Scalar yellow_low_; // 黄色
+        cv::Scalar yellow_up_;
+        cv::Scalar grey_low_; // 灰色
+        cv::Scalar grey_up_;
         ros::Publisher cmd_vel_publisher_;
         ros::ServiceServer start_server_; // 开关回调函数服务端
         std::shared_ptr<image_transport::ImageTransport> it_;
@@ -46,6 +52,8 @@ namespace motion_controller
         dynamic_reconfigure::Server<lineConfig> dr_server_;
         // 去除错误直线，重新求rho和theta平均值
         void _clean_lines(cv::Vec2f lines[], int num, double &rho_aver, double &theta_aver);
+        // 利用颜色排除直线
+        bool _color_judge(cv::Vec2f &line, bool left);
         bool _find_lines(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
         // bool _find_road(cv_bridge::CvImagePtr &cv_image, geometry_msgs::Twist &twist);
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);
@@ -54,6 +62,8 @@ namespace motion_controller
 
     public:
         LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);
+        // 绘制HoughLines直线
+        void plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color, double width = 1); 
     };
 
 } // namespace motion_controller
