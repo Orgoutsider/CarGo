@@ -7,12 +7,12 @@ namespace motion_controller
           r_start_(131), r_end_(195),
           c_start_(16), c_end_(width_ - c_start_),
           mask_c_start1_(100), mask_c_start2_(50), threshold_(40),
-          black_low_(0, 0, 0), black_up_(180, 255, 100),
-          yellow_low_(26, 20, 46), yellow_up_(50, 255, 255),
-          grey_low_(0, 0, 46), grey_up_(180, yellow_low_[1], 220),
+          black_low_(0, 0, 0), black_up_(180, 255, 94),
+          yellow_low_(26, 43, 46), yellow_up_(50, 255, 255),
+          grey_low_(0, 0, black_up_[2]), grey_up_(180, yellow_low_[1], 220),
           theta_thr_(10),
           y_goal_(48), y_ground_(3),
-          cnt_tolerance_(3), y_thr_(3),
+          cnt_tolerance_(2), y_thr_(3),
           distance_thr_(0.05), motor_status_(false),
           delta_x_(0), delta_y_(0), finish_turning_(false),
           listener_(buffer_),
@@ -54,9 +54,9 @@ namespace motion_controller
             }
         }
         else
-            goal2.pose.theta = CV_PI / 2;
+            goal2.pose.theta = left_ ? CV_PI / 2 : -CV_PI / 2;
         // 转弯后前进一段距离
-        goal2.pose.y = 0.1;
+        goal2.pose.y = left_ ? 0.1 : -0.1;
         ac_move_.sendGoalAndWait(goal2, ros::Duration(13), ros::Duration(0.1));
         // 转弯后定时器将订阅关闭
         finish_turning_ = true;
@@ -74,7 +74,7 @@ namespace motion_controller
         left_ = !left_;
     }
 
-    void MotionController::_turn_by_position()
+    bool MotionController::_turn_by_position()
     {
         if (!ac_move_.isServerConnected())
             ac_move_.waitForServer();
@@ -84,26 +84,31 @@ namespace motion_controller
             motion_controller::MoveGoal goal1;
             goal1.pose.x = length_corner();
             if (goal1.pose.x)
-                ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
-        }
-        motion_controller::MoveGoal goal2;
-        goal2.pose.theta = left_ ? CV_PI / 2 : -CV_PI / 2;
-        // 转弯后前进一段距离
-        if (get_position())
-        {
-            double len = length_route();
-            if (!can_turn() && len <= 0.8) // 下一路段有任务
             {
-                goal2.pose.y = left_ ? len : -len;
+                ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+                ROS_WARN("Turn by position ...");
             }
             else
-                goal2.pose.y = left_ ? 0.5 : -0.5;
+                return false;
+        }
+        motion_controller::MoveGoal goal2;
+        if (get_position())
+        {
+            goal2.pose.theta = angle_corner();
+            if (goal2.pose.theta == 0)
+            {
+                // 未到达弯道，重启弯道订阅者
+                return false;
+            }
         }
         else
-            goal2.pose.y = left_ ? 0.5 : -0.5;
+            goal2.pose.theta = left_ ? CV_PI / 2 : -CV_PI / 2;
+        // 转弯后前进一段距离
+        goal2.pose.y = left_ ? 0.1 : -0.1;
         ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
         // 转弯后定时器将订阅关闭
         finish_turning_ = true;
+        return true;
     }
 
     void MotionController::_clean_lines(double y[], double &y_sum, int &tot)
@@ -131,7 +136,7 @@ namespace motion_controller
         double theta = line[1];
         double a = cos(theta);
         double b = sin(theta);
-        int y = cvRound((rho - a * img.cols / 2) / b);
+        int y = cvRound((rho - a * img.cols / 2) / b) + r_start_ - height_ / 2;
         if (y >= 0 && y <= img.rows - 1)
         {
             if (note[y])
@@ -163,7 +168,8 @@ namespace motion_controller
             cv::Scalar sum = cv::sum(roi);
             grey = sum[0] / 255 / (roi.cols * roi.rows);
         }
-        // ROS_INFO_STREAM("y:" << y << "grey:" << grey << "yellow:" << yellow);
+        if (param_modification_ && !motor_status_)
+            ROS_INFO_STREAM("y:" << y << "grey:" << grey << "yellow:" << yellow);
         if (loop_ == 1 && where_is_car() == route_parking_area)
             return grey > 0.5;
         note[y] = (grey > 0.5 && yellow > 0.5);
@@ -195,12 +201,13 @@ namespace motion_controller
             return;
         }
         resize(cv_image->image, cv_image->image, Size(width_, height_));
-        Mat hsv = cv_image->image(Range(r_start_, r_end_), Range(c_start_, c_end_)).clone();
-        Mat srcF;
+        Mat res = cv_image->image(Range(height_ / 2, height_), Range(0, width_)).clone();
+        Mat hsv;
+        cvtColor(res, hsv, COLOR_BGR2HSV);
+        Mat srcF = hsv(Range(r_start_ - height_ / 2, r_end_ - height_ / 2), Range(c_start_, c_end_)).clone();
         // 原先代码
         // 色彩分离查找车道线
-        cvtColor(hsv, hsv, COLOR_BGR2HSV);
-        inRange(hsv, black_low_, black_up_, srcF);
+        inRange(srcF, black_low_, black_up_, srcF);
         if (param_modification_ && !motor_status_)
         // if (where_is_car() == route_semi_finishing_area)
         {
@@ -234,6 +241,11 @@ namespace motion_controller
             imshow("mask", mask);
             imshow("line2", srcF);
             waitKey(1);
+            Mat yellow, grey;
+            inRange(hsv, yellow_low_, yellow_up_, yellow);
+            inRange(hsv, grey_low_, grey_up_, grey);
+            imshow("yellow", yellow);
+            imshow("grey", grey);
         }
         std::vector<Vec2f> lines;
         HoughLines(srcF, lines, 1, CV_PI / 180, threshold_, 0, 0); // 根据实际调整
@@ -245,7 +257,6 @@ namespace motion_controller
             static double y_aver = 0;
             static bool flag = false;
             Mat Hough = Mat::zeros(srcF.size(), CV_8UC3);
-            Mat res = cv_image->image(Range(height_ / 2, height_), Range(0, width_)).clone();
             bool note[r_end_ - r_start_] = {0};
             double y[lines.size()] = {0};
             if (param_modification_)
@@ -294,6 +305,8 @@ namespace motion_controller
             {
                 if (flag_cnt)
                 {
+                    if (cnt_ == 0 && !param_modification_)
+                        start_line_follower(false);
                     cnt_++;
                     // if (where_is_car() == route_semi_finishing_area)
                     // {
@@ -303,7 +316,7 @@ namespace motion_controller
                     //     start_line_follower(false);
                     //     waitKey();
                     // }
-                    // ROS_INFO_STREAM("cnt: " << cnt_);
+                    ROS_INFO_STREAM("cnt: " << cnt_);
                     if (cnt_ >= cnt_tolerance_)
                     {
                         if (timer_.hasStarted())
@@ -311,14 +324,17 @@ namespace motion_controller
                         if (!param_modification_)
                         {
                             ROS_INFO("Turning corners ...");
-                            start_line_follower(false);
                             err_cnt = 0;
                             return;
                         }
                     }
                 }
-                // else if (cnt_ != 0) // 必须连续检测到
-                //     cnt_ = 0;
+                else if (cnt_ != 0) // 必须连续检测到
+                {
+                    cnt_ = 0;
+                    if (!param_modification_)
+                        start_line_follower(true);
+                }
             }
             if (param_modification_ && !motor_status_)
             // if (where_is_car() == route_semi_finishing_area)
@@ -347,9 +363,17 @@ namespace motion_controller
                 }
                 if (abs(distance) < distance_thr_)
                 {
-                    err_cnt++;
-                    ROS_INFO_STREAM("err_cnt: " << err_cnt);
-                    if (err_cnt > 5)
+                    if (!param_modification_)
+                    {
+                        err_cnt++;
+                        ROS_INFO_STREAM("err_cnt: " << err_cnt);
+                    }
+                    else if (!motor_status_)
+                    {
+                        // ROS_INFO("Corner is in front of my car.");
+                        cnt_ = 0;
+                    }
+                    if (err_cnt > 2)
                     {
                         vision_publisher.publish(Distance());
                         // 客户端转弯，顺时针对应右转
@@ -363,6 +387,11 @@ namespace motion_controller
                         if (!param_modification_)
                             start_line_follower(true);
                     }
+                    else if (param_modification_ && !motor_status_)
+                    {
+                        cnt_ = 0;
+                        vision_publisher.publish(Distance());
+                    }
                     else
                     {
                         Distance msg;
@@ -371,11 +400,11 @@ namespace motion_controller
                         vision_publisher.publish(msg);
                     }
                 }
-                else 
+                else
                 {
-                    if (err_cnt != 0)
-                        err_cnt = 0;
                     // 必须连续达到要求
+                    if (err_cnt != 0 || param_modification_)
+                        err_cnt = 0;
                     if (param_modification_ && !motor_status_)
                     {
                         // ROS_INFO("Corner is in front of my car.");
@@ -404,6 +433,20 @@ namespace motion_controller
                 waitKey(1);
             }
         }
+        // 应急方案，使用全局定位转弯，需要调试
+        // else if (!param_modification_)
+        // {
+        //     if (_turn_by_position())
+        //     {
+        //         if (!timer_.hasStarted())
+        //             timer_.start();
+        //         if (cnt_ > cnt_tolerance_)
+        //         {
+        //             start_line_follower(true);
+        //         }
+        //         cnt_ = 0;
+        //     }
+        // }
     }
 
     void MotionController::_timer_callback(const ros::TimerEvent &event)
@@ -504,6 +547,14 @@ namespace motion_controller
             threshold_ = config.threshold;
         if (black_up_[2] != config.v_black_up)
             black_up_[2] = config.v_black_up;
+        if (yellow_low_[0] != config.h_yellow_low)
+            yellow_low_[0] = config.h_yellow_low;
+        if (yellow_up_[0] != config.h_yellow_up)
+            yellow_up_[0] = config.h_yellow_up;
+        if (yellow_low_[1] != config.s_yellow_low)
+            yellow_low_[1] = config.s_yellow_low;
+        if (grey_up_[1] != config.s_yellow_low)
+            grey_up_[1] = config.s_yellow_low;
         if (theta_thr_ != config.theta_thr)
             theta_thr_ = config.theta_thr;
         if (y_thr_ != config.y_thr)
@@ -552,17 +603,18 @@ namespace motion_controller
         {
             if (loop_ == 0)
                 _U_turn();
-            start_line_follower(true);
+            start_image_subscriber(true);
         }
         else if (where_is_car() == route_parking_area)
         {
             if (!ac_move_.isServerConnected())
                 ac_move_.waitForServer();
             // 先移动到停车区的下侧
+            get_position();
             motion_controller::MoveGoal goal1;
-            goal1.pose.x = y_parking_area_ - (y_road_up_up_ + length_car_ / 2);
+            goal1.pose.x = y_ - (y_road_up_up_ + length_car_ / 2);
             goal1.pose.theta = CV_PI / 2;
-            goal1.pose.y = -(width_road_ / 2 - length_car_ / 2);
+            goal1.pose.y = -(x_ - length_car_ / 2);
             ac_move_.sendGoalAndWait(goal1, ros::Duration(20), ros::Duration(0.1));
             motion_controller::MoveGoal goal2;
             goal2.pose.y = -(y_road_up_up_ + length_car_ / 2 - length_parking_area_ / 2);

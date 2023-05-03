@@ -78,7 +78,7 @@ namespace motion_controller
         // 掉头，需要改变之后的转弯方向
         void _U_turn();
         // 通过全局定位信息转弯
-        void _turn_by_position();
+        bool _turn_by_position();
         // 此算法要注意弯道外界，场地外有黑色物体的情况
         void _image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         void _timer_callback(const ros::TimerEvent &event);

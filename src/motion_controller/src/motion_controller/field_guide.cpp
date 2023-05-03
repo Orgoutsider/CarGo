@@ -99,36 +99,36 @@ namespace motion_controller
 
   double FieldGuide::length_corner()
   {
-    int n = 1;
-    if (y_ < y_road_up_up_ + width_road_) // 上
-      n *= 2;
-    else if (y_ > y_road_up_up_ + length_field_ - width_road_) // 下
-      n *= 3;
-    if (x_ < width_road_) // 右
-      n *= 5;
-    else if (x_ > length_field_ - width_road_) // 左
-      n *= 7;
+    int n = 0;
+    if (y_ < y_road_up_up_ + width_road_ - length_car_ / 2) // 上
+      n += 1;
+    else if (y_ > y_road_up_up_ + length_field_ - width_road_ + length_car_ / 2) // 下
+      n += 2;
+    if (x_ < width_road_ - length_car_ / 2) // 右
+      n += 5;
+    else if (x_ > length_field_ - width_road_ + length_car_ / 2) // 左
+      n += 10;
     switch (n)
     {
-    case 10:
+    case 6:
       if (left_)
         return y_ - (y_road_up_up_ + width_road_ / 2);
       else
         return x_ - width_road_ / 2;
     
-    case 14:
+    case 11:
       if (left_)
         return (length_field_ - width_road_ / 2) - x_;
       else
         return y_ - (y_road_up_up_ + width_road_ / 2);
 
-    case 21:
+    case 12:
       if (left_)
         return (y_road_up_up_ + length_field_ - width_road_ / 2) - y_;
       else
         return (length_field_ - width_road_ / 2) - x_;
 
-    case 15:
+    case 7:
       if (left_)
         return x_ - width_road_ / 2;
       else 
@@ -142,36 +142,36 @@ namespace motion_controller
 
   double FieldGuide::angle_corner()
   {
-    int n = 1;
-    if (y_ < y_road_up_up_ + width_road_) // 上
-      n *= 2;
-    else if (y_ > y_road_up_up_ + length_field_ - width_road_) // 下
-      n *= 3;
-    if (x_ < width_road_) // 右
-      n *= 5;
-    else if (x_ > length_field_ - width_road_) // 左
-      n *= 7;
+    int n = 0;
+    if (y_ < y_road_up_up_ + width_road_ - length_car_ / 2) // 上
+      n += 1;
+    else if (y_ > y_road_up_up_ + length_field_ - width_road_ + length_car_ / 2) // 下
+      n += 2;
+    if (x_ < width_road_ - length_car_ / 2) // 右
+      n += 5;
+    else if (x_ > length_field_ - width_road_ + length_car_ / 2) // 左
+      n += 10;
     switch (n)
     {
-    case 10:
+    case 6:
       if (left_)
         return -theta_;
       else
         return -(theta_ - M_PI / 2);
     
-    case 14:
+    case 11:
       if (left_)
         return M_PI / 2 - theta_;
       else
         return -(M_PI + theta_);
 
-    case 21:
+    case 12:
       if (left_)
         return M_PI - theta_;
       else
         return -(M_PI / 2 + theta_);
 
-    case 15:
+    case 7:
       if (left_)
         return -theta_ - M_PI / 2;
       else 
