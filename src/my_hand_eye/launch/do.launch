@@ -7,12 +7,12 @@
     <arg name="if_detect_QR_code" default="false" />
     <arg name="if_emulation" default="true" />
 
-    <!-- <include file="$(find my_hand_eye)/launch/eye.launch">
+    <include file="$(find my_hand_eye)/launch/eye.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
     </include>
     <include file="$(find my_hand_eye)/launch/include/yolov5.launch" >
         <arg name="param_modification" value="false" />
-    </include> -->
+    </include>
 
     <!-- Set parameters -->
     <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />

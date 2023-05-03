@@ -112,7 +112,6 @@ class Yolov5Detector:
         self.up = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
         self.gain = 0.1 # 扩张比例
         self.srv = rospy.Service('cargoSrv', cargoSrv, self.callback)
-        rospy.loginfo("Service set up!")
         self.param_modification = rospy.get_param('~param_modification', False)
         if self.param_modification:
             self.dr_srv = Server(drConfig, self.dr_callback)
