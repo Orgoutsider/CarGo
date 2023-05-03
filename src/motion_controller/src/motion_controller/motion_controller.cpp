@@ -257,7 +257,7 @@ namespace motion_controller
             static double y_aver = 0;
             static bool flag = false;
             Mat Hough = Mat::zeros(srcF.size(), CV_8UC3);
-            bool note[r_end_ - r_start_] = {0};
+            bool note[width_ / 2] = {0};
             double y[lines.size()] = {0};
             if (param_modification_)
             {
@@ -455,9 +455,11 @@ namespace motion_controller
         {
             // 转弯结束关闭转弯订阅
             // ROS_INFO_STREAM("x: " << x_ << " y: " << y_);
-            if (finish_turning_ && !can_turn())
+            if (finish_turning_)
             {
-                start_image_subscriber(false);
+                if (!can_turn())
+                    start_image_subscriber(false);
+                finish_turning_ = false;
             }
             if (arrive())
             {
@@ -705,7 +707,6 @@ namespace motion_controller
         }
         else
         {
-            finish_turning_ = false;
             image_subscriber_.shutdown();
             ROS_INFO("shutdown image subscriber.");
         }
