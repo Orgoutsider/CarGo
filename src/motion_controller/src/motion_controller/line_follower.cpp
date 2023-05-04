@@ -213,7 +213,7 @@ namespace motion_controller
             {
                 // 即使没有车道线的参照，仍然前进
                 twist = geometry_msgs::Twist();
-                twist.linear.x = linear_velocity_;
+                twist.linear.x = linear_velocity_ / 2;
                 return false;
             }
             rho_aver[left] /= num[left];
@@ -267,7 +267,7 @@ namespace motion_controller
         {
             // 即使没有车道线的参照，仍然前进
             twist = geometry_msgs::Twist();
-            twist.linear.x = linear_velocity_;
+            twist.linear.x = linear_velocity_ / 2;
             return false;
         }
     }

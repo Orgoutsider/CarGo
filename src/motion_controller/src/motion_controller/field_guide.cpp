@@ -143,13 +143,13 @@ namespace motion_controller
   double FieldGuide::angle_corner()
   {
     int n = 0;
-    if (y_ < y_road_up_up_ + width_road_ - length_car_ / 2) // 上
+    if (y_ < y_road_up_up_ + width_road_) // 上
       n += 1;
-    else if (y_ > y_road_up_up_ + length_field_ - width_road_ + length_car_ / 2) // 下
+    else if (y_ > y_road_up_up_ + length_field_ - width_road_) // 下
       n += 2;
-    if (x_ < width_road_ - length_car_ / 2) // 右
+    if (x_ < width_road_) // 右
       n += 5;
-    else if (x_ > length_field_ - width_road_ + length_car_ / 2) // 左
+    else if (x_ > length_field_ - width_road_) // 左
       n += 10;
     switch (n)
     {
@@ -181,5 +181,15 @@ namespace motion_controller
       ROS_WARN("Car is not in the corner. Do not use angle_corner.");
       return 0;
     }
+  }
+
+  double FieldGuide::angle_U_turn()
+  {
+    if ((where_is_car() == route_semi_finishing_area && loop_ == 0) || (where_is_car() == route_raw_material_area && loop_ == 1))
+    {
+      return -theta_;
+    }
+    ROS_WARN("Cannot use angle_U_turn here!");
+    return 0;
   }
 } // namespace motion_controller

@@ -3,8 +3,8 @@
 namespace motion_controller
 {
     VisionAdjuster::VisionAdjuster()
-        : level_(level_usb_cam), kp_usb_cam_(1.94),
-          ki_usb_cam_(0), kd_usb_cam_(0.46)
+        : level_(level_usb_cam), kp_usb_cam_(1.1),
+          ki_usb_cam_(0), kd_usb_cam_(0.1)
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");

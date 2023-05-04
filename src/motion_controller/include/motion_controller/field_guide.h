@@ -50,8 +50,10 @@ namespace motion_controller
         double length_route();
         // 位于弯道，到弯道中心线的距离，不位于弯道时返回0
         double length_corner();
-        // 位于弯道，到转弯处的距离，不位于弯道时返回0
+        // 位于弯道，转弯角度，不位于弯道时返回0
         double angle_corner();
+        // 掉头角度
+        double angle_U_turn();
     };
 } // namespace motion_controller
 

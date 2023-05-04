@@ -9,7 +9,7 @@ namespace motion_controller
           mask_c_start1_(100), mask_c_start2_(50), threshold_(40),
           black_low_(0, 0, 0), black_up_(180, 255, 94),
           yellow_low_(26, 43, 46), yellow_up_(50, 255, 255),
-          grey_low_(0, 0, black_up_[2]), grey_up_(180, yellow_low_[1], 220),
+          grey_low_(0, 0, 46), grey_up_(180, yellow_low_[1], 220),
           theta_thr_(10),
           y_goal_(48), y_ground_(3),
           cnt_tolerance_(2), y_thr_(3),
@@ -68,7 +68,9 @@ namespace motion_controller
         if (!ac_move_.isServerConnected())
             ac_move_.waitForServer();
         motion_controller::MoveGoal goal;
-        goal.pose.theta = CV_PI;
+        goal.pose.theta = angle_U_turn();
+        if (!goal.pose.theta)
+            goal.pose.theta = CV_PI;
         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
         // 需要改变之后的转弯方向
         left_ = !left_;
@@ -144,8 +146,8 @@ namespace motion_controller
         }
         else
             return false;
-        int c_start = img.cols / 2 - 3;
-        int c_end = img.cols / 2 + 3;
+        int c_start = img.cols / 2 - 7;
+        int c_end = img.cols / 2 + 7;
         int r_start1 = (y - 8 < 0) ? 0 : (y - 8 > img.rows ? img.rows : y - 8);
         int r_end1 = (y - 1 < 0) ? 0 : (y - 1 > img.rows ? img.rows : y - 1);
         double yellow = 0;
@@ -172,7 +174,7 @@ namespace motion_controller
             ROS_INFO_STREAM("y:" << y << "grey:" << grey << "yellow:" << yellow);
         if (loop_ == 1 && where_is_car() == route_parking_area)
             return grey > 0.5;
-        note[y] = (grey > 0.5 && yellow > 0.5);
+        note[y] = (grey > 0.5 && yellow > 0.2);
         return note[y];
     }
 
@@ -426,6 +428,11 @@ namespace motion_controller
                         vision_publisher.publish(msg);
                     }
                 }
+            }
+            else if (cnt_ >= cnt_tolerance_ && !param_modification_ && tot == 0)
+            {
+                start_line_follower(true);
+                cnt_ = 0;
             }
             if (param_modification_)
             {
