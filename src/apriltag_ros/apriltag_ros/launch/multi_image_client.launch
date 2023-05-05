@@ -12,10 +12,10 @@
       <!-- Remap topics from those used in code to those on the ROS network -->
       <remap from="image_raw" to="$(arg camera_name)/$(arg image_topic)" />
       <!-- Camera intrinsic parameters -->
-      <param name="fx" type="double" value="1097.2826519484" />
-      <param name="fy" type="double" value="1093.696551235277" />
-      <param name="cx" type="double" value="953.2646757356512" />
-      <param name="cy" type="double" value="501.2671482091341" />
+      <param name="fx" type="double" value="1065.119321651318" />
+      <param name="fy" type="double" value="1060.881408821487" />
+      <param name="cx" type="double" value="962.1449269962991" />
+      <param name="cy" type="double" value="538.7801807129094" />
   
     </node>
   
