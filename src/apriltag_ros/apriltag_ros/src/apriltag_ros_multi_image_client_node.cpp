@@ -146,7 +146,6 @@ int main(int argc, char **argv)
     //   return 1;
     // cv::imshow("Video", SrcImg);
     ros::spinOnce();
-    cv::imshow("Video", cv_image->image);
     loop_rate.sleep();
   }
 
