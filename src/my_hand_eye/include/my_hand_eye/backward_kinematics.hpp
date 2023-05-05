@@ -1,6 +1,6 @@
 #pragma once
 // ARM_P > ARM_A0
-#define ARM_P 14.85
+#define ARM_P 14.806
 #define ARM_A0 9.8
 #define ARM_A1 20.936
 #define ARM_A2 13.626
