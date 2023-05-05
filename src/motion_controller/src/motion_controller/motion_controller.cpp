@@ -375,13 +375,19 @@ namespace motion_controller
                         // ROS_INFO("Corner is in front of my car.");
                         cnt_ = 0;
                     }
-                    if (err_cnt > 2)
+                    if (err_cnt > 2 && !param_modification_)
                     {
                         vision_publisher.publish(Distance());
                         // 客户端转弯，顺时针对应右转
                         if (!_turn()) // 出现了错误识别，重新开启弯道节点
                         {
                             ROS_WARN("Corner detection error, restart ...");
+                            if (!param_modification_)
+                            {
+                                start_line_follower(true);
+                                if (!timer_.hasStarted())
+                                    timer_.start();
+                            }
                             return;
                         }
                         if (!timer_.hasStarted())
@@ -433,11 +439,23 @@ namespace motion_controller
             {
                 start_line_follower(true);
                 cnt_ = 0;
+                if (!timer_.hasStarted())
+                    timer_.start();
             }
             if (param_modification_)
             {
                 imshow("res", res);
                 waitKey(1);
+            }
+        }
+        else if (cnt_ != 0)
+        {
+            cnt_ = 0;
+            if (!param_modification_)
+            {
+                start_line_follower(true);
+                if (!timer_.hasStarted())
+                    timer_.start();
             }
         }
         // 应急方案，使用全局定位转弯，需要调试

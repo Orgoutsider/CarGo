@@ -1,14 +1,14 @@
 #pragma once
-#define ARM_JOINT1_POS_WHEN_DEG180 200
-#define ARM_JOINT1_POS_WHEN_DEG0 813.8
+#define ARM_JOINT1_POS_WHEN_DEG180 1082
+#define ARM_JOINT1_POS_WHEN_DEG0 500
 #define ARM_JOINT2_POS_WHEN_DEG180 3072
 #define ARM_JOINT2_POS_WHEN_DEG0 1024
 #define ARM_JOINT3_POS_WHEN_DEG180 3072
 #define ARM_JOINT3_POS_WHEN_DEG0 1024
-#define ARM_JOINT4_POS_WHEN_DEG180 1536
-#define ARM_JOINT4_POS_WHEN_DEG0 (-512)
-#define ARM_JOINT5_POS_WHEN_CATCH 370
-#define ARM_JOINT5_POS_WHEN_LOSEN 500
+#define ARM_JOINT4_POS_WHEN_DEG180 3072
+#define ARM_JOINT4_POS_WHEN_DEG0 1024
+#define ARM_JOINT5_POS_WHEN_CATCH 218
+#define ARM_JOINT5_POS_WHEN_LOSEN 327
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_ERROR_XYZ(Pos) ROS_ERROR_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
@@ -45,10 +45,10 @@ namespace my_hand_eye
         u8 Id[6];
         SMS_STS *sm_st_ptr; // 舵机
         SCSCL *sc_ptr;
-        const double fx = 1097.2826519484;
-        const double fy = 1093.696551235277;
-        const double cx = 953.2646757356512;
-        const double cy = 501.2671482091341;
+        const double fx = 1065.119321651318;
+        const double fy = 1060.881408821487;
+        const double cx = 962.1449269962991;
+        const double cy = 538.7801807129094;
         double calculate_time(int ID);  // 为指定舵机计算到达时间
         bool arrive(int ID[], int IDn); // 判断所有是否到达指定位置附近
         void wait_for_arriving(int ID[], int IDn);

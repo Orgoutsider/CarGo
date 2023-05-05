@@ -11,7 +11,7 @@ SCSCL sc;
 my_hand_eye::Pos ps(&sm_st, &sc);
 
 int num = 0;
-const int maxnum = 40;
+const int maxnum = 20;
 char text[100] = {};
 // 指定运动位置
 //  double targetx[30] = {-0.563389, -1.45867, -2.04845, -1.41844, 0.535275, -5.75446, 1.80323, 7.59661e-07, -3.72793, 4.38057, -0.605159, 1.51909, -5.65667, 3.30037, -0.526636, -0.567919, 8.35015e-07, 8.26643e-07, 5.5163, 3.24953-2.21159, 2.25481, -6.94017, 1.64182, 8.03178e-07, -6.86798, -0.482365, -1.42676, -0.96989, 6.19705};
@@ -42,7 +42,6 @@ bool getRosParameter(ros::NodeHandle &pnh, std::string name, double &param)
 
 void imageCallback(const sensor_msgs::ImageConstPtr &image_rect)
 {
-  ROS_INFO("do imageCallback...");
   if (num > maxnum)
     return;
   try
@@ -59,6 +58,10 @@ void imageCallback(const sensor_msgs::ImageConstPtr &image_rect)
     ROS_ERROR("No data!");
     return;
   }
+  cv::Mat resize;
+  cv::resize(cv_image->image, resize, cv::Size(480, 320));
+  cv::waitKey(100);
+  cv::imshow("Video", resize);
 }
 
 void MouseEvent(int event, int x, int y, int flags, void *data)
@@ -70,6 +73,7 @@ void MouseEvent(int event, int x, int y, int flags, void *data)
     if (aps.empty)
     {
       ROS_ERROR("Arm's pose is empty!");
+      return;
     }
     cv::Mat Me2b = aps.R;
     cv::Mat Re2b(3, 1, CV_64F);
@@ -133,7 +137,7 @@ int main(int argc, char **argv)
   pnh.param<std::string>("transport_hint", transport_hint, "raw");
 
   image_transport::Subscriber camera_image_subscriber =
-  it.subscribe("image_raw", 1, imageCallback, image_transport::TransportHints(transport_hint));
+      it.subscribe("image_raw", 1, imageCallback, image_transport::TransportHints(transport_hint));
   ros::Rate loop_rate(10);
   cv::namedWindow("Video");
   cv::setMouseCallback("Video", MouseEvent, 0);

@@ -8,9 +8,9 @@ namespace motion_controller
           mask_r_start_(35), mask_c_start_(100),
           Hough_threshold_(28),
           judge_line_(20), linear_velocity_(0.2),
-          rho_thr_(5), theta_thr_(3), theta_thr_horizontal_(16),
+          rho_thr_(5), theta_thr_(5), theta_thr_horizontal_(16),
           kp_(0.03), kd_(0.015),
-          black_low_(0, 0, 0), black_up_(180, 255, 94),
+          black_low_(0, 0, 0), black_up_(180, 255, 98),
           motor_status_(false), start_image_sub_(false)
     {
         it_ = std::shared_ptr<image_transport::ImageTransport>(
