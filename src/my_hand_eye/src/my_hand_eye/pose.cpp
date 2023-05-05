@@ -527,7 +527,7 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_end_to_base()
     {
-        refresh_xyz(false);
+        // refresh_xyz(false);
         cv::Mat T = (cv::Mat_<double>(3, 1) << x, y, z);
         return T;
     }
