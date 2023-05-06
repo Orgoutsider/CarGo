@@ -235,7 +235,7 @@ int main(int argc, char **argv)
         Eigen::Matrix3d rotation_R;
         Eigen::Quaterniond rotation_q(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
         rotation_R = rotation_q.toRotationMatrix();
-        cv::Mat Mb2c(3, 1, CV_64F);
+        cv::Mat Mb2c(3, 3, CV_64F);
         cv::Mat Rb2c(3, 1, CV_64F);
         cv::Mat tb2c = (cv::Mat_<double>(3, 1) << pose.position.x, pose.position.y, pose.position.z);
         cv::eigen2cv(rotation_R, Mb2c);
