@@ -410,18 +410,19 @@ namespace my_hand_eye
         {
             if (!read)
             {
-                double deg1 = (Position[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
-                double deg2 = (Position[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
-                double deg3 = (Position[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
-                double deg4 = (Position[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
+                ROS_INFO_STREAM(Position[1] << " " << Position[2]);
+                double deg1 = ((double)Position[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
+                double deg2 = ((double)Position[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
+                double deg3 = ((double)Position[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
+                double deg4 = ((double)Position[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
                 valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
             }
             else
             {
-                double deg1 = (Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
-                double deg2 = (Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
-                double deg3 = (Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
-                double deg4 = (Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
+                double deg1 = ((double)Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
+                double deg2 = ((double)Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
+                double deg3 = ((double)Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
+                double deg4 = ((double)Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
                 valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
             }
         }
@@ -502,10 +503,10 @@ namespace my_hand_eye
 
     cv::Mat Pos::R_end_to_base()
     {
-        double deg1 = (Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180;
-        double deg2 = (Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180;
-        double deg3 = (Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180;
-        double deg4 = (Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180;
+        double deg1 = ((double)Position_now[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180;
+        double deg2 = ((double)Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180;
+        double deg3 = ((double)Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180;
+        double deg4 = ((double)Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180;
         Angle j1 = Angle(deg1);
         j1._j_degree_convert(1);
         Angle j2 = Angle(deg2);
@@ -527,7 +528,6 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_end_to_base()
     {
-        // refresh_xyz(false);
         cv::Mat T = (cv::Mat_<double>(3, 1) << x, y, z);
         return T;
     }

@@ -21,7 +21,7 @@ namespace my_hand_eye
     public:
         const int error = 1;
         const int normal = 0;
-        Angle(double val);           // 角度值
+        Angle(double deg);           // 角度值
         Angle(double v1, double v2); // atan2
         double _get_degree();        // 获得角度值
         double rad();                // 转弧度制

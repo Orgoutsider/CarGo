@@ -6,9 +6,8 @@
 
 namespace my_hand_eye
 {
-    Angle::Angle(double du)
+    Angle::Angle(double deg) : deg(deg)
     {
-        this->deg = du;
         state = normal;
     }
 
@@ -316,8 +315,7 @@ namespace my_hand_eye
         z = height;
         x = length * j1.cos();
         y = length * j1.sin() - ARM_P;
-        if ((0 <= y || expand_y) && z >= 0)
-            valid = true;
+        valid = (0 <= y || expand_y) && z >= 0;
         // ROS_ERROR_STREAM("valid:" << valid << " x:" << x << " y:" << y << " z:" << z << " length:" << length << " height:" << height << " alpha:" << alpha);
         return valid;
     }
@@ -332,7 +330,7 @@ namespace my_hand_eye
             valid = forward_kinematics(deg1, deg2, deg3, deg4, tx, ty, tz, expand_y);
             if (!valid)
             {
-                ROS_WARN("Result invalid!");
+                ROS_WARN("forward_kinematics: Result invalid!");
                 return false;
             }
             else if (abs(ty + ARM_P) < 1 || abs(y + ARM_P) < 1)//距离底部圆心过近时的数值计算问题s

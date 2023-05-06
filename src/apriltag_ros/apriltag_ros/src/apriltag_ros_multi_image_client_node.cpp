@@ -11,12 +11,12 @@ SCSCL sc;
 my_hand_eye::Pos ps(&sm_st, &sc);
 
 int num = 0;
-const int maxnum = 20;
+const int maxnum = 3;
 char text[100] = {};
 // 指定运动位置
-//  double targetx[30] = {-0.563389, -1.45867, -2.04845, -1.41844, 0.535275, -5.75446, 1.80323, 7.59661e-07, -3.72793, 4.38057, -0.605159, 1.51909, -5.65667, 3.30037, -0.526636, -0.567919, 8.35015e-07, 8.26643e-07, 5.5163, 3.24953-2.21159, 2.25481, -6.94017, 1.64182, 8.03178e-07, -6.86798, -0.482365, -1.42676, -0.96989, 6.19705};
-//  double targety[30] = {24.7766, 20.3331, 21.7942, 19.5654, 23.1659, 22.1041, 18.2874, 20.851, 19.0256, 28.1768, 27.1696, 21.486, 21.601, 23.901, 22.671, 25.0361, 23.6632, 23.3508, 18.4521, 23.4172, 24.1272, 24.7452, 22.5612, 23.8279, 22.475, 22.2485, 20.1347, 19.7243, 20.274, 21.6548};
-//  double targetz[30] = {13.6579, 6.99897, 3.6582, 12.4393, 10.5183, 9.03096, 2.43279, 10.2917, 6.22193, 11.1699, 7.97784, 12.963, 7.78461, 13.3025, 12.2238, 14.553, 8.39071, 14.6011, 4.99748, 12.2275, 10.781, 10.5426, 12.3971, 11.124, 14.2681, 7.75108, 5.37771, 4.59983, 2.15212, 10.975};
+ double targetx[30] = {-0.563389, -1.45867, -2.04845, -1.41844, 0.535275, -5.75446, 1.80323, 7.59661e-07, -3.72793, 4.38057, -0.605159, 1.51909, -5.65667, 3.30037, -0.526636, -0.567919, 8.35015e-07, 8.26643e-07, 5.5163, 3.24953-2.21159, 2.25481, -6.94017, 1.64182, 8.03178e-07, -6.86798, -0.482365, -1.42676, -0.96989, 6.19705};
+ double targety[30] = {24.7766, 20.3331, 21.7942, 19.5654, 23.1659, 22.1041, 18.2874, 20.851, 19.0256, 28.1768, 27.1696, 21.486, 21.601, 23.901, 22.671, 25.0361, 23.6632, 23.3508, 18.4521, 23.4172, 24.1272, 24.7452, 22.5612, 23.8279, 22.475, 22.2485, 20.1347, 19.7243, 20.274, 21.6548};
+ double targetz[30] = {13.6579, 6.99897, 3.6582, 12.4393, 10.5183, 9.03096, 2.43279, 10.2917, 6.22193, 11.1699, 7.97784, 12.963, 7.78461, 13.3025, 12.2238, 14.553, 8.39071, 14.6011, 4.99748, 12.2275, 10.781, 10.5426, 12.3971, 11.124, 14.2681, 7.75108, 5.37771, 4.59983, 2.15212, 10.975};
 std::vector<cv::Mat> Rend2base;
 std::vector<cv::Mat> tend2base;
 std::vector<cv::Mat> Rboard2camera;
@@ -79,7 +79,8 @@ void MouseEvent(int event, int x, int y, int flags, void *data)
     cv::Mat Re2b(3, 1, CV_64F);
     cv::Mat te2b = aps.t;
     cv::Rodrigues(Me2b, Re2b);
-    Rend2base.push_back(Me2b);
+    ROS_INFO_STREAM(Re2b);
+    Rend2base.push_back(Re2b);
     // 将单位从cm转为mm
     tend2base.push_back(te2b * 10.0);
     File2 << "R" << num << ":\n"
@@ -95,8 +96,8 @@ void MouseEvent(int event, int x, int y, int flags, void *data)
     */
     cv::imwrite(text, cv_image->image);
     ROS_INFO("第%d张图片保存成功\n", num);
-    // if (num < maxnum)
-    //   ps.go_to(targetx[num], targety[num], targetz[num], true, true);
+    if (num < maxnum)
+      ps.go_to(targetx[num], targety[num], targetz[num], true, true);
   }
 }
 
@@ -137,10 +138,17 @@ int main(int argc, char **argv)
   pnh.param<std::string>("transport_hint", transport_hint, "raw");
 
   image_transport::Subscriber camera_image_subscriber =
-      it.subscribe("image_raw", 1, imageCallback, image_transport::TransportHints(transport_hint));
+      it.subscribe("image_rect", 1, imageCallback, image_transport::TransportHints(transport_hint));
   ros::Rate loop_rate(10);
   cv::namedWindow("Video");
   cv::setMouseCallback("Video", MouseEvent, 0);
+  XmlRpc::XmlRpcValue servo_descriptions;
+  if (!pnh.getParam("servo", servo_descriptions))
+  {
+      ROS_ERROR("No speed and acc specified");
+  }
+  ps.set_speed_and_acc(servo_descriptions);
+  ps.go_to(targetx[0], targety[0], targetz[0], true, true);
   while (num < maxnum && ros::ok())
   {
     // USBCamera >> SrcImg;
@@ -232,7 +240,8 @@ int main(int argc, char **argv)
         cv::Mat tb2c = (cv::Mat_<double>(3, 1) << pose.position.x, pose.position.y, pose.position.z);
         cv::eigen2cv(rotation_R, Mb2c);
         cv::Rodrigues(Mb2c, Rb2c);
-        Rboard2camera.push_back(Mb2c);
+        ROS_INFO_STREAM(Rb2c);
+        Rboard2camera.push_back(Rb2c);
         tboard2camera.push_back(tb2c * 1000.0);
         File1 << "R" << i << ":\n"
               << Mb2c << std::endl;
@@ -253,7 +262,6 @@ int main(int argc, char **argv)
   }
   cv::Mat Rcamera2end(3, 3, CV_64FC1);
   cv::Mat tcamera2end(3, 1, CV_64FC1);
-  // ROS_INFO_STREAM(Rboard2camera.size() << '\n' << Rend2base.size());
   cv::calibrateHandEye(Rend2base, tend2base, Rboard2camera, tboard2camera, Rcamera2end, tcamera2end);
   ROS_INFO("Succeeded to calibrateHandEye");
   Res << "Rcamera2end:\n"
@@ -263,5 +271,6 @@ int main(int argc, char **argv)
   File1.close();
   File2.close();
   Res.close();
+  ps.end();
   return 0; // happy ending
 }
