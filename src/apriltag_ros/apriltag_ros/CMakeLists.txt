@@ -130,9 +130,9 @@ add_executable(${PROJECT_NAME}_multi_image_client_node src/${PROJECT_NAME}_multi
 add_dependencies(${PROJECT_NAME}_multi_image_client_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_multi_image_client_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
-# add_executable(${PROJECT_NAME}_demo_node src/demo.cpp)
-# add_dependencies(${PROJECT_NAME}_demo_node ${PROJECT_NAME}_generate_messages_cpp)
-# target_link_libraries(${PROJECT_NAME}_demo_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
+add_executable(${PROJECT_NAME}_demo_node src/demo.cpp)
+add_dependencies(${PROJECT_NAME}_demo_node ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_demo_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
 #############
 ## Install ##

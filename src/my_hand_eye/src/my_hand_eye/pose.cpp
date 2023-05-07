@@ -410,7 +410,6 @@ namespace my_hand_eye
         {
             if (!read)
             {
-                ROS_INFO_STREAM(Position[1] << " " << Position[2]);
                 double deg1 = ((double)Position[1] - ARM_JOINT1_POS_WHEN_DEG0) / (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * 180.0;
                 double deg2 = ((double)Position[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
                 double deg3 = ((double)Position[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
