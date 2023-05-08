@@ -25,7 +25,7 @@
     <!-- Color rectified image -->
     <node pkg="nodelet" type="nodelet" name="rectify_color" args="load image_proc/rectify /$(arg manager) $(arg bond)" respawn="$(arg respawn)" output="screen">
       <remap from="image_mono" to="/$(arg camera)/image_raw" />
-      <remap from="image_rect" to="/$(arg camera)/image_rect_color" />
+      <remap from="image_rect" to="/eye2/image_rect_color" />      
     </node>
 
   </group>
