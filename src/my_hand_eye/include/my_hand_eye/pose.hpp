@@ -45,10 +45,10 @@ namespace my_hand_eye
         u8 Id[6];
         SMS_STS *sm_st_ptr; // 舵机
         SCSCL *sc_ptr;
-        const double fx = 1065.119321651318;
-        const double fy = 1060.881408821487;
-        const double cx = 962.1449269962991;
-        const double cy = 538.7801807129094;
+        const double fx = 788.709302;
+        const double fy = 940.728627;
+        const double cx = 932.106780;
+        const double cy = 578.390364;
         double calculate_time(int ID);  // 为指定舵机计算到达时间
         bool arrive(int ID[], int IDn); // 判断所有是否到达指定位置附近
         void wait_for_arriving(int ID[], int IDn);

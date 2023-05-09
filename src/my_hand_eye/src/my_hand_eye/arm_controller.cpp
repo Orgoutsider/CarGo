@@ -65,7 +65,7 @@ namespace my_hand_eye
 
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : ps_(&sm_st_, &sc_),
-          default_roi_(480, 0, 960, 1080),
+          default_roi_(0, 0, 1920, 1080),
           fin_(false)
     {
         emulation_ = pnh.param<bool>("if_emulation", false);
@@ -394,24 +394,24 @@ namespace my_hand_eye
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
                 cargo_x_.push_back(x);
                 cargo_y_.push_back(y);
-                if (cargo_x_.size() == 10)
-                {
-                    double x_aver = 0, y_aver = 0;
-                    average_position(x_aver, y_aver);
-                    cargo_x_.clear();
-                    cargo_y_.clear();
-                    if (midpoint)
-                        valid = ps_.go_to_by_midpoint(x_aver, y_aver, current_z_);
-                    else
-                        valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
-                    if (valid)
-                    {
-                        ps_.go_to(ps_.default_x, ps_.default_y, ps_.default_z, true, true);
-                        ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false);
-                    }
-                    ps_.reset();
-                    finish = true;
-                }
+                // if (cargo_x_.size() == 10)
+                // {
+                //     double x_aver = 0, y_aver = 0;
+                //     average_position(x_aver, y_aver);
+                //     cargo_x_.clear();
+                //     cargo_y_.clear();
+                //     if (midpoint)
+                //         valid = ps_.go_to_by_midpoint(x_aver, y_aver, current_z_);
+                //     else
+                //         valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
+                //     if (valid)
+                //     {
+                //         ps_.go_to(ps_.default_x, ps_.default_y, ps_.default_z, true, true);
+                //         ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false);
+                //     }
+                //     ps_.reset();
+                //     finish = true;
+                // }
             }
             else
                 return false;

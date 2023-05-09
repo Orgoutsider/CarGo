@@ -57,10 +57,16 @@ namespace my_hand_eye
 
     bool Angle::_valid_degree(int joint)
     {
+        bool valid;
         if (joint == 1)
-            return 0 <= deg && deg <= 180;
+        {
+            valid = 0 <= deg && deg <= 180;
+        }
         else
-            return -28 <= deg && deg <= 208;
+            valid = -28 <= deg && deg <= 208;
+        // if (!valid)
+        //     ROS_WARN_STREAM("joint" << joint << " has invalid deg " << deg);
+        return valid;
     }
 
     bool Angle::_valid_j(int joint)
@@ -128,12 +134,13 @@ namespace my_hand_eye
 
     double Axis::L(double alpha)
     {
-        return length() - ARM_A4 * Angle(alpha).sin() - ARM_A0;
+        return length() - ARM_A5 * Angle(alpha).cos() - ARM_A4 * Angle(alpha).sin() - ARM_A0;
     }
 
     double Axis::H(double alpha)
     {
-        return height() - ARM_A4 * Angle(alpha).cos() - ARM_A1;
+        // ROS_INFO_STREAM("height:" << height());
+        return height() + ARM_A5 * Angle(alpha).sin() - ARM_A4 * Angle(alpha).cos() - ARM_A1;
     }
 
     bool Axis::_out_of_range()
@@ -165,6 +172,8 @@ namespace my_hand_eye
     {
         double L = this->H(alpha);
         double H = this->L(alpha);
+        // ROS_INFO_STREAM("L:" << L);
+        // ROS_INFO_STREAM("H:" << H);
         double cos3 = (L * L + H * H - ARM_A2 * ARM_A2 - ARM_A3 * ARM_A3) / (2 * ARM_A2 * ARM_A3);
         if (cos3 * cos3 > 1)
         {
@@ -197,6 +206,7 @@ namespace my_hand_eye
         Angle j2 = _calculate_j2(alpha);
         Angle j3 = _calculate_j3(alpha);
         Angle j4 = _calculate_j4(alpha);
+        // ROS_INFO_STREAM("j3:" << j3._get_degree() << "j2:" << j2._get_degree());
         return j1._valid_j(1) && j2._valid_j(2) && j3._valid_j(3) && j4._valid_j(4) && !(_out_of_range());
     }
 
@@ -248,8 +258,10 @@ namespace my_hand_eye
             ROS_ERROR("y cannot less than 0.");
             return false;
         }
-        double alpha = 0;
+        double alpha = 90;
+        ROS_INFO_STREAM("z:" << z);
         bool valid = _modify_alpha(alpha, look);
+        ROS_WARN_STREAM("look:" << look);
         if (valid)
         {
             Angle j1 = _calculate_j1();
@@ -307,9 +319,9 @@ namespace my_hand_eye
         j3._j_degree_convert(3);
         j4._j_degree_convert(4);
         double length = ARM_A0 + ARM_A2 * j2.sin() + ARM_A3 * (j2 + j3).sin() +
-                        ARM_A4 * (j2 + j3 + j4).sin();
+                        ARM_A4 * (j2 + j3 + j4).sin() + ARM_A5 * (j2 + j3 + j4).cos();
         double height = ARM_A1 + ARM_A2 * j2.cos() + ARM_A3 * (j2 + j3).cos() +
-                        ARM_A4 * (j2 + j3 + j4).cos();
+                        ARM_A4 * (j2 + j3 + j4).cos() - ARM_A5 * (j2 + j3 + j4).sin();
         double alpha = (j2 + j3 + j4)._get_degree();
         // ROS_ERROR("j2:%lf j3:%lf j4:%lf", j2._get_degree(), j3._get_degree(), j4._get_degree());
         z = height;
@@ -324,6 +336,7 @@ namespace my_hand_eye
     {
         double tx, ty, tz;
         tx = ty = tz = 0;
+        ROS_INFO_STREAM("z:" << z);
         bool valid = backward_kinematics(deg1, deg2, deg3, deg4, look);
         if (valid)
         {

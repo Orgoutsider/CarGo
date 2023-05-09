@@ -68,20 +68,21 @@ namespace my_hand_eye
     void Pos::set_action(XmlRpc::XmlRpcValue &action, std::string name)
     {
         ROS_ASSERT(action.getType() == XmlRpc::XmlRpcValue::TypeArray);
-        ROS_ASSERT(action[0].getType() == XmlRpc::XmlRpcValue::TypeInt);
-        ROS_ASSERT(action[1].getType() == XmlRpc::XmlRpcValue::TypeInt);
-        ROS_ASSERT(action[2].getType() == XmlRpc::XmlRpcValue::TypeInt);
+        ROS_ASSERT(action[0].getType() == XmlRpc::XmlRpcValue::TypeDouble);
+        ROS_ASSERT(action[1].getType() == XmlRpc::XmlRpcValue::TypeDouble);
+        ROS_ASSERT(action[2].getType() == XmlRpc::XmlRpcValue::TypeDouble);
         if (name == "default")
         {
-            default_x = (int)action[0];
-            default_y = (int)action[1];
-            default_z = (int)action[2];
+            default_x = action[0];
+            default_y = action[1];
+            default_z = action[2];
+            ROS_INFO_STREAM("1:" << default_z);
         }
         else if (name == "put")
         {
-            put_x = (int)action[0];
-            put_y = (int)action[1];
-            put_z = (int)action[2];
+            put_x = action[0];
+            put_y = action[1];
+            put_z = action[2];
         }
         else
             ROS_ERROR("Name error!");
@@ -200,6 +201,7 @@ namespace my_hand_eye
 
     bool Pos::reset()
     {
+        ROS_INFO_STREAM("default_z:" << default_z);
         bool valid = go_to(default_x, default_y, default_z, false, true);
         ros::Duration(1).sleep();
         return valid;
@@ -414,7 +416,7 @@ namespace my_hand_eye
                 double deg2 = ((double)Position[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
                 double deg3 = ((double)Position[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
                 double deg4 = ((double)Position[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
-                valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
+                valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z, true);
             }
             else
             {
@@ -422,7 +424,7 @@ namespace my_hand_eye
                 double deg2 = ((double)Position_now[2] - ARM_JOINT2_POS_WHEN_DEG0) / (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * 180.0;
                 double deg3 = ((double)Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
                 double deg4 = ((double)Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
-                valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
+                valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z, true);
             }
         }
         return valid;
@@ -490,14 +492,14 @@ namespace my_hand_eye
 
     cv::Mat Pos::R_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 3) << 0.01762304284718308, 0.05031655330790039, 0.998577825121317,
-                0.9994569158454911, 0.02692675460875993, -0.01899534824262144,
-                -0.02784424050724299, 0.9983702691634265, -0.04981469583488352);
+        return (cv::Mat_<double>(3, 3) << 0.09374709750889365, -0.2286295806306266, 0.9689891622558645,
+                -0.9767903175486035, 0.1671539022056308, 0.1339412129283933,
+                -0.1925932430070087, -0.9590558314499186, -0.2076529674961305);
     }
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.00245432936754) * 0.1;
+        return (cv::Mat_<double>(3, 1) << 11.29124065248928, -94.40617010719168, -31.92307304821636) * 0.1;
     }
 
     cv::Mat Pos::R_end_to_base()
@@ -616,9 +618,12 @@ namespace my_hand_eye
             ROS_WARN("Ping servo ID error!");
         }
         ID = sm_st_ptr->Ping(6);
-        if(ID!=-1){
-            ROS_INFO_STREAM("ID:"<<ID);
-        }else{
+        if (ID != -1)
+        {
+            ROS_INFO_STREAM("ID:" << ID);
+        }
+        else
+        {
             ROS_WARN("Ping servo ID error!");
         }
     }

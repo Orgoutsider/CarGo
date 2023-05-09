@@ -64,26 +64,26 @@ namespace my_hand_eye
 		// }
 
 		// // 中间点抓取
-		// static bool finish = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, true);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
-
-		// 椭圆识别
 		static bool finish = false;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		if (!finish)
 		{
 			double u, v;
-			arm_controller_.put_with_ellipse(image_rect, color_green, 0, finish, debug_image);
+			arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable + arm_controller_.z_floor, finish, debug_image, true);
 			if (arm_controller_.show_detections_)
 				debug_image_publisher_.publish(debug_image);
 		}
+
+		// 椭圆识别
+		// static bool finish = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!finish)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.put_with_ellipse(image_rect, color_green, 0, finish, debug_image);
+		// 	if (arm_controller_.show_detections_)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
 	}
 
 	void MyEye::execute_callback(const ArmGoalConstPtr &goal)
