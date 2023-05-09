@@ -73,16 +73,16 @@ namespace my_hand_eye
         ROS_ASSERT(action[2].getType() == XmlRpc::XmlRpcValue::TypeDouble);
         if (name == "default")
         {
-            default_x = action[0];
-            default_y = action[1];
-            default_z = action[2];
+            default_x = (double)action[0];
+            default_y = (double)action[1];
+            default_z = (double)action[2];
             ROS_INFO_STREAM("1:" << default_z);
         }
         else if (name == "put")
         {
-            put_x = action[0];
-            put_y = action[1];
-            put_z = action[2];
+            put_x = (double)action[0];
+            put_y = (double)action[1];
+            put_z = (double)action[2];
         }
         else
             ROS_ERROR("Name error!");
