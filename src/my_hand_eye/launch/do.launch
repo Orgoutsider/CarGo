@@ -5,7 +5,7 @@
     <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="if_detect_QR_code" default="false" />
-    <arg name="if_emulation" default="true" />
+    <arg name="if_emulation" default="false" />
 
     <include file="$(find my_hand_eye)/launch/eye.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
