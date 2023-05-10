@@ -177,7 +177,6 @@ namespace my_hand_eye
         cv_image_.encoding = image->encoding;
         cv_image_.header = image->header;
         cv_image_.image = image->image.clone();
-        // cv::cvtColor(image->image, image->image, cv::COLOR_RGB2BGR);
         return true;
     }
 
@@ -215,10 +214,9 @@ namespace my_hand_eye
                 detections = cargo.response.results;
                 if (show_detections_ && !cv_image->image.empty())
                 {
-                    // cv::cvtColor(cv_image->image, cv_image->image, cv::COLOR_RGB2BGR);
                     if (cargo.response.results.boxes.size())
                     {
-                        for (int color = 1; color <= 3; color++)
+                        for (int color = color_red; color <= color_blue; color++)
                         {
                             if (!cargo.response.results.boxes[color].center.x)
                                 continue;
@@ -243,10 +241,10 @@ namespace my_hand_eye
                             default:
                                 break;
                             }
-                            // for (int j = 0; j < 4; j++)
-                            // {
-                            //     cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2); // 随机颜色绘制矩形
-                            // }
+                            for (int j = 0; j < 4; j++)
+                            {
+                                cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2);
+                            }
                         }
                     }
                     // imshow("det", cv_image->image);
@@ -272,15 +270,20 @@ namespace my_hand_eye
             return false;
     }
 
-    bool ArmController::log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, int color, sensor_msgs::ImagePtr &debug_image)
     {
+        static bool flag = false; // 尚未初始化位姿
+        if (!flag)
+        {
+            flag = true;
+            ps_.reset();
+        }
         vision_msgs::BoundingBox2DArray objArray;
-        cv::Rect rect(480, 0, 960, 1080);
-        bool valid = detect_cargo(image_rect, objArray, debug_image, rect);
+        bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
         if (valid)
         {
             double x = 0, y = 0;
-            if (find_with_color(objArray, color_green, z, x, y))
+            if (find_with_color(objArray, color, z, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
         }
         return valid;
@@ -394,24 +397,24 @@ namespace my_hand_eye
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
                 cargo_x_.push_back(x);
                 cargo_y_.push_back(y);
-                // if (cargo_x_.size() == 10)
-                // {
-                //     double x_aver = 0, y_aver = 0;
-                //     average_position(x_aver, y_aver);
-                //     cargo_x_.clear();
-                //     cargo_y_.clear();
-                //     if (midpoint)
-                //         valid = ps_.go_to_by_midpoint(x_aver, y_aver, current_z_);
-                //     else
-                //         valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
-                //     if (valid)
-                //     {
-                //         ps_.go_to(ps_.default_x, ps_.default_y, ps_.default_z, true, true);
-                //         ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false);
-                //     }
-                //     ps_.reset();
-                //     finish = true;
-                // }
+                if (cargo_x_.size() == 10)
+                {
+                    double x_aver = 0, y_aver = 0;
+                    average_position(x_aver, y_aver);
+                    cargo_x_.clear();
+                    cargo_y_.clear();
+                    if (midpoint)
+                        valid = ps_.go_to_by_midpoint(x_aver, y_aver, current_z_);
+                    else
+                        valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
+                    if (valid)
+                    {
+                        ps_.go_to(ps_.default_x, ps_.default_y, ps_.default_z, true, true);
+                        // ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false);
+                    }
+                    ps_.reset();
+                    finish = true;
+                }
             }
             else
                 return false;

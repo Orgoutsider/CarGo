@@ -117,8 +117,11 @@ namespace my_hand_eye
         if (valid)
         {
             int ID[] = {1, 2, 3, 4, 5};
-            if (read_all_position() && arrive(ID, 5))
+            if (arrive(ID, 5))
+            {
+                ROS_INFO("Pose has arrived");
                 return valid;
+            }
             sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
             sm_st_ptr->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
             sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
@@ -150,7 +153,7 @@ namespace my_hand_eye
     {
         for (int i = 0; i < IDn; i++)
         {
-            if (!read_position(ID[i]) || abs(Position[ID[i]] - Position_now[ID[i]]) > 2)
+            if (!read_position(ID[i]) || abs(Position[ID[i]] - Position_now[ID[i]]) > 3)
                 return false;
         }
         return true;
@@ -201,7 +204,6 @@ namespace my_hand_eye
 
     bool Pos::reset()
     {
-        ROS_INFO_STREAM("default_z:" << default_z);
         bool valid = go_to(default_x, default_y, default_z, false, true);
         ros::Duration(1).sleep();
         return valid;
@@ -492,14 +494,14 @@ namespace my_hand_eye
 
     cv::Mat Pos::R_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 3) << 0.09374709750889365, -0.2286295806306266, 0.9689891622558645,
-                -0.9767903175486035, 0.1671539022056308, 0.1339412129283933,
-                -0.1925932430070087, -0.9590558314499186, -0.2076529674961305);
+        return (cv::Mat_<double>(3, 3) << 0.04981894561782396, -0.1957598703411149, 0.9793855960864229,
+                -0.9942011865146739, 0.08384746816892941, 0.06733203408835098,
+                -0.09529991285590336, -0.977060732629088, -0.1904475029081951);
     }
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << 11.29124065248928, -94.40617010719168, -31.92307304821636) * 0.1;
+        return (cv::Mat_<double>(3, 1) << 1.887243879353053, 0, -31.95990161597666) * 0.1;
     }
 
     cv::Mat Pos::R_end_to_base()

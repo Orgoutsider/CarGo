@@ -259,9 +259,7 @@ namespace my_hand_eye
             return false;
         }
         double alpha = 90;
-        ROS_INFO_STREAM("z:" << z);
         bool valid = _modify_alpha(alpha, look);
-        ROS_WARN_STREAM("look:" << look);
         if (valid)
         {
             Angle j1 = _calculate_j1();
@@ -336,7 +334,6 @@ namespace my_hand_eye
     {
         double tx, ty, tz;
         tx = ty = tz = 0;
-        ROS_INFO_STREAM("z:" << z);
         bool valid = backward_kinematics(deg1, deg2, deg3, deg4, look);
         if (valid)
         {
