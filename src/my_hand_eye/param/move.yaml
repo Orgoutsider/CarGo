@@ -1,16 +1,16 @@
 servo:
   [
     {id: 1, speed: 200,  acc: 20},
-    {id: 2, speed: 13, acc: 20},
-    {id: 3, speed: 240, acc: 20},
-    {id: 4, speed: 200, acc: 20},
+    {id: 2, speed: 20, acc: 20},
+    {id: 3, speed: 500, acc: 20},
+    {id: 4, speed: 500, acc: 20},
     {id: 5, speed: 200, acc: 20},
   ]
 
 #x, y, z
 default_action:
   [
-    0.0, 5.8, 49.0
+    0.0, 3.0, 51.0
   ]
 
 put_action:

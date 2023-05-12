@@ -236,7 +236,7 @@ namespace my_hand_eye
     {
         alpha = 90;
         bool valid = false;
-        while (alpha >= 0 && alpha <= 135 && !valid)
+        while (alpha >= 0 && alpha <= 120 && !valid)
         {
             valid = _j123_length_and_height_is_valid(alpha);
             if (!valid)

@@ -372,13 +372,14 @@ namespace my_hand_eye
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
                                          bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint)
     {
+        const int MAX_SIZE = 3;
         if (!cargo_x_.size())
         {
             current_color_ = color;
             current_z_ = z;
             ps_.reset();
         }
-        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
+        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= MAX_SIZE)
         {
             cargo_x_.clear();
             cargo_y_.clear();
@@ -397,7 +398,7 @@ namespace my_hand_eye
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
                 cargo_x_.push_back(x);
                 cargo_y_.push_back(y);
-                if (cargo_x_.size() == 10)
+                if (cargo_x_.size() == MAX_SIZE)
                 {
                     double x_aver = 0, y_aver = 0;
                     average_position(x_aver, y_aver);
