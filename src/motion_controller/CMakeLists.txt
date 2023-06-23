@@ -251,12 +251,12 @@ target_link_libraries(${PROJECT_NAME}_client_node
   ${catkin_LIBRARIES}
 )
 
-# add_executable(${PROJECT_NAME}_controller_node src/${PROJECT_NAME}_controller_node.cpp)
-# add_dependencies(${PROJECT_NAME}_controller_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-# target_link_libraries(${PROJECT_NAME}_controller_node
-#   ${PROJECT_NAME}
-#   ${catkin_LIBRARIES}
-# )
+add_executable(${PROJECT_NAME}_controller_node src/${PROJECT_NAME}_controller_node.cpp)
+add_dependencies(${PROJECT_NAME}_controller_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}_controller_node
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
 add_executable(${PROJECT_NAME}_adjuster_node src/${PROJECT_NAME}_adjuster_node.cpp)
 add_dependencies(${PROJECT_NAME}_adjuster_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

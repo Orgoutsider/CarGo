@@ -3,16 +3,20 @@
 namespace motion_controller
 {
     MotionController::MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : motor_status_(false),
-          delta_x_(0), delta_y_(0), delta_theta_(0),
+        : delta_x_(0), delta_y_(0), delta_theta_(0),
           finish_turning_(false),
-          listener_(buffer_), follower_(pnh),
+          listener_(buffer_), follower_(nh, pnh),
           ac_move_(nh, "Move", true), ac_arm_(nh, "Arm", true)
     {
-        nh.setParam("/width_road", width_road_);
-        vision_publisher = nh.advertise<Distance>("/vision_usb_cam", 5);
-        timer_ = nh.createTimer(ros::Rate(3), &MotionController::_timer_callback, this, false, false);
-        go_client_ = nh.advertiseService("Go", &MotionController::go, this);
+        timer_ = nh.createTimer(ros::Rate(4), &MotionController::_timer_callback, this, false, false);
+        if (!follower_.param_modification)
+        {
+            nh.setParam("/width_road", width_road_);
+            vision_publisher = nh.advertise<Distance>("/vision_usb_cam", 5);
+            go_client_ = nh.advertiseService("Go", &MotionController::go, this);
+        }
+        else
+            timer_.start();
     }
 
     bool MotionController::_turn()
@@ -97,11 +101,13 @@ namespace motion_controller
     {
         if (get_position())
         {
-            // ROS_INFO_STREAM("x: " << x_ << " y: " << y_);
-            if (follower_.param_modification_)
+            if (follower_.param_modification)
             {
-                if (!follower_.has_started)
+                if (!follower_.has_started && follower_.motor_status)
+                {   
+                    set_position(0, 0, 0);
                     follower_.start(true, theta_);
+                }
                 follower_.follow(theta_, event.current_real);
             }
             else
@@ -224,7 +230,7 @@ namespace motion_controller
 
     bool MotionController::get_position()
     {
-        try  
+        try
         {
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
             geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",

@@ -12,8 +12,8 @@ namespace motion_controller
     class LineFollower
     {
     private:
-        bool motor_status_;                // 调参，即停选项
         double kp_;                        // pid参数p
+        double ki_;                        // pid参数i
         double kd_;                        // pid参数d
         double target_theta_;              // 目标角度，开启时设定
         double linear_velocity_;           // 线速度
@@ -24,8 +24,9 @@ namespace motion_controller
         void _dr_callback(lineConfig &config, uint32_t level);
 
     public:
-        LineFollower(ros::NodeHandle &pnh);
-        bool param_modification_; // 动态调参
+        LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);
+        bool param_modification; // 动态调参
+        bool motor_status;       // 调参，即停选项
         bool has_started;         // 是否已经启动
         // 启动并输入theta，自动转成目标角度
         bool start(bool start, double theta = 0);

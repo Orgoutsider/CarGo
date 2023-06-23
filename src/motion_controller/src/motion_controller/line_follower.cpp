@@ -2,17 +2,18 @@
 
 namespace motion_controller
 {
-    LineFollower::LineFollower(ros::NodeHandle &pnh)
-        : kp_(0), kd_(0),
-          pid_({0}, {kp_}, {0}, {kd_}, {0.02}, {0.1}, {0.5}),
+    LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
+        : kp_(1.5), ki_(0.5), kd_(0.3),
+          pid_({0}, {kp_}, {ki_}, {kd_}, {0.02}, {0.1}, {0.5}),
           linear_velocity_(0.2), has_started(false),
-          motor_status_(false)
+          motor_status(false)
     {
-        pnh.param<bool>("param_modification", param_modification_, false);
-        if (param_modification_)
+        pnh.param<bool>("param_modification", param_modification, false);
+        cmd_vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 3);
+        if (param_modification)
         {
             dr_server_.setCallback(boost::bind(&LineFollower::_dr_callback, this, _1, _2));
-            theta_publisher_ = pnh.advertise<std_msgs::Float64>("theta", 5);
+            theta_publisher_ = nh.advertise<std_msgs::Float64>("theta", 5);
         }
     }
 
@@ -24,11 +25,15 @@ namespace motion_controller
         }
         if (kp_ != config.kp)
             kp_ = config.kp;
+        if (ki_ != config.ki)
+            ki_ = config.ki;
         if (kd_ != config.kd)
             kd_ = config.kd;
-        if (motor_status_ != config.motor_status)
+        if (motor_status != config.motor_status)
         {
-            motor_status_ = config.motor_status;
+            motor_status = config.motor_status;
+            if (!motor_status && has_started)
+                start(false);
         }
     }
 
@@ -50,11 +55,14 @@ namespace motion_controller
                 else
                     theta = -M_PI / 2;
 
-                pid_ = PIDController({theta}, {kp_}, {0}, {kd_}, {0.02}, {0.1}, {0.5});
+                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.02}, {0.1}, {0.5});
                 target_theta_ = theta;
             }
             else
+            {
+                ROS_WARN("Failed to start/stop LineFollower");
                 return false;
+            }
         }
         else if (has_started)
         {
@@ -62,7 +70,10 @@ namespace motion_controller
             cmd_vel_publisher_.publish(geometry_msgs::Twist());
         }
         else
+        {
+            ROS_WARN("Failed to start/stop LineFollower");
             return false;
+        }
         return true;
     }
 
@@ -78,14 +89,14 @@ namespace motion_controller
                         : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
             if (pid_.update({theta}, now, controll, success))
             {
-
                 geometry_msgs::Twist twist;
                 twist.linear.x = linear_velocity_;
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -controll[0];
-                cmd_vel_publisher_.publish(twist);
+                if (motor_status)
+                    cmd_vel_publisher_.publish(twist);
             }
-            if (param_modification_)
+            if (param_modification)
             {
                 std_msgs::Float64 msg;
                 msg.data = theta;
