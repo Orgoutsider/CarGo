@@ -1,4 +1,4 @@
-#include "my_hand_eye/backward_kinematics.hpp"
+#include "my_hand_eye/backward_kinematics.h"
 
 #ifndef M_PI
 # define M_PI 3.141592653589793238462643383279502884196

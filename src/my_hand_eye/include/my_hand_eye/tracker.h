@@ -19,7 +19,7 @@ namespace my_hand_eye
         tracker_camshift
     };
 
-    enum Color
+    enum
     {
         color_red = 1,
         color_green,

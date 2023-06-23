@@ -1,4 +1,4 @@
-#include "my_hand_eye/pose.hpp"
+#include "my_hand_eye/pose.h"
 
 s16 Position[6];
 u16 Speed[6] = {0, 0, 20, 60, 45, 45};

@@ -1,6 +1,6 @@
 #ifndef _ARM_CONTROLLER_H_
 #define _ARM_CONTROLLER_H_
-#include "my_hand_eye/pose.hpp"
+#include "my_hand_eye/pose.h"
 #include "my_hand_eye/tracker.h"
 
 #include <yolov5_ros/cargoSrv.h>

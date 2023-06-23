@@ -158,9 +158,9 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/motion_server.cpp
   src/${PROJECT_NAME}/pid_controller.cpp
   src/${PROJECT_NAME}/motion_performer.cpp
-  src/${PROJECT_NAME}/line_follower.cpp
   src/${PROJECT_NAME}/motion_controller.cpp
   src/${PROJECT_NAME}/vision_adjuster.cpp
+  src/${PROJECT_NAME}/line_follower.cpp
   src/${PROJECT_NAME}/field_guide.cpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -238,12 +238,12 @@ target_link_libraries(${PROJECT_NAME}_stm32_pid_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(${PROJECT_NAME}_follower_node src/${PROJECT_NAME}_follower_node.cpp)
-add_dependencies(${PROJECT_NAME}_follower_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_follower_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+# add_executable(${PROJECT_NAME}_follower_node src/${PROJECT_NAME}_follower_node.cpp)
+# add_dependencies(${PROJECT_NAME}_follower_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(${PROJECT_NAME}_follower_node
+#   ${PROJECT_NAME}
+#   ${catkin_LIBRARIES}
+# )
 
 add_executable(${PROJECT_NAME}_client_node src/${PROJECT_NAME}_client_node.cpp)
 add_dependencies(${PROJECT_NAME}_client_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -251,12 +251,12 @@ target_link_libraries(${PROJECT_NAME}_client_node
   ${catkin_LIBRARIES}
 )
 
-add_executable(${PROJECT_NAME}_controller_node src/${PROJECT_NAME}_controller_node.cpp)
-add_dependencies(${PROJECT_NAME}_controller_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_controller_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+# add_executable(${PROJECT_NAME}_controller_node src/${PROJECT_NAME}_controller_node.cpp)
+# add_dependencies(${PROJECT_NAME}_controller_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(${PROJECT_NAME}_controller_node
+#   ${PROJECT_NAME}
+#   ${catkin_LIBRARIES}
+# )
 
 add_executable(${PROJECT_NAME}_adjuster_node src/${PROJECT_NAME}_adjuster_node.cpp)
 add_dependencies(${PROJECT_NAME}_adjuster_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

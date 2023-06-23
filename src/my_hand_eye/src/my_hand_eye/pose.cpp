@@ -1,21 +1,19 @@
-#include "my_hand_eye/pose.hpp"
+#include "my_hand_eye/pose.h"
 
 namespace my_hand_eye
 {
     ArmPose::ArmPose() : empty(true){};
 
-    Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look)
+    Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : cat_(cat), look_(look),
+                                                                       sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
+                                                                       cargo_table_(sm_st_ptr)
     {
-        this->cat = cat;
-        this->look = look;
-        this->sm_st_ptr = sm_st_ptr;
-        this->sc_ptr = sc_ptr;
         x = 0;
         y = 0;
         z = 0;
         expand_y = false;
         u8 ID[] = {0, 1, 2, 3, 4, 5};
-        memcpy(Id, ID, 6 * sizeof(u8));
+        memcpy(Id, ID, sizeof(Id));
         memset(Position, 0, sizeof(Position));
         memset(Position_now, 0, sizeof(Position_now));
         memset(Speed, 0, sizeof(Speed));
@@ -24,7 +22,7 @@ namespace my_hand_eye
 
     bool Pos::begin(const char *argv)
     {
-        if (!(sm_st_ptr->begin(115200, argv)) || !(sc_ptr->begin(115200, argv)))
+        if (!(sm_st_ptr_->begin(115200, argv)) || !(sc_ptr_->begin(115200, argv)))
         {
             ROS_ERROR("Failed to init motor!");
             return false;
@@ -38,7 +36,7 @@ namespace my_hand_eye
         // Ensure the type is correct
         ROS_ASSERT(servo_descriptions.getType() == XmlRpc::XmlRpcValue::TypeArray);
         // Loop through all servo descriptions
-        for (int32_t i = 0; i < servo_descriptions.size(); i++)
+        for (int32_t i = 0; i < sizeof(Speed) / sizeof(u16); i++)
         {
 
             // i-th servo description
@@ -61,8 +59,8 @@ namespace my_hand_eye
             Speed[id] = (int)servo_description["speed"];
             ACC[id] = (int)servo_description["acc"];
             ROS_INFO_STREAM("Loaded servo desciptions id: " << id << ", speed: " << Speed[id] << ", acc: " << (int)ACC[id]);
-            // 此处应注意
         }
+        cargo_table_.set_speed_and_acc(servo_descriptions[5]);
     }
 
     void Pos::set_action(XmlRpc::XmlRpcValue &action, std::string name)
@@ -73,16 +71,21 @@ namespace my_hand_eye
         ROS_ASSERT(action[2].getType() == XmlRpc::XmlRpcValue::TypeDouble);
         if (name == "default")
         {
-            default_x = (double)action[0];
-            default_y = (double)action[1];
-            default_z = (double)action[2];
-            ROS_INFO_STREAM("1:" << default_z);
+            action_default.x = (double)action[0];
+            action_default.y = (double)action[1];
+            action_default.z = (double)action[2];
         }
-        else if (name == "put")
+        else if (name == "left")
         {
-            put_x = (double)action[0];
-            put_y = (double)action[1];
-            put_z = (double)action[2];
+            action_left.x = (double)action[0];
+            action_left.y = (double)action[1];
+            action_left.z = (double)action[2];
+        }
+        else if (name == "right")
+        {
+            action_right.x = (double)action[0];
+            action_right.y = (double)action[1];
+            action_right.z = (double)action[2];
         }
         else
             ROS_ERROR("Name error!");
@@ -92,14 +95,14 @@ namespace my_hand_eye
     {
         double deg1, deg2, deg3, deg4;
         deg1 = deg2 = deg3 = deg4 = 0;
-        bool valid = test_ok(deg1, deg2, deg3, deg4, look);
+        bool valid = test_ok(deg1, deg2, deg3, deg4, look_);
         if (valid)
         {
             Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
             Position[2] = std::round(ARM_JOINT2_POS_WHEN_DEG0 + (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * deg2 / 180);
             Position[3] = std::round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
             Position[4] = std::round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
-            Position[5] = std::round(cat ? ARM_JOINT5_POS_WHEN_CATCH : ARM_JOINT5_POS_WHEN_LOSEN);
+            Position[5] = std::round(cat_ ? ARM_JOINT5_POS_WHEN_CATCH : ARM_JOINT5_POS_WHEN_LOSEN);
             // ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
         }
         return valid;
@@ -110,8 +113,8 @@ namespace my_hand_eye
         this->x = x;
         this->y = y;
         this->z = z;
-        this->cat = cat;
-        this->look = look;
+        this->cat_ = cat;
+        this->look_ = look;
 
         bool valid = calculate_position();
         if (valid)
@@ -122,9 +125,9 @@ namespace my_hand_eye
                 ROS_INFO("Pose has arrived");
                 return valid;
             }
-            sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            sm_st_ptr->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
-            sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
+            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
+            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             wait_until_static(ID, 5);
         }
         return valid;
@@ -195,7 +198,7 @@ namespace my_hand_eye
     //     if (valid)
     //     {
     //         Position[1] = (s16)std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-    //         sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
+    //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
     //         int ID[] = {1};
     //         wait_until_static(ID, 1);
     //     }
@@ -204,7 +207,8 @@ namespace my_hand_eye
 
     bool Pos::reset()
     {
-        bool valid = go_to(default_x, default_y, default_z, false, true);
+        bool valid = go_to(action_default.x, action_default.y, action_default.z,
+                           false, true);
         ros::Duration(1).sleep();
         return valid;
     }
@@ -214,21 +218,21 @@ namespace my_hand_eye
         this->x = x;
         this->y = y;
         this->z = z;
-        this->cat = cat;
-        this->look = false;
+        this->cat_ = cat;
+        this->look_ = false;
         bool valid = calculate_position();
         if (valid)
         {
-            sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            sm_st_ptr->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             int ID[] = {1, 3, 4};
             wait_until_static(ID, 3);
 
-            sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
+            sm_st_ptr_->WritePosEx(2, Position[2], Speed[2]);
             int ID2[] = {2};
             wait_until_static(ID2, 1);
 
-            sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
+            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             int ID3[] = {5};
             wait_until_static(ID3, 1);
         }
@@ -240,8 +244,8 @@ namespace my_hand_eye
         this->x = x;
         this->y = y;
         this->z = z;
-        this->cat = true;
-        this->look = false;
+        this->cat_ = true;
+        this->look_ = false;
         bool valid = calculate_position();
         if (valid)
         {
@@ -249,26 +253,26 @@ namespace my_hand_eye
             double x_goal = 0, y_goal = 0, z_goal = 0;
             if (valid = find_a_midpoint(Position_goal, x_goal, y_goal, z_goal))
             {
-                sc_ptr->WritePos(1, (u16)Position[1], 0, Speed[1]);
-                sm_st_ptr->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+                sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+                sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
                 int ID[] = {1, 3, 4};
                 wait_until_static(ID, 3);
 
-                sm_st_ptr->WritePosEx(2, Position[2], Speed[2]);
+                sm_st_ptr_->WritePosEx(2, Position[2], Speed[2]);
                 int ID2[] = {2};
                 wait_until_static(ID2, 1);
 
-                memcpy(Position, Position_goal, 6 * sizeof(s16));
+                memcpy(Position, Position_goal, sizeof(Position));
 
-                sm_st_ptr->WritePosEx(3, Position[3], Speed[3]);
-                sm_st_ptr->WritePosEx(4, Position[4], Speed[4]);
-                sm_st_ptr->RegWritePosEx(2, Position[2], Speed[2]);
+                sm_st_ptr_->WritePosEx(3, Position[3], Speed[3]);
+                sm_st_ptr_->WritePosEx(4, Position[4], Speed[4]);
+                sm_st_ptr_->RegWritePosEx(2, Position[2], Speed[2]);
                 wait_for_alpha_decrease(3);
                 int ID3[] = {2, 3, 4};
-                sm_st_ptr->RegWriteAction(2);
+                sm_st_ptr_->RegWriteAction(2);
                 wait_until_static(ID3, 3);
 
-                sc_ptr->WritePos(5, (u16)Position[5], 0, Speed[5]);
+                sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
                 int ID4[] = {5};
                 double load_max = wait_until_static(ID4, 1, true);
                 if (load_max < 400)
@@ -283,12 +287,44 @@ namespace my_hand_eye
         return valid;
     }
 
+    bool Pos::go_to_table(bool cat, int color, bool left)
+    {
+        this->x = left ? action_left.x : action_right.x;
+        this->y = left ? action_left.y : action_right.y;
+        this->z = left ? action_left.z : action_right.z;
+        this->cat_ = cat;
+        this->look_ = false;
+        bool valid = calculate_position();
+        if (valid)
+        {
+            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+            if (!cat_)
+            {
+                cargo_table_.put_next(color);
+            }
+            else
+                cargo_table_.get_next();
+            int ID[] = {3, 4, 6};
+            wait_until_static(ID, 3);
+
+            sm_st_ptr_->WritePosEx(2, Position[2], Speed[2]);
+            int ID2[] = {2};
+            wait_until_static(ID2, 1);
+
+            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
+            int ID3[] = {5};
+            wait_until_static(ID3, 1);
+        }
+        return valid;
+    }
+
     bool Pos::read_position(int ID)
     {
         if (ID == 1 || ID == 5)
-            Position_now[ID] = (s16)sc_ptr->ReadPos(ID);
+            Position_now[ID] = (s16)sc_ptr_->ReadPos(ID);
         else if (ID == 2 || ID == 3 || ID == 4)
-            Position_now[ID] = (s16)sm_st_ptr->ReadPos(ID);
+            Position_now[ID] = (s16)sm_st_ptr_->ReadPos(ID);
         else
         {
             ROS_ERROR("ID error!");
@@ -311,9 +347,9 @@ namespace my_hand_eye
     {
         int move_now;
         if (ID == 1 || ID == 5)
-            move_now = sc_ptr->ReadMove(ID);
+            move_now = sc_ptr_->ReadMove(ID);
         else if (ID == 2 || ID == 3 || ID == 4)
-            move_now = sm_st_ptr->ReadMove(ID);
+            move_now = sm_st_ptr_->ReadMove(ID);
         else
         {
             ROS_ERROR("ID error!");
@@ -321,7 +357,6 @@ namespace my_hand_eye
         }
         if (move_now != -1)
         {
-            // ROS_INFO_STREAM("speed:" << speed_now << "ID:" << ID);
             usleep(10 * 1000);
         }
         else
@@ -330,16 +365,16 @@ namespace my_hand_eye
             sleep(1);
             return true;
         }
-        return false;
+        return move_now;
     }
 
     int Pos::read_load(int ID)
     {
         int Load;
         if (ID == 1 || ID == 5)
-            Load = sc_ptr->ReadLoad(ID);
+            Load = sc_ptr_->ReadLoad(ID);
         else if (ID == 2 || ID == 3 || ID == 4)
-            Load = sm_st_ptr->ReadLoad(ID);
+            Load = sm_st_ptr_->ReadLoad(ID);
         else
         {
             ROS_ERROR("ID error!");
@@ -361,7 +396,7 @@ namespace my_hand_eye
 
     bool Pos::show_voltage()
     {
-        int Volt = sm_st_ptr->ReadVoltage(2);
+        int Volt = sm_st_ptr_->ReadVoltage(2);
         if (Volt != -1)
         {
             usleep(10 * 1000);
@@ -441,7 +476,7 @@ namespace my_hand_eye
         {
             for (int i = 0; i < IDn; i++)
             {
-                double time = calculate_time(ID[i]);
+                double time = (ID[i] == 6) ? cargo_table_.calculate_time() : calculate_time(ID[i]);
                 time_max = time > time_max ? time : time_max;
             }
         }
@@ -472,8 +507,8 @@ namespace my_hand_eye
 
     void Pos::end()
     {
-        sc_ptr->end();
-        sm_st_ptr->end();
+        sc_ptr_->end();
+        sm_st_ptr_->end();
     }
 
     bool generate_valid_position(double deg1, double deg2, double deg3, double deg4, double &x, double &y, double &z, bool &look)
@@ -574,7 +609,7 @@ namespace my_hand_eye
 
     void Pos::ping()
     {
-        int ID = sc_ptr->Ping(1);
+        int ID = sc_ptr_->Ping(1);
         if (ID != -1)
         {
             ROS_INFO_STREAM("ID:" << ID);
@@ -583,7 +618,7 @@ namespace my_hand_eye
         {
             ROS_WARN("Ping servo ID error!");
         }
-        ID = sm_st_ptr->Ping(2);
+        ID = sm_st_ptr_->Ping(2);
         if (ID != -1)
         {
             ROS_INFO_STREAM("ID:" << ID);
@@ -592,7 +627,7 @@ namespace my_hand_eye
         {
             ROS_WARN("Ping servo ID error!");
         }
-        ID = sm_st_ptr->Ping(3);
+        ID = sm_st_ptr_->Ping(3);
         if (ID != -1)
         {
             ROS_INFO_STREAM("ID:" << ID);
@@ -601,7 +636,7 @@ namespace my_hand_eye
         {
             ROS_WARN("Ping servo ID error!");
         }
-        ID = sm_st_ptr->Ping(4);
+        ID = sm_st_ptr_->Ping(4);
         if (ID != -1)
         {
             ROS_INFO_STREAM("ID:" << ID);
@@ -610,7 +645,7 @@ namespace my_hand_eye
         {
             ROS_WARN("Ping servo ID error!");
         }
-        ID = sc_ptr->Ping(5);
+        ID = sc_ptr_->Ping(5);
         if (ID != -1)
         {
             ROS_INFO_STREAM("ID:" << ID);
@@ -619,7 +654,7 @@ namespace my_hand_eye
         {
             ROS_WARN("Ping servo ID error!");
         }
-        ID = sm_st_ptr->Ping(6);
+        ID = sm_st_ptr_->Ping(6);
         if (ID != -1)
         {
             ROS_INFO_STREAM("ID:" << ID);
@@ -718,7 +753,7 @@ namespace my_hand_eye
 
     bool Pos::find_a_midpoint(s16 Position_goal[], double &x_goal, double &y_goal, double &z_goal)
     {
-        memcpy(Position_goal, Position, 6 * sizeof(s16));
+        memcpy(Position_goal, Position, sizeof(Position));
         x_goal = x;
         y_goal = y;
         z_goal = z;
@@ -756,7 +791,7 @@ namespace my_hand_eye
         bool last_mid = last_ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false; // last_ok;
         if (last_ok)
         {
-            memcpy(Position, Position_goal, 6 * sizeof(s16));
+            memcpy(Position, Position_goal, sizeof(Position));
             x = x_goal;
             y = y_goal;
             z = z_goal;
@@ -773,7 +808,7 @@ namespace my_hand_eye
                 bool mid = ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false; // ok;
                 if (ok)
                 {
-                    memcpy(Position, Position_goal, 6 * sizeof(s16));
+                    memcpy(Position, Position_goal, sizeof(Position));
                     x = x_goal;
                     y = y_goal;
                     z = z_goal;
@@ -781,7 +816,7 @@ namespace my_hand_eye
                 geometry_msgs::Point pt[6];
                 if (ok == last_ok && ok) // 和上一步判断得ok状态相同，且为真
                 {
-                    memcpy(Position_goal, Position, 6 * sizeof(s16));
+                    memcpy(Position_goal, Position, sizeof(Position));
                     for (int i = 1; i <= 5; i++)
                     {
                         y += dy / 5;
@@ -790,7 +825,7 @@ namespace my_hand_eye
                         pt[i].z = z;
                         double deg1, deg2, deg3, deg4;
                         deg1 = deg2 = deg3 = deg4 = 0;
-                        if (test_ok(deg1, deg2, deg3, deg4, look))
+                        if (test_ok(deg1, deg2, deg3, deg4, look_))
                         {
                             Angle j2 = Angle(deg2);
                             Angle j3 = Angle(deg3);
@@ -810,7 +845,7 @@ namespace my_hand_eye
                     }
                     y -= dy;
                     // ROS_ERROR_STREAM("c" << y);
-                    memcpy(Position, Position_goal, 6 * sizeof(s16));
+                    memcpy(Position, Position_goal, sizeof(Position));
                     if (mid == last_mid) // 和上一步判断得midpoint状态相同
                     {
                         for (int i = 1; i <= 5; i++)
@@ -837,7 +872,7 @@ namespace my_hand_eye
                                 x = x_goal;
                                 y = y_goal;
                                 z = z_goal;
-                                memcpy(Position, Position_goal, 6 * sizeof(s16));
+                                memcpy(Position, Position_goal, sizeof(Position));
                                 // ROS_ERROR_STREAM(pt[i].y << " 2");
                                 arr.points.push_back(point);
                             }

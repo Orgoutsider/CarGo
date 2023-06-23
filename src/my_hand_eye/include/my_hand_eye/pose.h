@@ -1,4 +1,6 @@
-#pragma once
+#ifndef _POSE_H_
+#define _POSE_H_
+
 #define ARM_JOINT1_POS_WHEN_DEG180 500
 #define ARM_JOINT1_POS_WHEN_DEG0 1082
 #define ARM_JOINT2_POS_WHEN_DEG180 3072
@@ -13,10 +15,9 @@
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_ERROR_XYZ(Pos) ROS_ERROR_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #include <opencv2/opencv.hpp>
-
-#include "my_hand_eye/SCServo.h"
-#include "my_hand_eye/backward_kinematics.hpp"
-#include "my_hand_eye/Plot.h"
+#include "my_hand_eye/backward_kinematics.h"
+#include "my_hand_eye/cargo_table.h"
+#include <my_hand_eye/Plot.h>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -33,18 +34,26 @@ namespace my_hand_eye
         ArmPose();
     };
 
+    struct Action
+    {
+        double x;
+        double y;
+        double z;
+    };
+
     class Pos : public Axis
     {
     private:
-        bool cat;            // cat=true抓
-        bool look;           // look=true观察
+        bool cat_;           // cat=true抓
+        bool look_;          // look=true观察
         s16 Position[6];     // 目标舵机位置
         s16 Position_now[6]; // 当前舵机位置
         u16 Speed[6];
         u8 ACC[6];
         u8 Id[6];
-        SMS_STS *sm_st_ptr; // 舵机
-        SCSCL *sc_ptr;
+        SMS_STS *sm_st_ptr_; // 舵机
+        SCSCL *sc_ptr_;
+        CargoTable cargo_table_;
         const double fx = 788.709302;
         const double fy = 940.728627;
         const double cx = 932.106780;
@@ -73,8 +82,9 @@ namespace my_hand_eye
 
     public:
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
-        double default_x, default_y, default_z;
-        double put_x, put_y, put_z;
+        Action action_default;
+        Action action_left;
+        Action action_right;
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();
@@ -86,6 +96,7 @@ namespace my_hand_eye
         bool reset();
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
+        bool go_to_table(bool cat, int color, bool left);            // 转盘移动，放置或取物
         bool show_voltage();                                         // 显示电压，需要时警告
         bool read_all_position();                                    // 读所有舵机正确位置
         bool refresh_xyz(bool read = true);                          // 更新位置
@@ -101,3 +112,5 @@ namespace my_hand_eye
     bool generate_valid_position(double deg1, double deg2, double deg3, double deg4, double &x, double &y, double &z, bool &look); // 根据舵机角度生成位姿
     cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T);
 }
+
+#endif // !_POSE_H_
