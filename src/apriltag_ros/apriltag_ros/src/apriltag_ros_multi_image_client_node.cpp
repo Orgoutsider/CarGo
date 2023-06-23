@@ -1,5 +1,5 @@
 #include "apriltag_ros/common_functions.h"
-#include "my_hand_eye/pose.hpp"
+#include "my_hand_eye/pose.h"
 #include <apriltag_ros/AnalyzeSingleImage.h>
 #include <opencv2/core/eigen.hpp>
 #include <fstream>

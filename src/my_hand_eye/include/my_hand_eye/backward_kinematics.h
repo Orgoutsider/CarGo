@@ -1,4 +1,6 @@
-#pragma once
+#ifndef _BACKWARD_KINEMATICS_H_
+#define _BACKWARD_KINEMATICS_H_
+
 // ARM_P > ARM_A0
 #define ARM_P 14.806
 #define ARM_A0 9.8
@@ -67,3 +69,5 @@ namespace my_hand_eye
     bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
                             double &x, double &y, double &z, bool expand_y = false);
 }
+
+#endif // !_BACKWARD_KINEMATICS_H_

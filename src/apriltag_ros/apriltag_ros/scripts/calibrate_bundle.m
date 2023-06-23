@@ -54,7 +54,7 @@ calibration_file = 'data/calibration.bag';
 bundle_name = 'my_bundle';
 
 % Master tag's ID
-master_id = 0;
+master_id = 5;
 
 %% Make sure matlab_rosbag is installed
 

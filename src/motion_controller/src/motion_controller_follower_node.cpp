@@ -1,4 +1,4 @@
-#include "motion_controller/line_follower.h"
+#include "motion_controller/vision_follower.h"
 
 int main(int argc, char *argv[])
 {
@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
-    motion_controller::LineFollower follower(nh, pnh);
+    motion_controller::VisionFollower follower(nh, pnh);
     
     ros::spin();
     return 0;
