@@ -4,7 +4,7 @@ namespace motion_controller
 {
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : front_back_(false), front_left_(true), // 初始向左移动
-          kp_(1.5), ki_(0.5), kd_(0.3),
+          kp_(1.58), ki_(0.5), kd_(0.35),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.02}, {0.1}, {0.5}),
           linear_velocity_(0.2), has_started(false),
           motor_status(false)
