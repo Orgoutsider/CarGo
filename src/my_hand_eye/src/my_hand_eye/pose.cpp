@@ -81,14 +81,14 @@ namespace my_hand_eye
             action_left.y = (double)action[1];
             action_left.z = (double)action[2];
         }
-        else if (name == "right")
+        else if (name == "front")
         {
-            action_right.x = (double)action[0];
-            action_right.y = (double)action[1];
-            action_right.z = (double)action[2];
+            action_front.x = (double)action[0];
+            action_front.y = (double)action[1];
+            action_front.z = (double)action[2];
         }
         else
-            ROS_ERROR("Name error!");
+            ROS_ERROR("set_action: Name error!");
     }
 
     bool Pos::calculate_position()
@@ -289,9 +289,9 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, int color, bool left)
     {
-        this->x = left ? action_left.x : action_right.x;
-        this->y = left ? action_left.y : action_right.y;
-        this->z = left ? action_left.z : action_right.z;
+        this->x = left ? action_left.x : action_front.x;
+        this->y = left ? action_left.y : action_front.y;
+        this->z = left ? action_left.z : action_front.z;
         this->cat_ = cat;
         this->look_ = false;
         bool valid = calculate_position();
@@ -529,9 +529,9 @@ namespace my_hand_eye
 
     cv::Mat Pos::R_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 3) << 0.04981894561782396, -0.1957598703411149, 0.9793855960864229,
-                -0.9942011865146739, 0.08384746816892941, 0.06733203408835098,
-                -0.09529991285590336, -0.977060732629088, -0.1904475029081951);
+        return (cv::Mat_<double>(3, 3) << 0.03550199209038052, -0.273647536331188, 0.9611746118252841,
+                -0.9923542901242592, 0.1041067132863669, 0.0662929492532006,
+                -0.1182056319706967, -0.9561792813633755, -0.2678593109485405);
     }
 
     // cv::Mat Pos::R_cam_to_end()
@@ -543,7 +543,7 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << 1.887243879353053, -3, -31.95990161597666) * 0.1;
+        return (cv::Mat_<double>(3, 1) << -15.37102996070558, -67.96006721273983, -46.88114458642927) * 0.1;
     }
 
     cv::Mat Pos::R_end_to_base()

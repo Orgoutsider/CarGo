@@ -84,7 +84,7 @@ namespace my_hand_eye
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
         Action action_default;
         Action action_left;
-        Action action_right;
+        Action action_front;
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();

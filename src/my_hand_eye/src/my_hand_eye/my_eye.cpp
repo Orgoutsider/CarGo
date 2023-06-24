@@ -40,10 +40,10 @@ namespace my_hand_eye
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
 		// 输出检测物料位置
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());;
-		// arm_controller_.log_position_main(image_rect, arm_controller_.z_turntable + arm_controller_.z_floor, color_red, debug_image);
-		// if (arm_controller_.show_detections_)
-		// 	debug_image_publisher_.publish(debug_image);
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());;
+		arm_controller_.log_position_main(image_rect, arm_controller_.z_turntable, color_red, debug_image);
+		if (arm_controller_.show_detections_)
+			debug_image_publisher_.publish(debug_image);
 
 		// 目标跟踪
 		// static bool stop = false;
@@ -70,15 +70,15 @@ namespace my_hand_eye
 		// }
 
 		// 直接抓取
-		static bool finish = false;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!finish)
-		{
-			double u, v;
-			arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable + arm_controller_.z_floor, finish, debug_image, false);
-			if (arm_controller_.show_detections_)
-				debug_image_publisher_.publish(debug_image);
-		}
+		// static bool finish = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!finish)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, false);
+		// 	if (arm_controller_.show_detections_)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
 
 		// 椭圆识别
 		// static bool finish = false;

@@ -56,7 +56,8 @@ namespace my_hand_eye
     };
 
     ArmController::ArmController()
-        : ps_(&sm_st_, &sc_), default_roi_(480, 0, 960, 1080),
+        : ps_(&sm_st_, &sc_),
+          default_roi_(480, 0, 960, 1080),
           fin_(false)
     {
         cargo_x_.reserve(10);
@@ -68,45 +69,7 @@ namespace my_hand_eye
           default_roi_(0, 0, 1920, 1080),
           fin_(false)
     {
-        emulation_ = pnh.param<bool>("if_emulation", false);
-        if (emulation_)
-        {
-            plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
-            white_vmin_ = pnh.param<int>("white_vmin", 170);
-            cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
-            return;
-        }
-        XmlRpc::XmlRpcValue servo_descriptions;
-        XmlRpc::XmlRpcValue default_action;
-        XmlRpc::XmlRpcValue put_action;
-        if (!pnh.getParam("servo", servo_descriptions))
-        {
-            ROS_ERROR("No speed and acc specified");
-        }
-        if (!pnh.getParam("default_action", default_action))
-        {
-            ROS_ERROR("No default action specified");
-        }
-        if (!pnh.getParam("put_action", put_action))
-        {
-            ROS_ERROR("No put action specified");
-        }
-        std::string ft_servo;
-        pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
-        ROS_INFO_STREAM("serial:" << ft_servo);
-        white_vmin_ = pnh.param<int>("white_vmin", 170);
-        speed_standard_ = pnh.param<double>("speed_standard", 0.12);
-        if (!ps_.begin(ft_servo.c_str()))
-        {
-            ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
-        }
-        ps_.ping();
-        ps_.set_speed_and_acc(servo_descriptions);
-        ps_.set_action(default_action);
-        ps_.set_action(put_action, "put");
-        ps_.show_voltage();
-
-        cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
+        init(nh, pnh);
     }
 
     ArmController::~ArmController()
@@ -127,7 +90,8 @@ namespace my_hand_eye
         }
         XmlRpc::XmlRpcValue servo_descriptions;
         XmlRpc::XmlRpcValue default_action;
-        XmlRpc::XmlRpcValue put_action;
+        XmlRpc::XmlRpcValue left_action;
+        XmlRpc::XmlRpcValue front_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
@@ -136,9 +100,13 @@ namespace my_hand_eye
         {
             ROS_ERROR("No default action specified");
         }
-        if (!pnh.getParam("put_action", put_action))
+        if (!pnh.getParam("left_action", left_action))
         {
-            ROS_ERROR("No put action specified");
+            ROS_ERROR("No left action specified");
+        }
+        if (!pnh.getParam("front_action", front_action))
+        {
+            ROS_ERROR("No front action specified");
         }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
@@ -152,7 +120,8 @@ namespace my_hand_eye
         ps_.ping();
         ps_.set_speed_and_acc(servo_descriptions);
         ps_.set_action(default_action);
-        ps_.set_action(put_action, "put");
+        ps_.set_action(left_action, "left");
+        ps_.set_action(front_action, "front");
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
@@ -835,7 +804,7 @@ namespace my_hand_eye
                     average_position(x_aver, y_aver);
                     cargo_x_.clear();
                     cargo_y_.clear();
-                    valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_ + z_floor, false);
+                    valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, false);
                     ps_.reset();
                 }
             }

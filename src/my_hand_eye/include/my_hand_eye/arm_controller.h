@@ -96,8 +96,7 @@ namespace my_hand_eye
         ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~ArmController();
         Pos ps_;
-        const double z_floor = 3.5;     // 底盘距地6mm，物块高度一半35mm
-        const double z_turntable = 8.74; // 转盘
+        const double z_turntable = 15.4294; // 转盘
         bool show_detections_;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
         bool log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
