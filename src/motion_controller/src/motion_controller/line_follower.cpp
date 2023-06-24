@@ -3,7 +3,8 @@
 namespace motion_controller
 {
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : kp_(1.5), ki_(0.5), kd_(0.3),
+        : front_back_(false), front_left_(true), // 初始向左移动
+          kp_(1.5), ki_(0.5), kd_(0.3),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.02}, {0.1}, {0.5}),
           linear_velocity_(0.2), has_started(false),
           motor_status(false)
@@ -19,6 +20,10 @@ namespace motion_controller
 
     void LineFollower::_dr_callback(lineConfig &config, uint32_t level)
     {
+        if (front_back_ != config.front_back)
+            front_back_ = config.front_back;
+        if (front_left_ != config.front_left)
+            front_left_ = config.front_left;
         if (linear_velocity_ != config.linear_velocity)
         {
             linear_velocity_ = config.linear_velocity;
@@ -90,7 +95,17 @@ namespace motion_controller
             if (pid_.update({theta}, now, controll, success))
             {
                 geometry_msgs::Twist twist;
-                twist.linear.x = linear_velocity_;
+                if (front_back_)
+                {
+                    if (front_left_)
+                        twist.linear.x = linear_velocity_;
+                    else
+                        twist.linear.x = -linear_velocity_;
+                }
+                else if (front_left_)
+                    twist.linear.y = linear_velocity_;
+                else
+                    twist.linear.y = -linear_velocity_;
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -controll[0];
                 if (motor_status)
@@ -103,5 +118,11 @@ namespace motion_controller
                 theta_publisher_.publish(msg);
             }
         }
+    }
+
+    void LineFollower::veer(bool front_back, bool front_left)
+    {
+        front_back_ = front_back;
+        front_left_ = front_left;
     }
 } // namespace motion_controller
