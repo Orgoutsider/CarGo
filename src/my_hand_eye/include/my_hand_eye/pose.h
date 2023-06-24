@@ -9,8 +9,8 @@
 #define ARM_JOINT3_POS_WHEN_DEG0 1024
 #define ARM_JOINT4_POS_WHEN_DEG180 3072
 #define ARM_JOINT4_POS_WHEN_DEG0 1024
-#define ARM_JOINT5_POS_WHEN_CATCH 218
-#define ARM_JOINT5_POS_WHEN_LOSEN 327
+#define ARM_JOINT5_POS_WHEN_CATCH 762
+#define ARM_JOINT5_POS_WHEN_LOSEN 1006
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_ERROR_XYZ(Pos) ROS_ERROR_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
