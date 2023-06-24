@@ -843,7 +843,7 @@ namespace my_hand_eye
                             double alpha = j2._get_degree() + j3._get_degree() + j4._get_degree();
                             // ROS_ERROR_STREAM(deg3 << " " << deg4);
                             // ROS_ERROR_STREAM(alpha);
-                            if (cvRound(alpha) == -90 && abs(length() - 4.46103) < 0.1)
+                            if (cvRound(alpha) == -90 && abs(length() - 4.46103) < 0.1 && y < -ARM_P)
                             {
                                 ROS_ERROR_STREAM(length());
                                 ARM_ERROR_XYZ(*this);

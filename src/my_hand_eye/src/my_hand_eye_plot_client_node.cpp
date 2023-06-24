@@ -14,8 +14,8 @@ int main(int argc, char **argv)
     controller.init(nh, pnh);
     // double h = 22.5;
     double h = 8;
-    // for (h = 0; h < ARM_MAX_HIGH-10; h += 0.2)
-    for (h = 0+3.5; h < 7+3.5; h += 0.2)
+    for (h = 0; h < ARM_MAX_HIGH-10; h += 0.2)
+    // for (h = 0+3.5; h < 7+3.5; h += 0.2)
     {
         if (h < ARM_MAX_HIGH && h > 0)
             controller.find_points_with_height(h, false, true);
