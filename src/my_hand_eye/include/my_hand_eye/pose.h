@@ -9,8 +9,8 @@
 #define ARM_JOINT3_POS_WHEN_DEG0 1024
 #define ARM_JOINT4_POS_WHEN_DEG180 3072
 #define ARM_JOINT4_POS_WHEN_DEG0 1024
-#define ARM_JOINT5_POS_WHEN_CATCH 218
-#define ARM_JOINT5_POS_WHEN_LOSEN 327
+#define ARM_JOINT5_POS_WHEN_CATCH 762
+#define ARM_JOINT5_POS_WHEN_LOSEN 1006
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_ERROR_XYZ(Pos) ROS_ERROR_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
@@ -101,7 +101,11 @@ namespace my_hand_eye
         bool read_all_position();                                    // 读所有舵机正确位置
         bool refresh_xyz(bool read = true);                          // 更新位置
         ArmPose end_to_base_now();                                   // 更新位置，并返回旋转矩阵，平移向量
-        bool calculate_cargo_position(double u, double v, double z, double &x, double &y);
+        bool calculate_cargo_position(double u, double v, double cargo_z,
+                                      double &cargo_x, double &cargo_y);
+        // 通过记录的位置校正外参
+        bool extrinsics_correction(double u, double v,
+                                   double correct_x, double correct_y, double correct_z);
         // 求中间点(y > 0)，与calculate_position配合使用，中间点-Position,x,y,z，最终点-Position_goal,x_goal,y_goal,z_goal
         bool find_a_midpoint(s16 Position_goal[], double &x_goal, double &y_goal, double &z_goal);
         bool find_points_with_height(double h, my_hand_eye::PointArray &arr);
@@ -109,7 +113,8 @@ namespace my_hand_eye
         void end();
     };
 
-    bool generate_valid_position(double deg1, double deg2, double deg3, double deg4, double &x, double &y, double &z, bool &look); // 根据舵机角度生成位姿
+    bool generate_valid_position(double deg1, double deg2, double deg3, double deg4,
+                                 double &x, double &y, double &z, bool &look); // 根据舵机角度生成位姿
     cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T);
 }
 

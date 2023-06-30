@@ -40,8 +40,8 @@ namespace my_hand_eye
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
 		// 输出检测物料位置
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());;
-		arm_controller_.log_position_main(image_rect, arm_controller_.z_turntable, color_green, debug_image);
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_green, debug_image);
 		if (arm_controller_.show_detections_)
 			debug_image_publisher_.publish(debug_image);
 
