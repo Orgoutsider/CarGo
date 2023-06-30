@@ -20,7 +20,7 @@ namespace my_hand_eye
                    XmlRpc::XmlRpcValue::TypeInt);
         Speed = (int)servo_description["speed"];
         ACC = (int)servo_description["acc"];
-        ROS_INFO_STREAM("Loaded servo desciptions id: 6, speed: " << Speed << ", acc: " << ACC);
+        ROS_INFO_STREAM("Loaded servo desciptions id: 6, speed: " << Speed << ", acc: " << (int)servo_description["acc"]);
     }
 
     void CargoTable::put_next(int color)

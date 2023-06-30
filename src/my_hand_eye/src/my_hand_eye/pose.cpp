@@ -36,9 +36,8 @@ namespace my_hand_eye
         // Ensure the type is correct
         ROS_ASSERT(servo_descriptions.getType() == XmlRpc::XmlRpcValue::TypeArray);
         // Loop through all servo descriptions
-        for (int32_t i = 0; i < sizeof(Speed) / sizeof(u16); i++)
+        for (int32_t i = 0; i < 5; i++)
         {
-
             // i-th servo description
             XmlRpc::XmlRpcValue &servo_description = servo_descriptions[i];
 
