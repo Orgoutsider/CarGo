@@ -99,8 +99,11 @@ namespace my_hand_eye
         const double z_turntable = 15.4294; // 转盘
         bool show_detections_;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
-        bool log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
-                               sensor_msgs::ImagePtr &debug_image);
+        bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
+                          sensor_msgs::ImagePtr &debug_image);
+        bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
+                                       double correct_x, double correct_y, double correct_z, int color,
+                                       sensor_msgs::ImagePtr &debug_image);
         bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
                               bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint = false);
         // bool catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,

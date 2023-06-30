@@ -689,22 +689,57 @@ namespace my_hand_eye
                R_T2homogeneous_matrix(R_cam_to_end(), T_cam_to_end());
     }
 
-    bool Pos::calculate_cargo_position(double u, double v, double z, double &x, double &y)
+    bool Pos::calculate_cargo_position(double u, double v, double cargo_z,
+                                       double &cargo_x, double &cargo_y)
     {
         bool valid = refresh_xyz();
         if (valid)
         {
             cv::Mat intrinsics_inv = intrinsics().inv();
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
-            cv::Mat point_temp = intrinsics_inv * point_pixel;
+            cv::Mat point_temp = intrinsics_inv * point_pixel; // (X/Z,Y/Z,1)
             // 单位统一为cm
-            cv::Mat temp = extrinsics();
-            double Z = (z - temp.at<double>(2, 3)) / temp.row(2).colRange(0, 3).clone().t().dot(point_temp);
-            cv::Mat point = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
-                             Z * point_temp.at<double>(1, 0), Z, 1);
-            point = temp * point;
-            x = point.at<double>(0, 0);
-            y = point.at<double>(1, 0);
+            cv::Mat ext = extrinsics();
+            double Z = (cargo_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).clone().t().dot(point_temp);
+            cv::Mat point_cam = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
+                                 Z * point_temp.at<double>(1, 0), Z, 1);
+            cv::Mat point_base = ext * point_cam;
+            cargo_x = point_base.at<double>(0, 0);
+            cargo_y = point_base.at<double>(1, 0);
+        }
+        return valid;
+    }
+
+    bool Pos::extrinsics_correction(double u, double v, double correct_x, double correct_y, double correct_z)
+    {
+        bool valid = refresh_xyz();
+        static cv::Mat Tce = T_cam_to_end();
+        static cv::Mat Rce = R_cam_to_end();
+        if (valid)
+        {
+            cv::Mat intrinsics_inv = intrinsics().inv();
+            cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
+            cv::Mat point_temp = intrinsics_inv * point_pixel; // (X/Z,Y/Z,1)
+            cv::Mat point_base = (cv::Mat_<double>(4, 1) << correct_x, correct_y, correct_z, 1);
+            cv::Mat point_end = R_T2homogeneous_matrix(R_end_to_base().t(),
+                                                       -R_end_to_base().t() * T_end_to_base()) *
+                                point_base;
+            point_end = point_end.rowRange(0, 2).clone();
+            for (int i = 1; i <= 3; i++)
+            {
+                double Z = Rce.col(2).dot(point_end - Tce);
+                cv::Mat point_cam = (cv::Mat_<double>(3, 1) << Z * point_temp.at<double>(0, 0),
+                                     Z * point_temp.at<double>(1, 0), Z);
+                Tce = point_end - Rce * point_cam;
+                ROS_INFO_STREAM("loop" << i << " T_cam_to_end: " << Tce);
+            }
+            cv::Mat ext = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) *
+                          R_T2homogeneous_matrix(Rce, Tce);
+            double Z = (correct_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).clone().t().dot(point_temp);
+            cv::Mat point_cam1 = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
+                                 Z * point_temp.at<double>(1, 0), Z, 1);
+            cv::Mat point_base1 = ext * point_cam1;
+            ROS_INFO_STREAM("After correction: " << point_base1.colRange(0, 2));
         }
         return valid;
     }

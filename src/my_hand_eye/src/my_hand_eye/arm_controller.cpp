@@ -239,7 +239,7 @@ namespace my_hand_eye
             return false;
     }
 
-    bool ArmController::log_position_main(const sensor_msgs::ImageConstPtr &image_rect, double z, int color, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color, sensor_msgs::ImagePtr &debug_image)
     {
         static bool flag = false; // 尚未初始化位姿
         if (!flag)
@@ -254,6 +254,36 @@ namespace my_hand_eye
             double x = 0, y = 0;
             if (find_with_color(objArray, color, z, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
+        }
+        return valid;
+    }
+
+    bool ArmController::log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
+                                                  double correct_x, double correct_y, double correct_z, int color,
+                                                  sensor_msgs::ImagePtr &debug_image)
+    {
+        static bool flag = false;
+        // 尚未初始化位姿
+        if (!flag)
+        {
+            flag = true;
+            ps_.reset();
+        }
+        vision_msgs::BoundingBox2DArray objArray;
+        bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
+        if (valid)
+        {
+            double u = 0, v = 0;
+            if (objArray.boxes.size() == 4)
+            {
+                if (!objArray.boxes[color].center.x)
+                    return false;
+                u = objArray.boxes[color].center.x;
+                v = objArray.boxes[color].center.y;
+            }
+            else
+                return false;
+            valid = ps_.extrinsics_correction(u, v, correct_x, correct_y, correct_z);
         }
         return valid;
     }
