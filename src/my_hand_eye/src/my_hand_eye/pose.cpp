@@ -90,7 +90,7 @@ namespace my_hand_eye
             ROS_ERROR("set_action: Name error!");
     }
 
-    bool Pos::calculate_position()
+    bool Pos::calculate_position(bool expand_y)
     {
         double deg1, deg2, deg3, deg4;
         deg1 = deg2 = deg3 = deg4 = 0;
@@ -124,7 +124,7 @@ namespace my_hand_eye
         if (valid)
         {
             int ID[] = {1, 2, 3, 4, 5};
-            if (arrive(ID, 5))
+            if (arrived(ID, 5))
             {
                 ROS_INFO("Pose has arrived");
                 return valid;
@@ -156,41 +156,17 @@ namespace my_hand_eye
         return time;
     }
 
-    bool Pos::arrive(int ID[], int IDn)
+    bool Pos::arrived(int ID[], int IDn)
     {
         for (int i = 0; i < IDn; i++)
         {
-            if (!read_position(ID[i]) || abs(Position[ID[i]] - Position_now[ID[i]]) > 3)
+            if (ID[i] == 6 && !cargo_table_.arrived())
+                return false;
+            else if ((ID[i] != 6) && (!read_position(ID[i]) ||
+                                      abs(Position[ID[i]] - Position_now[ID[i]]) > 3))
                 return false;
         }
         return true;
-    }
-
-    void Pos::wait_for_arriving(int ID[], int IDn)
-    {
-        double time_max = 0;
-        double b = 0.5; // 在估计时间的特定比例开始采样
-        if (read_all_position())
-        {
-            for (int i = 0; i < IDn; i++)
-            {
-                double time = calculate_time(ID[i]);
-                time_max = time > time_max ? time : time_max;
-            }
-        }
-        else
-            time_max = 15;
-        ROS_INFO("Done! Wait for %lf seconds", time_max);
-        ros::Duration du(time_max * b); // 以秒为单位
-        du.sleep();
-        ros::Time now = ros::Time::now();
-        du = ros::Duration(time_max * (1 - b));
-        ros::Time time_after_now = now + du;
-        ros::Rate rt(7);
-        while (ros::ok() && !arrive(ID, IDn) && ros::Time::now() < time_after_now)
-        {
-            rt.sleep();
-        }
     }
 
     // bool Pos::do_first_step(double x, double y)
@@ -317,8 +293,8 @@ namespace my_hand_eye
             wait_until_static(ID2, 1);
 
             sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            int ID3[] = {5};
-            wait_until_static(ID3, 1);
+            int ID3[] = {1, 5};
+            wait_until_static(ID3, 2);
         }
         return valid;
     }
@@ -440,10 +416,10 @@ namespace my_hand_eye
     {
         for (int i = 0; i < IDn; i++)
         {
-            if (read_move(ID[i]))
-                return false;
+            if ((ID[i] == 6 && cargo_table_.is_moving()) || (ID[i] != 6 && read_move(ID[i])))
+                return true;
         }
-        return true;
+        return false;
     }
 
     bool Pos::refresh_xyz(bool read)
@@ -493,8 +469,15 @@ namespace my_hand_eye
         du = ros::Duration(time_max * (1 - b));
         ros::Time time_after_now = now + du;
         ros::Rate rt(7);
-        while (ros::ok() && is_moving(ID, IDn) && ros::Time::now() < time_after_now)
+        int cnt = 0;
+        while (ros::ok() && ros::Time::now() < time_after_now)
         {
+            if (!is_moving(ID, IDn) && arrived(ID, IDn))
+                cnt++;
+            else if (cnt != 0)
+                cnt = 0;
+            if (cnt >= 3)
+                break;
             rt.sleep();
             if (show_load)
             {
@@ -547,7 +530,7 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << -15.37102996070558, -67.96006721273983, -46.88114458642927) * 0.1;
+        return (cv::Mat_<double>(3, 1) << -0.3854690180036044, 0.7837295837793545, 1.320280061435849);
     }
 
     cv::Mat Pos::R_end_to_base()
@@ -714,18 +697,25 @@ namespace my_hand_eye
         bool valid = refresh_xyz();
         static cv::Mat Tce = T_cam_to_end();
         static cv::Mat Rce = R_cam_to_end();
+        static double sum_u = 0;
+        static double sum_v = 0;
+        static unsigned cnt = 0;
+        sum_u += u;
+        sum_v += v;
+        cnt++;
         if (valid)
         {
             cv::Mat intrinsics_inv = intrinsics().inv();
-            cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
+            cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << sum_u / cnt, sum_v / cnt, 1);
             cv::Mat point_temp = intrinsics_inv * point_pixel; // (X/Z,Y/Z,1)
             cv::Mat point_base = (cv::Mat_<double>(4, 1) << correct_x, correct_y, correct_z, 1);
             cv::Mat point_end = R_T2homogeneous_matrix(R_end_to_base().t(),
                                                        -R_end_to_base().t() * T_end_to_base()) *
                                 point_base;
-            point_end = point_end.rowRange(0, 2).clone();
+            point_end = point_end.rowRange(0, 3).clone();
             for (int i = 1; i <= 3; i++)
             {
+                // ROS_INFO_STREAM(point_end.size() << " " << Rce.size() << " " << Tce.size()); //<< " " << point_cam.size());
                 double Z = Rce.col(2).dot(point_end - Tce);
                 cv::Mat point_cam = (cv::Mat_<double>(3, 1) << Z * point_temp.at<double>(0, 0),
                                      Z * point_temp.at<double>(1, 0), Z);
@@ -736,9 +726,9 @@ namespace my_hand_eye
                           R_T2homogeneous_matrix(Rce, Tce);
             double Z = (correct_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).clone().t().dot(point_temp);
             cv::Mat point_cam1 = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
-                                 Z * point_temp.at<double>(1, 0), Z, 1);
+                                  Z * point_temp.at<double>(1, 0), Z, 1);
             cv::Mat point_base1 = ext * point_cam1;
-            ROS_INFO_STREAM("After correction: " << point_base1.colRange(0, 2));
+            ROS_INFO_STREAM("After correction: " << point_base1.rowRange(0, 3));
         }
         return valid;
     }

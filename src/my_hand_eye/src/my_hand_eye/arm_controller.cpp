@@ -371,7 +371,7 @@ namespace my_hand_eye
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
                                          bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint)
     {
-        const int MAX_SIZE = 3;
+        const int MAX_SIZE = 5;
         if (!cargo_x_.size())
         {
             current_color_ = color;
@@ -411,7 +411,7 @@ namespace my_hand_eye
                     {
                         ps_.go_to(ps_.action_default.x, ps_.action_default.y, ps_.action_default.z,
                                   true, true);
-                        // ps_.go_to_and_wait(ps_.put_x, ps_.put_y, ps_.put_z, false);
+                        ps_.go_to_table(false, color, false);
                     }
                     ps_.reset();
                     finish = true;

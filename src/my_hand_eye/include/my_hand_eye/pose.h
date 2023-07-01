@@ -58,19 +58,17 @@ namespace my_hand_eye
         const double fy = 940.728627;
         const double cx = 932.106780;
         const double cy = 578.390364;
-        double calculate_time(int ID);  // 为指定舵机计算到达时间
-        bool arrive(int ID[], int IDn); // 判断所有是否到达指定位置附近
-        void wait_for_arriving(int ID[], int IDn);
-        bool calculate_position();
-        bool read_position(int ID);                                          // 读指定舵机位置
-        bool read_move(int ID);                                              // 指定舵机运动
-        int read_load(int ID);                                               // 读指定舵机负载
-        bool is_moving(int ID[], int IDn);                                   // 判断指定舵机运动
-        double wait_until_static(int ID[], int IDn, bool show_load = false); // 等待静止，如果show_load为真，返回最大load
+        double calculate_time(int ID);   // 为指定舵机计算到达时间
+        bool arrived(int ID[], int IDn); // 判断所有是否到达指定位置附近
+        bool calculate_position(bool expand_y = false);
+        bool read_position(int ID);        // 读指定舵机位置
+        bool read_move(int ID);            // 指定舵机运动
+        int read_load(int ID);             // 读指定舵机负载
+        bool is_moving(int ID[], int IDn); // 判断指定舵机运动
+        // 等待静止且到达指定位置附近，如果show_load为真，返回最大load
+        double wait_until_static(int ID[], int IDn, bool show_load = false);
         cv::Mat R_cam_to_end();
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -70.09445432936754);
         cv::Mat T_cam_to_end();
-        // cv::Mat T_cam_to_end = (cv::Mat_<double>(3, 1) << -4.76346677244081, -1.372151631737261, -61.50245432936754);
         // 在y > 0处使用
         cv::Mat R_end_to_base();                                            // 机械臂末端到基底的·旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();                                            // 机械臂末端到基底的·平移向量（不保证实时性）
@@ -96,7 +94,7 @@ namespace my_hand_eye
         bool reset();
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
-        bool go_to_table(bool cat, int color, bool left);            // 转盘移动，放置或取物
+        bool go_to_table(bool cat, int color, bool left);            
         bool show_voltage();                                         // 显示电压，需要时警告
         bool read_all_position();                                    // 读所有舵机正确位置
         bool refresh_xyz(bool read = true);                          // 更新位置

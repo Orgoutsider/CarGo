@@ -46,10 +46,10 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 外参校正
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		arm_controller_.log_extrinsics_correction(image_rect, -0.813163, 22.849, 14.8033, color_green, debug_image);
-		if (arm_controller_.show_detections_)
-			debug_image_publisher_.publish(debug_image);
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// arm_controller_.log_extrinsics_correction(image_rect, 2.25823e-15, 22.0737, 14.7087, color_green, debug_image);
+		// if (arm_controller_.show_detections_)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// 目标跟踪
 		// static bool stop = false;
@@ -76,15 +76,15 @@ namespace my_hand_eye
 		// }
 
 		// 直接抓取
-		// static bool finish = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, false);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
+		static bool finish = false;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!finish)
+		{
+			double u, v;
+			arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, false);
+			if (arm_controller_.show_detections_)
+				debug_image_publisher_.publish(debug_image);
+		}
 
 		// 椭圆识别
 		// static bool finish = false;
