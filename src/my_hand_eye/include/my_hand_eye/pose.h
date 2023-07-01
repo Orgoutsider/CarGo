@@ -70,8 +70,8 @@ namespace my_hand_eye
         cv::Mat R_cam_to_end();
         cv::Mat T_cam_to_end();
         // 在y > 0处使用
-        cv::Mat R_end_to_base();                                            // 机械臂末端到基底的·旋转矩阵（不保证实时性）
-        cv::Mat T_end_to_base();                                            // 机械臂末端到基底的·平移向量（不保证实时性）
+        cv::Mat R_end_to_base();                                            // 机械臂末端到基底的旋转矩阵（不保证实时性）
+        cv::Mat T_end_to_base();                                            // 机械臂末端到基底的平移向量（不保证实时性）
         cv::Mat intrinsics();                                               // 内参
         cv::Mat extrinsics();                                               // 外参（不保证实时性，配合refresh_xyz）
         double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向
@@ -94,11 +94,11 @@ namespace my_hand_eye
         bool reset();
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
-        bool go_to_table(bool cat, int color, bool left);            
-        bool show_voltage();                                         // 显示电压，需要时警告
-        bool read_all_position();                                    // 读所有舵机正确位置
-        bool refresh_xyz(bool read = true);                          // 更新位置
-        ArmPose end_to_base_now();                                   // 更新位置，并返回旋转矩阵，平移向量
+        bool go_to_table(bool cat, int color, bool left);
+        bool show_voltage();                // 显示电压，需要时警告
+        bool read_all_position();           // 读所有舵机正确位置
+        bool refresh_xyz(bool read = true); // 更新位置
+        ArmPose end_to_base_now();          // 更新位置，并返回旋转矩阵，平移向量
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y);
         // 通过记录的位置校正外参

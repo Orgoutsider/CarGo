@@ -664,14 +664,13 @@ namespace my_hand_eye
         return dist_min;
     }
 
-    bool ArmController::find_points_with_height(double h, bool done, bool expand_y)
+    bool ArmController::find_points_with_height(double h, bool done)
     {
         if (!plot_client_.exists())
         {
             plot_client_.waitForExistence(ros::Duration(1));
             return false;
         }
-        ps_.expand_y = expand_y;
         my_hand_eye::Plot plt;
         bool valid = ps_.find_points_with_height(h, plt.request.arr);
         if (valid)

@@ -55,8 +55,10 @@ namespace my_hand_eye
         bool _j123_length_and_height_is_valid(double alpha); // j123和alpha是否合理
         bool _modify_xy();                                   // 如果expand_y为真，则将x与y进行调整，必须调用2次
         bool _modify_alpha(double &alpha, bool look);        // 自动调整alpha，look表示是否为观察模式
-    public:
+    protected:
         bool expand_y; // 将y的范围扩展到y < 0
+    public:
+        Axis();
         double x, y, z;
         double length();
         double height();

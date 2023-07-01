@@ -8,10 +8,6 @@ namespace my_hand_eye
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr)
     {
-        x = 0;
-        y = 0;
-        z = 0;
-        expand_y = false;
         u8 ID[] = {0, 1, 2, 3, 4, 5};
         memcpy(Id, ID, sizeof(Id));
         memset(Position, 0, sizeof(Position));
@@ -94,7 +90,10 @@ namespace my_hand_eye
     {
         double deg1, deg2, deg3, deg4;
         deg1 = deg2 = deg3 = deg4 = 0;
+        this->expand_y = expand_y;
         bool valid = test_ok(deg1, deg2, deg3, deg4, look_);
+        if (this->expand_y)
+            this->expand_y = false;
         if (valid)
         {
             Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
@@ -274,7 +273,8 @@ namespace my_hand_eye
         this->z = left ? action_left.z : action_front.z;
         this->cat_ = cat;
         this->look_ = false;
-        bool valid = calculate_position();
+        // 前往转盘，必须扩展y轴
+        bool valid = calculate_position(true);
         if (valid)
         {
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
@@ -824,6 +824,7 @@ namespace my_hand_eye
     void Pos::get_points(double h, my_hand_eye::PointArray &arr)
     {
         s16 Position_goal[6] = {0};
+        expand_y = true;
         double x_goal = 0, y_goal = 0, z_goal = 0;
         z = h;
         double length_max = length();
@@ -949,6 +950,7 @@ namespace my_hand_eye
                 last_mid = mid;
             }
         }
+        expand_y = false;
     }
 
     bool Pos::find_points_with_height(double h, my_hand_eye::PointArray &arr)

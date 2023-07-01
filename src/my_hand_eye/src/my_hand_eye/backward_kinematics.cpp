@@ -1,7 +1,7 @@
 #include "my_hand_eye/backward_kinematics.h"
 
 #ifndef M_PI
-# define M_PI 3.141592653589793238462643383279502884196
+#define M_PI 3.141592653589793238462643383279502884196
 #endif
 
 namespace my_hand_eye
@@ -102,7 +102,8 @@ namespace my_hand_eye
     Angle Angle::operator=(const Angle &t)
     {
         // 如果是对象本身, 则直接返回
-        if (this == &t) {
+        if (this == &t)
+        {
             return *this;
         }
 
@@ -121,6 +122,8 @@ namespace my_hand_eye
     {
         return deg < t.deg;
     }
+
+    Axis::Axis() : x(0), y(0), z(0), expand_y(false) {}
 
     double Axis::height()
     {
@@ -152,7 +155,7 @@ namespace my_hand_eye
         }
         if (length() > ARM_MAX_LEN)
         {
-            ROS_WARN_STREAM("length " << length() << " is out of range " << ARM_MAX_LEN << "." );
+            ROS_WARN_STREAM("length " << length() << " is out of range " << ARM_MAX_LEN << ".");
             return true;
         }
         return false;
@@ -164,7 +167,7 @@ namespace my_hand_eye
         {
             return Angle(90);
         }
-        else 
+        else
             return Angle(y + ARM_P, x);
     };
 
@@ -343,7 +346,7 @@ namespace my_hand_eye
                 ROS_WARN("forward_kinematics: Result invalid!");
                 return false;
             }
-            else if (abs(ty + ARM_P) < 1 || abs(y + ARM_P) < 1)//距离底部圆心过近时的数值计算问题s
+            else if (abs(ty + ARM_P) < 1 || abs(y + ARM_P) < 1) // 距离底部圆心过近时的数值计算问题s
                 return false;
             else if (std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
             {

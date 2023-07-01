@@ -112,7 +112,7 @@ namespace my_hand_eye
         // 目标检测到物料并目标追踪
         bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color, const int method,
                    double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image);
-        bool find_points_with_height(double h, bool done, bool expand_y = false);
+        bool find_points_with_height(double h, bool done);
         // 椭圆识别，摄像头测试时z无效
         bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
                               bool &finish, sensor_msgs::ImagePtr &debug_image);

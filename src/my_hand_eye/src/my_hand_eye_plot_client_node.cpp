@@ -18,9 +18,9 @@ int main(int argc, char **argv)
     // for (h = 0+3.5; h < 7+3.5; h += 0.2)
     {
         if (h < ARM_MAX_HIGH && h > 0)
-            controller.find_points_with_height(h, false, true);
+            controller.find_points_with_height(h, false);
     }
-    controller.find_points_with_height(h, true, true);
+    controller.find_points_with_height(h, true);
     // controller.find_points_with_height(controller.z_turntable, true, true);
     return 0;
 }
