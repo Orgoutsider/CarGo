@@ -40,6 +40,22 @@ namespace my_hand_eye
         }
     }
 
+    bool CargoTable::arrived()
+    {
+        int Position_now = sm_st_ptr_->ReadPos(6);
+        if (Position_now != -1)
+        {
+            usleep(10 * 1000);
+        }
+        else
+        {
+            ROS_ERROR("Failed to read positon!");
+            sleep(1);
+            return false;
+        }
+        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 - Position_now) <= 3;
+    }
+
     bool CargoTable::is_moving()
     {
         int move_now = sm_st_ptr_->ReadMove(ID);

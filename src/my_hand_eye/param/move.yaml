@@ -11,7 +11,7 @@ servo:
 #x, y, z
 default_action:
   [
-    0.0, 3.0, 51.0
+    0.0, 4.0, 53.0
   ]
 
 left_action:
@@ -21,6 +21,6 @@ left_action:
 
 front_action:
   [
-    -20.0, 19.0, 6.0
+    0.0, -20.8724, 36.591
   ]
   
