@@ -262,6 +262,7 @@ namespace my_hand_eye
                                                   double correct_x, double correct_y, double correct_z, int color,
                                                   sensor_msgs::ImagePtr &debug_image)
     {
+        // OpenCV(4.1.1) /home/nvidia/host/build_opencv/nv_opencv/modules/core/src/arithm.cpp:663: error: (-209:Sizes of input arguments do not match) The operation is neither 'array op array' (where arrays have the same size and the same number of channels), nor 'array op scalar', nor 'scalar op array' in function 'arithm_op'
         static bool flag = false;
         // 尚未初始化位姿
         if (!flag)
