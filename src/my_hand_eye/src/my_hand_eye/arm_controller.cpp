@@ -91,7 +91,7 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue servo_descriptions;
         XmlRpc::XmlRpcValue default_action;
         XmlRpc::XmlRpcValue left_action;
-        XmlRpc::XmlRpcValue front_action;
+        XmlRpc::XmlRpcValue back_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
@@ -104,9 +104,9 @@ namespace my_hand_eye
         {
             ROS_ERROR("No left action specified");
         }
-        if (!pnh.getParam("front_action", front_action))
+        if (!pnh.getParam("back_action", back_action))
         {
-            ROS_ERROR("No front action specified");
+            ROS_ERROR("No back action specified");
         }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
@@ -120,8 +120,7 @@ namespace my_hand_eye
         ps_.ping();
         ps_.set_speed_and_acc(servo_descriptions);
         ps_.set_action(default_action);
-        ps_.set_action(left_action, "left");
-        ps_.set_action(front_action, "front");
+        ps_.set_action(back_action, "back");
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
@@ -370,7 +369,8 @@ namespace my_hand_eye
     }
 
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                                         bool &finish, sensor_msgs::ImagePtr &debug_image, bool midpoint)
+                                         bool &finish, sensor_msgs::ImagePtr &debug_image, 
+                                         bool left, bool midpoint)
     {
         const int MAX_SIZE = 5;
         if (!cargo_x_.size())
@@ -410,9 +410,9 @@ namespace my_hand_eye
                         valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
                     if (valid)
                     {
-                        ps_.go_to_table(false, color, false);
+                        ps_.go_to_table(false, color, left);
                     }
-                    ps_.reset();
+                    ps_.reset(left);
                     finish = true;
                 }
             }

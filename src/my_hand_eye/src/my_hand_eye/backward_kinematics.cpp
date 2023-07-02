@@ -224,7 +224,7 @@ namespace my_hand_eye
             y = last_y;
             flag = false;
         }
-        else if (expand_y && (y + ARM_P < 0 || (length() < ARM_A0)))
+        else if (expand_y && (length() < ARM_A0))
         {
             last_x = x;
             last_y = y;
@@ -232,7 +232,7 @@ namespace my_hand_eye
             x = 2 * ARM_A0 * abs(_calculate_j1().cos()) - x;
             flag = true;
         }
-        return (expand_y && (y + ARM_P < 0 || (length() < ARM_A0))) || flag;
+        return (expand_y && (length() < ARM_A0)) || flag;
     }
 
     bool Axis::_modify_alpha(double &alpha, bool look)
@@ -346,9 +346,12 @@ namespace my_hand_eye
                 ROS_WARN("forward_kinematics: Result invalid!");
                 return false;
             }
-            else if (abs(ty + ARM_P) < 1 || abs(y + ARM_P) < 1) // 距离底部圆心过近时的数值计算问题s
+            else if (sqrt((ty + ARM_P) * (ty + ARM_P) + tx * tx) < 1 || length() < 1) // 距离底部圆心过近时的数值计算问题
+            {
+                ROS_WARN("Target position is too closs to the center!");
                 return false;
-            else if (std::abs(tx - x) > 1 || std::abs(ty - y) > 1 || std::abs(tz - z) > 1)
+            }
+            else if (std::abs(tx - x) > 2 || std::abs(ty - y) > 2 || std::abs(tz - z) > 2)
             {
                 ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf",
                           tx, ty, tz, x, y, z);

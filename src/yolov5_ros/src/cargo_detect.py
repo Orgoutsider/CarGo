@@ -68,7 +68,7 @@ R_Low2_add = np.array([0, 0, 0], dtype=np.uint8)
 R_up2_add = np.array([0, 0, 0], dtype=np.uint8)
 
 G_Low_add = np.array([15, 0, -17], dtype=np.uint8)
-G_up_add = np.array([0, 0, 0], dtype=np.uint8)
+G_up_add = np.array([8, 0, 0], dtype=np.uint8)
 
 B_Low_add = np.array([-10, 0, 0], dtype=np.uint8)
 B_up_add = np.array([0, 0, 0], dtype=np.uint8)

@@ -41,6 +41,8 @@ namespace my_hand_eye
         double z;
     };
 
+    Action front2left(Action &ac);
+
     class Pos : public Axis
     {
     private:
@@ -60,6 +62,7 @@ namespace my_hand_eye
         const double cy = 578.390364;
         double calculate_time(int ID);   // 为指定舵机计算到达时间
         bool arrived(u8 ID[], u8 IDN); // 判断所有是否到达指定位置附近
+        // 计算各joint运动的position
         bool calculate_position(bool expand_y = false);
         bool read_position(int ID);        // 读指定舵机位置
         bool read_move(int ID);            // 指定舵机运动
@@ -82,16 +85,16 @@ namespace my_hand_eye
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
         Action action_default;
         Action action_left;
-        Action action_front;
+        Action action_back;
+        Action action_right;
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions);            // 获取速度加速度
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default"); // 获取设定动作
-        // 计算各joint运动的position
-        bool go_to(double x, double y, double z, bool cat, bool look); // 运动到指定位置，抓/不抓
+        bool go_to(double x, double y, double z, bool cat, bool look, bool expand_y = false); // 运动到指定位置，抓/不抓
         // bool do_first_step(double x, double y);                        // 两步抓取第一步
-        bool reset();
+        bool reset(bool left = false);
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
         bool go_to_table(bool cat, int color, bool left);

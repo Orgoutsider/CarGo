@@ -4,6 +4,11 @@ namespace my_hand_eye
 {
     ArmPose::ArmPose() : empty(true){};
 
+    Action front2left(Action &ac)
+    {
+        return {ac.y + ARM_P, -ARM_P - ac.x, ac.z};
+    }
+
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : cat_(cat), look_(look),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr)
@@ -69,18 +74,14 @@ namespace my_hand_eye
             action_default.x = (double)action[0];
             action_default.y = (double)action[1];
             action_default.z = (double)action[2];
+            action_left = front2left(action_default);
         }
-        else if (name == "left")
+        else if (name == "back")
         {
-            action_left.x = (double)action[0];
-            action_left.y = (double)action[1];
-            action_left.z = (double)action[2];
-        }
-        else if (name == "front")
-        {
-            action_front.x = (double)action[0];
-            action_front.y = (double)action[1];
-            action_front.z = (double)action[2];
+            action_back.x = (double)action[0];
+            action_back.y = (double)action[1];
+            action_back.z = (double)action[2];
+            action_right = front2left(action_back);
         }
         else
             ROS_ERROR("set_action: Name error!");
@@ -97,9 +98,9 @@ namespace my_hand_eye
         if (valid)
         {
             Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-            if (Position[1] > 1023)
+            if (Position[1] > 1023 || Position[1] < 0)
             {
-                ROS_ERROR("Assertion failed: Postion[1] <= 1023");
+                ROS_ERROR("Assertion failed: Postion[1] <= 1023 && Position[1] >= 0");
                 valid = false;
             }
             Position[2] = std::round(ARM_JOINT2_POS_WHEN_DEG0 + (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * deg2 / 180);
@@ -111,7 +112,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::go_to(double x, double y, double z, bool cat, bool look)
+    bool Pos::go_to(double x, double y, double z, bool cat, bool look, bool expand_y)
     {
         bool valid = refresh_xyz(); // 此时xyz为当前值
         bool flag = (this->y) < 0;
@@ -121,7 +122,7 @@ namespace my_hand_eye
         this->cat_ = cat;
         this->look_ = look;
 
-        valid = calculate_position();
+        valid = calculate_position(expand_y);
         if (valid)
         {
             u8 ID[] = {1, 2, 3, 4, 5};
@@ -212,11 +213,11 @@ namespace my_hand_eye
     //     return valid;
     // }
 
-    bool Pos::reset()
+    bool Pos::reset(bool left)
     {
-        bool valid = go_to(action_default.x, action_default.y, action_default.z,
-                           false, true);
-        ros::Duration(1).sleep();
+        bool valid = left
+                         ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
+                         : go_to(action_default.x, action_default.y, action_default.z, false, true);
         return valid;
     }
 
@@ -296,9 +297,9 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, int color, bool left)
     {
-        this->x = left ? action_left.x : action_front.x;
-        this->y = left ? action_left.y : action_front.y;
-        this->z = left ? action_left.z : action_front.z;
+        this->x = left ? action_right.x : action_back.x;
+        this->y = left ? action_right.y : action_back.y;
+        this->z = left ? action_right.z : action_back.z;
         this->cat_ = cat;
         this->look_ = false;
         // 前往转盘，必须扩展y轴
@@ -588,7 +589,7 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << 0.2917834651447677, 0.08588367819412923, 2.577792138385806);
+        return (cv::Mat_<double>(3, 1) << 0.2917834651447677, 0.08588367819412923, 2.377792138385806);
         // return (cv::Mat_<double>(3, 1) << -3.166888908186543, 3.488166748541279, -7.991119489009053);
     }
 
@@ -866,9 +867,9 @@ namespace my_hand_eye
             if (fin)
             {
                 Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-                if (Position[1] > 1023)
+                if (Position[1] > 1023 || Position[1] < 0)
                 {
-                    ROS_ERROR("Assertion failed: Position[1] <= 1023");
+                    ROS_ERROR("Assertion failed: Postion[1] <= 1023 && Position[1] >= 0");
                     fin = false;
                 }
                 Position[2] = std::round(ARM_JOINT2_POS_WHEN_DEG0 + (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * deg2 / 180);

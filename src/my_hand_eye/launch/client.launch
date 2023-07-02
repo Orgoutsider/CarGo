@@ -1,6 +1,6 @@
 <launch>
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
-    <arg name="param_modification" default="false" />
+    <arg name="param_modification" default="true" />
 
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  args="manager" output="screen"/>
     <include file="$(find my_hand_eye)/launch/eye.launch" >
