@@ -47,7 +47,7 @@ namespace my_hand_eye
 
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_extrinsics_correction(image_rect, 2.25823e-15, 22.0737, 14.7087, color_green, debug_image);
+		// arm_controller_.log_extrinsics_correction(image_rect, 6.79367, 25.4134, arm_controller_.z_turntable, color_green, debug_image);
 		// if (arm_controller_.show_detections_)
 		// 	debug_image_publisher_.publish(debug_image);
 
@@ -81,7 +81,7 @@ namespace my_hand_eye
 		if (!finish)
 		{
 			double u, v;
-			arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, false);
+			arm_controller_.catch_straightly(image_rect, color_green, arm_controller_.z_turntable, finish, debug_image, false);
 			if (arm_controller_.show_detections_)
 				debug_image_publisher_.publish(debug_image);
 		}

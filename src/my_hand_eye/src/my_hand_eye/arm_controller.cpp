@@ -410,8 +410,6 @@ namespace my_hand_eye
                         valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
                     if (valid)
                     {
-                        ps_.go_to(ps_.action_default.x, ps_.action_default.y, ps_.action_default.z,
-                                  true, true);
                         ps_.go_to_table(false, color, false);
                     }
                     ps_.reset();

@@ -113,25 +113,53 @@ namespace my_hand_eye
 
     bool Pos::go_to(double x, double y, double z, bool cat, bool look)
     {
+        bool valid = refresh_xyz(); // 此时xyz为当前值
+        bool flag = (this->y) < 0;
         this->x = x;
         this->y = y;
-        this->z = z;
+        this->z = z; // 此时xyz为目标值
         this->cat_ = cat;
         this->look_ = look;
 
-        bool valid = calculate_position();
+        valid = calculate_position();
         if (valid)
         {
-            int ID[] = {1, 2, 3, 4, 5};
+            u8 ID[] = {1, 2, 3, 4, 5};
+            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             if (arrived(ID, 5))
             {
                 ROS_INFO("Pose has arrived");
                 return valid;
             }
-            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
-            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            wait_until_static(ID, 5);
+            if (Position[2] >= Position_now[2] && flag)
+            // 第2关节位置靠前，最后移动第2关节
+            {
+                if (Position[3] >= Position_now[3]) // 第23关节位置靠前，最后移动第23关节
+                {
+                    sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+                    u8 ID1[] = {4};
+                    wait_until_static(ID1, 1);
+                    sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
+                    u8 ID2[] = {1, 2, 3, 5};
+                    wait_until_static(ID2, 4);
+                }
+                else
+                {
+                    sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
+                    sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+                    u8 ID1[] = {3, 4};
+                    wait_until_static(ID1, 2);
+                    sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+                    u8 ID2[] = {1, 2, 5};
+                    wait_until_static(ID2, 3);
+                }
+            }
+            else
+            {
+                sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
+                wait_until_static(ID, 5);
+            }
         }
         return valid;
     }
@@ -155,9 +183,9 @@ namespace my_hand_eye
         return time;
     }
 
-    bool Pos::arrived(int ID[], int IDn)
+    bool Pos::arrived(u8 ID[], u8 IDN)
     {
-        for (int i = 0; i < IDn; i++)
+        for (int i = 0; i < IDN; i++)
         {
             if (ID[i] == 6 && !cargo_table_.arrived())
                 return false;
@@ -178,7 +206,7 @@ namespace my_hand_eye
     //     {
     //         Position[1] = (s16)std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
     //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-    //         int ID[] = {1};
+    //         u8 ID[] = {1};
     //         wait_until_static(ID, 1);
     //     }
     //     return valid;
@@ -204,15 +232,15 @@ namespace my_hand_eye
         {
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-            int ID[] = {1, 3, 4};
+            u8 ID[] = {1, 3, 4};
             wait_until_static(ID, 3);
 
-            sm_st_ptr_->WritePosEx(2, Position[2], Speed[2]);
-            int ID2[] = {2};
+            sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            u8 ID2[] = {2};
             wait_until_static(ID2, 1);
 
             sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            int ID3[] = {5};
+            u8 ID3[] = {5};
             wait_until_static(ID3, 1);
         }
         return valid;
@@ -234,25 +262,25 @@ namespace my_hand_eye
             {
                 sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                 sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-                int ID[] = {1, 3, 4};
+                u8 ID[] = {1, 3, 4};
                 wait_until_static(ID, 3);
 
-                sm_st_ptr_->WritePosEx(2, Position[2], Speed[2]);
-                int ID2[] = {2};
+                sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+                u8 ID2[] = {2};
                 wait_until_static(ID2, 1);
 
                 memcpy(Position, Position_goal, sizeof(Position));
 
-                sm_st_ptr_->WritePosEx(3, Position[3], Speed[3]);
-                sm_st_ptr_->WritePosEx(4, Position[4], Speed[4]);
-                sm_st_ptr_->RegWritePosEx(2, Position[2], Speed[2]);
+                sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
+                sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+                sm_st_ptr_->RegWritePosEx(2, Position[2], Speed[2], ACC[2]);
                 wait_for_alpha_decrease(3);
-                int ID3[] = {2, 3, 4};
+                u8 ID3[] = {2, 3, 4};
                 sm_st_ptr_->RegWriteAction(2);
                 wait_until_static(ID3, 3);
 
                 sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-                int ID4[] = {5};
+                u8 ID4[] = {5};
                 double load_max = wait_until_static(ID4, 1, true);
                 if (load_max < 400)
                 {
@@ -277,24 +305,54 @@ namespace my_hand_eye
         bool valid = calculate_position(true);
         if (valid)
         {
-            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             if (!cat_)
             {
                 cargo_table_.put_next(color);
             }
             else
                 cargo_table_.get_next();
-            int ID[] = {3, 4, 6};
-            wait_until_static(ID, 3);
+            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            if (read_all_position())
+            {
+                if (Position[2] <= Position_now[2]) // 第2关节位置靠后，不能最后移动第2关节
+                {
+                    if (Position[3] <= Position_now[3]) // 第3关节位置靠后，不能最后移动第3关节
+                    {
+                        sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
+                        u8 ID[] = {2, 3, 6};
+                        wait_until_static(ID, 3);
 
-            sm_st_ptr_->WritePosEx(2, Position[2], Speed[2]);
-            int ID2[] = {2};
-            wait_until_static(ID2, 1);
+                        sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+                        u8 ID2[] = {4};
+                        wait_until_static(ID2, 1);
+                    }
+                    else
+                    {
+                        sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+                        sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+                        u8 ID[] = {2, 4, 6};
+                        wait_until_static(ID, 3);
 
-            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-            int ID3[] = {1, 5};
-            wait_until_static(ID3, 2);
+                        sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
+                        u8 ID2[] = {3};
+                        wait_until_static(ID2, 1);
+                    }
+                }
+                else
+                {
+                    sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+                    u8 ID[] = {3, 4, 6};
+                    wait_until_static(ID, 3);
+
+                    sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+                    u8 ID2[] = {2};
+                    wait_until_static(ID2, 1);
+                }
+
+                sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
+                u8 ID3[] = {1, 5};
+                wait_until_static(ID3, 2);
+            }
         }
         return valid;
     }
@@ -412,9 +470,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::is_moving(int ID[], int IDn)
+    bool Pos::is_moving(u8 ID[], u8 IDN)
     {
-        for (int i = 0; i < IDn; i++)
+        for (int i = 0; i < IDN; i++)
         {
             if ((ID[i] == 6 && cargo_table_.is_moving()) || (ID[i] != 6 && read_move(ID[i])))
                 return true;
@@ -447,14 +505,14 @@ namespace my_hand_eye
         return valid;
     }
 
-    double Pos::wait_until_static(int ID[], int IDn, bool show_load)
+    double Pos::wait_until_static(u8 ID[], u8 IDN, bool show_load)
     {
         double time_max = 0;
         double load_max = 0;
         double b = 0.5; // 在估计时间的特定比例开始采样
         if (read_all_position())
         {
-            for (int i = 0; i < IDn; i++)
+            for (int i = 0; i < IDN; i++)
             {
                 double time = (ID[i] == 6) ? cargo_table_.calculate_time() : calculate_time(ID[i]);
                 time_max = time > time_max ? time : time_max;
@@ -472,7 +530,7 @@ namespace my_hand_eye
         int cnt = 0;
         while (ros::ok() && ros::Time::now() < time_after_now)
         {
-            if (!is_moving(ID, IDn) && arrived(ID, IDn))
+            if (!is_moving(ID, IDN) && arrived(ID, IDN))
                 cnt++;
             else if (cnt != 0)
                 cnt = 0;
@@ -481,7 +539,7 @@ namespace my_hand_eye
             rt.sleep();
             if (show_load)
             {
-                for (int i = 0; i < IDn; i++)
+                for (int i = 0; i < IDN; i++)
                 {
                     int load = read_load(ID[i]);
                     ROS_INFO("ID:%d, load:%d", ID[i], load);
@@ -530,7 +588,8 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << -0.3854690180036044, 0.7837295837793545, 1.320280061435849);
+        return (cv::Mat_<double>(3, 1) << 0.2917834651447677, 0.08588367819412923, 2.577792138385806);
+        // return (cv::Mat_<double>(3, 1) << -3.166888908186543, 3.488166748541279, -7.991119489009053);
     }
 
     cv::Mat Pos::R_end_to_base()

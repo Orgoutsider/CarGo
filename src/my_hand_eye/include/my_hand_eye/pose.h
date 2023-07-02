@@ -9,8 +9,8 @@
 #define ARM_JOINT3_POS_WHEN_DEG0 1024
 #define ARM_JOINT4_POS_WHEN_DEG180 3072
 #define ARM_JOINT4_POS_WHEN_DEG0 1024
-#define ARM_JOINT5_POS_WHEN_CATCH 762
-#define ARM_JOINT5_POS_WHEN_LOSEN 1006
+#define ARM_JOINT5_POS_WHEN_CATCH 663
+#define ARM_JOINT5_POS_WHEN_LOSEN 890
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_ERROR_XYZ(Pos) ROS_ERROR_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
@@ -59,14 +59,14 @@ namespace my_hand_eye
         const double cx = 932.106780;
         const double cy = 578.390364;
         double calculate_time(int ID);   // 为指定舵机计算到达时间
-        bool arrived(int ID[], int IDn); // 判断所有是否到达指定位置附近
+        bool arrived(u8 ID[], u8 IDN); // 判断所有是否到达指定位置附近
         bool calculate_position(bool expand_y = false);
         bool read_position(int ID);        // 读指定舵机位置
         bool read_move(int ID);            // 指定舵机运动
         int read_load(int ID);             // 读指定舵机负载
-        bool is_moving(int ID[], int IDn); // 判断指定舵机运动
+        bool is_moving(u8 ID[], u8 IDN); // 判断指定舵机运动
         // 等待静止且到达指定位置附近，如果show_load为真，返回最大load
-        double wait_until_static(int ID[], int IDn, bool show_load = false);
+        double wait_until_static(u8 ID[], u8 IDN, bool show_load = false);
         cv::Mat R_cam_to_end();
         cv::Mat T_cam_to_end();
         // 在y > 0处使用

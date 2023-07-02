@@ -239,7 +239,7 @@ namespace my_hand_eye
     {
         alpha = 90;
         bool valid = false;
-        while (alpha >= 0 && alpha <= 100 && !valid)
+        while (alpha >= 0 && alpha <= 110 && !valid)
         {
             valid = _j123_length_and_height_is_valid(alpha);
             if (!valid)
@@ -348,7 +348,7 @@ namespace my_hand_eye
             }
             else if (abs(ty + ARM_P) < 1 || abs(y + ARM_P) < 1) // 距离底部圆心过近时的数值计算问题s
                 return false;
-            else if (std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
+            else if (std::abs(tx - x) > 1 || std::abs(ty - y) > 1 || std::abs(tz - z) > 1)
             {
                 ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf",
                           tx, ty, tz, x, y, z);
