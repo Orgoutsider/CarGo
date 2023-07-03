@@ -60,7 +60,7 @@ namespace my_hand_eye
         bool valid;
         if (joint == 1)
         {
-            valid = 0 <= deg && deg <= 180;
+            valid = 0 <= deg && deg < 360;
         }
         else
             valid = -28 <= deg && deg <= 208;
@@ -142,7 +142,6 @@ namespace my_hand_eye
 
     double Axis::H(double alpha)
     {
-        // ROS_INFO_STREAM("height:" << height());
         return height() + ARM_A5 * Angle(alpha).sin() - ARM_A4 * Angle(alpha).cos() - ARM_A1;
     }
 
@@ -163,12 +162,10 @@ namespace my_hand_eye
 
     Angle Axis::_calculate_j1()
     {
-        if (length() < 1e-2)
-        {
-            return Angle(90);
-        }
-        else
-            return Angle(y + ARM_P, x);
+        Angle j1(y + ARM_P, x);
+        if (j1._get_degree() < 0)
+            j1 = j1 + Angle(360);
+        return j1;
     };
 
     Angle Axis::_calculate_j3(double alpha)
@@ -228,8 +225,8 @@ namespace my_hand_eye
         {
             last_x = x;
             last_y = y;
-            y = 2 * (-ARM_P + ARM_A0 * abs(_calculate_j1().sin())) - y;
-            x = 2 * ARM_A0 * abs(_calculate_j1().cos()) - x;
+            y = 2 * (-ARM_P + ARM_A0 * _calculate_j1().sin()) - y;
+            x = 2 * ARM_A0 * _calculate_j1().cos() - x;
             flag = true;
         }
         return (expand_y && (length() < ARM_A0)) || flag;
@@ -351,7 +348,7 @@ namespace my_hand_eye
                 ROS_WARN("Target position is too closs to the center!");
                 return false;
             }
-            else if (std::abs(tx - x) > 2 || std::abs(ty - y) > 2 || std::abs(tz - z) > 2)
+            else if (std::abs(tx - x) > 1 || std::abs(ty - y) > 1 || std::abs(tz - z) > 1)
             {
                 ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf",
                           tx, ty, tz, x, y, z);
