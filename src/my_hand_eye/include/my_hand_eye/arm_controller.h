@@ -46,8 +46,9 @@ namespace my_hand_eye
         // 计算物料转动半径
         bool calculate_radius_and_speed(double u, double v, double center_u, double center_v, bool reset,
                                         double &radius, double &speed);
-        bool take_picture();                                                                                    // 拍照
-        bool get_ellipse_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v); // 处理接收的图片，求3物料重心
+        bool take_picture(); // 拍照
+        // 处理接收的图片，求3物料重心
+        bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v);
         // 中心点按从左往右排序
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
@@ -66,7 +67,7 @@ namespace my_hand_eye
         Pos ps_;
         // const double z_turntable = 16.4750; // 老转盘
         // const double z_turntable = 15.57;   // 新转盘
-        const double z_turntable = 14.4654;   // 比赛转盘
+        const double z_turntable = 14.4654; // 比赛转盘，抓取范围17.3到34
         bool show_detections_;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
         bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
@@ -89,6 +90,9 @@ namespace my_hand_eye
                               bool &finish, sensor_msgs::ImagePtr &debug_image);
         // 查看边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, double &distance, double &yaw,
+                         bool &finish, sensor_msgs::ImagePtr &debug_image);
+        // 计算圆盘中心点位置
+        bool find_center(const sensor_msgs::ImageConstPtr &image_rect, double &x, double &y,
                          bool &finish, sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye

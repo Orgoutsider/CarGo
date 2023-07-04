@@ -263,8 +263,8 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::get_ellipse_center(vision_msgs::BoundingBox2DArray &objArray,
-                                           double &center_u, double &center_v)
+    bool ArmController::get_center(vision_msgs::BoundingBox2DArray &objArray,
+                                   double &center_u, double &center_v)
     {
         if (objArray.boxes.size() == 4)
         {
@@ -485,7 +485,7 @@ namespace my_hand_eye
                 ps_.reset();
             vision_msgs::BoundingBox2DArray objArray;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                get_ellipse_center(objArray, center_u, center_v) &&
+                get_center(objArray, center_u, center_v) &&
                 tracker_.target_init(cv_image_, objArray, color, method))
             {
                 tracker_.get_center(u, v);
@@ -611,8 +611,7 @@ namespace my_hand_eye
     {
         if (!plot_client_.exists())
         {
-            plot_client_.waitForExistence(ros::Duration(1));
-            return false;
+            plot_client_.waitForExistence();
         }
         my_hand_eye::Plot plt;
         bool valid = ps_.find_points_with_height(h, plt.request.arr);
@@ -793,5 +792,28 @@ namespace my_hand_eye
             return false;
         cv::Vec2f border;
         return border_.find(cv_image, border, LBD_color_func, show_detections_);
+    }
+
+    bool ArmController::find_center(const sensor_msgs::ImageConstPtr &image_rect, double &x, double &y,
+                                    bool &finish, sensor_msgs::ImagePtr &debug_image)
+    {
+        static bool reseted = false;
+        if (!finish && reseted)
+            reseted = false;
+        if (!reseted)
+            ps_.reset();
+        vision_msgs::BoundingBox2DArray objArray;
+        double center_u, center_v;
+        bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
+                     get_center(objArray, center_u, center_v) &&
+                     ps_.calculate_cargo_position(center_u, center_v, z_turntable, x, y);
+        if (valid)
+        ROS_INFO_STREAM("x: " << x << " y: " << y);
+        if (valid && show_detections_ && !cv_image_.image.empty())
+        {
+            draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
+            debug_image = cv_image_.toImageMsg();
+        }
+        return valid;
     }
 } // namespace my_hand_eye

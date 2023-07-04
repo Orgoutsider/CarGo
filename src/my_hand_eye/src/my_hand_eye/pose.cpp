@@ -889,12 +889,11 @@ namespace my_hand_eye
     void Pos::get_points(double h, my_hand_eye::PointArray &arr)
     {
         s16 Position_goal[6] = {0};
-        expand_y = true;
         double x_goal = 0, y_goal = 0, z_goal = 0;
         z = h;
         double length_max = length();
         // 储存上一步状态
-        bool last_ok = calculate_position();
+        bool last_ok = calculate_position(true);
         bool last_mid = last_ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false; // last_ok;
         if (last_ok)
         {
@@ -903,15 +902,15 @@ namespace my_hand_eye
             y = y_goal;
             z = z_goal;
         }
-        while (ros::ok() && (y > 0 || (expand_y && y > -length_max - 2 * ARM_P)))
+        while (ros::ok() && (y > -length_max - 2 * ARM_P))
         {
             double dy = 1; // 步长
             y -= dy;
             // ROS_ERROR_STREAM(y);
             // usleep(1e5);
-            if (y > 0 || (expand_y && y > -length_max - 2 * ARM_P))
+            if (y > -length_max - 2 * ARM_P)
             {
-                bool ok = calculate_position();
+                bool ok = calculate_position(true);
                 bool mid = ok ? find_a_midpoint(Position_goal, x_goal, y_goal, z_goal) : false; // ok;
                 if (ok)
                 {
@@ -932,6 +931,7 @@ namespace my_hand_eye
                         pt[i].z = z;
                         double deg1, deg2, deg3, deg4;
                         deg1 = deg2 = deg3 = deg4 = 0;
+                        expand_y = true;
                         if (test_ok(deg1, deg2, deg3, deg4, look_))
                         {
                             Angle j2 = Angle(deg2);
@@ -949,6 +949,7 @@ namespace my_hand_eye
                                 ARM_ERROR_XYZ(*this);
                             }
                         }
+                        expand_y = false;
                     }
                     y -= dy;
                     // ROS_ERROR_STREAM("c" << y);
@@ -971,7 +972,7 @@ namespace my_hand_eye
                             my_hand_eye::Point point;
                             point.point = pt[i];
                             y = pt[i].y;
-                            if (calculate_position())
+                            if (calculate_position(true))
                             {
                                 // ARM_INFO_XYZ(*this);
                                 point.has_midpoint = find_a_midpoint(Position_goal, x_goal,
@@ -992,7 +993,7 @@ namespace my_hand_eye
                     {
                         y += dy / 5;
                         // ROS_ERROR_STREAM(y << " 3");
-                        if (calculate_position())
+                        if (calculate_position(true))
                         {
                             my_hand_eye::Point point;
                             pt[i].x = x;
@@ -1015,7 +1016,6 @@ namespace my_hand_eye
                 last_mid = mid;
             }
         }
-        expand_y = false;
     }
 
     bool Pos::find_points_with_height(double h, my_hand_eye::PointArray &arr)
