@@ -9,7 +9,7 @@
 #define ARM_JOINT3_POS_WHEN_DEG0 1024
 #define ARM_JOINT4_POS_WHEN_DEG180 3072
 #define ARM_JOINT4_POS_WHEN_DEG0 1024
-#define ARM_JOINT5_POS_WHEN_CATCH 663
+#define ARM_JOINT5_POS_WHEN_CATCH 661
 #define ARM_JOINT5_POS_WHEN_LOSEN 890
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
@@ -32,13 +32,6 @@ namespace my_hand_eye
         cv::Mat t;
         bool empty;
         ArmPose();
-    };
-
-    struct Action
-    {
-        double x;
-        double y;
-        double z;
     };
 
     Action front2left(Action &ac);

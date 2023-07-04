@@ -90,7 +90,6 @@ namespace my_hand_eye
         }
         XmlRpc::XmlRpcValue servo_descriptions;
         XmlRpc::XmlRpcValue default_action;
-        XmlRpc::XmlRpcValue left_action;
         XmlRpc::XmlRpcValue back_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
@@ -99,10 +98,6 @@ namespace my_hand_eye
         if (!pnh.getParam("default_action", default_action))
         {
             ROS_ERROR("No default action specified");
-        }
-        if (!pnh.getParam("left_action", left_action))
-        {
-            ROS_ERROR("No left action specified");
         }
         if (!pnh.getParam("back_action", back_action))
         {

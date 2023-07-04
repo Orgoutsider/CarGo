@@ -6,7 +6,7 @@ namespace my_hand_eye
 
     Action front2left(Action &ac)
     {
-        return {ac.y + ARM_P, -ARM_P - ac.x, ac.z};
+        return Action(-ac.y - ARM_P, -ARM_P + ac.x, ac.z);
     }
 
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : cat_(cat), look_(look),
@@ -71,17 +71,21 @@ namespace my_hand_eye
         ROS_ASSERT(action[2].getType() == XmlRpc::XmlRpcValue::TypeDouble);
         if (name == "default")
         {
-            action_default.x = (double)action[0];
-            action_default.y = (double)action[1];
-            action_default.z = (double)action[2];
+            action_default = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set action " << name);
+            ARM_INFO_XYZ(action_default);
             action_left = front2left(action_default);
+            ROS_INFO("Set action left");
+            ARM_INFO_XYZ(action_left);
         }
         else if (name == "back")
         {
-            action_back.x = (double)action[0];
-            action_back.y = (double)action[1];
-            action_back.z = (double)action[2];
+            action_back = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set action " << name);
+            ARM_INFO_XYZ(action_back);
             action_right = front2left(action_back);
+            ROS_INFO("Set action right");
+            ARM_INFO_XYZ(action_right);
         }
         else
             ROS_ERROR("set_action: Name error!");
@@ -312,7 +316,6 @@ namespace my_hand_eye
             }
             else
                 cargo_table_.get_next();
-            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
             if (read_all_position())
             {
                 if (Position[2] <= Position_now[2]) // 第2关节位置靠后，不能最后移动第2关节
@@ -323,6 +326,7 @@ namespace my_hand_eye
                         u8 ID[] = {2, 3, 6};
                         wait_until_static(ID, 3);
 
+                        sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                         sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
                         u8 ID2[] = {4};
                         wait_until_static(ID2, 1);
@@ -334,6 +338,7 @@ namespace my_hand_eye
                         u8 ID[] = {2, 4, 6};
                         wait_until_static(ID, 3);
 
+                        sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                         sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
                         u8 ID2[] = {3};
                         wait_until_static(ID2, 1);
@@ -345,6 +350,7 @@ namespace my_hand_eye
                     u8 ID[] = {3, 4, 6};
                     wait_until_static(ID, 3);
 
+                    sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
                     u8 ID2[] = {2};
                     wait_until_static(ID2, 1);
@@ -589,8 +595,7 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << 0.2917834651447677, 0.08588367819412923, 2.377792138385806);
-        // return (cv::Mat_<double>(3, 1) << -3.166888908186543, 3.488166748541279, -7.991119489009053);
+        return (cv::Mat_<double>(3, 1) << 0.2917834651447677, 0.08588367819412923, 2.177792138385806);
     }
 
     cv::Mat Pos::R_end_to_base()

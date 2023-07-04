@@ -42,7 +42,13 @@ namespace my_hand_eye
         bool operator<(const Angle &t);        // 重载<
     };
     double degree(double rad);
-    class Axis
+    struct Action
+    {
+        double x, y, z;
+        Action();
+        Action(double x, double y, double z);
+    };
+    class Axis : public Action
     {
     private:
         double L(double alpha);
@@ -59,7 +65,6 @@ namespace my_hand_eye
         bool expand_y; // 将y的范围扩展到y < 0
     public:
         Axis();
-        double x, y, z;
         double length();
         double height();
         // 求逆解，输入机械臂角度变量

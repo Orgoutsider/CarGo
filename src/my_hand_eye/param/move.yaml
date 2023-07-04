@@ -2,8 +2,8 @@ servo:
   [
     {id: 1, speed: 200,  acc: 20},
     {id: 2, speed: 20, acc: 20},
-    {id: 3, speed: 500, acc: 20},
-    {id: 4, speed: 500, acc: 20},
+    {id: 3, speed: 1000, acc: 20},
+    {id: 4, speed: 1000, acc: 20},
     {id: 5, speed: 200, acc: 20},
     {id: 6, speed: 10, acc: 20}
   ]
@@ -15,8 +15,11 @@ default_action:
   ]
 
 back_action:
+  # [
+  #   -1.3, -23.1724, 36.591
+  # ]
   [
-    -1.3, -23.1724, 36.591
+    0.0, -23.1088, 37.3346
   ]
 
   

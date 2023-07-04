@@ -1,9 +1,5 @@
 #include "my_hand_eye/backward_kinematics.h"
 
-#ifndef M_PI
-#define M_PI 3.141592653589793238462643383279502884196
-#endif
-
 namespace my_hand_eye
 {
     Angle::Angle(double deg) : deg(deg)
@@ -25,7 +21,7 @@ namespace my_hand_eye
 
     double Angle::rad()
     {
-        return deg / 180 * M_PI;
+        return deg / 180.0 * M_PI;
     }
 
     double Angle::cos()
@@ -123,7 +119,11 @@ namespace my_hand_eye
         return deg < t.deg;
     }
 
-    Axis::Axis() : x(0), y(0), z(0), expand_y(false) {}
+    Action::Action() : x(0), y(0), z(0) {}
+
+    Action::Action(double x, double y, double z) : x(x), y(y), z(z) {}
+
+    Axis::Axis() : expand_y(false) {}
 
     double Axis::height()
     {
@@ -225,8 +225,9 @@ namespace my_hand_eye
         {
             last_x = x;
             last_y = y;
-            y = 2 * (-ARM_P + ARM_A0 * _calculate_j1().sin()) - y;
-            x = 2 * ARM_A0 * _calculate_j1().cos() - x;
+            double l = length();
+            y = 2 * (-ARM_P - ARM_A0 * (y + ARM_P) / l) - y;
+            x = -2 * ARM_A0 * x / l - x;
             flag = true;
         }
         return (expand_y && (length() < ARM_A0)) || flag;
@@ -260,6 +261,7 @@ namespace my_hand_eye
         }
         double alpha = 90;
         bool valid = _modify_alpha(alpha, look);
+        // ROS_INFO_STREAM("alpha: " << alpha);
         if (valid)
         {
             Angle j1 = _calculate_j1();
@@ -343,12 +345,7 @@ namespace my_hand_eye
                 ROS_WARN("forward_kinematics: Result invalid!");
                 return false;
             }
-            else if (sqrt((ty + ARM_P) * (ty + ARM_P) + tx * tx) < 1 || length() < 1) // 距离底部圆心过近时的数值计算问题
-            {
-                ROS_WARN("Target position is too closs to the center!");
-                return false;
-            }
-            else if (std::abs(tx - x) > 1 || std::abs(ty - y) > 1 || std::abs(tz - z) > 1)
+            else if (std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
             {
                 ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf",
                           tx, ty, tz, x, y, z);
