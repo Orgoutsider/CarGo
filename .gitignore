@@ -33,7 +33,7 @@ src/realsense-ros-development/
 # src/robot_pose_ekf/
 src/usb_cam/
 src/vision_msgs/
-src/wheeltec_robot_rc/
+# src/wheeltec_robot_rc/
 src/zbar_ros/
 src/cv_bridge/
 src/detection_msgs/
