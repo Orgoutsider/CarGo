@@ -78,7 +78,7 @@ namespace my_hand_eye
         cv::GaussianBlur(cv_image->image, cv_image->image, cv::Size(3, 3), 0, 0); // 滤波预处理
         std::vector<cv::Vec2f> lines;
         LBD(cv_image->image, lines);
-        cv::Mat b = cv_image->image;
+        cv::Mat b = cv_image->image.clone();
         border[0] = border[1] = 0;
         if (lines.empty())
             return false;
@@ -130,11 +130,11 @@ namespace my_hand_eye
         morphologyEx(ThreImg, ThreImg, MORPH_CLOSE, element, Point(-1, -1), 3);
         imshow("Thresh", ThreImg);
 
-        Canny(ThreImg, ThreImg, 50, 200, 3);
+        Canny(enhanced, ThreImg, 50, 200, 3);
         imshow("edge", ThreImg);
 
-        Mat LineImg;
-        cvtColor(ThreImg, LineImg, COLOR_GRAY2BGR);
+        // Mat LineImg;
+        // cvtColor(ThreImg, LineImg, COLOR_GRAY2BGR);
         HoughLines(ThreImg, lines, 1, CV_PI / 180, 100, 0, 0);
     }
 
@@ -155,8 +155,8 @@ namespace my_hand_eye
         Canny(RangeImg, edgeImg, 50, 200, 3);
         imshow("edge", edgeImg);
 
-        Mat LineImg;
-        cvtColor(edgeImg, LineImg, COLOR_GRAY2BGR);
+        // Mat LineImg;
+        // cvtColor(edgeImg, LineImg, COLOR_GRAY2BGR);
         HoughLines(edgeImg, lines, 1, CV_PI / 180, 100, 0, 0);
     }
 } // namespace my_hand_eye
