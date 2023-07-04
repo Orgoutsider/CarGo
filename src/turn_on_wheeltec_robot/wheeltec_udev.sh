@@ -3,6 +3,7 @@ echo 'KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60",ATTRS
 # echo 'KERNEL=="video*", ATTRS{idVendor}=="8086", ATTRS{idProduct}=="0b07",MODE:="0777", GROUP:="dialout", SYMLINK+="d435"' >/etc/udev/rules.d/d435.rules
 echo 'KERNEL=="video*", ATTR{index}=="0", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="6368",MODE:="0777", GROUP:="dialout", SYMLINK+="usb_cam"' >/etc/udev/rules.d/usb_cam.rules
 echo  'KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60",ATTRS{serial}=="0003", MODE:="0777", GROUP:="dialout", SYMLINK+="fdilink_ahrs"' >/etc/udev/rules.d/fdilink_ahrs.rules
+echo  'KERNEL=="ttyUSB*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE:="0777", GROUP:="dialout", SYMLINK+="c_board"' >/etc/udev/rules.d/c_board.rules
 service udev reload
 sleep 2
 service udev restart
