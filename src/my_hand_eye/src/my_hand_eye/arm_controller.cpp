@@ -792,6 +792,6 @@ namespace my_hand_eye
         if (!add_image(image_rect, cv_image))
             return false;
         cv::Vec2f border;
-        return border_.find(cv_image, border, LBD_thershold_func, show_detections_);
+        return border_.find(cv_image, border, LBD_color_func, show_detections_);
     }
 } // namespace my_hand_eye
