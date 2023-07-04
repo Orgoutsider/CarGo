@@ -1,7 +1,7 @@
 #ifndef _ARM_CONTROLLER_H_
 #define _ARM_CONTROLLER_H_
-#include "my_hand_eye/pose.h"
-#include "my_hand_eye/tracker.h"
+#include "my_hand_eye/ellipse.h"
+#include "my_hand_eye/border.h"
 
 #include <yolov5_ros/cargoSrv.h>
 #include <XmlRpcException.h>
@@ -9,39 +9,6 @@
 
 namespace my_hand_eye
 {
-    struct Ellipse
-    {
-        cv::Point2d center; // 目标椭圆容器
-        cv::Rect rect_target;
-        int color;
-        double hypothesis;
-    };
-
-    struct EllipseColor
-    {
-        int color;
-        double center_x;
-    };
-
-    class EllipseArray
-    {
-    private:
-        std::vector<Ellipse> ellipse_;
-        std::vector<int> flag_; // 聚类标识
-    public:
-        EllipseArray();
-        // 聚类
-        bool clustering(std::vector<cv::Point2d> &centers, std::vector<cv::RotatedRect> &ellipses);
-        bool generate_bounding_rect(std::vector<cv::RotatedRect> &m_ellipses,
-                                    cv_bridge::CvImagePtr &cv_image);
-        // 颜色分类
-        bool color_classification(cv_bridge::CvImagePtr &cv_image,
-                                  int white_vmin);
-        // 找到最多3个椭圆并绘制
-        bool detection(vision_msgs::BoundingBox2DArray &objArray,
-                       cv::Rect &roi, cv_bridge::CvImagePtr &cv_image, bool show_detection);
-    };
-
     class ArmController
     {
     private:
@@ -53,6 +20,7 @@ namespace my_hand_eye
         int white_vmin_;
         EllipseColor ellipse_color_order_[4];
         Tracker tracker_;
+        Border border_;
         SMS_STS sm_st_;
         SCSCL sc_;
         ros::ServiceClient cargo_client_; // mmdetection+颜色识别
@@ -106,7 +74,7 @@ namespace my_hand_eye
                                        double correct_x, double correct_y, double correct_z, int color,
                                        sensor_msgs::ImagePtr &debug_image);
         bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
-                              bool &finish, sensor_msgs::ImagePtr &debug_image, bool left,
+                              bool &finish, sensor_msgs::ImagePtr &debug_image, bool left, bool hold = false,
                               bool midpoint = false);
         // bool catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
         // bool &finish, sensor_msgs::ImagePtr &debug_image);
@@ -118,18 +86,10 @@ namespace my_hand_eye
         // 椭圆识别，摄像头测试时z无效
         bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
                               bool &finish, sensor_msgs::ImagePtr &debug_image);
+        // 查看边界线位置
+        bool find_border(const sensor_msgs::ImageConstPtr &image_rect, double &distance, double &yaw,
+                         bool &finish, sensor_msgs::ImagePtr &debug_image);
     };
-
-    // 将色相值映射为角度
-    Angle hue_value(double h_val);
-    // 色相平均值的计算
-    double hue_value_tan(double y, double x);
-    // 两色相的最小差值
-    double hue_value_diff(double h_val1, double h_val2);
-    // 十字光标绘制，用于调试观察
-    void draw_cross(cv::Mat &img, cv::Point2d point, cv::Scalar color, int size, int thickness);
-    // 目标区域框选
-    double color_hypothesis(double h_val, int lower_bound, int upper_bound);
 } // namespace my_hand_eye
 
 #endif // !_ARM_CONTROLLER_H_
