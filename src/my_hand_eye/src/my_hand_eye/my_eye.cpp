@@ -76,15 +76,15 @@ namespace my_hand_eye
 		// }
 
 		// 直接抓取
-		static bool finish = false;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!finish)
-		{
-			double u, v;
-			arm_controller_.catch_straightly(image_rect, color_green, arm_controller_.z_turntable, finish, debug_image, true, false);
-			if (arm_controller_.show_detections_)
-				debug_image_publisher_.publish(debug_image);
-		}
+		// static bool finish = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!finish)
+		// {
+		// 	double u, v;
+		//  arm_controller_.catch_straightly(image_rect, color_green, arm_controller_.z_turntable, finish, debug_image, true, false);
+		// 	if (arm_controller_.show_detections_)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
 
 		// 椭圆识别
 		// static bool finish = false;
@@ -96,6 +96,17 @@ namespace my_hand_eye
 		// 	if (arm_controller_.show_detections_)
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
+
+		// 边界线查找
+		static bool finish = false;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!finish)
+		{
+			double distance, yaw;
+			arm_controller_.find_border(image_rect, distance, yaw, finish, debug_image);
+			if (arm_controller_.show_detections_)
+				debug_image_publisher_.publish(debug_image);
+		}
 	}
 
 	void MyEye::execute_callback(const ArmGoalConstPtr &goal)

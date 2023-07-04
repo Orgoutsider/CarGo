@@ -4,45 +4,45 @@
 using namespace cv;
 using namespace std;
 
-//ÑÕÉ«ÔöÇ¿º¯ÊýÏà¹Øºê¶¨Òå
+//é¢œè‰²å¢žå¼ºå‡½æ•°ç›¸å…³å®å®šä¹‰
 #define max2(a,b) (a>b?a:b)
 #define max3(a,b,c) (a>b?max2(a,c):max2(b,c))
 #define min2(a,b) (a<b?a:b)
 #define min3(a,b,c) (a<b?min2(a,c):min2(b,c))
 
-cv::Mat Saturation(cv::Mat src, int percent);//ÑÕÉ«ÔöÇ¿º¯Êý
+cv::Mat Saturation(cv::Mat src, int percent);//é¢œè‰²å¢žå¼ºå‡½æ•°
 
-cv::Mat LBD_Thershold_Func(cv::Mat Enhanced);//×ÔÊÊÓ¦ãÐÖµ»¯²éÕÒ³µµÀ±ß½ç
-cv::Mat LBD_Color_Func(cv::Mat Enhanced);//ÑÕÉ«inrange²éÕÒ³µµÀ±ß½ç
-//½ØÖ¹7.3ÈÕÐ´ÁËÕâÁ½¸ö
+cv::Mat LBD_Thershold_Func(cv::Mat Enhanced);//è‡ªé€‚åº”é˜ˆå€¼åŒ–æŸ¥æ‰¾è½¦é“è¾¹ç•Œ
+cv::Mat LBD_Color_Func(cv::Mat Enhanced);//é¢œè‰²inrangeæŸ¥æ‰¾è½¦é“è¾¹ç•Œ
+//æˆªæ­¢7.3æ—¥å†™äº†è¿™ä¸¤ä¸ª
 
-void LBD_(cv::Mat Enhanced)//±ß½ç²éÕÒ·½·¨µ÷ÓÃº¯Êý
+void LBD_(cv::Mat Enhanced)//è¾¹ç•ŒæŸ¥æ‰¾æ–¹æ³•è°ƒç”¨å‡½æ•°
 {
-	GaussianBlur(Enhanced, Enhanced, Size(3, 3), 0, 0);//ÂË²¨Ô¤´¦Àí
+	GaussianBlur(Enhanced, Enhanced, Size(3, 3), 0, 0);//æ»¤æ³¢é¢„å¤„ç†
 
-	//·½·¨Ò»
+	//æ–¹æ³•ä¸€
 	//Mat LineImg = LBD_Thershold_Func(Enhanced);
 	//imshow("LineImg", LineImg);
 
-	//·½·¨¶þ
+	//æ–¹æ³•äºŒ
 	Mat ColorImg = LBD_Color_Func(Enhanced);
 	imshow("LineImg", ColorImg);
 
 }
 
-//ÑÕÉ«ÔöÇ¿µÄ³µµÀ±ß½ç²éÕÒ----Ö÷º¯Êý
+//é¢œè‰²å¢žå¼ºçš„è½¦é“è¾¹ç•ŒæŸ¥æ‰¾----ä¸»å‡½æ•°
 void LBD_ColorEnhanced(Mat Img)
 {
-	resize(Img, Img, Size(Img.cols / 4, Img.rows / 4));//Ëõ·ÅÍ¼Ïñ
+	resize(Img, Img, Size(Img.cols / 4, Img.rows / 4));//ç¼©æ”¾å›¾åƒ
 	imshow("original", Img);
 
-	cv::Mat Enhanced = Saturation(Img, 100);//±¥ºÍ¶Èµ÷Õû²ÎÊý£¬-100 ¡ª 100, ÕýÊý±¥ºÍ¶ÈÔöÇ¿£¬¸ºÊý±¥ºÍ¶È¼õÈõ
+	cv::Mat Enhanced = Saturation(Img, 100);//é¥±å’Œåº¦è°ƒæ•´å‚æ•°ï¼Œ-100 â€” 100, æ­£æ•°é¥±å’Œåº¦å¢žå¼ºï¼Œè´Ÿæ•°é¥±å’Œåº¦å‡å¼±
 	imshow("Enhanced", Enhanced);
 
-	LBD_(Enhanced);//²éÕÒ±ß½ç
+	LBD_(Enhanced);//æŸ¥æ‰¾è¾¹ç•Œ
 }
 
-//ÑÕÉ«ÔöÇ¿º¯Êý
+//é¢œè‰²å¢žå¼ºå‡½æ•°
 cv::Mat Saturation(cv::Mat src, int percent)
 {
 	float Increment = percent * 1.0f / 100;
@@ -94,7 +94,7 @@ cv::Mat Saturation(cv::Mat src, int percent)
 	return temp;
 }
 
-//×ÔÊÊÓ¦ãÐÖµ»¯²éÕÒ³µµÀ±ß½ç
+//è‡ªé€‚åº”é˜ˆå€¼åŒ–æŸ¥æ‰¾è½¦é“è¾¹ç•Œ
 cv::Mat LBD_Thershold_Func(cv::Mat Enhanced)
 {
 	Mat gray;
@@ -128,7 +128,7 @@ cv::Mat LBD_Thershold_Func(cv::Mat Enhanced)
 	return LineImg;
 }
 
-//ÑÕÉ«inrange²éÕÒ³µµÀ±ß½ç
+//é¢œè‰²inrangeæŸ¥æ‰¾è½¦é“è¾¹ç•Œ
 cv::Mat LBD_Color_Func(cv::Mat Enhanced)
 {
 	Mat HSVImg;
