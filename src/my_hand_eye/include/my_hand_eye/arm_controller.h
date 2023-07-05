@@ -71,7 +71,7 @@ namespace my_hand_eye
         bool show_detections_;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
         bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
-                          sensor_msgs::ImagePtr &debug_image);
+                          sensor_msgs::ImagePtr &debug_image, bool center = false);
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
                                        double correct_x, double correct_y, double correct_z, int color,
                                        sensor_msgs::ImagePtr &debug_image);

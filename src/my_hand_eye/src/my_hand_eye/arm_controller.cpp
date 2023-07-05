@@ -180,7 +180,8 @@ namespace my_hand_eye
             return false;
     }
 
-    bool ArmController::log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
+                                     sensor_msgs::ImagePtr &debug_image, bool center)
     {
         static bool flag = false; // 尚未初始化位姿
         if (!flag)
@@ -193,7 +194,21 @@ namespace my_hand_eye
         if (valid)
         {
             double x = 0, y = 0;
-            if (find_with_color(objArray, color, z, x, y))
+            if (center)
+            {
+                double center_u = 0, center_v = 0;
+                if (get_center(objArray, center_u, center_v) &&
+                    ps_.calculate_cargo_position(center_u, center_v, z_turntable, x, y))
+                {
+                    ROS_INFO_STREAM("x:" << x << " y:" << y);
+                    if (show_detections_ && !cv_image_.image.empty())
+                    {
+                        draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
+                        debug_image = cv_image_.toImageMsg();
+                    }
+                }
+            }
+            else if (find_with_color(objArray, color, z, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
         }
         return valid;
@@ -808,12 +823,11 @@ namespace my_hand_eye
                      get_center(objArray, center_u, center_v) &&
                      ps_.calculate_cargo_position(center_u, center_v, z_turntable, x, y);
         if (valid)
-        ROS_INFO_STREAM("x: " << x << " y: " << y);
-        if (valid && show_detections_ && !cv_image_.image.empty())
-        {
-            draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
-            debug_image = cv_image_.toImageMsg();
-        }
+            if (valid && show_detections_ && !cv_image_.image.empty())
+            {
+                draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
+                debug_image = cv_image_.toImageMsg();
+            }
         return valid;
     }
 } // namespace my_hand_eye

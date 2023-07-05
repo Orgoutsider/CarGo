@@ -53,13 +53,13 @@ namespace my_hand_eye
         const double fy = 940.728627;
         const double cx = 932.106780;
         const double cy = 578.390364;
-        double calculate_time(int ID);   // 为指定舵机计算到达时间
+        double calculate_time(int ID); // 为指定舵机计算到达时间
         bool arrived(u8 ID[], u8 IDN); // 判断所有是否到达指定位置附近
         // 计算各joint运动的position
         bool calculate_position(bool expand_y = false);
-        bool read_position(int ID);        // 读指定舵机位置
-        bool read_move(int ID);            // 指定舵机运动
-        int read_load(int ID);             // 读指定舵机负载
+        bool read_position(int ID);      // 读指定舵机位置
+        bool read_move(int ID);          // 指定舵机运动
+        int read_load(int ID);           // 读指定舵机负载
         bool is_moving(u8 ID[], u8 IDN); // 判断指定舵机运动
         // 等待静止且到达指定位置附近，如果show_load为真，返回最大load
         double wait_until_static(u8 ID[], u8 IDN, bool show_load = false);
@@ -68,7 +68,7 @@ namespace my_hand_eye
         // 在y > 0处使用
         cv::Mat R_end_to_base();                                            // 机械臂末端到基底的旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();                                            // 机械臂末端到基底的平移向量（不保证实时性）
-        cv::Mat intrinsics();                                               // 内参
+        cv::Mat intrinsics_inverse();                                       // 内参的逆矩阵
         cv::Mat extrinsics();                                               // 外参（不保证实时性，配合refresh_xyz）
         double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向
         bool dfs_midpoint(double length_goal, double height_goal);
@@ -83,8 +83,8 @@ namespace my_hand_eye
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();
-        void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions);            // 获取速度加速度
-        void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default"); // 获取设定动作
+        void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions);                      // 获取速度加速度
+        void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default");           // 获取设定动作
         bool go_to(double x, double y, double z, bool cat, bool look, bool expand_y = false); // 运动到指定位置，抓/不抓
         // bool do_first_step(double x, double y);                        // 两步抓取第一步
         bool reset(bool left = false);
@@ -95,8 +95,12 @@ namespace my_hand_eye
         bool read_all_position();           // 读所有舵机正确位置
         bool refresh_xyz(bool read = true); // 更新位置
         ArmPose end_to_base_now();          // 更新位置，并返回旋转矩阵，平移向量
+        // 计算物料位置
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y);
+        // 计算边界线位置
+        bool calculate_border_position(cv::Vec2f &border, double border_z,
+                                       double &distance, double &yaw);
         // 通过记录的位置校正外参
         bool extrinsics_correction(double u, double v,
                                    double correct_x, double correct_y, double correct_z);

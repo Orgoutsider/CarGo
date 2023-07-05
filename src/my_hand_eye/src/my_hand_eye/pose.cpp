@@ -724,9 +724,9 @@ namespace my_hand_eye
         }
     }
 
-    cv::Mat Pos::intrinsics()
+    cv::Mat Pos::intrinsics_inverse()
     {
-        cv::Mat intrinsics = (cv::Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0.0, 1);
+        cv::Mat intrinsics = (cv::Mat_<double>(3, 3) << 1 / fx, 0, -cx / fx, 0, 1 / fy, -cy / fy, 0, 0, 1);
         return intrinsics;
     }
 
@@ -742,7 +742,7 @@ namespace my_hand_eye
         bool valid = refresh_xyz();
         if (valid)
         {
-            cv::Mat intrinsics_inv = intrinsics().inv();
+            cv::Mat intrinsics_inv = intrinsics_inverse();
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
             cv::Mat point_temp = intrinsics_inv * point_pixel; // (X/Z,Y/Z,1)
             // 单位统一为cm
@@ -755,6 +755,22 @@ namespace my_hand_eye
             cargo_y = point_base.at<double>(1, 0);
         }
         return valid;
+    }
+
+    bool Pos::calculate_border_position(cv::Vec2f &border, double border_z,
+                                        double &distance, double &yaw)
+    {
+        double u0 = border[0] / cos(border[1]);
+        double v0 = border[0] / sin(border[1]);
+        double x1, y1, x2, y2;
+        if (calculate_cargo_position(u0, 0, border_z, x1, y1) && calculate_cargo_position(0, v0, border_z, x2, y2))
+        {
+            distance = (x1 * y2 - x2 * y1) / (x1 - x2);
+            yaw = atan2(y1 - y2, x1 - x2);
+            return true;
+        }
+        else
+            return false;
     }
 
     bool Pos::extrinsics_correction(double u, double v, double correct_x, double correct_y, double correct_z)
@@ -770,7 +786,7 @@ namespace my_hand_eye
         cnt++;
         if (valid)
         {
-            cv::Mat intrinsics_inv = intrinsics().inv();
+            cv::Mat intrinsics_inv = intrinsics_inverse();
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << sum_u / cnt, sum_v / cnt, 1);
             cv::Mat point_temp = intrinsics_inv * point_pixel; // (X/Z,Y/Z,1)
             cv::Mat point_base = (cv::Mat_<double>(4, 1) << correct_x, correct_y, correct_z, 1);
