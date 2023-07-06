@@ -116,7 +116,9 @@ namespace my_hand_eye
             return false;
         for (Ellipse &e : ellipse_)
         {
-            double H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin); // 保存当前区域色相H的平均值
+            cv::Mat mask;
+            // 保存当前区域色相H的平均值
+            double H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin, mask);
             // ROS_INFO_STREAM("H_Average:" << H_Average << " cnt:" << cnt << " " << mask.cols * mask.rows);
             int id = color_red;
             double max_hyp = 0;

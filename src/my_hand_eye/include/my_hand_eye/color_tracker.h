@@ -29,7 +29,7 @@ namespace my_hand_eye
 
     public:
         // 色相平均值的计算
-        double hue_value_aver(cv::Mat &&roi, int white_vmin);
+        double hue_value_aver(cv::Mat &&roi, int white_vmin, cv::Mat &mask_img);
         // 两色相的最小差值
         double hue_value_diff(double h_val1, double h_val2);
     };

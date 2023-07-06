@@ -5,7 +5,7 @@ namespace my_hand_eye
     ArmController::ArmController()
         : ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
-          fin_(false)
+          fin_(false), proportion_(0.001)
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
@@ -14,7 +14,7 @@ namespace my_hand_eye
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : ps_(&sm_st_, &sc_),
           default_roi_(0, 0, 1920, 1080),
-          fin_(false)
+          fin_(false), proportion_(0.001)
     {
         init(nh, pnh);
     }
@@ -66,6 +66,8 @@ namespace my_hand_eye
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
+        cargo_x_.reserve(10);
+        cargo_y_.reserve(10);
     }
 
     bool ArmController::add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image)

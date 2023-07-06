@@ -13,16 +13,16 @@ namespace my_hand_eye
         return Angle(y, x)._get_degree() / 2;
     }
 
-    double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin)
+    double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin, cv::Mat &mask_img)
     {
         cv::Mat mask = roi.clone();
-        cv::Mat mask_Img = mask.clone();        // 用于调试
-        mask_Img = {cv::Scalar(255, 255, 255)}; // 用于调试
+        mask_img = mask.clone();                // 用于调试
+        mask_img = {cv::Scalar(255, 255, 255)}; // 用于调试
         cvtColor(mask, mask, cv::COLOR_BGR2HSV);
         // 设置像素遍历迭代器
         cv::MatConstIterator_<cv::Vec3b> maskStart = mask.begin<cv::Vec3b>();
         cv::MatConstIterator_<cv::Vec3b> maskEnd = mask.end<cv::Vec3b>();
-        cv::MatIterator_<cv::Vec3b> mask_ImgStart = mask_Img.begin<cv::Vec3b>(); // 用于调试
+        cv::MatIterator_<cv::Vec3b> mask_ImgStart = mask_img.begin<cv::Vec3b>(); // 用于调试
         double x = 0, y = 0;
         int cnt = 0;
         for (; maskStart != maskEnd; maskStart++, mask_ImgStart++)
@@ -47,7 +47,7 @@ namespace my_hand_eye
             //     usleep(1e5);
             // }
         }
-        cv::imshow("mask_Img", mask_Img); // 用于调试
+        cv::imshow("mask_img", mask_img); // 用于调试
         cv::waitKey(10);
         double H_Average = hue_value_tan(y, x); // 保存当前区域色相H的平均值
         return (H_Average < 0) ? H_Average + 180 : H_Average;
@@ -205,9 +205,11 @@ namespace my_hand_eye
 
             // Mat H_planes(HSV_planes[0], CV_32FC1);
             MatND hist;
-            calcHist(&HSV_planes[0], 1, channels_, Mat(), hist, 1, histSize_, ranges_);
+            Mat mask;
+            // 保存当前区域色相H的平均值
+            int H_Average = cvRound(hue_value_aver(cv_image.image(rect_ori), white_vmin, mask));
+            calcHist(&HSV_planes[0], 1, channels_, mask, hist, 1, histSize_, ranges_);
             normalize(hist, hist, 1.0, 0, NORM_L1, -1, Mat());
-            int H_Average = cvRound(hue_value_aver(cv_image.image(rect_ori), white_vmin)); // 保存当前区域色相H的平均值
             ROS_INFO_STREAM("H_Average:" << H_Average);
             // 色彩平均值的对侧
             int H_Opposite = (H_Average - 90 < 0) ? H_Average + 90 : H_Average - 90;
@@ -238,6 +240,8 @@ namespace my_hand_eye
                 if (fin_l && fin_r)
                     break;
             }
+            left++;
+            left--;
             h_max_ = left;
             h_min_ = right;
             ROS_INFO_STREAM("h_max:" << h_max_ << " h_min:" << h_min_);
