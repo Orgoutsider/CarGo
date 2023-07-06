@@ -40,10 +40,10 @@ namespace my_hand_eye
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
 		// 输出检测物料位置
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_green, debug_image);
-		// if (arm_controller_.show_detections_)
-		// 	debug_image_publisher_.publish(debug_image);
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_green, debug_image, true);
+		if (arm_controller_.show_detections_)
+			debug_image_publisher_.publish(debug_image);
 
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -107,17 +107,6 @@ namespace my_hand_eye
 		// 	if (arm_controller_.show_detections_)
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
-
-		// 查找圆盘中心
-		static bool finish = false;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!finish)
-		{
-			double x, y;
-			arm_controller_.find_center(image_rect, x, y, finish, debug_image);
-			if (arm_controller_.show_detections_)
-				debug_image_publisher_.publish(debug_image);
-		}
 	}
 
 	void MyEye::execute_callback(const ArmGoalConstPtr &goal)
