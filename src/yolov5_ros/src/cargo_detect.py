@@ -110,7 +110,7 @@ class Yolov5Detector:
         self.up_raw = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
         self.low = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
         self.up = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
-        self.gain = 0.1 # 扩张比例
+        self.gain = 0.0 # 扩张比例
         self.srv = rospy.Service('cargoSrv', cargoSrv, self.callback)
         self.param_modification = rospy.get_param('~param_modification', False)
         if self.param_modification:

@@ -266,7 +266,6 @@ namespace my_hand_eye
         {
             radius = sqrt((x - tracker_.center_x_) * (x - tracker_.center_x_) + (y - tracker_.center_y_) * (y - tracker_.center_y_));
             valid = tracker_.calculate_speed(x, y, speed_standard_, speed);
-            // ROS_INFO_STREAM(radius);
         }
         return valid;
     }
@@ -487,7 +486,7 @@ namespace my_hand_eye
                 tracker_.target_init(cv_image_, objArray, color, white_vmin_,
                                      center_x, center_y, proportion_))
             {
-                calculate_radius_and_speed(radius, speed, u, v);
+                calculate_radius_and_speed(u, v, radius, speed);
                 first_radius = radius;
                 cargo_is_static(speed, true);
                 fin_ = true;
@@ -510,7 +509,7 @@ namespace my_hand_eye
                     tracker_.target_init(cv_image_, objArray, color, white_vmin_,
                                          center_x, center_y, proportion_))
                 {
-                    if (calculate_radius_and_speed(radius, speed, u, v) &&
+                    if (calculate_radius_and_speed(u, v, radius, speed) &&
                         abs(radius - first_radius) < PERMIT)
                     {
                         first_radius = radius;
@@ -537,8 +536,7 @@ namespace my_hand_eye
                     cnt = INTERVAL;
                     return false;
                 }
-                ROS_INFO("2");
-                if (!calculate_radius_and_speed(radius, speed, u, v))
+                if (!calculate_radius_and_speed(u, v, radius, speed))
                     return false;
                 if (abs(radius - first_radius) > PERMIT)
                     cnt = INTERVAL;

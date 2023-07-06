@@ -30,6 +30,8 @@ namespace my_hand_eye
     public:
         // 色相平均值的计算
         double hue_value_aver(cv::Mat &&roi, int white_vmin);
+        // 色相最大最小的计算
+        void hue_value_min_max(cv::Mat &&roi, int white_vmin, double &min, double &max);
         // 两色相的最小差值
         double hue_value_diff(double h_val1, double h_val2);
     };
@@ -43,9 +45,9 @@ namespace my_hand_eye
         const int histSize_[1];
         float pranges_[2];
         const float *ranges_[1];
-        double gain_;       // 矩形框扩大
-        double speed_max_;  // 最高速度
-        int color_;         // 当前寻找颜色
+        double gain_;      // 矩形框扩大
+        double speed_max_; // 最高速度
+        int color_;        // 当前寻找颜色
         double h_max_;
         double h_min_;
         double s_min_;

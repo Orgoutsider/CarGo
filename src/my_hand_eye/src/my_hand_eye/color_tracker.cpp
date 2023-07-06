@@ -208,6 +208,7 @@ namespace my_hand_eye
             calcHist(&HSV_planes[0], 1, channels_, Mat(), hist, 1, histSize_, ranges_);
             normalize(hist, hist, 1.0, 0, NORM_L1, -1, Mat());
             int H_Average = cvRound(hue_value_aver(cv_image.image(rect_ori), white_vmin)); // 保存当前区域色相H的平均值
+            ROS_INFO_STREAM("H_Average:" << H_Average);
             // 色彩平均值的对侧
             int H_Opposite = (H_Average - 90 < 0) ? H_Average + 90 : H_Average - 90;
             int left, right;
@@ -237,16 +238,9 @@ namespace my_hand_eye
                 if (fin_l && fin_r)
                     break;
             }
-            if (fin_l && fin_r)
-            {
-                h_max_ = left;
-                h_min_ = right;
-            }
-            else
-            {
-                ROS_ERROR("target_init: Proportion is invalid!");
-                return false;
-            }
+            h_max_ = left;
+            h_min_ = right;
+            ROS_INFO_STREAM("h_max:" << h_max_ << " h_min:" << h_min_);
             return _set_rect(HSVImg, rect_ori);
         }
         return false;
@@ -318,7 +312,6 @@ namespace my_hand_eye
             d_theta[0] = (this_theta < last_theta) ? last_theta - this_theta : last_theta + CV_PI * 2 - this_theta;
             d_theta[1] = (this_theta > last_theta) ? this_theta - last_theta : this_theta + CV_PI * 2 - last_theta;
             last_pt_ = cv::Point2d(x, y);
-            ROS_INFO_STREAM("d_theta:" << d_theta << " dt:" << dt);
             if (d_theta[flag_] <= d_theta[!flag_])
             {
                 speed = d_theta[flag_] / dt;

@@ -65,6 +65,7 @@ namespace my_hand_eye
 		}
 		else
 		{
+			stop = false;
 			// 直接抓取
 			// static bool finish = false;
 			// if (!finish)
