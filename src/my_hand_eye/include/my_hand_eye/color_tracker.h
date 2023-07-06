@@ -39,17 +39,13 @@ namespace my_hand_eye
     private:
         ros::Time last_time_;
         ros::Time this_time_;
-        const int channels_[1];
-        const int histSize_[1];
-        float pranges_[2];
-        const float *ranges_[1];
         double gain_;      // 矩形框扩大
         double speed_max_; // 最高速度
         int color_;        // 当前寻找颜色
-        double h_max_;
-        double h_min_;
-        double s_min_;
-        double v_min_;
+        double white_h_max_;
+        double white_h_min_;
+        double white_s_min_;
+        double white_v_min_;
         bool flag_;            // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
         cv::RotatedRect rect_; // 目标物体旋转矩形框
         // 设置旋转矩形

@@ -103,9 +103,9 @@ generate_messages(
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-generate_dynamic_reconfigure_options(
-  cfg/arm.cfg
-)
+# generate_dynamic_reconfigure_options(
+#   cfg/arm.cfg
+# )
 
 ###################################
 ## catkin specific configuration ##

@@ -3,10 +3,10 @@
 
 #include "my_hand_eye/arm_controller.h"
 #include <actionlib/server/simple_action_server.h>
-#include <dynamic_reconfigure/server.h>
+// #include <dynamic_reconfigure/server.h>
 #include <my_hand_eye/ArrayofTaskArrays.h>
 #include <my_hand_eye/ArmAction.h>
-#include <my_hand_eye/drConfig.h>
+// #include <my_hand_eye/drConfig.h>
 
 
 namespace my_hand_eye
@@ -24,7 +24,7 @@ namespace my_hand_eye
         image_transport::Subscriber camera_image_subscriber_;
         ros::Subscriber task_subscriber_;
         Server as_;
-        dynamic_reconfigure::Server<my_hand_eye::drConfig> dr_server_;
+        // dynamic_reconfigure::Server<my_hand_eye::drConfig> dr_server_;
         void task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task);
         void image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         // Optional callback that gets called in a separate thread whenever a new goal is received, allowing users to have blocking callbacks.
@@ -32,7 +32,7 @@ namespace my_hand_eye
         // 挤占服务时回调函数
         void preempt_callback();
         // 动态参数回调函数
-        void dr_callback(drConfig& config, uint32_t level);
+        // void dr_callback(drConfig& config, uint32_t level);
     public:
         MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh);
     };
