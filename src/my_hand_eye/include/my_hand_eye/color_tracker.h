@@ -53,7 +53,7 @@ namespace my_hand_eye
         bool flag_;            // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
         cv::RotatedRect rect_; // 目标物体旋转矩形框
         // 设置旋转矩形
-        bool _set_rect(cv::Mat &hsv);
+        bool _set_rect(cv::Mat &hsv, cv::Rect &roi);
 
     protected:
         cv::Point2d last_pt_;

@@ -537,6 +537,7 @@ namespace my_hand_eye
                     cnt = INTERVAL;
                     return false;
                 }
+                ROS_INFO("2");
                 if (!calculate_radius_and_speed(radius, speed, u, v))
                     return false;
                 if (abs(radius - first_radius) > PERMIT)

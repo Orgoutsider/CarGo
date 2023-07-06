@@ -746,9 +746,9 @@ namespace my_hand_eye
     }
 
     bool Pos::calculate_cargo_position(double u, double v, double cargo_z,
-                                       double &cargo_x, double &cargo_y)
+                                       double &cargo_x, double &cargo_y, bool read)
     {
-        bool valid = refresh_xyz();
+        bool valid = refresh_xyz(read);
         if (valid)
         {
             cv::Mat intrinsics_inv = intrinsics_inverse();
@@ -774,7 +774,7 @@ namespace my_hand_eye
             cv::Mat point_base = (cv::Mat_<double>(4, 1) << x, y, z, 1);
             cv::Mat point_cam = extrinsics_inverse() * point_base;
             double Z = point_cam.at<double>(2, 0);
-            cv::Mat point_temp = point_cam.rowRange(0, 2).clone() / Z; // (X/Z,Y/Z,1)
+            cv::Mat point_temp = point_cam.rowRange(0, 3).clone() / Z; // (X/Z,Y/Z,1)
             cv::Mat point_pixel = intrinsics() * point_temp;
             u = point_pixel.at<double>(0, 0);
             v = point_pixel.at<double>(1, 0);
@@ -788,7 +788,7 @@ namespace my_hand_eye
         double u0 = border[0] / cos(border[1]);
         double v0 = border[0] / sin(border[1]);
         double x1, y1, x2, y2;
-        if (calculate_cargo_position(u0, 0, border_z, x1, y1) && calculate_cargo_position(0, v0, border_z, x2, y2))
+        if (calculate_cargo_position(u0, 0, border_z, x1, y1) && calculate_cargo_position(0, v0, border_z, x2, y2, false))
         {
             distance = (x1 * y2 - x2 * y1) / (x1 - x2);
             yaw = atan2(y1 - y2, x1 - x2);

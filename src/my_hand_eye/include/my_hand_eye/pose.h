@@ -99,7 +99,7 @@ namespace my_hand_eye
         ArmPose end_to_base_now();          // 更新位置，并返回旋转矩阵，平移向量
         // 计算物料位置
         bool calculate_cargo_position(double u, double v, double cargo_z,
-                                      double &cargo_x, double &cargo_y);
+                                      double &cargo_x, double &cargo_y, bool read = true);
         // 由实际位置计算像素位置
         bool calculate_pixel_position(double x, double y, double z, double &u, double &v);
         // 计算边界线位置

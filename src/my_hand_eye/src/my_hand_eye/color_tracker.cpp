@@ -71,7 +71,7 @@ namespace my_hand_eye
                                    s_min_(43), v_min_(26),
                                    flag_(false) {}
 
-    bool ColorTracker::_set_rect(cv::Mat &hsv)
+    bool ColorTracker::_set_rect(cv::Mat &hsv, cv::Rect &roi)
     {
         using namespace cv;
         Mat dst;
@@ -94,6 +94,8 @@ namespace my_hand_eye
         }
         Mat element = getStructuringElement(MORPH_ELLIPSE, Size(13, 13));
         erode(dst, dst, element);
+        imshow("dst", dst); // 用于调试
+        waitKey(1);
         std::vector<std::vector<cv::Point>> contours;                  // 轮廓容器
         Point2f vtx[4];                                                // 矩形顶点容器
         findContours(dst, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE); // 查找轮廓
@@ -136,6 +138,8 @@ namespace my_hand_eye
             }
             imshow("res", res); // 用于调试
             waitKey(1);
+            rect_.center.x += roi.x;
+            rect_.center.y += roi.y;
             return true;
         }
         else
@@ -243,7 +247,7 @@ namespace my_hand_eye
                 ROS_ERROR("target_init: Proportion is invalid!");
                 return false;
             }
-            return _set_rect(HSVImg);
+            return _set_rect(HSVImg, rect_ori);
         }
         return false;
     }
@@ -261,7 +265,7 @@ namespace my_hand_eye
         rect_ori.height = std::min((double)cv_image.image.rows,
                                    rect.y + rect.height + rect.height * gain_) -
                           rect_ori.y;
-
+        // ROS_INFO_STREAM("rect_ori.x:" << rect_ori.x << " rect_ori.y:" << rect_ori.y << " rect.x:" << rect.x << " rect.y:" << rect.y);
         // 下面计算物料下一个可能位置范围
         bool valid = _update_time(cv_image);
         if (valid)
@@ -284,15 +288,20 @@ namespace my_hand_eye
                                       u + rect_ori.width / 2) -
                              rect_new.x;
             rect_new.height = std::min((double)cv_image.image.rows,
-                                       v - rect_ori.height / 2) -
+                                       v + rect_ori.height / 2) -
                               rect_new.y;
+            imshow("ori", cv_image.image(rect_ori).clone());
+            imshow("new1", cv_image.image(rect_new).clone());
+            waitKey(10);
             rect_ori |= rect_new;
 
             // 生成新位置
             Mat HSVImg = cv_image.image(rect_ori).clone();
             GaussianBlur(HSVImg, HSVImg, Size(3, 3), 0, 0);
+            imshow("new", HSVImg);
+            waitKey(10);
             cvtColor(HSVImg, HSVImg, COLOR_BGR2HSV);
-            valid = _set_rect(HSVImg);
+            valid = _set_rect(HSVImg, rect_ori);
         }
         return valid;
     }
@@ -309,6 +318,7 @@ namespace my_hand_eye
             d_theta[0] = (this_theta < last_theta) ? last_theta - this_theta : last_theta + CV_PI * 2 - this_theta;
             d_theta[1] = (this_theta > last_theta) ? this_theta - last_theta : this_theta + CV_PI * 2 - last_theta;
             last_pt_ = cv::Point2d(x, y);
+            ROS_INFO_STREAM("d_theta:" << d_theta << " dt:" << dt);
             if (d_theta[flag_] <= d_theta[!flag_])
             {
                 speed = d_theta[flag_] / dt;
