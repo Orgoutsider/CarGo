@@ -467,9 +467,8 @@ namespace my_hand_eye
         {
             current_color_ = color;
         }
-        else if (current_color_ != color)
+        else if (fin_ && !stop)
         {
-            ROS_WARN("Color changed!");
             fin_ = false;
             current_color_ = color;
         }
@@ -509,8 +508,8 @@ namespace my_hand_eye
                     get_center(objArray, center_u, center_v, center_x, center_y, false) &&
                     tracker_.target_init(cv_image_, objArray, color, white_vmin_, center_x, center_y))
                 {
-                    if (calculate_radius_and_speed(u, v, radius, speed) &&
-                        abs(radius - first_radius) < PERMIT)
+                    
+                    if (calculate_radius_and_speed(u, v, radius, speed))
                     {
                         first_radius = radius;
                         cnt = 0;
@@ -558,7 +557,7 @@ namespace my_hand_eye
                 }
             }
             pt.push_back(cv::Point(u, v));
-            ROS_INFO_STREAM("speed:" << speed);
+            ROS_INFO_STREAM("radius:" << radius << " speed:" << speed);
             if (cargo_is_static(speed, false))
             {
                 ROS_INFO("Cargo is static!");
