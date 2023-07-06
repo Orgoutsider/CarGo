@@ -21,11 +21,13 @@ namespace my_hand_eye
     class ColorMethod
     {
     private:
-        const int white_smax_ = 30;
         // 将色相值映射为角度
         Angle hue_value(double h_val);
         // 正切的计算
         double hue_value_tan(double y, double x);
+
+    protected:
+        const int white_smax_ = 30;
 
     public:
         // 色相平均值的计算
@@ -42,14 +44,15 @@ namespace my_hand_eye
         double gain_;      // 矩形框扩大
         double speed_max_; // 最高速度
         int color_;        // 当前寻找颜色
-        double white_h_max_;
-        double white_h_min_;
-        double white_s_min_;
-        double white_v_min_;
+        const double h_max_[4];
+        const double h_min_[4];
+        int white_vmin_;
+        int s_min_;
+        int v_min_;
         bool flag_;            // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
         cv::RotatedRect rect_; // 目标物体旋转矩形框
         // 设置旋转矩形
-        bool _set_rect(cv::Mat &hsv, cv::Rect &roi);
+        bool _set_rect(cv::Mat &src, cv::Rect &roi);
 
     protected:
         cv::Point2d last_pt_;
@@ -61,8 +64,7 @@ namespace my_hand_eye
         ColorTracker();
         void get_center(double &u, double &v);
         bool target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                         const int color, int white_vmin, double center_x, double center_y,
-                         double proportion); // 目标初始化
+                         const int color, int white_vmin, double center_x, double center_y); // 目标初始化
         // 目标追踪
         bool target_track(cv_bridge::CvImage &cv_image, Pos &ps, double z);
         // 计算物体速度

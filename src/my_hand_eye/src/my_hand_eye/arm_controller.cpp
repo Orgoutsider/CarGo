@@ -5,7 +5,7 @@ namespace my_hand_eye
     ArmController::ArmController()
         : ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
-          fin_(false), proportion_(0.001)
+          fin_(false)
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
@@ -14,7 +14,7 @@ namespace my_hand_eye
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : ps_(&sm_st_, &sc_),
           default_roi_(0, 0, 1920, 1080),
-          fin_(false), proportion_(0.001)
+          fin_(false)
     {
         init(nh, pnh);
     }
@@ -485,8 +485,7 @@ namespace my_hand_eye
             double center_x, center_y;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_center(objArray, center_u, center_v, center_x, center_y, true) &&
-                tracker_.target_init(cv_image_, objArray, color, white_vmin_,
-                                     center_x, center_y, proportion_))
+                tracker_.target_init(cv_image_, objArray, color, white_vmin_, center_x, center_y))
             {
                 calculate_radius_and_speed(u, v, radius, speed);
                 first_radius = radius;
@@ -508,8 +507,7 @@ namespace my_hand_eye
                 double center_x, center_y;
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                     get_center(objArray, center_u, center_v, center_x, center_y, false) &&
-                    tracker_.target_init(cv_image_, objArray, color, white_vmin_,
-                                         center_x, center_y, proportion_))
+                    tracker_.target_init(cv_image_, objArray, color, white_vmin_, center_x, center_y))
                 {
                     if (calculate_radius_and_speed(u, v, radius, speed) &&
                         abs(radius - first_radius) < PERMIT)

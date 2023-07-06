@@ -66,7 +66,7 @@ namespace my_hand_eye
         ~ArmController();
         Pos ps_;
         int white_vmin_;
-        double proportion_; // 杂色所占的比例
+        // double proportion_; // 杂色所占的比例
         // const double z_turntable = 16.4750; // 老转盘
         // const double z_turntable = 15.57;   // 新转盘
         const double z_turntable = 14.4654; // 比赛转盘，抓取范围17.3到34

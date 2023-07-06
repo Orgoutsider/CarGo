@@ -24,7 +24,7 @@ namespace my_hand_eye
 		}
 		as_.registerPreemptCallback(boost::bind(&MyEye::preempt_callback, this));
 		as_.start();
-		dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
+		// dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
 	}
 
 	void MyEye::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
@@ -126,8 +126,8 @@ namespace my_hand_eye
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 	}
 
-	void MyEye::dr_callback(drConfig& config, uint32_t level)
-	{
-		arm_controller_.proportion_ = config.proportion;
-	}
+	// void MyEye::dr_callback(drConfig& config, uint32_t level)
+	// {
+	// 	arm_controller_.proportion_ = config.proportion;
+	// }
 } // namespace my_hand_eye

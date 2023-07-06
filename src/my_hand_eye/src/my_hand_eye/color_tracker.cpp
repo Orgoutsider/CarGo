@@ -16,7 +16,7 @@ namespace my_hand_eye
     double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin, cv::Mat &mask_img)
     {
         cv::Mat mask = roi.clone();
-        mask_img = cv::Mat(mask.size(), CV_8UC1, cv::Scalar(255)); 
+        mask_img = cv::Mat(mask.size(), CV_8UC1, cv::Scalar(255));
         cvtColor(mask, mask, cv::COLOR_BGR2HSV);
         // 设置像素遍历迭代器
         cv::MatConstIterator_<cv::Vec3b> maskStart = mask.begin<cv::Vec3b>();
@@ -62,33 +62,42 @@ namespace my_hand_eye
         return res / 2;
     }
 
-    ColorTracker::ColorTracker() : channels_{0}, histSize_{180},
-                                   pranges_{0, 179}, ranges_{pranges_},
-                                   gain_(0.1), speed_max_(0.7),
+    ColorTracker::ColorTracker() : gain_(0.1), speed_max_(0.7),
+                                   h_max_{180, 10, 33, 90},
+                                   h_min_{0, 156, 85, 124},
                                    s_min_(43), v_min_(26),
                                    flag_(false) {}
 
-    bool ColorTracker::_set_rect(cv::Mat &hsv, cv::Rect &roi)
+    bool ColorTracker::_set_rect(cv::Mat &src, cv::Rect &roi)
     {
         using namespace cv;
-        Mat dst;
+        Mat hsv = src(roi).clone();
+        GaussianBlur(hsv, hsv, Size(3, 3), 0, 0);
+        cvtColor(hsv, hsv, COLOR_BGR2HSV);
+        Mat dst, non_white;
+        ;
         if (h_max_ >= h_min_)
         {
-            Scalar low = Scalar(h_min_, s_min_, v_min_);
-            Scalar up = Scalar(h_max_, 255, 255);
+            Scalar low = Scalar(h_min_[color_], s_min_, v_min_);
+            Scalar up = Scalar(h_max_[color_], 255, 255);
             inRange(hsv, low, up, dst);
         }
         else // 色相范围分成两段的情况，如红色
         {
             Scalar low1 = Scalar(0, s_min_, v_min_);
-            Scalar up1 = Scalar(h_max_, 255, 255);
-            Scalar low2 = Scalar(h_min_, s_min_, v_min_);
+            Scalar up1 = Scalar(h_max_[color_], 255, 255);
+            Scalar low2 = Scalar(h_min_[color_], s_min_, v_min_);
             Scalar up2 = Scalar(180, 255, 255);
             Mat dst1, dst2;
             inRange(hsv, low1, up1, dst1);
             inRange(hsv, low2, up2, dst2);
             bitwise_or(dst1, dst2, dst);
         }
+
+        Scalar l = Scalar(0, white_smax_, 0);
+        Scalar u = Scalar(180, 255, white_vmin_);
+        inRange(hsv, l, u, non_white);
+        bitwise_and(dst, non_white, dst);
         Mat element = getStructuringElement(MORPH_ELLIPSE, Size(13, 13));
         erode(dst, dst, element);
         imshow("dst", dst); // 用于调试
@@ -175,8 +184,7 @@ namespace my_hand_eye
     }
 
     bool ColorTracker::target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                                   const int color, int white_vmin, double center_x, double center_y,
-                                   double proportion)
+                                   const int color, int white_vmin, double center_x, double center_y)
     {
         using namespace cv;
         if (objArray.boxes.size() == 4)
@@ -193,56 +201,8 @@ namespace my_hand_eye
             last_pt_.x = last_pt_.y = 0;
             center_x_ = center_x;
             center_y_ = center_y;
-
-            Mat HSVImg = cv_image.image(rect_ori).clone();
-            GaussianBlur(HSVImg, HSVImg, Size(3, 3), 0, 0);
-            cvtColor(HSVImg, HSVImg, COLOR_BGR2HSV);
-            std::vector<Mat> HSV_planes;
-            split(HSVImg, HSV_planes);
-
-            // Mat H_planes(HSV_planes[0], CV_32FC1);
-            MatND hist;
-            Mat mask;
-            // 保存当前区域色相H的平均值
-            int H_Average = cvRound(hue_value_aver(cv_image.image(rect_ori), white_vmin, mask));
-            calcHist(&HSV_planes[0], 1, channels_, mask, hist, 1, histSize_, ranges_);
-            normalize(hist, hist, 1.0, 0, NORM_L1, -1, Mat());
-            ROS_INFO_STREAM("H_Average:" << H_Average);
-            // 色彩平均值的对侧
-            int H_Opposite = (H_Average - 90 < 0) ? H_Average + 90 : H_Average - 90;
-            int left, right;
-            left = right = H_Opposite;
-            bool fin_l = false, fin_r = false;
-            double sum_l = hist.at<double>(H_Opposite), sum_r = hist.at<double>(H_Opposite);
-            while (left != H_Average && right != H_Average)
-            {
-                if (!fin_l)
-                {
-                    left--;
-                    if (left < 0)
-                        left = 179;
-                    sum_l += hist.at<double>(left);
-                    if (sum_l > proportion / 2)
-                        fin_l = true;
-                }
-                if (!fin_r)
-                {
-                    right++;
-                    if (right > 179)
-                        right = 0;
-                    sum_r += hist.at<double>(right);
-                    if (sum_r > proportion / 2)
-                        fin_r = true;
-                }
-                if (fin_l && fin_r)
-                    break;
-            }
-            left++;
-            left--;
-            h_max_ = left;
-            h_min_ = right;
-            ROS_INFO_STREAM("h_max:" << h_max_ << " h_min:" << h_min_);
-            return _set_rect(HSVImg, rect_ori);
+            white_vmin_ = white_vmin;
+            return _set_rect(cv_image.image, rect_ori);
         }
         return false;
     }
