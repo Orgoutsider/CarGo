@@ -30,8 +30,6 @@ namespace my_hand_eye
     public:
         // 色相平均值的计算
         double hue_value_aver(cv::Mat &&roi, int white_vmin);
-        // 色相最大最小的计算
-        void hue_value_min_max(cv::Mat &&roi, int white_vmin, double &min, double &max);
         // 两色相的最小差值
         double hue_value_diff(double h_val1, double h_val2);
     };
