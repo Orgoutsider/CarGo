@@ -33,8 +33,8 @@ namespace my_hand_eye
                 calcHist(&targetImgHSV, 2, channels_, Mat(), hist_, 1, &histSize_, &ranges_, true, false);
                 normalize(hist_, hist_, 0, 255, NORM_MINMAX);
                 _update_time(cv_image);
-                return true;
                 last_pt_.x = last_pt_.y = 0;
+                return true;
             }
             else
             {
@@ -53,7 +53,7 @@ namespace my_hand_eye
         return false;
     }
 
-    bool Tracker::target_tracking(cv_bridge::CvImage &cv_image)
+    bool Tracker::target_track(cv_bridge::CvImage &cv_image)
     {
         using namespace cv;
         if (method_ == tracker_camshift)
@@ -184,7 +184,7 @@ namespace my_hand_eye
         if (objArray.boxes.size() == 4)
         {
             multi_tracker_ptr_ = cv::MultiTracker::create();
-            for (int color = color_red; color <= color_blue; color++)
+            for (int color = 1; color <= 3; color++)
             {
                 if (!objArray.boxes[color].center.x)
                     return false;
@@ -215,7 +215,7 @@ namespace my_hand_eye
     bool MultiTracker::speed(double x[4], double y[4], double center_x, double center_y,
                              double speed_standard, double speed[4])
     {
-        for (int color = color_red; color <= color_blue; color++)
+        for (int color = 1; color <= 3; color++)
         {
             last_pt_ = last_pt_arr_[color];
             if (calculate_speed(x[color], y[color], center_x, center_y, speed_standard, speed[color]))

@@ -3,6 +3,8 @@
 namespace my_hand_eye
 {
     EllipseArray::EllipseArray()
+        : upper_bound_{0, red_hmax_, green_hmax_, blue_hmax_},
+          lower_bound_{0, red_hmin_, green_hmin_, blue_hmin_}
     {
         ellipse_.reserve(3);
     };
@@ -112,68 +114,18 @@ namespace my_hand_eye
     {
         if (ellipse_.empty() || cv_image->image.empty())
             return false;
-        const int WHITE_SMAX = 46;
-        const int WHITE_VMIN = white_vmin;
-        const int RED_HMIN = 10;
-        const int RED_HMAX = 156;
-        const int GREEN_HMIN = 35;
-        const int GREEN_HMAX = 77;
-        const int BLUE_HMIN = 100;
-        const int BLUE_HMAX = 124;
-        int upper_bound[] = {0, RED_HMAX, GREEN_HMAX, BLUE_HMAX};
-        int lower_bound[] = {0, RED_HMIN, GREEN_HMIN, BLUE_HMIN};
         for (Ellipse &e : ellipse_)
         {
-            if (e.rect_target.empty())
-            {
-                ROS_ERROR("rect target is empty!");
-                return false;
-            }
-            cv::Mat mask = (cv_image->image(e.rect_target)).clone();
-            cv::Mat mask_Img = mask.clone();        // 用于调试
-            mask_Img = {cv::Scalar(255, 255, 255)}; // 用于调试
-            cvtColor(mask, mask, cv::COLOR_BGR2HSV);
-            // 设置像素遍历迭代器
-            cv::MatConstIterator_<cv::Vec3b> maskStart = mask.begin<cv::Vec3b>();
-            cv::MatConstIterator_<cv::Vec3b> maskEnd = mask.end<cv::Vec3b>();
-            cv::MatIterator_<cv::Vec3b> mask_ImgStart = mask_Img.begin<cv::Vec3b>(); // 用于调试
-            double x = 0, y = 0;
-            int cnt = 0;
-            for (; maskStart != maskEnd; maskStart++, mask_ImgStart++)
-            {
-                // 过滤白色
-                if ((*maskStart)[1] <= WHITE_SMAX && (*maskStart)[2] >= WHITE_VMIN)
-                {
-                    // 用于调试
-                    (*mask_ImgStart)[0] = 0;
-                    (*mask_ImgStart)[1] = 0;
-                    (*mask_ImgStart)[2] = 0;
-                    continue;
-                }
-                int H_Val = (*maskStart)[0];
-                Angle color = hue_value(H_Val);
-                x += color.cos();
-                y += color.sin();
-                cnt++;
-                // if (cnt % 200 == 0)
-                // {
-                //     ROS_INFO_STREAM(H_Val);
-                //     usleep(1e5);
-                // }
-            }
-            // cv::imshow("mask_Img", mask_Img); // 用于调试
-            // cv::waitKey(10);
-            double H_Average = hue_value_tan(y, x); // 保存当前区域色相H的平均值
-            H_Average = (H_Average < 0) ? H_Average + 180 : H_Average;
+            double H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin); // 保存当前区域色相H的平均值
             // ROS_INFO_STREAM("H_Average:" << H_Average << " cnt:" << cnt << " " << mask.cols * mask.rows);
             int id = color_red;
             double max_hyp = 0;
             for (int color = color_red; color <= color_blue; color++)
             {
-                if (color_hypothesis(H_Average, lower_bound[color], upper_bound[color]) > max_hyp)
+                if (color_hypothesis(H_Average, lower_bound_[color], upper_bound_[color]) > max_hyp)
                 {
                     id = color;
-                    max_hyp = color_hypothesis(H_Average, lower_bound[color], upper_bound[color]);
+                    max_hyp = color_hypothesis(H_Average, lower_bound_[color], upper_bound_[color]);
                 }
             }
             e.color = id;
@@ -235,28 +187,6 @@ namespace my_hand_eye
         return true;
     };
 
-    Angle EllipseArray::hue_value(double h_val)
-    {
-        return Angle(h_val * 2);
-    }
-
-    double EllipseArray::hue_value_tan(double y, double x)
-    {
-        return Angle(y, x)._get_degree() / 2;
-    }
-
-    double EllipseArray::hue_value_diff(double h_val1, double h_val2)
-    {
-        Angle a1 = hue_value(h_val1);
-        Angle a2 = hue_value(h_val2);
-        double res = abs((a1 - a2)._get_degree());
-        if (res > 180)
-        {
-            res = 360.0 - res;
-        }
-        return res / 2;
-    }
-
     double EllipseArray::color_hypothesis(double h_val, int lower_bound, int upper_bound)
     {
         double lower_diff = hue_value_diff(h_val, lower_bound);
@@ -279,7 +209,7 @@ namespace my_hand_eye
             return 0;
         }
     }
-    
+
     void draw_cross(cv::Mat &img, cv::Point2d point, cv::Scalar color, int size, int thickness)
     {
         if (!point.inside(cv::Rect2d(0, 0, img.cols, img.rows)))

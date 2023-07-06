@@ -39,11 +39,11 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		// 输出检测物料位置
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_green, debug_image, true);
-		if (arm_controller_.show_detections_)
-			debug_image_publisher_.publish(debug_image);
+		// // 输出检测物料位置
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_green, debug_image, true);
+		// if (arm_controller_.show_detections_)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -52,28 +52,28 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 目标跟踪
-		// static bool stop = false;
-		// int color = color_green;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!stop)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.track(image_rect, color, tracker_camshift, u, v, stop, debug_image);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
-		// else
-		// {
-		// // 中间点抓取
-		// static bool finish = false;
-		// if (!finish)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.catch_straightly(image_rect, color, arm_controller_.z_turntable, finish, debug_image, true);
-		// 	if (arm_controller_.show_detections_)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
-		// }
+		static bool stop = false;
+		int color = color_green;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!stop)
+		{
+			double u, v;
+			arm_controller_.track(image_rect, color, u, v, stop, debug_image);
+			if (arm_controller_.show_detections_)
+				debug_image_publisher_.publish(debug_image);
+		}
+		else
+		{
+			// 直接抓取
+			// static bool finish = false;
+			// if (!finish)
+			// {
+			// 	double u, v;
+			// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, true, false);
+			// 	if (arm_controller_.show_detections_)
+			// 		debug_image_publisher_.publish(debug_image);
+			// }
+		}
 
 		// 直接抓取
 		// static bool finish = false;

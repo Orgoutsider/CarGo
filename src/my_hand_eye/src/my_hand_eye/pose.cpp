@@ -11,10 +11,9 @@ namespace my_hand_eye
 
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : cat_(cat), look_(look),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
-                                                                       cargo_table_(sm_st_ptr)
+                                                                       cargo_table_(sm_st_ptr),
+                                                                       Id{0, 1, 2, 3, 4, 5}
     {
-        u8 ID[] = {0, 1, 2, 3, 4, 5};
-        memcpy(Id, ID, sizeof(Id));
         memset(Position, 0, sizeof(Position));
         memset(Position_now, 0, sizeof(Position_now));
         memset(Speed, 0, sizeof(Speed));
@@ -724,16 +723,26 @@ namespace my_hand_eye
         }
     }
 
+    cv::Mat Pos::intrinsics()
+    {
+        return (cv::Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
+    }
+
     cv::Mat Pos::intrinsics_inverse()
     {
-        cv::Mat intrinsics = (cv::Mat_<double>(3, 3) << 1 / fx, 0, -cx / fx, 0, 1 / fy, -cy / fy, 0, 0, 1);
-        return intrinsics;
+        return (cv::Mat_<double>(3, 3) << 1 / fx, 0, -cx / fx, 0, 1 / fy, -cy / fy, 0, 0, 1);
     }
 
     cv::Mat Pos::extrinsics()
     {
         return R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) *
                R_T2homogeneous_matrix(R_cam_to_end(), T_cam_to_end());
+    }
+
+    cv::Mat Pos::extrinsics_inverse()
+    {
+        return R_T2homogeneous_matrix(R_cam_to_end().t(), -R_cam_to_end().t() * T_cam_to_end()) *
+               R_T2homogeneous_matrix(R_end_to_base().t(), -R_end_to_base().t() * T_end_to_base());
     }
 
     bool Pos::calculate_cargo_position(double u, double v, double cargo_z,
@@ -753,6 +762,22 @@ namespace my_hand_eye
             cv::Mat point_base = ext * point_cam;
             cargo_x = point_base.at<double>(0, 0);
             cargo_y = point_base.at<double>(1, 0);
+        }
+        return valid;
+    }
+
+    bool Pos::calculate_pixel_position(double x, double y, double z, double &u, double &v)
+    {
+        bool valid = refresh_xyz();
+        if (valid)
+        {
+            cv::Mat point_base = (cv::Mat_<double>(4, 1) << x, y, z, 1);
+            cv::Mat point_cam = extrinsics_inverse() * point_base;
+            double Z = point_cam.at<double>(2, 0);
+            cv::Mat point_temp = point_cam.rowRange(0, 2).clone() / Z; // (X/Z,Y/Z,1)
+            cv::Mat point_pixel = intrinsics() * point_temp;
+            u = point_pixel.at<double>(0, 0);
+            v = point_pixel.at<double>(1, 0);
         }
         return valid;
     }

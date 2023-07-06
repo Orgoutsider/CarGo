@@ -5,6 +5,7 @@
 
 #include <yolov5_ros/cargoSrv.h>
 #include <XmlRpcException.h>
+#include <sensor_msgs/Image.h>
 #include <image_transport/image_transport.h>
 
 namespace my_hand_eye
@@ -18,12 +19,13 @@ namespace my_hand_eye
         bool fin_;              // 是否找到指定颜色物料
         bool emulation_;        // 是否进行仿真或摄像头测试
         int white_vmin_;
+        double proportion_; // 杂色所占的比例
         EllipseColor ellipse_color_order_[4];
-        Tracker tracker_;
+        ColorTracker tracker_;
         Border border_;
         SMS_STS sm_st_;
         SCSCL sc_;
-        ros::ServiceClient cargo_client_; // mmdetection+颜色识别
+        ros::ServiceClient cargo_client_; // yolov5+颜色识别
         ros::ServiceClient plot_client_;  // 运动范围绘制
         cv::Rect default_roi_;            // 截图矩形
         cv_bridge::CvImage cv_image_;
@@ -44,11 +46,11 @@ namespace my_hand_eye
         bool find_with_color(vision_msgs::BoundingBox2DArray &objArray, const int color,
                              double z, double &x, double &y);
         // 计算物料转动半径
-        bool calculate_radius_and_speed(double u, double v, double center_u, double center_v, bool reset,
-                                        double &radius, double &speed);
+        bool calculate_radius_and_speed(double &u, double &v, double &radius, double &speed);
         bool take_picture(); // 拍照
         // 处理接收的图片，求3物料重心
-        bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v);
+        bool get_center(vision_msgs::BoundingBox2DArray &objArray,
+                        double &center_u, double &center_v, double &center_x, double &center_y);
         // 中心点按从左往右排序
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
@@ -82,7 +84,7 @@ namespace my_hand_eye
         // bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool remember(double &x, double &y, double &z); // 记忆位置
         // 目标检测到物料并目标追踪
-        bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color, const int method,
+        bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color,
                    double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image);
         bool find_points_with_height(double h, bool done);
         // 椭圆识别，摄像头测试时z无效

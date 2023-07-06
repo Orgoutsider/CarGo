@@ -1,8 +1,7 @@
 #ifndef _ELLIPSE_H_
 #define _ELLIPSE_H_
 
-#include "my_hand_eye/tracker.h"
-#include "my_hand_eye/pose.h"
+#include "my_hand_eye/color_tracker.h"
 
 namespace my_hand_eye
 {
@@ -20,17 +19,19 @@ namespace my_hand_eye
         double center_x;
     };
 
-    class EllipseArray
+    class EllipseArray : public ColorMethod
     {
     private:
+        const int red_hmin_ = 10;
+        const int red_hmax_ = 156;
+        const int green_hmin_ = 35;
+        const int green_hmax_ = 77;
+        const int blue_hmin_ = 100;
+        const int blue_hmax_ = 124;
+        int upper_bound_[4];
+        int lower_bound_[4];
         std::vector<Ellipse> ellipse_;
         std::vector<int> flag_; // 聚类标识
-        // 将色相值映射为角度
-        Angle hue_value(double h_val);
-        // 色相平均值的计算
-        double hue_value_tan(double y, double x);
-        // 两色相的最小差值
-        double hue_value_diff(double h_val1, double h_val2);
         // 目标区域框选
         double color_hypothesis(double h_val, int lower_bound, int upper_bound);
 
