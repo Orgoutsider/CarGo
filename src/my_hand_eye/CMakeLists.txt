@@ -156,7 +156,7 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/border.cpp 
   src/${PROJECT_NAME}/cargo_table.cpp 
   src/${PROJECT_NAME}/ellipse.cpp 
-  src/${PROJECT_NAME}/tracker.cpp
+  src/${PROJECT_NAME}/color_tracker.cpp
   src/${PROJECT_NAME}/pose.cpp 
   src/${PROJECT_NAME}/my_eye.cpp
   src/${PROJECT_NAME}/SCS.cpp 

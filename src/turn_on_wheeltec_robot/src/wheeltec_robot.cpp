@@ -75,6 +75,7 @@ void turn_on_robot::Cmd_Vel_Callback(const geometry_msgs::Twist &twist_aux)
 
   Send_Data.tx[9]=Check_Sum(9,SEND_DATA_CHECK); //For the BCC check bits, see the Check_Sum function //BCC校验位，规则参见Check_Sum函数
   Send_Data.tx[10]=FRAME_TAIL; //frame tail 0x7D //帧尾0X7D
+  ROS_INFO("1");
   try
   {
     Stm32_Serial.write(Send_Data.tx,sizeof (Send_Data.tx)); //Sends data to the downloader via serial port //通过串口向下位机发送数据 
@@ -477,6 +478,7 @@ turn_on_robot::turn_on_robot():Sampling_Time(0),Power_voltage(0)
 
   //Set the velocity control command callback function
   //速度控制命令订阅回调函数设置
+  ROS_INFO("2");
   Cmd_Vel_Sub     = n.subscribe("cmd_vel",     100, &turn_on_robot::Cmd_Vel_Callback, this); 
 
   ROS_INFO_STREAM("Data ready"); //Prompt message //提示信息

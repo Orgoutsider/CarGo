@@ -68,8 +68,10 @@ namespace my_hand_eye
         // 在y > 0处使用
         cv::Mat R_end_to_base();                                            // 机械臂末端到基底的旋转矩阵（不保证实时性）
         cv::Mat T_end_to_base();                                            // 机械臂末端到基底的平移向量（不保证实时性）
+        cv::Mat intrinsics();                                               // 内参
         cv::Mat intrinsics_inverse();                                       // 内参的逆矩阵
         cv::Mat extrinsics();                                               // 外参（不保证实时性，配合refresh_xyz）
+        cv::Mat extrinsics_inverse();                                       // 外参的逆矩阵（不保证实时性，配合refresh_xyz）
         double distance(double length_goal, double height_goal, double &k); // 中间点位置及移动方向
         bool dfs_midpoint(double length_goal, double height_goal);
         void get_points(double h, my_hand_eye::PointArray &arr);
@@ -98,6 +100,8 @@ namespace my_hand_eye
         // 计算物料位置
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y);
+        // 由实际位置计算像素位置
+        bool calculate_pixel_position(double x, double y, double z, double &u, double &v);
         // 计算边界线位置
         bool calculate_border_position(cv::Vec2f &border, double border_z,
                                        double &distance, double &yaw);
