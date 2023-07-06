@@ -148,7 +148,7 @@ class Yolov5Detector:
                     cv2.waitKey(100)
                 roi = cv2.GaussianBlur(roi, (3, 3), 0)
                 roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-                element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+                element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))
                 s_max = 0
                 if self.param_modification:
                     # cv2.imshow("im0", im0)

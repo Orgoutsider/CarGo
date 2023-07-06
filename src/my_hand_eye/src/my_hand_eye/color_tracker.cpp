@@ -63,9 +63,10 @@ namespace my_hand_eye
     }
 
     ColorTracker::ColorTracker() : gain_(0.1), speed_max_(0.7),
-                                   h_max_{180, 10, 33, 90},
-                                   h_min_{0, 156, 85, 124},
-                                   s_min_(43), v_min_(26),
+                                   h_min_{0, 156, 33, 90},
+                                   h_max_{180, 10, 85, 124},
+                                   s_min_{43, 43, 43, 43},
+                                   v_min_{33, 26, 29, 26},
                                    flag_(false) {}
 
     bool ColorTracker::_set_rect(cv::Mat &src, cv::Rect &roi)
@@ -75,18 +76,17 @@ namespace my_hand_eye
         GaussianBlur(hsv, hsv, Size(3, 3), 0, 0);
         cvtColor(hsv, hsv, COLOR_BGR2HSV);
         Mat dst, non_white;
-        ;
         if (h_max_ >= h_min_)
         {
-            Scalar low = Scalar(h_min_[color_], s_min_, v_min_);
+            Scalar low = Scalar(h_min_[color_], s_min_[color_], v_min_[color_]);
             Scalar up = Scalar(h_max_[color_], 255, 255);
             inRange(hsv, low, up, dst);
         }
         else // 色相范围分成两段的情况，如红色
         {
-            Scalar low1 = Scalar(0, s_min_, v_min_);
+            Scalar low1 = Scalar(0, s_min_[0], v_min_[0]);
             Scalar up1 = Scalar(h_max_[color_], 255, 255);
-            Scalar low2 = Scalar(h_min_[color_], s_min_, v_min_);
+            Scalar low2 = Scalar(h_min_[color_], s_min_[color_], v_min_[color_]);
             Scalar up2 = Scalar(180, 255, 255);
             Mat dst1, dst2;
             inRange(hsv, low1, up1, dst1);
@@ -94,12 +94,11 @@ namespace my_hand_eye
             bitwise_or(dst1, dst2, dst);
         }
 
-        Scalar l = Scalar(0, white_smax_, 0);
-        Scalar u = Scalar(180, 255, white_vmin_);
-        inRange(hsv, l, u, non_white);
-        bitwise_and(dst, non_white, dst);
-        Mat element = getStructuringElement(MORPH_ELLIPSE, Size(13, 13));
-        erode(dst, dst, element);
+        // // 白色
+        // Scalar l = Scalar(0, white_smax_, 0);
+        // Scalar u = Scalar(180, 255, white_vmin_);
+        // inRange(hsv, l, u, non_white);
+        // bitwise_and(dst, non_white, dst);
         imshow("dst", dst); // 用于调试
         waitKey(1);
         std::vector<std::vector<cv::Point>> contours;                  // 轮廓容器
@@ -251,12 +250,7 @@ namespace my_hand_eye
             rect_ori |= rect_new;
 
             // 生成新位置
-            Mat HSVImg = cv_image.image(rect_ori).clone();
-            GaussianBlur(HSVImg, HSVImg, Size(3, 3), 0, 0);
-            imshow("new", HSVImg);
-            waitKey(10);
-            cvtColor(HSVImg, HSVImg, COLOR_BGR2HSV);
-            valid = _set_rect(HSVImg, rect_ori);
+            valid = _set_rect(cv_image.image, rect_ori);
         }
         return valid;
     }

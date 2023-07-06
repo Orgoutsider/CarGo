@@ -44,11 +44,11 @@ namespace my_hand_eye
         double gain_;      // 矩形框扩大
         double speed_max_; // 最高速度
         int color_;        // 当前寻找颜色
-        const double h_max_[4];
-        const double h_min_[4];
+        const int h_max_[4];
+        const int h_min_[4];
+        const int s_min_[4];
+        const int v_min_[4];
         int white_vmin_;
-        int s_min_;
-        int v_min_;
         bool flag_;            // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
         cv::RotatedRect rect_; // 目标物体旋转矩形框
         // 设置旋转矩形
