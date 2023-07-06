@@ -748,7 +748,7 @@ namespace my_hand_eye
     bool Pos::calculate_cargo_position(double u, double v, double cargo_z,
                                        double &cargo_x, double &cargo_y, bool read)
     {
-        bool valid = refresh_xyz(read);
+        bool valid = read ? refresh_xyz() : true;
         if (valid)
         {
             cv::Mat intrinsics_inv = intrinsics_inverse();

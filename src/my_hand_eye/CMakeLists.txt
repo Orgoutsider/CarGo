@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   yolov5_ros
   actionlib
   actionlib_msgs
+  dynamic_reconfigure
 )
 set(OpenCV required PATHS /home/nano/opencv4/opencv/build)
 find_package(OpenCV REQUIRED)
@@ -102,10 +103,9 @@ generate_messages(
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/arm.cfg
+)
 
 ###################################
 ## catkin specific configuration ##

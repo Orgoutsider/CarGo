@@ -271,8 +271,8 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::get_center(vision_msgs::BoundingBox2DArray &objArray,
-                                   double &center_u, double &center_v, double &center_x, double &center_y)
+    bool ArmController::get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
+                                   double &center_x, double &center_y, bool read)
     {
         if (objArray.boxes.size() == 4)
         {
@@ -286,7 +286,7 @@ namespace my_hand_eye
             }
             center_u = u_sum / 3;
             center_v = v_sum / 3;
-            return ps_.calculate_cargo_position(center_u, center_v, z_turntable, center_x, center_y);
+            return ps_.calculate_cargo_position(center_u, center_v, z_turntable, center_x, center_y, read);
         }
         else
             return false;
@@ -483,7 +483,7 @@ namespace my_hand_eye
             vision_msgs::BoundingBox2DArray objArray;
             double center_x, center_y;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                get_center(objArray, center_u, center_v, center_x, center_y) &&
+                get_center(objArray, center_u, center_v, center_x, center_y, true) &&
                 tracker_.target_init(cv_image_, objArray, color, white_vmin_,
                                      center_x, center_y, proportion_))
             {
@@ -506,7 +506,7 @@ namespace my_hand_eye
                 vision_msgs::BoundingBox2DArray objArray;
                 double center_x, center_y;
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                    get_center(objArray, center_u, center_v, center_x, center_y) &&
+                    get_center(objArray, center_u, center_v, center_x, center_y, false) &&
                     tracker_.target_init(cv_image_, objArray, color, white_vmin_,
                                          center_x, center_y, proportion_))
                 {

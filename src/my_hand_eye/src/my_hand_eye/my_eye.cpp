@@ -24,6 +24,7 @@ namespace my_hand_eye
 		}
 		as_.registerPreemptCallback(boost::bind(&MyEye::preempt_callback, this));
 		as_.start();
+		dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
 	}
 
 	void MyEye::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
@@ -122,5 +123,10 @@ namespace my_hand_eye
 		ROS_ERROR("Arm Preempt Requested!");
 		// 不正常现象，需要停止所有与底盘相关的联系，避免后续受到影响
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
+	}
+
+	void MyEye::dr_callback(drConfig& config, uint32_t level)
+	{
+		arm_controller_.proportion_ = config.proportion;
 	}
 } // namespace my_hand_eye

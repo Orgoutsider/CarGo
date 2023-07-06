@@ -18,8 +18,6 @@ namespace my_hand_eye
         double speed_standard_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         bool fin_;              // 是否找到指定颜色物料
         bool emulation_;        // 是否进行仿真或摄像头测试
-        int white_vmin_;
-        double proportion_; // 杂色所占的比例
         EllipseColor ellipse_color_order_[4];
         ColorTracker tracker_;
         Border border_;
@@ -49,8 +47,8 @@ namespace my_hand_eye
         bool calculate_radius_and_speed(double &u, double &v, double &radius, double &speed);
         bool take_picture(); // 拍照
         // 处理接收的图片，求3物料重心
-        bool get_center(vision_msgs::BoundingBox2DArray &objArray,
-                        double &center_u, double &center_v, double &center_x, double &center_y);
+        bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
+                        double &center_x, double &center_y, bool read = true);
         // 中心点按从左往右排序
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
@@ -67,6 +65,8 @@ namespace my_hand_eye
         ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~ArmController();
         Pos ps_;
+        int white_vmin_;
+        double proportion_; // 杂色所占的比例
         // const double z_turntable = 16.4750; // 老转盘
         // const double z_turntable = 15.57;   // 新转盘
         const double z_turntable = 14.4654; // 比赛转盘，抓取范围17.3到34
