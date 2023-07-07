@@ -49,27 +49,34 @@ namespace my_hand_eye
         const int s_min_[4];
         const int v_min_[4];
         int white_vmin_;
-        bool flag_;            // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
+        bool show_detections_;
+        bool flag_;                  // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
+        double center_x_, center_y_; // 转盘中心实际位置
+        double radius_;              // 半径
+        cv::Point2d last_pt_;
         cv::RotatedRect rect_; // 目标物体旋转矩形框
         // 设置旋转矩形
-        bool _set_rect(cv::Mat &src, cv::Rect &roi);
-
-    protected:
-        cv::Point2d last_pt_;
+        bool _set_rect(cv_bridge::CvImage &cv_image, cv::Rect &roi);
+        // 生成位于图像内的矩形
+        cv::Rect _rect_in_image(cv_bridge::CvImage &cv_image, int c_start, int r_start,
+                                int c_end, int r_end);
+        // 预测矩形框
+        cv::Rect _predict_rect(cv_bridge::CvImage &cv_image, Pos &ps, cv::Rect rect_ori,
+                               double this_theta, double z, bool read);
         //  更新时间
         bool _update_time(cv_bridge::CvImage &cv_image);
 
     public:
-        double center_x_, center_y_; // 转盘中心实际位置
         ColorTracker();
         void get_center(double &u, double &v);
         bool target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                         const int color, int white_vmin, double center_x, double center_y); // 目标初始化
+                         const int color, int white_vmin, double center_x, double center_y, 
+                         bool show_detections); // 目标初始化
         // 目标追踪
         bool target_track(cv_bridge::CvImage &cv_image, Pos &ps, double z);
-        // 计算物体速度
-        bool calculate_speed(double x, double y,
-                             double speed_standard, double &speed);
+        // 计算物体半径和速度
+        bool calculate_radius_and_speed(double x, double y, double &radius,
+                                        double speed_standard, double &speed);
     };
 } // namespace my_hand_eye
 

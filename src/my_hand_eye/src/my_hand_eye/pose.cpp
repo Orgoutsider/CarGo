@@ -766,9 +766,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::calculate_pixel_position(double x, double y, double z, double &u, double &v)
+    bool Pos::calculate_pixel_position(double x, double y, double z, double &u, double &v, bool read)
     {
-        bool valid = refresh_xyz();
+        bool valid = read ? refresh_xyz() : true;
         if (valid)
         {
             cv::Mat point_base = (cv::Mat_<double>(4, 1) << x, y, z, 1);

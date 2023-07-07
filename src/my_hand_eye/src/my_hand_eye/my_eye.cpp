@@ -54,7 +54,7 @@ namespace my_hand_eye
 
 		// 目标跟踪
 		static bool stop = false;
-		int color = color_green;
+		int color = color_red;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		if (!stop)
 		{

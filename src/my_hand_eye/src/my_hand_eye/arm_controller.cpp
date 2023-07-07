@@ -4,8 +4,7 @@ namespace my_hand_eye
 {
     ArmController::ArmController()
         : ps_(&sm_st_, &sc_),
-          default_roi_(480, 0, 960, 1080),
-          fin_(false)
+          default_roi_(480, 0, 960, 1080)
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
@@ -13,8 +12,7 @@ namespace my_hand_eye
 
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : ps_(&sm_st_, &sc_),
-          default_roi_(0, 0, 1920, 1080),
-          fin_(false)
+          default_roi_(0, 0, 1920, 1080)
     {
         init(nh, pnh);
     }
@@ -263,11 +261,10 @@ namespace my_hand_eye
     {
         tracker_.get_center(u, v);
         double x, y;
-        bool valid = ps_.calculate_cargo_position(u, v, z_turntable, x, y);
+        bool valid = ps_.calculate_cargo_position(u, v, z_turntable, x, y, false);
         if (valid)
         {
-            radius = sqrt((x - tracker_.center_x_) * (x - tracker_.center_x_) + (y - tracker_.center_y_) * (y - tracker_.center_y_));
-            valid = tracker_.calculate_speed(x, y, speed_standard_, speed);
+            valid = tracker_.calculate_radius_and_speed(x, y, radius, speed_standard_, speed);
         }
         return valid;
     }
@@ -463,33 +460,38 @@ namespace my_hand_eye
     {
         using namespace cv;
         static int cnt = 0;
-        if (!fin_)
+        static bool last_stop = true;
+        static bool fin = false;
+        if (last_stop && !stop)
         {
+            ps_.reset();
+            fin = false;
             current_color_ = color;
+            last_stop = stop;
         }
-        else if (fin_ && !stop)
+        else if (current_color_ != color)
         {
-            fin_ = false;
             current_color_ = color;
+            fin = false;
         }
         const int INTERVAL = 50; // 间隔一段时间后重新进行目标检测
         const double PERMIT = 2.5;
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
         double radius = 0, speed = -1;
-        if (!fin_)
+        if (!fin)
         {
-            ps_.reset();
             vision_msgs::BoundingBox2DArray objArray;
             double center_x, center_y;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_center(objArray, center_u, center_v, center_x, center_y, true) &&
-                tracker_.target_init(cv_image_, objArray, color, white_vmin_, center_x, center_y))
+                tracker_.target_init(cv_image_, objArray, color, white_vmin_,
+                                     center_x, center_y, show_detections_))
             {
                 calculate_radius_and_speed(u, v, radius, speed);
                 first_radius = radius;
                 cargo_is_static(speed, true);
-                fin_ = true;
+                fin = true;
                 ROS_INFO("Succeeded to find cargo!");
                 // ROS_INFO_STREAM("u:" << u << " v:" << v);
             }
@@ -506,19 +508,12 @@ namespace my_hand_eye
                 double center_x, center_y;
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                     get_center(objArray, center_u, center_v, center_x, center_y, false) &&
-                    tracker_.target_init(cv_image_, objArray, color, white_vmin_, center_x, center_y))
+                    tracker_.target_init(cv_image_, objArray, color, white_vmin_,
+                                         center_x, center_y, show_detections_))
                 {
-                    
-                    if (calculate_radius_and_speed(u, v, radius, speed))
-                    {
-                        first_radius = radius;
-                        cnt = 0;
-                    }
-                    else
-                    {
-                        cnt--;
-                        return false;
-                    }
+                    calculate_radius_and_speed(u, v, radius, speed);
+                    first_radius = radius;
+                    cnt = 0;
                 }
                 else
                 {
@@ -556,16 +551,16 @@ namespace my_hand_eye
                     // waitKey(20);
                 }
             }
-            pt.push_back(cv::Point(u, v));
-            ROS_INFO_STREAM("radius:" << radius << " speed:" << speed);
+            if (show_detections_)
+                pt.push_back(cv::Point(u, v));
+            // ROS_INFO_STREAM("radius:" << radius << " speed:" << speed);
             if (cargo_is_static(speed, false))
             {
                 ROS_INFO("Cargo is static!");
                 stop = true;
             }
-            else
-                stop = false;
         }
+        last_stop = stop;
         return true;
     }
 

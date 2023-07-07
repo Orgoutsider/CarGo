@@ -101,7 +101,7 @@ namespace my_hand_eye
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y, bool read = true);
         // 由实际位置计算像素位置
-        bool calculate_pixel_position(double x, double y, double z, double &u, double &v);
+        bool calculate_pixel_position(double x, double y, double z, double &u, double &v, bool read);
         // 计算边界线位置
         bool calculate_border_position(cv::Vec2f &border, double border_z,
                                        double &distance, double &yaw);
