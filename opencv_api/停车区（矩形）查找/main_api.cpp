@@ -18,19 +18,19 @@ int main()
 	camera.set(CAP_PROP_FRAME_HEIGHT, 1280);
 	camera.set(CAP_PROP_FRAME_WIDTH, 720);
 	*/
-	//¶àÄ¿±ê¼ì²â
+	//å¤šç›®æ ‡æ£€æµ‹
 	
-	//É¨ÂëÑİÊ¾
+	//æ‰«ç æ¼”ç¤º
 	
 	//string turns_info;
 	//QRcode(&camera, &turns_info);
 	//printf_s("\n%s\n\n", turns_info.c_str());
 	
 
-	//ÂÖÀªÊ¶±ğÑİÊ¾
+	//è½®å»“è¯†åˆ«æ¼”ç¤º
 	/*
-	vector<Point> figure_info;//ÖĞĞÄµãĞÅÏ¢
-	vector<RotatedRect> rects;//ÂÖÀª¾ØÕóĞÅÏ¢
+	vector<Point> figure_info;//ä¸­å¿ƒç‚¹ä¿¡æ¯
+	vector<RotatedRect> rects;//è½®å»“çŸ©é˜µä¿¡æ¯
 	ColorFinding(&camera, &figure_info, 0);
 	*/
 	
@@ -42,7 +42,7 @@ int main()
 	if (!video.isOpened())
 		return -1;
 	Mat srcImg;
-	int index = 2;//Í¼Æ¬Ëõ·ÅÏµÊı£¬2^n±¶
+	int index = 2;//å›¾ç‰‡ç¼©æ”¾ç³»æ•°ï¼Œ2^nå€
 	vector<Point> centers;
 	while (true)
 	{

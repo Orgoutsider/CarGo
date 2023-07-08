@@ -507,7 +507,7 @@ namespace my_hand_eye
                 vision_msgs::BoundingBox2DArray objArray;
                 double center_x, center_y;
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                    get_center(objArray, center_u, center_v, center_x, center_y, false) &&
+                    get_center(objArray, center_u, center_v, center_x, center_y, true) &&
                     tracker_.target_init(cv_image_, objArray, color, white_vmin_,
                                          center_x, center_y, show_detections_))
                 {
@@ -785,5 +785,30 @@ namespace my_hand_eye
             debug_image = cv_image_.toImageMsg();
         }
         return valid;
+    }
+
+    bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, double z,
+                                          double &x, double &y, sensor_msgs::ImagePtr &debug_image)
+    {
+        using namespace cv;
+        bool flag = true;
+        if (flag)
+        {
+            flag = false;
+            ps_.reset();
+            namedWindow("src");
+        }
+        cv_bridge::CvImagePtr cv_image;
+        if (!add_image(image_rect, cv_image))
+            return false;
+        if (ps_.refresh_xyz())
+        {
+            warpPerspective(cv_image->image, cv_image->image, ps_.transformation_matrix(), cv_image->image.size());
+            imshow("src", cv_image->image);
+            waitKey(100);
+            return true;
+        }
+        else
+            return false;
     }
 } // namespace my_hand_eye

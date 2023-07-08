@@ -69,6 +69,7 @@ namespace my_hand_eye
         // const double z_turntable = 16.4750; // 老转盘
         // const double z_turntable = 15.57;   // 新转盘
         const double z_turntable = 14.4654; // 比赛转盘，抓取范围17.3到34
+        const double z_floor = 0;
         bool show_detections_;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
         bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
@@ -89,12 +90,15 @@ namespace my_hand_eye
         // 椭圆识别，摄像头测试时z无效
         bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
                               bool &finish, sensor_msgs::ImagePtr &debug_image);
-        // 查看边界线位置
+        // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, double &distance, double &yaw,
                          bool &finish, sensor_msgs::ImagePtr &debug_image);
         // 计算圆盘中心点位置
         bool find_center(const sensor_msgs::ImageConstPtr &image_rect, double &x, double &y,
                          bool &finish, sensor_msgs::ImagePtr &debug_image);
+        // 计算停车区位置
+        bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, double z,
+                               double &x, double &y, sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye
 

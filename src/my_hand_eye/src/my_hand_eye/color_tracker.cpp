@@ -321,7 +321,10 @@ namespace my_hand_eye
                     return false;
                 }
                 else
+                {
                     err_cnt++;
+                    return true;
+                }
             }
         }
         else if (this_time_.is_zero())

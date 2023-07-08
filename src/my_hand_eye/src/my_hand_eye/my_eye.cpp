@@ -53,29 +53,29 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 目标跟踪
-		static bool stop = false;
-		int color = color_red;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!stop)
-		{
-			double u, v;
-			arm_controller_.track(image_rect, color, u, v, stop, debug_image);
-			if (arm_controller_.show_detections_)
-				debug_image_publisher_.publish(debug_image);
-		}
-		else
-		{
-			stop = false;
-			// 直接抓取
-			// static bool finish = false;
-			// if (!finish)
-			// {
-			// 	double u, v;
-			// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, true, false);
-			// 	if (arm_controller_.show_detections_)
-			// 		debug_image_publisher_.publish(debug_image);
-			// }
-		}
+		// static bool stop = false;
+		// int color = color_red;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!stop)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.track(image_rect, color, u, v, stop, debug_image);
+		// 	if (arm_controller_.show_detections_)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
+		// else
+		// {
+		// stop = false;
+		// 直接抓取
+		// static bool finish = false;
+		// if (!finish)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, true, false);
+		// 	if (arm_controller_.show_detections_)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
+		// }
 
 		// 直接抓取
 		// static bool finish = false;
@@ -99,7 +99,7 @@ namespace my_hand_eye
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
 
-		// // 边界线查找
+		// 边界线查找
 		// static bool finish = false;
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// if (!finish)
@@ -109,6 +109,13 @@ namespace my_hand_eye
 		// 	if (arm_controller_.show_detections_)
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
+
+		// 停车区查找
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		double x = 0, y = 0;
+		arm_controller_.find_parking_area(image_rect, arm_controller_.z_floor, x, y, debug_image);
+		if (arm_controller_.show_detections_)
+			debug_image_publisher_.publish(debug_image);
 	}
 
 	void MyEye::execute_callback(const ArmGoalConstPtr &goal)

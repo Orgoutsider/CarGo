@@ -23,10 +23,10 @@ namespace motion_controller
     private:
         bool param_modification_;
         int level_; // 优先级，优先使用机械手摄像头视觉信息
-        // 弯道pid
-        double kp_usb_cam_;
-        double ki_usb_cam_;
-        double kd_usb_cam_;
+        // // 弯道pid
+        // double kp_usb_cam_;
+        // double ki_usb_cam_;
+        // double kd_usb_cam_;
         // 角位置pid
         double kp_eye_angular_;
         double ki_eye_angular_;

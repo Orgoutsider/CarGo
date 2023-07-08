@@ -45,7 +45,7 @@ void point_find(Mat srcImage, int index, vector<Point>& centers)
 	imshow("edges", edges);
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
-	findContours(edges, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);//Ö»¼ì²â×îÍâÎ§µÄÂÖÀª,Ö»±£Áô¹ÕµãµÄĞÅÏ¢
+	findContours(edges, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);//åªæ£€æµ‹æœ€å¤–å›´çš„è½®å»“,åªä¿ç•™æ‹ç‚¹çš„ä¿¡æ¯
 	if (contours.size())
 	{
 		vector<Point> approx;

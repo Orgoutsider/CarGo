@@ -218,10 +218,9 @@ namespace my_hand_eye
 
     bool Pos::reset(bool left)
     {
-        bool valid = left
-                         ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
-                         : go_to(action_default.x, action_default.y, action_default.z, false, true);
-        return valid;
+        return left
+                   ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
+                   : go_to(action_default.x, action_default.y, action_default.z, false, true);
     }
 
     bool Pos::go_to_and_wait(double x, double y, double z, bool cat)
@@ -745,15 +744,25 @@ namespace my_hand_eye
                R_T2homogeneous_matrix(R_end_to_base().t(), -R_end_to_base().t() * T_end_to_base());
     }
 
+    cv::Mat Pos::transformation_matrix()
+    {
+        cv::Mat intrinsics_inv = intrinsics_inverse();
+        cv::Mat ext = extrinsics();
+        cv::Mat M1 = ext * intrinsics_inv;
+        cv::Mat M2 = ext.row(2) * intrinsics_inv;
+        cv::Mat res;
+        cv::vconcat(M1.rowRange(0, 2), M2, res);
+        return res;
+    }
+
     bool Pos::calculate_cargo_position(double u, double v, double cargo_z,
                                        double &cargo_x, double &cargo_y, bool read)
     {
         bool valid = read ? refresh_xyz() : true;
         if (valid)
         {
-            cv::Mat intrinsics_inv = intrinsics_inverse();
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
-            cv::Mat point_temp = intrinsics_inv * point_pixel; // (X/Z,Y/Z,1)
+            cv::Mat point_temp = intrinsics_inverse() * point_pixel; // (X/Z,Y/Z,1)
             // 单位统一为cm
             cv::Mat ext = extrinsics();
             double Z = (cargo_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).clone().t().dot(point_temp);
@@ -811,9 +820,8 @@ namespace my_hand_eye
         cnt++;
         if (valid)
         {
-            cv::Mat intrinsics_inv = intrinsics_inverse();
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << sum_u / cnt, sum_v / cnt, 1);
-            cv::Mat point_temp = intrinsics_inv * point_pixel; // (X/Z,Y/Z,1)
+            cv::Mat point_temp = intrinsics_inverse() * point_pixel; // (X/Z,Y/Z,1)
             cv::Mat point_base = (cv::Mat_<double>(4, 1) << correct_x, correct_y, correct_z, 1);
             cv::Mat point_end = R_T2homogeneous_matrix(R_end_to_base().t(),
                                                        -R_end_to_base().t() * T_end_to_base()) *
