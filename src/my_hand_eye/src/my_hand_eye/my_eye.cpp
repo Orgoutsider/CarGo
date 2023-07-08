@@ -113,7 +113,7 @@ namespace my_hand_eye
 		// 停车区查找
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		double x = 0, y = 0;
-		arm_controller_.find_parking_area(image_rect, arm_controller_.z_floor, x, y, debug_image);
+		arm_controller_.find_parking_area(image_rect, 0.1, x, y, debug_image);
 		if (arm_controller_.show_detections_)
 			debug_image_publisher_.publish(debug_image);
 	}

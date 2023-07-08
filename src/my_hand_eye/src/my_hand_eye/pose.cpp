@@ -744,15 +744,11 @@ namespace my_hand_eye
                R_T2homogeneous_matrix(R_end_to_base().t(), -R_end_to_base().t() * T_end_to_base());
     }
 
-    cv::Mat Pos::transformation_matrix()
+    cv::Mat Pos::transformation_matrix(double z)
     {
-        cv::Mat intrinsics_inv = intrinsics_inverse();
-        cv::Mat ext = extrinsics();
-        cv::Mat M1 = ext * intrinsics_inv;
-        cv::Mat M2 = ext.row(2) * intrinsics_inv;
-        cv::Mat res;
-        cv::vconcat(M1.rowRange(0, 2), M2, res);
-        return res;
+        cv::Mat ext = R_end_to_base() * R_cam_to_end();
+        cv::Mat delta = R_end_to_base() * T_cam_to_end() + T_end_to_base();
+        return (ext + delta * ext.row(2).clone() / (z - delta.at<double>(2, 0))) * intrinsics_inverse();
     }
 
     bool Pos::calculate_cargo_position(double u, double v, double cargo_z,
@@ -762,15 +758,18 @@ namespace my_hand_eye
         if (valid)
         {
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
-            cv::Mat point_temp = intrinsics_inverse() * point_pixel; // (X/Z,Y/Z,1)
             // 单位统一为cm
-            cv::Mat ext = extrinsics();
-            double Z = (cargo_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).clone().t().dot(point_temp);
-            cv::Mat point_cam = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
-                                 Z * point_temp.at<double>(1, 0), Z, 1);
-            cv::Mat point_base = ext * point_cam;
-            cargo_x = point_base.at<double>(0, 0);
-            cargo_y = point_base.at<double>(1, 0);
+            cv::Mat point_base = transformation_matrix(z) * point_pixel;
+            cargo_x = point_base.at<double>(0, 0) / point_base.at<double>(2, 0) * z;
+            cargo_y = point_base.at<double>(1, 0) / point_base.at<double>(2, 0) * z;
+            // cv::Mat point_temp = intrinsics_inverse() * point_pixel; // (X/Z,Y/Z,1)
+            // cv::Mat ext = extrinsics();
+            // double Z = (cargo_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).t().dot(point_temp);
+            // cv::Mat point_cam = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
+            //                      Z * point_temp.at<double>(1, 0), Z, 1);
+            // cv::Mat point_base = ext * point_cam;
+            // cargo_x = point_base.at<double>(0, 0);
+            // cargo_y = point_base.at<double>(1, 0);
         }
         return valid;
     }
@@ -783,7 +782,7 @@ namespace my_hand_eye
             cv::Mat point_base = (cv::Mat_<double>(4, 1) << x, y, z, 1);
             cv::Mat point_cam = extrinsics_inverse() * point_base;
             double Z = point_cam.at<double>(2, 0);
-            cv::Mat point_temp = point_cam.rowRange(0, 3).clone() / Z; // (X/Z,Y/Z,1)
+            cv::Mat point_temp = point_cam.rowRange(0, 3) / Z; // (X/Z,Y/Z,1)
             cv::Mat point_pixel = intrinsics() * point_temp;
             u = point_pixel.at<double>(0, 0);
             v = point_pixel.at<double>(1, 0);

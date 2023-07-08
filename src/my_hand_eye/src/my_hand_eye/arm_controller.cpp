@@ -803,7 +803,11 @@ namespace my_hand_eye
             return false;
         if (ps_.refresh_xyz())
         {
-            warpPerspective(cv_image->image, cv_image->image, ps_.transformation_matrix(), cv_image->image.size());
+            Mat M = ps_.transformation_matrix(z);
+            M.at<double>(0, 2) += z * cv_image->image.cols / 2;
+            ROS_INFO_STREAM(M);
+            warpPerspective(cv_image->image, cv_image->image, M,
+                            cv_image->image.size());
             imshow("src", cv_image->image);
             waitKey(100);
             return true;
