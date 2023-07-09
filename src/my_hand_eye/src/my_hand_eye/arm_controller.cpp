@@ -130,7 +130,7 @@ namespace my_hand_eye
             bool flag = add_image(image_rect, cv_image);
             cv_image->image = cv_image->image(roi).clone();
             yolov5_ros::cargoSrv cargo;
-            sensor_msgs::ImagePtr image = (*cv_image).toImageMsg();
+            sensor_msgs::ImagePtr image = cv_image->toImageMsg();
             cargo.request.image = *image;
             // 发送请求,返回 bool 值，标记是否成功
             if (flag)
@@ -175,7 +175,7 @@ namespace my_hand_eye
                     }
                     // imshow("det", cv_image->image);
                     // cv::waitKey(10);
-                    debug_image = (*cv_image).toImageMsg();
+                    debug_image = cv_image->toImageMsg();
                 }
                 if (detections.boxes.size())
                 {
@@ -827,7 +827,7 @@ namespace my_hand_eye
                                           double &x, double &y, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
-        bool flag = true;
+        static bool flag = true;
         if (flag)
         {
             flag = false;
@@ -845,25 +845,24 @@ namespace my_hand_eye
             ratio /= z_parking_area;
             M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0; // 平移
             // ROS_INFO_STREAM(M);
-            warpPerspective(cv_image->image, cv_image->image, M,
-                            cv_image->image.size(), INTER_LINEAR, BORDER_CONSTANT,
-                            Scalar(255, 255, 255));
+            warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size());
             // imshow("src", cv_image->image);
             // waitKey(100);
+            resize(cv_image->image, cv_image->image, cv_image->image.size() / 2);
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
             Mat srcgray;
             cvtColor(cv_image->image, srcgray, COLOR_BGR2GRAY); // 灰度转换
-            imshow("gray", srcgray);
-            waitKey(1);
+            // imshow("gray", srcgray);
+            // waitKey(1);
             Mat srcbinary;
             cv::threshold(srcgray, srcbinary, 0, 255, THRESH_OTSU | THRESH_BINARY); // 阈值化
-            imshow("threshold", srcbinary);
-            waitKey(1);
+            // imshow("threshold", srcbinary);
+            // waitKey(1);
             Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
             morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 1); // 闭操作去除噪点
-            imshow("MORPH_OPEN", srcbinary);
-            waitKey(1);
+            // imshow("MORPH_OPEN", srcbinary);
+            // waitKey(1);
             Mat edges;
             Canny(srcbinary, edges, 0, 50, 3, false); // 查找边缘
             imshow("edges", edges);
@@ -877,12 +876,15 @@ namespace my_hand_eye
                 if (s.best.length)
                 {
                     cv::Point2d center = s.best.center();
-                    x = (center.x - cv_image->image.cols / 2.0) / ratio;
-                    y = (center.y) / ratio;
-                    if (show_detections)
+                    // 计算真实世界中坐标
+                    x = (center.x * 4 - cv_image->image.cols / 2.0) / ratio;
+                    y = (center.y * 4) / ratio;
+                    ROS_INFO_STREAM("x:" << x << " y:" << y);
+                    if (show_detections && !cv_image->image.empty())
                     {
                         drawContours(cv_image->image, contours, s.best_id, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
                         draw_cross(cv_image->image, center, Scalar(255, 255, 255), 30, 2);
+                        debug_image = cv_image->toImageMsg();
                     }
                 }
                 else

@@ -34,7 +34,8 @@ namespace my_hand_eye
             double cosine = fabs(_cosine(j % 4, j - 2, j - 1));
             maxCosine = MAX(maxCosine, cosine);
         }
-        return maxCosine < 0.3;
+        // 轮廓角度的最大余弦，值越小角度越接近90，判断条件越苛刻
+        return maxCosine < 0.85;
     }
 
     bool Square::is_square()
@@ -59,7 +60,8 @@ namespace my_hand_eye
         {
             Square s(contours[i]);
             // 正方形判断和边长排序（起停区边长30cm）
-            if (s.is_square() && fabs(s.length - 30 * ratio) < fabs(best.length - 30 * ratio))
+            if (fabs(cv::contourArea(contours[i])) > 100 * ratio * ratio && s.is_square() &&
+                fabs(s.length - 30 * ratio) < fabs(best.length - 30 * ratio))
             {
                 best = s;
                 best_id = i;
