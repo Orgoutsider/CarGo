@@ -1,5 +1,6 @@
 #ifndef _ARM_CONTROLLER_H_
 #define _ARM_CONTROLLER_H_
+#include "my_hand_eye/square.h"
 #include "my_hand_eye/ellipse.h"
 #include "my_hand_eye/border.h"
 

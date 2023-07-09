@@ -159,6 +159,7 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/color_tracker.cpp
   src/${PROJECT_NAME}/pose.cpp 
   src/${PROJECT_NAME}/my_eye.cpp
+  src/${PROJECT_NAME}/square.cpp
   src/${PROJECT_NAME}/SCS.cpp 
   src/${PROJECT_NAME}/SCSCL.cpp 
   src/${PROJECT_NAME}/SCSerial.cpp 

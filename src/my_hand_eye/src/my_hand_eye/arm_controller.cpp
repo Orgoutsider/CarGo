@@ -4,13 +4,13 @@ namespace my_hand_eye
 {
     ArmController::ArmController()
         : ps_(&sm_st_, &sc_),
-          default_roi_(480, 0, 960, 1080), 
+          default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           threshold(60),
           z_parking_area(1.524628),
           z_turntable(14.4654) // 比赛转盘，抓取范围17.3到34
-        //   z_turntable(16.4750)// 老转盘
-        //   z_turntable(15.57)  // 新转盘
+    //   z_turntable(16.4750)// 老转盘
+    //   z_turntable(15.57)  // 新转盘
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
@@ -790,7 +790,7 @@ namespace my_hand_eye
         bool valid = border_.find(cv_image, border, boost::bind(LBD_color_func, _1, _2, threshold),
                                   show_detections);
         border[0] = border[0] + border_roi_.x * cos(border[1]) + border_roi_.y * sin(border[1]);
-        if (valid)            
+        if (valid)
             valid = ps_.calculate_border_position(border, z_parking_area, distance, yaw);
         else
         {
@@ -798,7 +798,7 @@ namespace my_hand_eye
         }
         if (valid && show_detections && !cv_image_.image.empty())
         {
-            ROS_INFO_STREAM("distance: " << distance <<" yaw: " << yaw);
+            ROS_INFO_STREAM("distance: " << distance << " yaw: " << yaw);
             debug_image = cv_image->toImageMsg();
         }
         return valid;
@@ -823,7 +823,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, 
+    bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
                                           double &x, double &y, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
@@ -832,21 +832,70 @@ namespace my_hand_eye
         {
             flag = false;
             ps_.reset();
-            namedWindow("src");
         }
         cv_bridge::CvImagePtr cv_image;
+        x = y = 0;
         if (!add_image(image_rect, cv_image))
             return false;
         if (ps_.refresh_xyz())
         {
             Mat M = ps_.transformation_matrix(z_parking_area);
-            M.rowRange(0, 2) *= (z_parking_area / 100.0 * cv_image->image.rows);
-            M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;
-            ROS_INFO_STREAM(M);
+            double ratio = z_parking_area / 80.0 * cv_image->image.rows; // 放大倍数
+            M.rowRange(0, 2) *= ratio;                                   // 放大
+            ratio /= z_parking_area;
+            M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0; // 平移
+            // ROS_INFO_STREAM(M);
             warpPerspective(cv_image->image, cv_image->image, M,
-                            cv_image->image.size(), INTER_LINEAR, BORDER_CONSTANT, Scalar(255, 255, 255));
-            imshow("src", cv_image->image);
-            waitKey(100);
+                            cv_image->image.size(), INTER_LINEAR, BORDER_CONSTANT,
+                            Scalar(255, 255, 255));
+            // imshow("src", cv_image->image);
+            // waitKey(100);
+            pyrDown(cv_image->image, cv_image->image,
+                    Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
+            Mat srcgray;
+            cvtColor(cv_image->image, srcgray, COLOR_BGR2GRAY); // 灰度转换
+            imshow("gray", srcgray);
+            waitKey(1);
+            Mat srcbinary;
+            cv::threshold(srcgray, srcbinary, 0, 255, THRESH_OTSU | THRESH_BINARY); // 阈值化
+            imshow("threshold", srcbinary);
+            waitKey(1);
+            Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
+            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 1); // 闭操作去除噪点
+            imshow("MORPH_OPEN", srcbinary);
+            waitKey(1);
+            Mat edges;
+            Canny(srcbinary, edges, 0, 50, 3, false); // 查找边缘
+            imshow("edges", edges);
+            waitKey(1);
+            std::vector<std::vector<cv::Point>> contours;
+            std::vector<Vec4i> hierarchy;
+            findContours(edges, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // 只检测最外围的轮廓,只保留拐点的信息
+            if (contours.size())
+            {
+                BestSquare s(contours, ratio);
+                if (s.best.length)
+                {
+                    cv::Point2d center = s.best.center();
+                    x = (center.x - cv_image->image.cols / 2.0) / ratio;
+                    y = (center.y) / ratio;
+                    if (show_detections)
+                    {
+                        drawContours(cv_image->image, contours, s.best_id, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
+                        draw_cross(cv_image->image, center, Scalar(255, 255, 255), 30, 2);
+                    }
+                }
+                else
+                {
+                    ROS_WARN("Could not find parking area!");
+                    return false;
+                }
+            }
+            else
+            {
+                ROS_WARN("Could not find parking area!");
+                return false;
+            }
             return true;
         }
         else
