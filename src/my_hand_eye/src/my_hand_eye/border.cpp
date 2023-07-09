@@ -68,7 +68,8 @@ namespace my_hand_eye
     }
 
     bool Border::find(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
-                      boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD, bool show_detection)
+                      boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
+                      bool show_detection)
     {
         int f = 4;
         cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / f);
@@ -118,7 +119,7 @@ namespace my_hand_eye
         return true;
     }
 
-    void LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines)
+    void LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
     {
         using namespace cv;
         Mat gray;
@@ -135,10 +136,10 @@ namespace my_hand_eye
 
         // Mat LineImg;
         // cvtColor(ThreImg, LineImg, COLOR_GRAY2BGR);
-        HoughLines(ThreImg, lines, 1, CV_PI / 180, 100, 0, 0);
+        HoughLines(ThreImg, lines, 1, CV_PI / 180, threshold, 0, 0);
     }
 
-    void LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines)
+    void LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
     {
         using namespace cv;
         Mat HSVImg;
@@ -157,6 +158,6 @@ namespace my_hand_eye
 
         // Mat LineImg;
         // cvtColor(edgeImg, LineImg, COLOR_GRAY2BGR);
-        HoughLines(edgeImg, lines, 1, CV_PI / 180, 100, 0, 0);
+        HoughLines(edgeImg, lines, 1, CV_PI / 180, threshold, 0, 0);
     }
 } // namespace my_hand_eye
