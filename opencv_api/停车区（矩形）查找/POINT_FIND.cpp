@@ -39,7 +39,7 @@ void point_find(Mat srcImage, int index, vector<Point>& centers)
 	imshow("threshold", srcbinary);
 	Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), Point(-1, -1));
 	morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, Point(-1, -1));
-	imshow("MORPH_OPEN", srcbinary);
+	imshow("MORPH_CLOSE", srcbinary);
 	Mat edges;
 	Canny(srcbinary, edges, 0, 50, 3, false);
 	imshow("edges", edges);
