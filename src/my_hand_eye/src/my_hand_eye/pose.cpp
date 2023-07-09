@@ -86,6 +86,12 @@ namespace my_hand_eye
             ROS_INFO("Set action right");
             ARM_INFO_XYZ(action_right);
         }
+        else if (name == "down")
+        {
+            action_down = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set action " << name);
+            ARM_INFO_XYZ(action_down);
+        }
         else
             ROS_ERROR("set_action: Name error!");
     }
@@ -220,7 +226,12 @@ namespace my_hand_eye
     {
         return left
                    ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
-                   : go_to(action_default.x, action_default.y, action_default.z, false, true);
+                   : go_to(action_default.x, action_default.y, action_default.z, false, true, false);
+    }
+
+    bool Pos::look_down()
+    {
+        return go_to(action_down.x, action_down.y, action_down.z, false, true, true);
     }
 
     bool Pos::go_to_and_wait(double x, double y, double z, bool cat)
@@ -652,14 +663,13 @@ namespace my_hand_eye
     cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T)
     {
         cv::Mat HomoMtr;
-        cv::Mat_<double> R1 = (cv::Mat_<double>(4, 3) << R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
-                               R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
-                               R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2),
-                               0, 0, 0);
-        cv::Mat_<double> T1 = (cv::Mat_<double>(4, 1) << T.at<double>(0, 0),
-                               T.at<double>(1, 0),
-                               T.at<double>(2, 0),
-                               1);
+        ROS_ASSERT(R.rows == R.cols);
+        ROS_ASSERT(T.rows == R.rows);
+        ROS_ASSERT(T.cols == 1);
+        cv::Mat R1 = cv::Mat::zeros(1, R.cols, CV_64F);
+        cv::vconcat(R, R1, R1);
+        cv::Mat T1 = cv::Mat::ones(1, 1, CV_64F);
+        cv::vconcat(T, T1, T1);
         cv::hconcat(R1, T1, HomoMtr); // 矩阵拼接
         return HomoMtr;
     }
@@ -759,9 +769,9 @@ namespace my_hand_eye
         {
             cv::Mat point_pixel = (cv::Mat_<double>(3, 1) << u, v, 1);
             // 单位统一为cm
-            cv::Mat point_base = transformation_matrix(z) * point_pixel;
-            cargo_x = point_base.at<double>(0, 0) / point_base.at<double>(2, 0) * z;
-            cargo_y = point_base.at<double>(1, 0) / point_base.at<double>(2, 0) * z;
+            cv::Mat point_base = transformation_matrix(cargo_z) * point_pixel;
+            cargo_x = point_base.at<double>(0, 0) / point_base.at<double>(2, 0) * cargo_z;
+            cargo_y = point_base.at<double>(1, 0) / point_base.at<double>(2, 0) * cargo_z;
             // cv::Mat point_temp = intrinsics_inverse() * point_pixel; // (X/Z,Y/Z,1)
             // cv::Mat ext = extrinsics();
             // double Z = (cargo_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).t().dot(point_temp);
@@ -774,12 +784,13 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::calculate_pixel_position(double x, double y, double z, double &u, double &v, bool read)
+    bool Pos::calculate_pixel_position(double cargo_x, double cargo_y, double cargo_z, 
+                                       double &u, double &v, bool read)
     {
         bool valid = read ? refresh_xyz() : true;
         if (valid)
         {
-            cv::Mat point_base = (cv::Mat_<double>(4, 1) << x, y, z, 1);
+            cv::Mat point_base = (cv::Mat_<double>(4, 1) << cargo_x, cargo_y, cargo_z, 1);
             cv::Mat point_cam = extrinsics_inverse() * point_base;
             double Z = point_cam.at<double>(2, 0);
             cv::Mat point_temp = point_cam.rowRange(0, 3) / Z; // (X/Z,Y/Z,1)
@@ -798,8 +809,9 @@ namespace my_hand_eye
         double x1, y1, x2, y2;
         if (calculate_cargo_position(u0, 0, border_z, x1, y1) && calculate_cargo_position(0, v0, border_z, x2, y2, false))
         {
-            distance = (x1 * y2 - x2 * y1) / (x1 - x2);
-            yaw = atan2(y1 - y2, x1 - x2);
+            // ARM_INFO_XYZ(*this);
+            distance = -x2 + (x2 + ARM_P) * (x1 - x2) / (y1 - y2);
+            yaw = atan((x1 - x2) / (y1 - y2));
             return true;
         }
         else

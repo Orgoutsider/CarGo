@@ -82,6 +82,7 @@ namespace my_hand_eye
         Action action_left;
         Action action_back;
         Action action_right;
+        Action action_down;
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();
@@ -89,7 +90,8 @@ namespace my_hand_eye
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default");           // 获取设定动作
         bool go_to(double x, double y, double z, bool cat, bool look, bool expand_y = false); // 运动到指定位置，抓/不抓
         // bool do_first_step(double x, double y);                        // 两步抓取第一步
-        bool reset(bool left = false);
+        bool reset(bool left = false);                               // 重置位置，可选前侧/左侧
+        bool look_down();                                            // 查看左侧车道线
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
         bool go_to_table(bool cat, int color, bool left);
@@ -102,7 +104,8 @@ namespace my_hand_eye
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y, bool read = true);
         // 由实际位置计算像素位置
-        bool calculate_pixel_position(double x, double y, double z, double &u, double &v, bool read);
+        bool calculate_pixel_position(double cargo_x, double cargo_y, double cargo_z,
+                                      double &u, double &v, bool read);
         // 计算边界线位置
         bool calculate_border_position(cv::Vec2f &border, double border_z,
                                        double &distance, double &yaw);

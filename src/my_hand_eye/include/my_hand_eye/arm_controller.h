@@ -24,7 +24,8 @@ namespace my_hand_eye
         SCSCL sc_;
         ros::ServiceClient cargo_client_; // yolov5+颜色识别
         ros::ServiceClient plot_client_;  // 运动范围绘制
-        cv::Rect default_roi_;            // 截图矩形
+        cv::Rect default_roi_;            // 默认截图矩形
+        cv::Rect border_roi_;             // 边界截图矩形
         cv_bridge::CvImage cv_image_;
         std::vector<double> cargo_x_;
         std::vector<double> cargo_y_;
@@ -66,11 +67,10 @@ namespace my_hand_eye
         Pos ps_;
         int white_vmin_;
         // double proportion_; // 杂色所占的比例
-        // const double z_turntable = 16.4750; // 老转盘
-        // const double z_turntable = 15.57;   // 新转盘
-        const double z_turntable = 14.4654; // 比赛转盘，抓取范围17.3到34
-        const double z_floor = 0;
-        bool show_detections_;
+        const double z_turntable;
+        double z_parking_area;
+        int threshold;
+        bool show_detections;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
         bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
                           sensor_msgs::ImagePtr &debug_image, bool center = false);
@@ -97,7 +97,7 @@ namespace my_hand_eye
         bool find_center(const sensor_msgs::ImageConstPtr &image_rect, double &x, double &y,
                          bool &finish, sensor_msgs::ImagePtr &debug_image);
         // 计算停车区位置
-        bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, double z,
+        bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
                                double &x, double &y, sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye

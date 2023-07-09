@@ -21,9 +21,9 @@ namespace my_hand_eye
     };
 
     // 自适应阈值化查找车道边界
-    void LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines);
+    void LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
     // 颜色inrange查找车道边界
-    void LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines);
+    void LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
 } // namespace my_hand_eye
 
 #endif // !_BORDER_H_

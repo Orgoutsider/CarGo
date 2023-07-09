@@ -4,7 +4,13 @@ namespace my_hand_eye
 {
     ArmController::ArmController()
         : ps_(&sm_st_, &sc_),
-          default_roi_(480, 0, 960, 1080)
+          default_roi_(480, 0, 960, 1080), 
+          border_roi_(320, 0, 1280, 1080),
+          threshold(60),
+          z_parking_area(1.524628),
+          z_turntable(14.4654) // 比赛转盘，抓取范围17.3到34
+        //   z_turntable(16.4750)// 老转盘
+        //   z_turntable(15.57)  // 新转盘
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
@@ -12,7 +18,11 @@ namespace my_hand_eye
 
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : ps_(&sm_st_, &sc_),
-          default_roi_(0, 0, 1920, 1080)
+          default_roi_(0, 0, 1920, 1080),
+          border_roi_(320, 0, 1280, 1080),
+          threshold(100),
+          z_parking_area(1.524628),
+          z_turntable(14.4654)
     {
         init(nh, pnh);
     }
@@ -36,6 +46,7 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue servo_descriptions;
         XmlRpc::XmlRpcValue default_action;
         XmlRpc::XmlRpcValue back_action;
+        XmlRpc::XmlRpcValue down_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
@@ -47,6 +58,10 @@ namespace my_hand_eye
         if (!pnh.getParam("back_action", back_action))
         {
             ROS_ERROR("No back action specified");
+        }
+        if (!pnh.getParam("down_action", down_action))
+        {
+            ROS_ERROR("No down action specified");
         }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
@@ -61,6 +76,7 @@ namespace my_hand_eye
         ps_.set_speed_and_acc(servo_descriptions);
         ps_.set_action(default_action);
         ps_.set_action(back_action, "back");
+        ps_.set_action(down_action, "down");
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
@@ -112,7 +128,7 @@ namespace my_hand_eye
         {
             cv_bridge::CvImagePtr cv_image;
             bool flag = add_image(image_rect, cv_image);
-            cv_image->image = cv_image->image(roi);
+            cv_image->image = cv_image->image(roi).clone();
             yolov5_ros::cargoSrv cargo;
             sensor_msgs::ImagePtr image = (*cv_image).toImageMsg();
             cargo.request.image = *image;
@@ -122,7 +138,7 @@ namespace my_hand_eye
             if (flag)
             {
                 detections = cargo.response.results;
-                if (show_detections_ && !cv_image->image.empty())
+                if (show_detections && !cv_image->image.empty())
                 {
                     if (cargo.response.results.boxes.size())
                     {
@@ -200,7 +216,7 @@ namespace my_hand_eye
                 if (get_center(objArray, center_u, center_v, x, y))
                 {
                     ROS_INFO_STREAM("x:" << x << " y:" << y);
-                    if (show_detections_ && !cv_image_.image.empty())
+                    if (show_detections && !cv_image_.image.empty())
                     {
                         draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
                         debug_image = cv_image_.toImageMsg();
@@ -486,8 +502,9 @@ namespace my_hand_eye
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_center(objArray, center_u, center_v, center_x, center_y, true) &&
                 tracker_.target_init(cv_image_, objArray, color, white_vmin_,
-                                     center_x, center_y, show_detections_))
+                                     center_x, center_y, show_detections))
             {
+                // 一直使用的原图，只有detect_cargo使用截图
                 calculate_radius_and_speed(u, v, radius, speed);
                 first_radius = radius;
                 cargo_is_static(speed, true);
@@ -509,7 +526,7 @@ namespace my_hand_eye
                 if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                     get_center(objArray, center_u, center_v, center_x, center_y, true) &&
                     tracker_.target_init(cv_image_, objArray, color, white_vmin_,
-                                         center_x, center_y, show_detections_))
+                                         center_x, center_y, show_detections))
                 {
                     calculate_radius_and_speed(u, v, radius, speed);
                     first_radius = radius;
@@ -534,7 +551,7 @@ namespace my_hand_eye
                     return false;
                 if (abs(radius - first_radius) > PERMIT)
                     cnt = INTERVAL;
-                if (show_detections_ && !cv_image->image.empty())
+                if (show_detections && !cv_image->image.empty())
                 {
                     // 目标绘制
                     draw_cross(cv_image->image, cv::Point(u, v), Scalar(255, 255, 0), 30, 3);
@@ -551,7 +568,7 @@ namespace my_hand_eye
                     // waitKey(20);
                 }
             }
-            if (show_detections_)
+            if (show_detections)
                 pt.push_back(cv::Point(u, v));
             // ROS_INFO_STREAM("radius:" << radius << " speed:" << speed);
             if (cargo_is_static(speed, false))
@@ -698,10 +715,10 @@ namespace my_hand_eye
             if (!arr.color_classification(cv_image, white_vmin_))
                 return false;
             objArray.header = image_rect->header;
-            if (!arr.detection(objArray, roi, cv_image, show_detections_))
+            if (!arr.detection(objArray, roi, cv_image, show_detections))
                 return false;
         }
-        if (show_detections_ && !cv_image->image.empty())
+        if (show_detections && !cv_image->image.empty())
             debug_image = cv_image->toImageMsg();
         return true;
     }
@@ -761,11 +778,30 @@ namespace my_hand_eye
     bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, double &distance, double &yaw,
                                     bool &finish, sensor_msgs::ImagePtr &debug_image)
     {
+        static bool last_finish = true;
+        if (!finish && last_finish)
+            ps_.look_down();
+        last_finish = finish;
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;
+        cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
-        return border_.find(cv_image, border, LBD_color_func, show_detections_);
+        bool valid = border_.find(cv_image, border, boost::bind(LBD_color_func, _1, _2, threshold),
+                                  show_detections);
+        border[0] = border[0] + border_roi_.x * cos(border[1]) + border_roi_.y * sin(border[1]);
+        if (valid)            
+            valid = ps_.calculate_border_position(border, z_parking_area, distance, yaw);
+        else
+        {
+            ROS_WARN("Could not find border!");
+        }
+        if (valid && show_detections && !cv_image_.image.empty())
+        {
+            ROS_INFO_STREAM("distance: " << distance <<" yaw: " << yaw);
+            debug_image = cv_image->toImageMsg();
+        }
+        return valid;
     }
 
     bool ArmController::find_center(const sensor_msgs::ImageConstPtr &image_rect, double &x, double &y,
@@ -779,7 +815,7 @@ namespace my_hand_eye
         double center_u, center_v;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                      get_center(objArray, center_u, center_v, x, y);
-        if (valid && show_detections_ && !cv_image_.image.empty())
+        if (valid && show_detections && !cv_image_.image.empty())
         {
             draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
             debug_image = cv_image_.toImageMsg();
@@ -787,7 +823,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, double z,
+    bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, 
                                           double &x, double &y, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
@@ -803,11 +839,12 @@ namespace my_hand_eye
             return false;
         if (ps_.refresh_xyz())
         {
-            Mat M = ps_.transformation_matrix(z);
-            M.at<double>(0, 2) += z * cv_image->image.cols / 2;
+            Mat M = ps_.transformation_matrix(z_parking_area);
+            M.rowRange(0, 2) *= (z_parking_area / 100.0 * cv_image->image.rows);
+            M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;
             ROS_INFO_STREAM(M);
             warpPerspective(cv_image->image, cv_image->image, M,
-                            cv_image->image.size());
+                            cv_image->image.size(), INTER_LINEAR, BORDER_CONSTANT, Scalar(255, 255, 255));
             imshow("src", cv_image->image);
             waitKey(100);
             return true;
