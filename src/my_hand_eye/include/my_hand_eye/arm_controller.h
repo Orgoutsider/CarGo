@@ -45,7 +45,7 @@ namespace my_hand_eye
         bool find_with_color(vision_msgs::BoundingBox2DArray &objArray, const int color,
                              double z, double &x, double &y);
         // 计算物料转动半径
-        bool calculate_radius_and_speed(double &u, double &v, double &radius, double &speed);
+        bool calculate_radius_and_speed(double &u, double &v, double &x, double &y, double &radius, double &speed);
         bool take_picture(); // 拍照
         // 处理接收的图片，求3物料重心
         bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
@@ -86,7 +86,7 @@ namespace my_hand_eye
         bool remember(double &x, double &y, double &z); // 记忆位置
         // 目标检测到物料并目标追踪
         bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color,
-                   double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image);
+                   double &x, double &y, bool &stop, sensor_msgs::ImagePtr &debug_image);
         bool find_points_with_height(double h, bool done);
         // 椭圆识别，摄像头测试时z无效
         bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,

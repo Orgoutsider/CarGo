@@ -273,10 +273,9 @@ namespace my_hand_eye
         return false;
     }
 
-    bool ArmController::calculate_radius_and_speed(double &u, double &v, double &radius, double &speed)
+    bool ArmController::calculate_radius_and_speed(double &u, double &v, double &x, double &y, double &radius, double &speed)
     {
         tracker_.get_center(u, v);
-        double x, y;
         bool valid = ps_.calculate_cargo_position(u, v, z_turntable, x, y, false);
         if (valid)
         {
@@ -472,7 +471,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::track(const sensor_msgs::ImageConstPtr &image_rect, const int color,
-                              double &u, double &v, bool &stop, sensor_msgs::ImagePtr &debug_image)
+                              double &x, double &y, bool &stop, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
         static int cnt = 0;
@@ -494,7 +493,8 @@ namespace my_hand_eye
         const double PERMIT = 2.5;
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
-        double radius = 0, speed = -1;
+        double radius = 0, speed = -1, u = 0, v = 0;
+        x = y = 0;
         if (!fin)
         {
             vision_msgs::BoundingBox2DArray objArray;
@@ -505,7 +505,7 @@ namespace my_hand_eye
                                      center_x, center_y, show_detections))
             {
                 // 一直使用的原图，只有detect_cargo使用截图
-                calculate_radius_and_speed(u, v, radius, speed);
+                calculate_radius_and_speed(u, v, x, y, radius, speed);
                 first_radius = radius;
                 cargo_is_static(speed, true);
                 fin = true;
@@ -528,7 +528,7 @@ namespace my_hand_eye
                     tracker_.target_init(cv_image_, objArray, color, white_vmin_,
                                          center_x, center_y, show_detections))
                 {
-                    calculate_radius_and_speed(u, v, radius, speed);
+                    calculate_radius_and_speed(u, v, x, y, radius, speed);
                     first_radius = radius;
                     cnt = 0;
                 }
@@ -547,7 +547,7 @@ namespace my_hand_eye
                     cnt = INTERVAL;
                     return false;
                 }
-                if (!calculate_radius_and_speed(u, v, radius, speed))
+                if (!calculate_radius_and_speed(u, v, x, y, radius, speed))
                     return false;
                 if (abs(radius - first_radius) > PERMIT)
                     cnt = INTERVAL;
