@@ -15,9 +15,10 @@ namespace my_hand_eye
         bool _is_rectangle();     // 矩形判断
     public:
         double length; // 边长
+        double area;   // 面积
         Square();
         Square(std::vector<cv::Point> &contour);
-        bool is_square();   // 正方形判断
+        bool is_square();     // 正方形判断
         cv::Point2d center(); // 图形中心点计算
     };
 

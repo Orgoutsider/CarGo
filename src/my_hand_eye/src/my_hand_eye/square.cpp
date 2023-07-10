@@ -8,6 +8,7 @@ namespace my_hand_eye
     {
         cv::approxPolyDP(contour, approx_, cv::arcLength(contour, true) * 0.02, true); // 多边形拟合
         length = cv::arcLength(approx_, true) / 4;
+        area = fabs(cv::contourArea(approx_));
     }
 
     double Square::_cosine(int pt0, int pt1, int pt2)
@@ -35,14 +36,14 @@ namespace my_hand_eye
             maxCosine = MAX(maxCosine, cosine);
         }
         // 轮廓角度的最大余弦，值越小角度越接近90，判断条件越苛刻
-        return maxCosine < 0.85;
+        return maxCosine < 0.83;
     }
 
     bool Square::is_square()
     {
         if (!_is_rectangle())
             return false;
-        return fabs(length * length - fabs(cv::contourArea(approx_))) < length * length / 3.0;
+        return fabs(length * length - area) < length * length / 3.0;
     }
 
     cv::Point2d Square::center()
@@ -60,7 +61,7 @@ namespace my_hand_eye
         {
             Square s(contours[i]);
             // 正方形判断和边长排序（起停区边长30cm）
-            if (fabs(cv::contourArea(contours[i])) > 100 * ratio * ratio && s.is_square() &&
+            if (s.area > 100 * ratio * ratio && s.is_square() &&
                 fabs(s.length - 30 * ratio) < fabs(best.length - 30 * ratio))
             {
                 best = s;
