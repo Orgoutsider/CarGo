@@ -16,7 +16,7 @@ namespace my_hand_eye
         cv::line(mat, pt1, pt2, color, width, cv::LINE_AA);
     }
 
-    cv::Mat Border::saturation(cv::Mat &src, int percent)
+    cv::Mat BorderMethod::saturation(cv::Mat &src, int percent)
     {
         float Increment = percent * 1.0f / 100;
         cv::Mat temp = src.clone();
@@ -119,7 +119,7 @@ namespace my_hand_eye
         return true;
     }
 
-    void LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
+    void BorderMethod::LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
     {
         using namespace cv;
         Mat gray;
@@ -139,7 +139,7 @@ namespace my_hand_eye
         HoughLines(ThreImg, lines, 1, CV_PI / 180, threshold, 0, 0);
     }
 
-    void LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
+    void BorderMethod::LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
     {
         using namespace cv;
         Mat HSVImg;

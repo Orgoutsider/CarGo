@@ -11,7 +11,7 @@
 
 namespace my_hand_eye
 {
-    class ArmController
+    class ArmController : public BorderMethod
     {
     private:
         int current_color_;

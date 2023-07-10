@@ -36,7 +36,7 @@ namespace my_hand_eye
             maxCosine = MAX(maxCosine, cosine);
         }
         // 轮廓角度的最大余弦，值越小角度越接近90，判断条件越苛刻
-        return maxCosine < 0.83;
+        return maxCosine < 0.85;
     }
 
     bool Square::is_square()

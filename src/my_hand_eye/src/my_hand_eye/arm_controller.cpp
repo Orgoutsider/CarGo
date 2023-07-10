@@ -787,7 +787,7 @@ namespace my_hand_eye
             return false;
         cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
-        bool valid = border_.find(cv_image, border, boost::bind(LBD_color_func, _1, _2, threshold),
+        bool valid = border_.find(cv_image, border, boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
                                   show_detections);
         border[0] = border[0] + border_roi_.x * cos(border[1]) + border_roi_.y * sin(border[1]);
         if (valid)
@@ -842,8 +842,8 @@ namespace my_hand_eye
             Mat M = ps_.transformation_matrix(z_parking_area);
             double ratio = z_parking_area / 80.0 * cv_image->image.rows; // 放大倍数
             M.rowRange(0, 2) *= ratio;                                   // 放大
-            ratio /= z_parking_area;
-            M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0; // 平移
+            ratio /= (z_parking_area * 4);                               // 4是图片缩小倍数，用于还原真实坐标
+            M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;   // 平移
             // ROS_INFO_STREAM(M);
             warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size());
             // imshow("src", cv_image->image);
@@ -852,7 +852,10 @@ namespace my_hand_eye
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
             Mat srcgray;
-            cvtColor(cv_image->image, srcgray, COLOR_BGR2GRAY); // 灰度转换
+            srcgray = saturation(cv_image->image, 100);
+            // imshow("saturation", srcgray);
+            // waitKey(1);
+            cvtColor(srcgray, srcgray, COLOR_BGR2GRAY); // 灰度转换
             // imshow("gray", srcgray);
             // waitKey(1);
             Mat srcbinary;
@@ -877,8 +880,8 @@ namespace my_hand_eye
                 {
                     cv::Point2d center = s.best.center();
                     // 计算真实世界中坐标
-                    x = (center.x * 4 - cv_image->image.cols / 2.0) / ratio;
-                    y = (center.y * 4) / ratio;
+                    x = (center.x - cv_image->image.cols / 2.0) / ratio;
+                    y = center.y / ratio;
                     ROS_INFO_STREAM("x:" << x << " y:" << y);
                     if (show_detections && !cv_image->image.empty())
                     {
