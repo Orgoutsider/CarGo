@@ -59,7 +59,7 @@ namespace my_hand_eye
 		arm_controller_.track(image_rect, color, first, x, y, debug_image);
 		if (arm_controller_.show_detections)
 			debug_image_publisher_.publish(debug_image);
-
+		// 
 		// 直接抓取
 		// static bool finish = false;
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
