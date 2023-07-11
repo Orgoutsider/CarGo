@@ -281,6 +281,7 @@ namespace my_hand_eye
         bool valid = ps_.calculate_cargo_position(u, v, z_turntable, x, y, false);
         if (valid)
         {
+            // ROS_INFO_STREAM("(" << x << ", " << y << ")");
             valid = tracker_.calculate_radius_and_speed(x, y, radius, speed_standard_, speed);
         }
         return valid;
@@ -458,12 +459,15 @@ namespace my_hand_eye
             cnt = 0;
             return false;
         }
-        if (speed < 0) //-1
+        if (speed < 0) // -1
+        {
+            cnt = 0;
             return false;
-        if (speed < speed_standard_)
+        }
+        else if (speed < speed_standard_)
         {
             cnt++;
-            return cnt >= 3;
+            return (cnt >= 3);
         }
         else
             cnt = 0;
@@ -480,6 +484,7 @@ namespace my_hand_eye
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
         double radius = 0, speed = -1, u = 0, v = 0;
+        bool rst = false; // 用于重启静止检测
         x = y = 0;
         cv_bridge::CvImagePtr cv_image;
         if (can_catch_ && !stop_) // 抓后重启或第一次
@@ -530,6 +535,7 @@ namespace my_hand_eye
                 calculate_radius_and_speed(u, v, x, y, radius, speed);
                 first_radius = radius;
                 cnt = 0;
+                rst = true;
             }
             else
             {
@@ -569,8 +575,8 @@ namespace my_hand_eye
         }
         if (show_detections)
             pt.push_back(cv::Point(u, v));
-        // ROS_INFO_STREAM("radius:" << radius << " speed:" << speed);
-        if (cargo_is_static(speed, false))
+        // ROS_INFO_STREAM("speed:" << speed);
+        if (cargo_is_static(speed, rst))
         {
             if (tracker_.no_obstacles())
             {
@@ -610,22 +616,22 @@ namespace my_hand_eye
         }
     }
 
-    double ArmController::distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
-                                       double x, double y, double z)
-    {
-        double k = (ARM_P + y) / x;
-        double dist_min = 0;
-        for (int other_color = 1; other_color <= 3; other_color++)
-        {
-            if (other_color == color)
-                continue;
-            double ox = 0, oy = 0;
-            bool valid = find_with_color(objArray, other_color, z, ox, oy);
-            double dist = valid ? abs(ARM_P + oy - k * ox) / sqrt(1 + k * k) : 0;
-            dist_min = dist_min == 0 ? dist : (dist < dist_min ? dist : dist_min);
-        }
-        return dist_min;
-    }
+    // double ArmController::distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
+    //                                    double x, double y, double z)
+    // {
+    //     double k = (ARM_P + y) / x;
+    //     double dist_min = 0;
+    //     for (int other_color = color_red; other_color <= color_blue; other_color++)
+    //     {
+    //         if (other_color == color)
+    //             continue;
+    //         double ox = 0, oy = 0;
+    //         bool valid = find_with_color(objArray, other_color, z, ox, oy);
+    //         double dist = valid ? abs(ARM_P + oy - k * ox) / sqrt(1 + k * k) : 0;
+    //         dist_min = dist_min == 0 ? dist : (dist < dist_min ? dist : dist_min);
+    //     }
+    //     return dist_min;
+    // }
 
     bool ArmController::find_points_with_height(double h, bool done)
     {

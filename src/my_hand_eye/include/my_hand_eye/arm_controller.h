@@ -54,8 +54,8 @@ namespace my_hand_eye
         // 中心点按从左往右排序
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
-        double distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
-                            double x, double y, double z); // 障碍物最短距离
+        // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
+        //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
         bool cargo_is_static(double speed, bool reset);
         bool ellipse_target_find(const sensor_msgs::ImageConstPtr &image_rect,

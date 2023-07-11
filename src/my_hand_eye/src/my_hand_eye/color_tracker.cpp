@@ -160,6 +160,9 @@ namespace my_hand_eye
         else
         {
             ROS_WARN("_set_rect: contours are empty!");
+            imshow("dst", dst); // 用于调试
+            imshow("src", hsv);
+            waitKey(10);
             return false;
         }
     }
@@ -357,11 +360,14 @@ namespace my_hand_eye
             double dt = (this_time_ - last_time_).toSec();
             double d_theta[2];
             d_theta[0] = (this_theta < last_theta) ? last_theta - this_theta : last_theta + CV_PI * 2 - this_theta;
-            d_theta[1] = (this_theta > last_theta) ? this_theta - last_theta : this_theta + CV_PI * 2 - last_theta;
+            d_theta[1] = (this_theta >= last_theta) ? this_theta - last_theta : this_theta + CV_PI * 2 - last_theta;
             last_pt_ = cv::Point2d(x, y);
-            if (d_theta[flag_] <= d_theta[!flag_])
+            if (d_theta[flag_] <= d_theta[!flag_] || d_theta[!flag_] == 0)
             {
-                speed = d_theta[flag_] / dt;
+                if (d_theta[!flag_] == 0)
+                    speed = 0;
+                else
+                    speed = d_theta[flag_] / dt;
                 return true;
             }
             else
@@ -405,20 +411,23 @@ namespace my_hand_eye
     bool ColorTracker::no_obstacles()
     {
         double theta = atan2(last_pt_.y - center_y_, last_pt_.x - center_x_);
+        theta = (theta > CV_PI / 2.0) ? theta - 2 * CV_PI : theta;
         if (left_color)
         {
-            double theta = theta - 2.0 / 3 * CV_PI;
-            double x = center_x_ + radius_ * cos(theta);
-            double y = center_y_ + radius_ * sin(theta);
-            if (x * x + y * y <= last_pt_.x * last_pt_.x + last_pt_.y * last_pt_.y)
+            double t = theta - 2.0 / 3 * CV_PI;
+            t = (t <= -CV_PI * 3 / 2.0) ? t + 2 * CV_PI : t;
+            // ROS_INFO_STREAM("theta " << theta << " " << t);
+            // ROS_INFO_STREAM(abs(t + CV_PI / 2) << " " << abs(theta + CV_PI / 2));
+            if (abs(t + CV_PI / 2) + CV_PI / 3 < abs(theta + CV_PI / 2))
                 return false;
         }
         if (right_color)
         {
-            double theta = theta + 2.0 / 3 * CV_PI;
-            double x = center_x_ + radius_ * cos(theta);
-            double y = center_y_ + radius_ * sin(theta);
-            if (x * x + y * y <= last_pt_.x * last_pt_.x + last_pt_.y * last_pt_.y)
+            double t = theta + 2.0 / 3 * CV_PI;
+            t = (t > CV_PI / 2.0) ? t - 2 * CV_PI : t;
+            // ROS_INFO_STREAM("theta " << theta << " " << t);
+            // ROS_INFO_STREAM(abs(t + CV_PI / 2) << " " << abs(theta + CV_PI / 2));
+            if (abs(t + CV_PI / 2) + CV_PI / 3 < abs(theta + CV_PI / 2))
                 return false;
         }
         return true;
