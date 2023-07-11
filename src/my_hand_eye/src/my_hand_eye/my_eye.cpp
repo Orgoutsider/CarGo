@@ -35,7 +35,6 @@ namespace my_hand_eye
 						 << unsigned(tasks_->loop[1].task[0]) << unsigned(tasks_->loop[1].task[1]) << unsigned(tasks_->loop[1].task[2]));
 		camera_image_subscriber_ =
 			it_->subscribe<MyEye>("image_rect", 1, &MyEye::image_callback, this, image_transport::TransportHints(transport_hint_));
-		task_subscriber_.shutdown();
 	}
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
@@ -53,20 +52,13 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 目标跟踪
-		// static bool stop = false;
-		// int color = color_red;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!stop)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.track(image_rect, color, u, v, stop, debug_image);
-		// 	if (arm_controller_.show_detections)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
-		// else
-		// {
-		// 	stop = false;
-		// }
+		static bool first = true;
+		int color = color_blue;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		double x, y;
+		arm_controller_.track(image_rect, color, first, x, y, debug_image);
+		if (arm_controller_.show_detections)
+			debug_image_publisher_.publish(debug_image);
 
 		// 直接抓取
 		// static bool finish = false;
@@ -102,11 +94,11 @@ namespace my_hand_eye
 		// }
 
 		// 停车区查找
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		double x = 0, y = 0;
-		arm_controller_.find_parking_area(image_rect, x, y, debug_image);
-		if (arm_controller_.show_detections)
-			debug_image_publisher_.publish(debug_image);
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// double x = 0, y = 0;
+		// arm_controller_.find_parking_area(image_rect, x, y, debug_image);
+		// if (arm_controller_.show_detections)
+		// 	debug_image_publisher_.publish(debug_image);
 	}
 
 	void MyEye::execute_callback(const ArmGoalConstPtr &goal)
@@ -124,7 +116,7 @@ namespace my_hand_eye
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 	}
 
-	void MyEye::dr_callback(drConfig& config, uint32_t level)
+	void MyEye::dr_callback(drConfig &config, uint32_t level)
 	{
 		if (arm_controller_.z_parking_area != config.z_parking_area)
 			arm_controller_.z_parking_area = config.z_parking_area;
