@@ -67,16 +67,21 @@ namespace my_hand_eye
         bool _update_time(cv_bridge::CvImage &cv_image);
 
     public:
+        int left_color;  // 左侧颜色
+        int right_color; // 右侧颜色
         ColorTracker();
         void get_center(double &u, double &v);
         bool target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                         const int color, int white_vmin, double center_x, double center_y, 
+                         const int color, int white_vmin, double center_x, double center_y,
                          bool show_detections); // 目标初始化
+        // 颜色顺序初始化
+        bool order_init(vision_msgs::BoundingBox2DArray &objArray, Pos &ps, double z);
         // 目标追踪
         bool target_track(cv_bridge::CvImage &cv_image, Pos &ps, double z);
         // 计算物体半径和速度
         bool calculate_radius_and_speed(double x, double y, double &radius,
                                         double speed_standard, double &speed);
+        bool no_obstacles(); // 无障碍物
     };
 } // namespace my_hand_eye
 

@@ -67,7 +67,8 @@ namespace my_hand_eye
                                    h_max_{10, 10, 85, 124},
                                    s_min_{43, 43, 43, 43},
                                    v_min_{33, 26, 29, 26},
-                                   flag_(false) {}
+                                   flag_(false),
+                                   left_color(0), right_color(0) {}
 
     bool ColorTracker::_set_rect(cv_bridge::CvImage &cv_image, cv::Rect &roi)
     {
@@ -104,8 +105,8 @@ namespace my_hand_eye
         erode(dst, dst, element);
         // if (show_detections_)
         // {
-            // imshow("dst", dst); // 用于调试
-            // waitKey(1);
+        // imshow("dst", dst); // 用于调试
+        // waitKey(1);
         // }
         std::vector<std::vector<cv::Point>> contours;                  // 轮廓容器
         Point2f vtx[4];                                                // 矩形顶点容器
@@ -167,10 +168,10 @@ namespace my_hand_eye
                                           int c_end, int r_end)
     {
         cv::Rect rect_new;
-        rect_new.x = std::max(0, c_start);
-        rect_new.y = std::max(0, r_start);
-        rect_new.width = std::max(0, std::min(cv_image.image.cols, c_end) - rect_new.x);
-        rect_new.height = std::max(0, std::min(cv_image.image.rows, r_end) - rect_new.y);
+        rect_new.x = MAX(0, c_start);
+        rect_new.y = MAX(0, r_start);
+        rect_new.width = MAX(0, std::min(cv_image.image.cols, c_end) - rect_new.x);
+        rect_new.height = MAX(0, std::min(cv_image.image.rows, r_end) - rect_new.y);
         return rect_new;
     }
 
@@ -247,6 +248,66 @@ namespace my_hand_eye
         return false;
     }
 
+    bool ColorTracker::order_init(vision_msgs::BoundingBox2DArray &objArray, Pos &ps, double z)
+    {
+        if (objArray.boxes.size() == 4)
+        {
+            int c[2] = {0};
+            double theta[2] = {0};
+            double theta_n = 0;
+            int cnt = 0;
+            for (int color = color_red; color <= color_blue; color++)
+            {
+                // 不是正要抓的
+                if (color == color_)
+                {
+                    if (!objArray.boxes[color].center.x)
+                        return false;
+                    double u = objArray.boxes[color].center.y;
+                    double v = objArray.boxes[color].center.x;
+                    double x = 0, y = 0;
+                    if (ps.calculate_cargo_position(u, v, z, x, y, false))
+                    {
+                        theta_n = atan2(y - center_y_, x - center_x_);
+                    }
+                    else
+                        return false;
+                    continue;
+                }
+                if (!objArray.boxes[color].center.x)
+                    return false;
+                else
+                {
+                    double u = objArray.boxes[color].center.y;
+                    double v = objArray.boxes[color].center.x;
+                    double x = 0, y = 0;
+                    if (ps.calculate_cargo_position(u, v, z, x, y, false))
+                    {
+                        c[cnt] = color;
+                        theta[cnt++] = atan2(y - center_y_, x - center_x_);
+                    }
+                    else
+                        return false;
+                }
+            }
+            for (int i = 0; i <= 1; i++)
+                theta[i] = theta[i] > theta_n ? theta[i] : theta[i] + 2 * CV_PI;
+            if (theta[0] > theta[1])
+            {
+                right_color = c[1];
+                left_color = c[0];
+            }
+            else
+            {
+                right_color = c[0];
+                left_color = c[1];
+            }
+            return true;
+        }
+        else
+            return false;
+    }
+
     bool ColorTracker::target_track(cv_bridge::CvImage &cv_image, Pos &ps, double z)
     {
         using namespace cv;
@@ -273,8 +334,8 @@ namespace my_hand_eye
             rect_new |= _predict_rect(cv_image, ps, rect_ori, last_theta + d_theta, z, false);
             // if (show_detections_)
             // {
-                // imshow("new", cv_image.image(rect_new));
-                // waitKey(3);
+            // imshow("new", cv_image.image(rect_new));
+            // waitKey(3);
             // }
 
             // 生成新位置
@@ -341,4 +402,25 @@ namespace my_hand_eye
         }
     }
 
+    bool ColorTracker::no_obstacles()
+    {
+        double theta = atan2(last_pt_.y - center_y_, last_pt_.x - center_x_);
+        if (left_color)
+        {
+            double theta = theta - 2.0 / 3 * CV_PI;
+            double x = center_x_ + radius_ * cos(theta);
+            double y = center_y_ + radius_ * sin(theta);
+            if (x * x + y * y <= last_pt_.x * last_pt_.x + last_pt_.y * last_pt_.y)
+                return false;
+        }
+        if (right_color)
+        {
+            double theta = theta + 2.0 / 3 * CV_PI;
+            double x = center_x_ + radius_ * cos(theta);
+            double y = center_y_ + radius_ * sin(theta);
+            if (x * x + y * y <= last_pt_.x * last_pt_.x + last_pt_.y * last_pt_.y)
+                return false;
+        }
+        return true;
+    }
 } // namespace my_hand_eye

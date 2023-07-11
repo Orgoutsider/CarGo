@@ -3,7 +3,8 @@
 namespace my_hand_eye
 {
     ArmController::ArmController()
-        : ps_(&sm_st_, &sc_),
+        : stop_(false), can_catch_(true),
+          ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           threshold(60),
@@ -17,7 +18,8 @@ namespace my_hand_eye
     };
 
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : ps_(&sm_st_, &sc_),
+        : stop_(false), can_catch_(true),
+          ps_(&sm_st_, &sc_),
           default_roi_(0, 0, 1920, 1080),
           border_roi_(320, 0, 1280, 1080),
           threshold(100),
@@ -331,7 +333,7 @@ namespace my_hand_eye
         y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
     }
 
-    bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+    bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color,
                                          bool &finish, sensor_msgs::ImagePtr &debug_image,
                                          bool left, bool hold, bool midpoint)
     {
@@ -339,15 +341,13 @@ namespace my_hand_eye
         if (!cargo_x_.size())
         {
             current_color_ = color;
-            current_z_ = z;
             ps_.reset();
         }
-        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= MAX_SIZE)
+        else if (current_color_ != color || cargo_x_.size() >= MAX_SIZE)
         {
             cargo_x_.clear();
             cargo_y_.clear();
             current_color_ = color;
-            current_z_ = z;
             ps_.reset();
         }
         finish = false;
@@ -356,7 +356,7 @@ namespace my_hand_eye
         if (valid)
         {
             double x = 0, y = 0;
-            if (find_with_color(objArray, current_color_, z, x, y))
+            if (find_with_color(objArray, current_color_, z_turntable, x, y))
             {
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
                 cargo_x_.push_back(x);
@@ -368,9 +368,9 @@ namespace my_hand_eye
                     cargo_x_.clear();
                     cargo_y_.clear();
                     if (midpoint)
-                        valid = ps_.go_to_by_midpoint(x_aver, y_aver, current_z_);
+                        valid = ps_.go_to_by_midpoint(x_aver, y_aver, z_turntable);
                     else
-                        valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, true);
+                        valid = ps_.go_to_and_wait(x_aver, y_aver, z_turntable, true);
                     if (!hold)
                     {
                         if (valid)
@@ -470,115 +470,144 @@ namespace my_hand_eye
         return false;
     }
 
-    bool ArmController::track(const sensor_msgs::ImageConstPtr &image_rect, const int color,
-                              double &x, double &y, bool &stop, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::track(const sensor_msgs::ImageConstPtr &image_rect, const int color, bool &first,
+                              double &x, double &y, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
-        static int cnt = 0;
-        static bool last_stop = true;
-        static bool fin = false;
-        if (last_stop && !stop)
-        {
-            ps_.reset();
-            fin = false;
-            current_color_ = color;
-            last_stop = stop;
-        }
-        else if (current_color_ != color)
-        {
-            current_color_ = color;
-            fin = false;
-        }
         const int INTERVAL = 50; // 间隔一段时间后重新进行目标检测
+        static int cnt = INTERVAL;
         const double PERMIT = 2.5;
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
         double radius = 0, speed = -1, u = 0, v = 0;
         x = y = 0;
-        if (!fin)
+        cv_bridge::CvImagePtr cv_image;
+        if (can_catch_ && !stop_) // 抓后重启或第一次
+        {
+            ps_.reset();
+            current_color_ = color;
+            can_catch_ = false;
+            cnt = INTERVAL;
+        }
+        else if (!can_catch_ && stop_) // 停留不可抓
+        {
+            stop_ = false;
+            cnt = 0;
+        }
+        else if (can_catch_ && stop_) // 不正常状态
+        {
+            ROS_ERROR("track: Invalid status!");
+            stop_ = false;
+            can_catch_ = false;
+            ps_.reset();
+            cnt = INTERVAL;
+            current_color_ = color;
+        }
+        else if (current_color_ != color)
+        {
+            ROS_WARN("Color has changed!");
+            current_color_ = color;
+        }
+        if ((++cnt) > INTERVAL) // 间隔一段时间后重新进行目标检测
         {
             vision_msgs::BoundingBox2DArray objArray;
-            double center_x, center_y;
+            double center_x = 0, center_y = 0;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_center(objArray, center_u, center_v, center_x, center_y, true) &&
                 tracker_.target_init(cv_image_, objArray, color, white_vmin_,
                                      center_x, center_y, show_detections))
             {
-                // 一直使用的原图，只有detect_cargo使用截图
+                if (first)
+                {
+                    if (!tracker_.order_init(objArray, ps_, z_turntable))
+                    {
+                        cnt--;
+                        return false;
+                    }
+                    else
+                        first = false;
+                }
                 calculate_radius_and_speed(u, v, x, y, radius, speed);
                 first_radius = radius;
-                cargo_is_static(speed, true);
-                fin = true;
-                ROS_INFO("Succeeded to find cargo!");
-                // ROS_INFO_STREAM("u:" << u << " v:" << v);
+                cnt = 0;
             }
             else
+            {
+                cnt--;
                 return false;
+            }
         }
         else
         {
-            cv_bridge::CvImagePtr cv_image;
-            if ((++cnt) > INTERVAL) // 间隔一段时间后重新进行目标检测
+            if (!add_image(image_rect, cv_image))
+                return false;
+            if (!tracker_.target_track(*cv_image, ps_, z_turntable))
             {
-                ROS_INFO("Target detect again...");
-                vision_msgs::BoundingBox2DArray objArray;
-                double center_x, center_y;
-                if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                    get_center(objArray, center_u, center_v, center_x, center_y, true) &&
-                    tracker_.target_init(cv_image_, objArray, color, white_vmin_,
-                                         center_x, center_y, show_detections))
+                cnt = INTERVAL;
+                return false;
+            }
+            if (!calculate_radius_and_speed(u, v, x, y, radius, speed))
+                return false;
+            if (abs(radius - first_radius) > PERMIT)
+                cnt = INTERVAL;
+            if (show_detections && !cv_image->image.empty())
+            {
+                // 目标绘制
+                draw_cross(cv_image->image, cv::Point(u, v), Scalar(255, 255, 0), 30, 3);
+                draw_cross(cv_image->image, cv::Point(center_u, center_v), Scalar(255, 255, 255), 30, 3);
+                if (pt.size())
                 {
-                    calculate_radius_and_speed(u, v, x, y, radius, speed);
-                    first_radius = radius;
-                    cnt = 0;
+                    for (int i = 0; i < pt.size() - 1; i++)
+                    {
+                        line(cv_image->image, pt.at(i), pt.at(i + 1), Scalar(0, 255, 0), 2.5);
+                    }
                 }
-                else
-                {
-                    cnt--;
-                    return false;
-                }
+                debug_image = cv_image->toImageMsg();
+                // imshow("img", cv_image->image);
+                // waitKey(20);
+            }
+        }
+        if (show_detections)
+            pt.push_back(cv::Point(u, v));
+        // ROS_INFO_STREAM("radius:" << radius << " speed:" << speed);
+        if (cargo_is_static(speed, false))
+        {
+            if (tracker_.no_obstacles())
+            {
+                stop_ = true;
+                ROS_INFO("There is no obstacles");
+            }
+            else
+                ROS_INFO("There are some obstacles.");
+        }
+        return true;
+    }
+
+    bool ArmController::catch_after_tracking(double x, double y, const int color, bool left, bool &finish)
+    {
+        if (!stop_)
+            return false;
+        else
+        {
+            bool valid = ps_.go_to_and_wait(x, y, z_turntable, true);
+            if (valid)
+            {
+                ps_.go_to_table(false, color, left);
             }
             else
             {
-                if (!add_image(image_rect, cv_image))
-                    return false;
-                if (!tracker_.target_track(*cv_image, ps_, z_turntable))
-                {
-                    cnt = INTERVAL;
-                    return false;
-                }
-                if (!calculate_radius_and_speed(u, v, x, y, radius, speed))
-                    return false;
-                if (abs(radius - first_radius) > PERMIT)
-                    cnt = INTERVAL;
-                if (show_detections && !cv_image->image.empty())
-                {
-                    // 目标绘制
-                    draw_cross(cv_image->image, cv::Point(u, v), Scalar(255, 255, 0), 30, 3);
-                    draw_cross(cv_image->image, cv::Point(center_u, center_v), Scalar(255, 255, 255), 30, 3);
-                    if (pt.size())
-                    {
-                        for (int i = 0; i < pt.size() - 1; i++)
-                        {
-                            line(cv_image->image, pt.at(i), pt.at(i + 1), Scalar(0, 255, 0), 2.5);
-                        }
-                    }
-                    debug_image = cv_image->toImageMsg();
-                    // imshow("img", cv_image->image);
-                    // waitKey(20);
-                }
+                can_catch_ = false;
+                return false;
             }
-            if (show_detections)
-                pt.push_back(cv::Point(u, v));
-            // ROS_INFO_STREAM("radius:" << radius << " speed:" << speed);
-            if (cargo_is_static(speed, false))
-            {
-                ROS_INFO("Cargo is static!");
-                stop = true;
-            }
+            stop_ = false;
+            finish = true;
+            // 此后不再判断对应的颜色是否有障碍物
+            if (tracker_.left_color == color)
+                tracker_.left_color = 0;
+            else if (tracker_.right_color == color)
+                tracker_.right_color = 0;
+            return true;
         }
-        last_stop = stop;
-        return true;
     }
 
     double ArmController::distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
@@ -729,20 +758,18 @@ namespace my_hand_eye
         if (!cargo_x_.size())
         {
             current_color_ = color;
-            current_z_ = z;
             if (!emulation_)
             {
                 ps_.reset();
             }
         }
-        else if (current_color_ != color || current_z_ != z || cargo_x_.size() >= 10)
+        else if (current_color_ != color || cargo_x_.size() >= 10)
         {
             cargo_x_.clear();
             cargo_y_.clear();
             if (!emulation_)
                 ps_.reset();
             current_color_ = color;
-            current_z_ = z;
         }
         finish = false;
         vision_msgs::BoundingBox2DArray objArray;
@@ -756,7 +783,7 @@ namespace my_hand_eye
                     cargo_x_.push_back(x);
                 return valid;
             }
-            if (find_with_color(objArray, color, current_z_, x, y))
+            if (find_with_color(objArray, color, z, x, y))
             {
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
                 cargo_x_.push_back(x);
@@ -767,7 +794,7 @@ namespace my_hand_eye
                     average_position(x_aver, y_aver);
                     cargo_x_.clear();
                     cargo_y_.clear();
-                    valid = ps_.go_to_and_wait(x_aver, y_aver, current_z_, false);
+                    valid = ps_.go_to_and_wait(x_aver, y_aver, z, false);
                     ps_.reset();
                 }
             }

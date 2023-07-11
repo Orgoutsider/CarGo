@@ -15,9 +15,10 @@ namespace my_hand_eye
     {
     private:
         int current_color_;
-        double current_z_;
         double speed_standard_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         bool emulation_;        // 是否进行仿真或摄像头测试
+        bool stop_;             // 用于颜色追踪，物料是否已停
+        bool can_catch_;        // 用于颜色追踪，物料是否可以抓取
         EllipseColor ellipse_color_order_[4];
         ColorTracker tracker_;
         Border border_;
@@ -78,15 +79,17 @@ namespace my_hand_eye
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
                                        double correct_x, double correct_y, double correct_z, int color,
                                        sensor_msgs::ImagePtr &debug_image);
-        bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+        bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color,
                               bool &finish, sensor_msgs::ImagePtr &debug_image, bool left, bool hold = false,
                               bool midpoint = false);
         // bool catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
         // bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool remember(double &x, double &y, double &z); // 记忆位置
         // 目标检测到物料并目标追踪
-        bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color,
-                   double &x, double &y, bool &stop, sensor_msgs::ImagePtr &debug_image);
+        bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color, bool &first, 
+                   double &x, double &y, sensor_msgs::ImagePtr &debug_image);
+        // 跟踪后抓取，配合catch()使用
+        bool catch_after_tracking(double x, double y, const int color, bool left, bool &finish);
         bool find_points_with_height(double h, bool done);
         // 椭圆识别，摄像头测试时z无效
         bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
