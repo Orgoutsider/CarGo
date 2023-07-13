@@ -23,7 +23,7 @@ namespace my_hand_eye
         ROS_INFO_STREAM("Loaded servo desciptions id: 6, speed: " << Speed << ", acc: " << (int)servo_description["acc"]);
     }
 
-    void CargoTable::put_next(int color)
+    void CargoTable::put_next(const Color color)
     {
         where_last_ = where_;
         if ((++where_) >= what_color_.size())
@@ -98,7 +98,7 @@ namespace my_hand_eye
         }
     }
 
-    void CargoTable::get_color(int color)
+    void CargoTable::get_color(const Color color)
     {
         where_last_ = where_;
         try

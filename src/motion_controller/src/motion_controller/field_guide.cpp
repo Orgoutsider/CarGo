@@ -17,7 +17,7 @@ namespace motion_controller
         y_roughing_area_(1.15), x_semi_finishing_area_(1.2),
         length_parking_area_(0.3), y_road_up_up_(0.078), y_parking_area_(0.7) {}
 
-  int FieldGuide::where_is_car()
+  Route FieldGuide::where_is_car()
   {
     return route_[where_];
   }

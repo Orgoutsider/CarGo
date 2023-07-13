@@ -9,6 +9,13 @@
 
 namespace my_hand_eye
 {
+    enum Color
+    {
+        color_red = 1,
+        color_green,
+        color_blue
+    };
+
     class CargoTable
     {
     private:
@@ -24,12 +31,12 @@ namespace my_hand_eye
     public:
         CargoTable(SMS_STS *sm_st_ptr);
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_description); // 获取速度加速度
-        void put_next(int color);                                       // 移动至下一个位置并记录颜色
+        void put_next(const Color color);                                       // 移动至下一个位置并记录颜色
         bool is_moving();                                               // 是否运动
         bool arrived();                                                 // 是否到达下一位置
         double calculate_time();                                        // 计算运动时间
         void get_next();                                                // 取下一个位置的物料
-        void get_color(int color);                                               // 取特定颜色的物料
+        void get_color(const Color color);                                               // 取特定颜色的物料
     };
 } // namespace my_hand_eye
 

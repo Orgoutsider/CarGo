@@ -94,7 +94,7 @@ namespace my_hand_eye
         bool look_down();                                            // 查看左侧车道线
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
-        bool go_to_table(bool cat, int color, bool left);
+        bool go_to_table(bool cat, Color color, bool left);
         bool show_voltage();                     // 显示电压，需要时警告
         bool read_all_position();                // 读所有舵机正确位置
         bool refresh_xyz(bool read = true);      // 更新位置

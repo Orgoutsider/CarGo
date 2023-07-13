@@ -49,7 +49,7 @@ namespace my_hand_eye
         cv::Rect2d rect_; // CamShift算法要求要把目标物体的矩形框传递进来
         void get_center(double &u, double &v);
         bool target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                         const int color, int method = tracker_CRST); // 目标初始化
+                         const Color color, int method = tracker_CRST); // 目标初始化
         //  目标追踪
         bool target_track(cv_bridge::CvImage &cv_image);
 
@@ -62,13 +62,13 @@ namespace my_hand_eye
     {
     private:
         cv::Ptr<cv::MultiTracker> multi_tracker_ptr_;
-        int color_now_;
+        Color color_now_;
         std::array<cv::Point2d, 4> last_pt_arr_;
 
     public:
         MultiTracker();
         bool init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                  const int color, int method = tracker_CRST); // 目标初始化
+                  const Color color, int method = tracker_CRST); // 目标初始化
         //  目标追踪
         void tracking(cv_bridge::CvImage &cv_image);
         // 计算物体速度

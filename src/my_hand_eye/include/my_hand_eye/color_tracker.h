@@ -11,12 +11,6 @@
 
 namespace my_hand_eye
 {
-    enum
-    {
-        color_red = 1,
-        color_green,
-        color_blue
-    };
 
     class ColorMethod
     {
@@ -43,7 +37,7 @@ namespace my_hand_eye
         ros::Time this_time_;
         double gain_;      // 矩形框扩大
         double speed_max_; // 最高速度
-        int color_;        // 当前寻找颜色
+        Color color_;      // 当前寻找颜色
         const int h_max_[4];
         const int h_min_[4];
         const int s_min_[4];
@@ -72,7 +66,7 @@ namespace my_hand_eye
         ColorTracker();
         void get_center(double &u, double &v);
         bool target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                         const int color, int white_vmin, double center_x, double center_y,
+                         const Color color, int white_vmin, double center_x, double center_y,
                          bool show_detections); // 目标初始化
         // 颜色顺序初始化
         bool order_init(vision_msgs::BoundingBox2DArray &objArray, Pos &ps, double z);

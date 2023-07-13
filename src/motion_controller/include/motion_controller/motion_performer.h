@@ -10,17 +10,16 @@
 
 namespace motion_controller
 {
-    enum
-    {
-        level_line,
-        level_vision,
-        level_service
-    };
-
     class MotionPerformer
     {
     private:
-        int level_; // 当前接受的消息优先级，service最高，vision次之
+        enum Level
+        {
+            level_line,
+            level_vision,
+            level_service
+        };
+        Level level_; // 当前接受的消息优先级，service最高，vision次之
         boost::mutex mtx_;
         ros::Publisher publisher_;
         ros::Subscriber subscriber_line_;

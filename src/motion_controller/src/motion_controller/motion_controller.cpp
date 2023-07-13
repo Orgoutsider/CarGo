@@ -104,7 +104,7 @@ namespace motion_controller
             if (follower_.param_modification)
             {
                 if (!follower_.has_started && follower_.motor_status)
-                {   
+                {
                     set_position(0, 0, 0);
                     follower_.start(true, theta_);
                 }
@@ -147,7 +147,6 @@ namespace motion_controller
                         break;
 
                     default:
-                        ROS_ERROR("where_is_car returns invalid value!");
                         return;
                     }
                     ac_arm_.sendGoal(goal, boost::bind(&MotionController::_done_callback, this, _1, _2),

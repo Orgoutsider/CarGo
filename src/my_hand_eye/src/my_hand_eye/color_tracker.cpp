@@ -221,7 +221,7 @@ namespace my_hand_eye
     }
 
     bool ColorTracker::target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
-                                   const int color, int white_vmin, double center_x, double center_y,
+                                   const Color color, int white_vmin, double center_x, double center_y,
                                    bool show_detections)
     {
         using namespace cv;

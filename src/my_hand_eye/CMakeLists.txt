@@ -66,6 +66,7 @@ add_message_files(
   ArrayofTaskArrays.msg
   Point.msg
   PointArray.msg
+  Pose2DMightEnd.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -160,6 +161,7 @@ add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/pose.cpp 
   src/${PROJECT_NAME}/my_eye.cpp
   src/${PROJECT_NAME}/square.cpp
+  src/${PROJECT_NAME}/target_pose.cpp
   src/${PROJECT_NAME}/SCS.cpp 
   src/${PROJECT_NAME}/SCSCL.cpp 
   src/${PROJECT_NAME}/SCSerial.cpp 

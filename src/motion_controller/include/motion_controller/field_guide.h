@@ -5,7 +5,7 @@
 
 namespace motion_controller
 {
-    enum
+    enum Route
     {
         route_QR_code_board,
         route_raw_material_area,
@@ -19,7 +19,7 @@ namespace motion_controller
     private:
         bool doing_;
         int where_; // route索引
-        std::array<int, 8> route_;
+        std::array<Route, 8> route_;
         double length_field_; // 场地（车道部分）长宽
         double x_raw_material_area_;
         double y_roughing_area_;
@@ -38,7 +38,7 @@ namespace motion_controller
         double x_QR_code_board_;     // 二维码板
         double y_parking_area_;      // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
         FieldGuide();
-        int where_is_car();
+        Route where_is_car();
         // 当前任务正在完成，不可接下一任务
         void doing();
         // 当前任务已完成，接下一任务，更新loop_

@@ -60,7 +60,6 @@ find_package(OpenCV REQUIRED)
 add_message_files(
   FILES
   TwistMightEnd.msg
-  Pose2DMightEnd.msg
 )
 
 ## Generate services in the 'srv' folder

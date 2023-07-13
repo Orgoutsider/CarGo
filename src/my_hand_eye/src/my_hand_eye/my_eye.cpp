@@ -3,13 +3,16 @@
 namespace my_hand_eye
 {
 	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-		: arm_controller_(nh, pnh),
+		: motor_status_(false), finish_(true), arm_controller_(nh, pnh),
 		  as_(nh, "Arm", boost::bind(&MyEye::execute_callback, this, _1), false)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
 		pnh.param<std::string>("transport_hint", transport_hint_, "raw");
 		pnh.param<bool>("show_detections", arm_controller_.show_detections, false);
+		pnh.param<bool>("param_modification", param_modification_, false);
+		if (param_modification_)
+			dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
 		bool if_detect_QR_code = pnh.param<bool>("if_detect_QR_code", true);
 		if (if_detect_QR_code)
 			task_subscriber_ = nh.subscribe<my_hand_eye::ArrayofTaskArrays>(
@@ -24,7 +27,6 @@ namespace my_hand_eye
 		}
 		as_.registerPreemptCallback(boost::bind(&MyEye::preempt_callback, this));
 		as_.start();
-		dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
 	}
 
 	void MyEye::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
@@ -39,6 +41,11 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		bool valid = operate_raw_material_area(image_rect, debug_image);
+		if (valid && arm_controller_.show_detections)
+			debug_image_publisher_.publish(debug_image);
+
 		// // 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_green, debug_image, true);
@@ -52,14 +59,14 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 目标跟踪
-		static bool first = true;
-		int color = color_blue;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		double x, y;
-		arm_controller_.track(image_rect, color, first, x, y, debug_image);
-		if (arm_controller_.show_detections)
-			debug_image_publisher_.publish(debug_image);
-		// 
+		// static bool first = true;
+		// Color color = color_blue;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// double x, y;
+		// arm_controller_.track(image_rect, color, first, x, y, debug_image);
+		// if (arm_controller_.show_detections)
+		// 	debug_image_publisher_.publish(debug_image);
+		//
 		// 直接抓取
 		// static bool finish = false;
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -116,11 +123,78 @@ namespace my_hand_eye
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 	}
 
+	bool MyEye::operate_raw_material_area(const sensor_msgs::ImageConstPtr &image_rect,
+										  sensor_msgs::ImagePtr &debug_image)
+	{
+		static bool last_finish = true;
+		if (last_finish && !finish_)
+		{
+			finish_adjusting_ = false;
+		}
+		else if (!last_finish && finish_)
+		{
+			if (!finish_adjusting_)
+				finish_adjusting_ = true;
+			last_finish = finish_;
+			return true;
+		}
+		else if (finish_) // 前后一样完成就不用赋值了
+		{
+			ros::Duration(0.1).sleep();
+			return true;
+		}
+		bool valid = true;
+		static bool first = false;
+		if (!finish_adjusting_)
+		{
+			Pose2DMightEnd msg;
+			valid = arm_controller_.find_center(image_rect, msg, debug_image);
+			if (valid)
+			{
+				if (msg.end)
+				{
+					finish_adjusting_ = true;
+				}
+				pose_publisher_.publish(msg);
+			}
+		}
+		else if (!param_modification_)
+		{
+			// valid = arm_controller_.track(image_rect, )
+		}
+		last_finish = finish_;
+		return valid;
+	}
+
 	void MyEye::dr_callback(drConfig &config, uint32_t level)
 	{
 		if (arm_controller_.z_parking_area != config.z_parking_area)
 			arm_controller_.z_parking_area = config.z_parking_area;
 		if (arm_controller_.threshold != config.threshold)
 			arm_controller_.threshold = config.threshold;
+		if (arm_controller_.target_pose.pose[config.target].x != config.target_x)
+			arm_controller_.target_pose.pose[config.target].x = config.target_x;
+		if (arm_controller_.target_pose.pose[config.target].y != config.target_y)
+			arm_controller_.target_pose.pose[config.target].y = config.target_y;
+		if (arm_controller_.target_pose.pose[config.target].theta !=
+			config.target_theta_deg / 180 * CV_PI)
+			arm_controller_.target_pose.pose[config.target].y =
+				config.target_theta_deg / 180 * CV_PI;
+		if (motor_status_ != config.motor_status)
+		{
+			motor_status_ = config.motor_status;
+			if (motor_status_)
+			{
+				if (finish_)
+					finish_ = false;
+			}
+			else if (!finish_)
+			{
+				Pose2DMightEnd msg;
+				msg.end = true;
+				pose_publisher_.publish(msg);
+				finish_ = true;
+			}
+		}
 	}
 } // namespace my_hand_eye

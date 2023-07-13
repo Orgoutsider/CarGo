@@ -198,7 +198,7 @@ namespace my_hand_eye
             return false;
     }
 
-    bool ArmController::log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
+    bool ArmController::log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
                                      sensor_msgs::ImagePtr &debug_image, bool center)
     {
         static bool flag = false; // 尚未初始化位姿
@@ -232,7 +232,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
-                                                  double correct_x, double correct_y, double correct_z, int color,
+                                                  double correct_x, double correct_y, double correct_z, Color color,
                                                   sensor_msgs::ImagePtr &debug_image)
     {
         // OpenCV(4.1.1) /home/nvidia/host/build_opencv/nv_opencv/modules/core/src/arithm.cpp:663: error: (-209:Sizes of input arguments do not match) The operation is neither 'array op array' (where arrays have the same size and the same number of channels), nor 'array op scalar', nor 'scalar op array' in function 'arithm_op'
@@ -262,7 +262,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::find_with_color(vision_msgs::BoundingBox2DArray &objArray, const int color, double z, double &x, double &y)
+    bool ArmController::find_with_color(vision_msgs::BoundingBox2DArray &objArray, const Color color, double z, double &x, double &y)
     {
         if (objArray.boxes.size() == 4)
         {
@@ -334,7 +334,7 @@ namespace my_hand_eye
         y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
     }
 
-    bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color,
+    bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                                          bool &finish, sensor_msgs::ImagePtr &debug_image,
                                          bool left, bool hold, bool midpoint)
     {
@@ -389,7 +389,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    // bool ArmController::catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+    // bool ArmController::catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
     //                                        bool &finish, sensor_msgs::ImagePtr &debug_image)
     // {
     //     if (!cargo_x_.size())
@@ -474,7 +474,7 @@ namespace my_hand_eye
         return false;
     }
 
-    bool ArmController::track(const sensor_msgs::ImageConstPtr &image_rect, const int color, bool &first,
+    bool ArmController::track(const sensor_msgs::ImageConstPtr &image_rect, const Color color, bool &first,
                               double &x, double &y, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
@@ -589,7 +589,7 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::catch_after_tracking(double x, double y, const int color, bool left, bool &finish)
+    bool ArmController::catch_after_tracking(double x, double y, const Color color, bool left, bool &finish)
     {
         if (!stop_)
             return false;
@@ -616,7 +616,7 @@ namespace my_hand_eye
         }
     }
 
-    // double ArmController::distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
+    // double ArmController::distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
     //                                    double x, double y, double z)
     // {
     //     double k = (ARM_P + y) / x;
@@ -758,7 +758,7 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+    bool ArmController::put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
                                          bool &finish, sensor_msgs::ImagePtr &debug_image)
     {
         if (!cargo_x_.size())
@@ -808,13 +808,14 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, double &distance, double &yaw,
-                                    bool &finish, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                                    sensor_msgs::ImagePtr &debug_image)
     {
         static bool last_finish = true;
-        if (!finish && last_finish)
+        double distance = 0, yaw = 0;
+        if (!msg.end && last_finish)
             ps_.look_down();
-        last_finish = finish;
+        last_finish = msg.end;
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;
@@ -837,17 +838,22 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::find_center(const sensor_msgs::ImageConstPtr &image_rect, double &x, double &y,
-                                    bool &finish, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::find_center(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                                    sensor_msgs::ImagePtr &debug_image)
     {
         static bool last_finish = true;
-        if (!finish && last_finish)
+        if (!msg.end && last_finish)
             ps_.reset();
-        last_finish = finish;
+        last_finish = msg.end;
         vision_msgs::BoundingBox2DArray objArray;
         double center_u, center_v;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                     get_center(objArray, center_u, center_v, x, y);
+                     get_center(objArray, center_u, center_v, msg.pose.x, msg.pose.y);
+        if (valid)
+        {
+            target_pose.calc(msg, target_pose.target_center);
+            msg.header = image_rect->header;
+        }
         if (valid && show_detections && !cv_image_.image.empty())
         {
             draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
@@ -856,8 +862,8 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
-                                          double &x, double &y, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                                          sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
         static bool flag = true;
@@ -867,7 +873,6 @@ namespace my_hand_eye
             ps_.reset();
         }
         cv_bridge::CvImagePtr cv_image;
-        x = y = 0;
         if (!add_image(image_rect, cv_image))
             return false;
         if (ps_.refresh_xyz())
@@ -913,9 +918,10 @@ namespace my_hand_eye
                 {
                     cv::Point2d center = s.best.center();
                     // 计算真实世界中坐标
-                    x = (center.x - cv_image->image.cols / 2.0) / ratio;
-                    y = center.y / ratio;
-                    ROS_INFO_STREAM("x:" << x << " y:" << y);
+                    msg.pose.x = (center.x - cv_image->image.cols / 2.0) / ratio;
+                    msg.pose.y = center.y / ratio;
+                    // msg.pose.theta
+                    ROS_INFO_STREAM("x:" << msg.pose.x << " y:" << msg.pose.x);
                     if (show_detections && !cv_image->image.empty())
                     {
                         drawContours(cv_image->image, contours, s.best_id, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓

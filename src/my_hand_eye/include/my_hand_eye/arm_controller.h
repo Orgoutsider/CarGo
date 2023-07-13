@@ -3,22 +3,25 @@
 #include "my_hand_eye/square.h"
 #include "my_hand_eye/ellipse.h"
 #include "my_hand_eye/border.h"
+#include "my_hand_eye/target_pose.h"
 
-#include <yolov5_ros/cargoSrv.h>
 #include <XmlRpcException.h>
 #include <sensor_msgs/Image.h>
 #include <image_transport/image_transport.h>
+#include <yolov5_ros/cargoSrv.h>
 
 namespace my_hand_eye
 {
     class ArmController : public BorderMethod
     {
     private:
-        int current_color_;
         double speed_standard_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         bool emulation_;        // 是否进行仿真或摄像头测试
         bool stop_;             // 用于颜色追踪，物料是否已停
         bool can_catch_;        // 用于颜色追踪，物料是否可以抓取
+        int white_vmin_;        // 用于滤除白色
+        Pos ps_;
+        Color current_color_;
         EllipseColor ellipse_color_order_[4];
         ColorTracker tracker_;
         Border border_;
@@ -43,7 +46,7 @@ namespace my_hand_eye
         bool detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
                           sensor_msgs::ImagePtr &debug_image, cv::Rect &rect); // 向物块检测服务器发送请求
         // 处理接收的图片，通过颜色确定位置，注意objArray中的数据对应的是原图
-        bool find_with_color(vision_msgs::BoundingBox2DArray &objArray, const int color,
+        bool find_with_color(vision_msgs::BoundingBox2DArray &objArray, const Color color,
                              double z, double &x, double &y);
         // 计算物料转动半径
         bool calculate_radius_and_speed(double &u, double &v, double &x, double &y, double &radius, double &speed);
@@ -54,7 +57,7 @@ namespace my_hand_eye
         // 中心点按从左往右排序
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
-        // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const int color,
+        // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
         bool cargo_is_static(double speed, bool reset);
@@ -66,43 +69,42 @@ namespace my_hand_eye
         ArmController();
         ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~ArmController();
-        Pos ps_;
-        int white_vmin_;
+        TargetPose target_pose; // 用于视觉位姿调节
         // double proportion_; // 杂色所占的比例
         const double z_turntable;
         double z_parking_area;
         int threshold;
         bool show_detections;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
-        bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, int color,
+        bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
                           sensor_msgs::ImagePtr &debug_image, bool center = false);
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
-                                       double correct_x, double correct_y, double correct_z, int color,
+                                       double correct_x, double correct_y, double correct_z, Color color,
                                        sensor_msgs::ImagePtr &debug_image);
-        bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const int color,
+        bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                               bool &finish, sensor_msgs::ImagePtr &debug_image, bool left, bool hold = false,
                               bool midpoint = false);
-        // bool catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+        // bool catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
         // bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool remember(double &x, double &y, double &z); // 记忆位置
         // 目标检测到物料并目标追踪
-        bool track(const sensor_msgs::ImageConstPtr &image_rect, const int color, bool &first, 
+        bool track(const sensor_msgs::ImageConstPtr &image_rect, const Color color, bool &first,
                    double &x, double &y, sensor_msgs::ImagePtr &debug_image);
         // 跟踪后抓取，配合catch()使用
-        bool catch_after_tracking(double x, double y, const int color, bool left, bool &finish);
+        bool catch_after_tracking(double x, double y, const Color color, bool left, bool &finish);
         bool find_points_with_height(double h, bool done);
         // 椭圆识别，摄像头测试时z无效
-        bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const int color, double z,
+        bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
                               bool &finish, sensor_msgs::ImagePtr &debug_image);
         // 计算边界线位置
-        bool find_border(const sensor_msgs::ImageConstPtr &image_rect, double &distance, double &yaw,
-                         bool &finish, sensor_msgs::ImagePtr &debug_image);
+        bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                         sensor_msgs::ImagePtr &debug_image);
         // 计算圆盘中心点位置
-        bool find_center(const sensor_msgs::ImageConstPtr &image_rect, double &x, double &y,
-                         bool &finish, sensor_msgs::ImagePtr &debug_image);
+        bool find_center(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                         sensor_msgs::ImagePtr &debug_image);
         // 计算停车区位置
-        bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
-                               double &x, double &y, sensor_msgs::ImagePtr &debug_image);
+        bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                               sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye
 

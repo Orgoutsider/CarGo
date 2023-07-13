@@ -308,7 +308,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::go_to_table(bool cat, int color, bool left)
+    bool Pos::go_to_table(bool cat, Color color, bool left)
     {
         this->x = left ? action_right.x : action_back.x;
         this->y = left ? action_right.y : action_back.y;
