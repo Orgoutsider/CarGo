@@ -57,6 +57,7 @@ namespace motion_controller
         static bool flag = false;
         static bool rst = true;
         geometry_msgs::Pose2D pose = msg->pose;
+        double change;
         if (msg->end)
         {
             TwistMightEnd tme;
@@ -65,9 +66,19 @@ namespace motion_controller
             cmd_vel_publisher_.publish(tme);
             if (flag)
                 flag = false;
+            if (!rst)
+                rst = true;
             return;
         }
-        double change;
+        else if (msg->pose.x == msg->not_change && msg->pose.y == msg->not_change &&
+                 msg->pose.theta == msg->not_change)
+        {
+            TwistMightEnd tme;
+            tme.end = false;
+            tme.velocity = geometry_msgs::Twist();
+            cmd_vel_publisher_.publish(tme);
+            return;
+        }
         if (flag)
         {
             _get_change(change);
@@ -79,12 +90,14 @@ namespace motion_controller
 
             case not_change_x:
                 pose.x = change;
+                break;
 
             case not_change_y:
                 pose.y = change;
+                break;
 
             default:
-                break;
+                return;
             }
         }
         else if (rst)
@@ -114,6 +127,7 @@ namespace motion_controller
                                      {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                      {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
                                      {0.005, 0.005, 0.01}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
+            rst = false;
             if (flag)
             {
                 switch (not_change_)
@@ -140,6 +154,7 @@ namespace motion_controller
         if (eye_pid_.update({pose.x, pose.y, pose.theta}, msg->header.stamp,
                             controll, success))
         {
+            ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
             TwistMightEnd tme;
             tme.end = false;
             tme.velocity.linear.x = controll[0];

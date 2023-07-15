@@ -3,7 +3,7 @@
 namespace my_hand_eye
 {
 	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-		: motor_status_(false), finish_(true), arm_controller_(nh, pnh),
+		: motor_status_(false), finish_(true), finish_adjusting_(true), arm_controller_(nh, pnh),
 		  as_(nh, "Arm", boost::bind(&MyEye::execute_callback, this, _1), false)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
@@ -20,6 +20,7 @@ namespace my_hand_eye
 		else
 			camera_image_subscriber_ =
 				it_->subscribe<MyEye>("image_rect", 1, &MyEye::image_callback, this, image_transport::TransportHints(transport_hint_));
+		pose_publisher_ = nh.advertise<Pose2DMightEnd>("/vision_eye", 3);
 		if (arm_controller_.show_detections)
 		{
 			ROS_INFO("show debug image...");
@@ -130,12 +131,15 @@ namespace my_hand_eye
 		if (last_finish && !finish_)
 		{
 			finish_adjusting_ = false;
+			ROS_INFO("Start operate raw material area...");
 		}
 		else if (!last_finish && finish_)
 		{
 			if (!finish_adjusting_)
 				finish_adjusting_ = true;
 			last_finish = finish_;
+			if (param_modification_)
+				ROS_INFO("Finish operate raw material area...");
 			return true;
 		}
 		else if (finish_) // 前后一样完成就不用赋值了
@@ -147,13 +151,31 @@ namespace my_hand_eye
 		static bool first = false;
 		if (!finish_adjusting_)
 		{
+			static int err_cnt = 0;
 			Pose2DMightEnd msg;
+			msg.end = finish_adjusting_;
 			valid = arm_controller_.find_center(image_rect, msg, debug_image);
 			if (valid)
 			{
 				if (msg.end)
 				{
 					finish_adjusting_ = true;
+				}
+				pose_publisher_.publish(msg);
+				if (err_cnt)
+					err_cnt = 0;
+			}
+			else
+			{
+				// 发送此数据表示车辆即刻停止，重新寻找定位物体
+				msg.pose.x = msg.not_change;
+				msg.pose.y = msg.not_change;
+				msg.pose.theta = msg.not_change;
+				if ((++err_cnt) > 5)
+				{
+					finish_adjusting_ = true;
+					msg.end = finish_adjusting_;
+					ROS_WARN("Could not find 3 cargos. Try to catch...");
 				}
 				pose_publisher_.publish(msg);
 			}
@@ -178,7 +200,7 @@ namespace my_hand_eye
 			arm_controller_.target_pose.pose[config.target].y = config.target_y;
 		if (arm_controller_.target_pose.pose[config.target].theta !=
 			config.target_theta_deg / 180 * CV_PI)
-			arm_controller_.target_pose.pose[config.target].y =
+			arm_controller_.target_pose.pose[config.target].theta =
 				config.target_theta_deg / 180 * CV_PI;
 		if (motor_status_ != config.motor_status)
 		{
@@ -186,7 +208,9 @@ namespace my_hand_eye
 			if (motor_status_)
 			{
 				if (finish_)
+				{
 					finish_ = false;
+				}
 			}
 			else if (!finish_)
 			{
