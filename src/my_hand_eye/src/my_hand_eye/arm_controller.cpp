@@ -844,11 +844,10 @@ namespace my_hand_eye
         static bool last_finish = true;
         if (!msg.end && last_finish)
             ps_.reset();
-        last_finish = msg.end;
         vision_msgs::BoundingBox2DArray objArray;
         double center_u, center_v;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                     get_center(objArray, center_u, center_v, msg.pose.x, msg.pose.y);
+                     get_center(objArray, center_u, center_v, msg.pose.x, msg.pose.y, true);
         if (valid)
         {
             target_pose.calc(msg, target_pose.target_center);
@@ -859,6 +858,7 @@ namespace my_hand_eye
             draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
             debug_image = cv_image_.toImageMsg();
         }
+        last_finish = msg.end;
         return valid;
     }
 

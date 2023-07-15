@@ -5,21 +5,27 @@
     <include file="$(find motion_controller)/launch/nodes/performer.launch" />
     <!-- 选择调节pid的节点 -->
     <!-- 循线节点 -->
-    <include file="$(find motion_controller)/launch/nodes/controller.launch">
+    <!-- <include file="$(find motion_controller)/launch/nodes/controller.launch">
+        <arg name="param_modification" value="true" />
+    </include> -->
+
+    <!-- 视觉节点 -->
+    <!-- 机械臂节点 -->
+    <include file="$(find my_hand_eye)/launch/do.launch">
+        <arg name="node_namespace" value="my_hand_eye_do_node" />
+        <arg name="ft_servo" value="ft_servo" />
+        <arg name="show_detections" value="true" />
+        <arg name="camera_name" value="/eye" />
+        <arg name="nodelet_manager" value="my_hand_eye_manager" />
+        <arg name="if_detect_QR_code" value="false" />
+        <arg name="if_emulation" value="false" />
+        <arg name="param_modification" value="true" />
+    </include>
+    <!-- 开启视觉pid节点 -->
+    <include file="$(find motion_controller)/launch/nodes/adjuster.launch">
         <arg name="param_modification" value="true" />
     </include>
 
-    <!-- 弯道节点 -->
-    <!-- 开启摄像头 -->
-    <!-- <include file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch" /> -->
-    <!-- 开启视觉pid节点 -->
-    <!-- <include file="$(find motion_controller)/launch/nodes/adjuster.launch" >
-        <arg name="param_modification" value="true" />
-    </include>
-    <include file="$(find motion_controller)/launch/nodes/controller.launch">
-        <arg name="param_modification" value="true" />
-    </include> -->
-    
     <!-- 服务节点 -->
     <!-- <include file="$(find motion_controller)/launch/nodes/server.launch">
         <arg name="param_modification" value="true" />

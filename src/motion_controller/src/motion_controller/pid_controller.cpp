@@ -29,17 +29,17 @@ namespace motion_controller
             ROS_ERROR("invalid size of current!");
             return false;
         }
+        if (!controll.empty())
+            controll.clear();
         if (last_time_.is_zero())
         {
             // PID第一次被调用，我们还不知道时间差
             // 没有控制信号被应用
             last_time_ = now;
             // 第一次的controll不能用！
-            controll = target_;
+            controll.resize(target_.size(), 0.0);
             return false;
         }
-        if (!controll.empty())
-            controll.clear();
         controll.reserve(target_.size());
         success = true;
         try
