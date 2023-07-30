@@ -2,9 +2,9 @@
 #define _BACKWARD_KINEMATICS_H_
 
 // ARM_P > ARM_A0
-#define ARM_P 14.806
+#define ARM_P 14.006
 #define ARM_A0 9.8
-#define ARM_A1 20.936
+#define ARM_A1 19.445
 #define ARM_A2 13.626
 #define ARM_A3 12.524
 #define ARM_A4 13.06707

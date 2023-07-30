@@ -144,9 +144,10 @@ class turn_on_robot
 		//速度话题订阅回调函数
 		void Cmd_Vel_Callback(const geometry_msgs::Twist &twist_aux);              
 
-		ros::Publisher odom_publisher, imu_publisher, voltage_publisher; //Initialize the topic publisher //初始化话题发布者
+		// ros::Publisher odom_publisher, imu_publisher, voltage_publisher; //Initialize the topic publisher //初始化话题发布者
+		ros::Publisher odom_publisher, voltage_publisher; //Initialize the topic publisher //初始化话题发布者
 		void Publish_Odom();      //Pub the speedometer topic //发布里程计话题
-		void Publish_ImuSensor(); //Pub the IMU sensor topic //发布IMU传感器话题
+		// void Publish_ImuSensor(); //Pub the IMU sensor topic //发布IMU传感器话题
 		void Publish_Voltage();   //Pub the power supply voltage topic //发布电源电压话题
 
         //从串口(ttyUSB)读取运动底盘速度、IMU、电源电压数据

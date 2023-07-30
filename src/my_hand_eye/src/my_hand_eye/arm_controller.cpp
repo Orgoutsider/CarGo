@@ -10,8 +10,8 @@ namespace my_hand_eye
           threshold(60),
           z_parking_area(1.524628),
           z_turntable(14.4654) // 比赛转盘，抓取范围17.3到34
-    //   z_turntable(16.4750)// 老转盘
-    //   z_turntable(15.57)  // 新转盘
+    //   z_turntable(16.4750)// 老转盘（弃用）
+    //   z_turntable(15.57)  // 新转盘（弃用）
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
