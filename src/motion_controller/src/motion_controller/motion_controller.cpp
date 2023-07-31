@@ -150,7 +150,7 @@ namespace motion_controller
         //             }
         //             ac_arm_.sendGoal(goal, boost::bind(&MotionController::_done_callback, this, _1, _2),
         //                              boost::bind(&MotionController::_active_callback, this),
-        //                              boost::bind(&MotionController::_feedback_callback, this));
+        //                              boost::bind(&MotionController::_feedback_callback, this, _1));
         //             doing();
         //         }
         //     }
@@ -165,7 +165,7 @@ namespace motion_controller
             goal.route = goal.route_raw_material_area;
             ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                              boost::bind(&MotionController::_arm_active_callback, this),
-                             boost::bind(&MotionController::_arm_feedback_callback, this));
+                             boost::bind(&MotionController::_arm_feedback_callback, this, _1));
             flag = false;
         }
         else
@@ -201,9 +201,9 @@ namespace motion_controller
             {
                 MoveGoal goal;
                 goal.pose = arm_pose_;
-                ac_move_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this),
-                                  boost::bind(&MotionController::_arm_active_callback, this),
-                                  boost::bind(&MotionController::_arm_feedback_callback, this));
+                ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
+                                  boost::bind(&MotionController::_move_active_callback, this),
+                                  boost::bind(&MotionController::_move_feedback_callback, this, _1));
                 arm_initialized_ = true;
             }
             if (stamp_ >= arm_stamp_ && !stamp_.is_zero() && !arm_stamp_.is_zero())
@@ -211,7 +211,8 @@ namespace motion_controller
         }
     }
 
-    void MotionController::_arm_done_callback(const actionlib::SimpleClientGoalState &state, const my_hand_eye::ArmResultConstPtr &result)
+    void MotionController::_arm_done_callback(const actionlib::SimpleClientGoalState &state,
+                                              const my_hand_eye::ArmResultConstPtr &result)
     {
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());
@@ -251,7 +252,7 @@ namespace motion_controller
 
     void MotionController::_move_active_callback(){};
 
-    void MotionController::_move_feedback_callback(const MoveFeedbackConstPtr &feedback)
+    void MotionController::_move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback)
     {
         move_stamp_ = feedback->header.stamp;
         move_time_ = ros::Time::now();
@@ -267,7 +268,8 @@ namespace motion_controller
         }
     }
 
-    void MotionController::_move_done_callback(const actionlib::SimpleClientGoalState &state, const MoveResultConstPtr &result)
+    void MotionController::_move_done_callback(const actionlib::SimpleClientGoalState &state,
+                                               const motion_controller::MoveResultConstPtr &result)
     {
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Move finished: " << state.toString());
