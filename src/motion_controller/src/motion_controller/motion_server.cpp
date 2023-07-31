@@ -29,15 +29,15 @@ namespace motion_controller
         {
             feedback.is_paning = false;
             feedback.pose_now = goal->pose;
+            feedback.header = header_;
             server_.publishFeedback(feedback);
             // 组织发布速度消息
             tme.end = false;
             cmd_vel_publisher_.publish(tme);
             rate.sleep();
         }
-        // 转弯
+        // 转弯controll
         geometry_msgs::Pose2D pose = goal->pose;
-        ros::Time now = ros::Time::now();
         bool success = false;
         std::vector<double> controll;
         if (goal->pose.theta)
@@ -45,10 +45,10 @@ namespace motion_controller
             PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
             while (!success && ros::ok())
             {
-                if (_get_pose_now(pose, now))
+                if (_get_pose_now(pose))
                 {
                     // pose.theta从-pi到+pi
-                    if (pid1.update({pose.theta}, now, controll, success)) // pid更新成功
+                    if (pid1.update({pose.theta}, header_.stamp, controll, success)) // pid更新成功
                     {
                         // 组织发布速度消息
                         geometry_msgs::Twist twist;
@@ -69,6 +69,7 @@ namespace motion_controller
                 cmd_vel_publisher_.publish(tme);
                 feedback.is_paning = false;
                 feedback.pose_now = pose;
+                feedback.header = header_;
                 server_.publishFeedback(feedback);
                 rate.sleep();
             }
@@ -82,9 +83,9 @@ namespace motion_controller
             success = false;
             while (!success && ros::ok())
             {
-                if (_get_pose_now(pose, now))
+                if (_get_pose_now(pose))
                 {
-                    if (pid2.update({pose.x, pose.y, pose.theta}, now, controll, success))
+                    if (pid2.update({pose.x, pose.y, pose.theta}, header_.stamp, controll, success))
                     {
                         // 组织发布速度消息
                         geometry_msgs::Twist twist;
@@ -108,6 +109,7 @@ namespace motion_controller
                 cmd_vel_publisher_.publish(tme);
                 feedback.is_paning = true;
                 feedback.pose_now = pose;
+                feedback.header = header_;
                 server_.publishFeedback(feedback);
                 rate.sleep();
             }
@@ -115,7 +117,7 @@ namespace motion_controller
         tme.end = true;
         tme.velocity = geometry_msgs::Twist();
         cmd_vel_publisher_.publish(tme);
-        _get_pose_now(pose, now);
+        _get_pose_now(pose);
         MoveResult result;
         result.pose_final = pose;
         server_.setSucceeded(result, "Move success!");
@@ -155,6 +157,7 @@ namespace motion_controller
         geometry_msgs::PoseStamped pose_footprint;
         pose_footprint.header.frame_id = "base_footprint";
         pose_footprint.header.stamp = ros::Time();
+        header_ = pose_footprint.header;
         // 三维位姿
         geometry_msgs::Pose p3D;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
@@ -174,10 +177,11 @@ namespace motion_controller
             ROS_INFO("Transform error:%s", e.what());
             return false;
         }
+        header_.stamp = ros::Time::now();
         return true;
     }
 
-    bool MotionServer::_get_pose_now(geometry_msgs::Pose2D &pose, ros::Time &now)
+    bool MotionServer::_get_pose_now(geometry_msgs::Pose2D &pose)
     {
         geometry_msgs::PoseStamped pose_footprint;
         // 由于延时可能转换失败报错
@@ -195,7 +199,7 @@ namespace motion_controller
         pose.theta = atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w) * 2;
         pose.x = pose_footprint.pose.position.x;
         pose.y = pose_footprint.pose.position.y;
-        now = pose_footprint.header.stamp;
+        header_ = pose_footprint.header;
         return true;
     }
 } // namespace motion_controller

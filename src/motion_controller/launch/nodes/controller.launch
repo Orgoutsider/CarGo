@@ -1,6 +1,8 @@
 <launch>
     <arg name="param_modification" default="false" />
+    <arg name="timeout" default="1.0" />
     <node name="motion_controller_controller_node" pkg="motion_controller" type="motion_controller_controller_node" respawn="false" output="screen" >
         <param name="param_modification" value="$(arg param_modification)" />
+        <param name="timeout" value="$(arg timeout)" />
     </node>
 </launch>

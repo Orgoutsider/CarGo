@@ -3,8 +3,8 @@
 namespace my_hand_eye
 {
 	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-		: motor_status_(false), finish_(true), finish_adjusting_(true), arm_controller_(nh, pnh),
-		  as_(nh, "Arm", boost::bind(&MyEye::execute_callback, this, _1), false)
+		: motor_status_(false), arm_controller_(nh, pnh),
+		  as_(nh, "Arm", false)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
@@ -26,6 +26,7 @@ namespace my_hand_eye
 			ROS_INFO("show debug image...");
 			debug_image_publisher_ = nh.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
 		}
+		as_.registerGoalCallback(boost::bind(&MyEye::goal_callback, this));
 		as_.registerPreemptCallback(boost::bind(&MyEye::preempt_callback, this));
 		as_.start();
 	}
@@ -43,7 +44,20 @@ namespace my_hand_eye
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		bool valid = operate_raw_material_area(image_rect, debug_image);
+		bool valid = false;
+		switch (arm_goal_.route)
+		{
+		case arm_goal_.route_rest:
+			ros::Duration(0.4).sleep();
+			break;
+
+		case arm_goal_.route_raw_material_area:
+			valid = operate_raw_material_area(image_rect, debug_image);
+			break;
+
+		default:
+			break;
+		}
 		if (valid && arm_controller_.show_detections)
 			debug_image_publisher_.publish(debug_image);
 
@@ -109,44 +123,76 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 	}
 
-	void MyEye::execute_callback(const ArmGoalConstPtr &goal)
+	void MyEye::goal_callback()
 	{
-		if (goal->route != goal->route_parking_area)
-			ros::Duration(2).sleep();
-		ArmResult ar;
-		as_.setSucceeded(ar, "Arm finish tasks");
+		// if (goal->route != goal->route_parking_area)
+		// 	ros::Duration(2).sleep();
+		if (as_.isPreemptRequested() || !ros::ok())
+		{
+			ROS_ERROR("Arm Preempt Requested!");
+			stop_adjustment();
+			if (arm_goal_.route != arm_goal_.route_rest)
+				arm_goal_.route = arm_goal_.route_rest;
+			as_.setPreempted(ArmResult(), "Got preempted by a new goal");
+			return;
+		}
+		arm_goal_.route = as_.acceptNewGoal()->route;
+		// as_.setSucceeded(ArmResult(), "Arm finish tasks");
 	}
 
 	void MyEye::preempt_callback()
 	{
 		ROS_ERROR("Arm Preempt Requested!");
 		// 不正常现象，需要停止所有与底盘相关的联系，避免后续受到影响
+		stop_adjustment();
+		if (arm_goal_.route != arm_goal_.route_rest)
+			arm_goal_.route = arm_goal_.route_rest;
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
+	}
+
+	void MyEye::stop_adjustment()
+	{
+		if (!finish_adjusting_)
+		{
+			if (arm_goal_.route == arm_goal_.route_raw_material_area)
+			{
+				ArmFeedback feedback;
+				feedback.pme.end = true;
+				as_.publishFeedback(feedback);
+			}
+			else
+			{
+				Pose2DMightEnd msg;
+				msg.end = true;
+				pose_publisher_.publish(msg);
+			}
+			finish_adjusting_ = true;
+		}
 	}
 
 	bool MyEye::operate_raw_material_area(const sensor_msgs::ImageConstPtr &image_rect,
 										  sensor_msgs::ImagePtr &debug_image)
 	{
 		static bool last_finish = true;
-		if (last_finish && !finish_)
-		{
-			finish_adjusting_ = false;
-			ROS_INFO("Start operate raw material area...");
-		}
-		else if (!last_finish && finish_)
-		{
-			if (!finish_adjusting_)
-				finish_adjusting_ = true;
-			last_finish = finish_;
-			if (param_modification_)
-				ROS_INFO("Finish operate raw material area...");
-			return true;
-		}
-		else if (finish_) // 前后一样完成就不用赋值了
-		{
-			ros::Duration(0.1).sleep();
-			return true;
-		}
+		// if (last_finish && arm_goal_)
+		// {
+		// 	finish_adjusting_ = false;
+		// 	ROS_INFO("Start operate raw material area...");
+		// }
+		// else if (!last_finish && finish_)
+		// {
+		// 	if (!finish_adjusting_)
+		// 		finish_adjusting_ = true;
+		// 	last_finish = finish_;
+		// 	if (param_modification_)
+		// 		ROS_INFO("Finish operate raw material area...");
+		// 	return true;
+		// }
+		// else if (finish_) // 前后一样完成就不用赋值了
+		// {
+		// 	ros::Duration(0.1).sleep();
+		// 	return true;
+		// }
 		bool valid = true;
 		static bool first = false;
 		if (!finish_adjusting_)
@@ -184,7 +230,7 @@ namespace my_hand_eye
 		{
 			// valid = arm_controller_.track(image_rect, )
 		}
-		last_finish = finish_;
+		// last_finish = finish_;
 		return valid;
 	}
 
@@ -207,18 +253,13 @@ namespace my_hand_eye
 			motor_status_ = config.motor_status;
 			if (motor_status_)
 			{
-				if (finish_)
+				if (finish_adjusting_)
 				{
-					finish_ = false;
+					finish_adjusting_ = false;
 				}
 			}
-			else if (!finish_)
-			{
-				Pose2DMightEnd msg;
-				msg.end = true;
-				pose_publisher_.publish(msg);
-				finish_ = true;
-			}
+			else
+				stop_adjustment();
 		}
 	}
 } // namespace my_hand_eye

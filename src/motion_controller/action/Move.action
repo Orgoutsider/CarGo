@@ -1,9 +1,10 @@
 #目标位置，其中theta从-pi到pi
 geometry_msgs/Pose2D pose
 ---
-#最终结果
+#最终结果  
 geometry_msgs/Pose2D pose_final
 ---
 #连续反馈
+std_msgs/Header header
 geometry_msgs/Pose2D pose_now
 bool is_paning

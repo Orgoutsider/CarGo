@@ -17,7 +17,7 @@ namespace motion_controller
         y_roughing_area_(1.15), x_semi_finishing_area_(1.2),
         length_parking_area_(0.3), y_road_up_up_(0.078), y_parking_area_(0.7) {}
 
-  Route FieldGuide::where_is_car()
+  Route FieldGuide::where_is_car() const 
   {
     return route_[where_];
   }
@@ -67,12 +67,12 @@ namespace motion_controller
     }
   }
 
-  bool FieldGuide::can_turn()
+  bool FieldGuide::can_turn() const
   {
     return (loop_ == 1 && y_ > y_road_up_up_ + width_road_ && where_is_car() == route_raw_material_area);
   }
 
-  double FieldGuide::length_route()
+  double FieldGuide::length_route() const
   {
     switch (where_is_car())
     {
@@ -97,7 +97,7 @@ namespace motion_controller
     }
   }
 
-  double FieldGuide::length_corner()
+  double FieldGuide::length_corner() const
   {
     int n = 0;
     if (y_ < y_road_up_up_ + width_road_ - length_car_ / 2) // 上
@@ -140,7 +140,7 @@ namespace motion_controller
     }
   }
 
-  double FieldGuide::angle_corner()
+  double FieldGuide::angle_corner() const
   {
     int n = 0;
     if (y_ < y_road_up_up_ + width_road_) // 上
@@ -183,7 +183,7 @@ namespace motion_controller
     }
   }
 
-  double FieldGuide::angle_U_turn()
+  double FieldGuide::angle_U_turn() const
   {
     if ((where_is_car() == route_semi_finishing_area && loop_ == 0) || (where_is_car() == route_raw_material_area && loop_ == 1))
     {

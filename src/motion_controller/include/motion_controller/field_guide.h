@@ -38,22 +38,22 @@ namespace motion_controller
         double x_QR_code_board_;     // 二维码板
         double y_parking_area_;      // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
         FieldGuide();
-        Route where_is_car();
+        Route where_is_car() const;
         // 当前任务正在完成，不可接下一任务
         void doing();
         // 当前任务已完成，接下一任务，更新loop_
         void finish();
         bool arrive();
         // 下一路段没有任务，可以直接转弯
-        bool can_turn();
+        bool can_turn() const;
         // 位于任务点所在道路，距离下一任务点的距离
-        double length_route();
+        double length_route() const;
         // 位于弯道，到弯道中心线的距离，不位于弯道时返回0
-        double length_corner();
+        double length_corner() const;
         // 位于弯道，转弯角度，不位于弯道时返回0
-        double angle_corner();
+        double angle_corner() const;
         // 掉头角度
-        double angle_U_turn();
+        double angle_U_turn() const;
     };
 } // namespace motion_controller
 
