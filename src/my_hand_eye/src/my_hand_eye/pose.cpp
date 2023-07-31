@@ -9,7 +9,7 @@ namespace my_hand_eye
         return Action(-ac.y - ARM_P, -ARM_P + ac.x, ac.z);
     }
 
-    Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : cat_(cat), look_(look),
+    Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : tightness(cat), look_(look),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr),
                                                                        Id{0, 1, 2, 3, 4, 5}
@@ -106,16 +106,16 @@ namespace my_hand_eye
             this->expand_y = false;
         if (valid)
         {
-            Position[1] = std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
+            Position[1] = round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
             if (Position[1] > 1023 || Position[1] < 0)
             {
                 ROS_ERROR("Assertion failed: Postion[1] <= 1023 && Position[1] >= 0");
                 valid = false;
             }
-            Position[2] = std::round(ARM_JOINT2_POS_WHEN_DEG0 + (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * deg2 / 180);
-            Position[3] = std::round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
-            Position[4] = std::round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
-            Position[5] = std::round(cat_ ? ARM_JOINT5_POS_WHEN_CATCH : ARM_JOINT5_POS_WHEN_LOSEN);
+            Position[2] = round(ARM_JOINT2_POS_WHEN_DEG0 + (ARM_JOINT2_POS_WHEN_DEG180 - ARM_JOINT2_POS_WHEN_DEG0) * deg2 / 180);
+            Position[3] = round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
+            Position[4] = round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
+            Position[5] = round(ARM_JOINT5_POS_WHEN_OPEN + (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * tightness);
             // ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
         }
         return valid;
@@ -128,7 +128,7 @@ namespace my_hand_eye
         this->x = x;
         this->y = y;
         this->z = z; // 此时xyz为目标值
-        this->cat_ = cat;
+        this->tightness = cat;
         this->look_ = look;
 
         valid = calculate_position(expand_y);
@@ -239,7 +239,7 @@ namespace my_hand_eye
         this->x = x;
         this->y = y;
         this->z = z;
-        this->cat_ = cat;
+        this->tightness = cat;
         this->look_ = false;
         bool valid = calculate_position();
         if (valid)
@@ -265,7 +265,7 @@ namespace my_hand_eye
         this->x = x;
         this->y = y;
         this->z = z;
-        this->cat_ = true;
+        this->tightness = true;
         this->look_ = false;
         bool valid = calculate_position();
         if (valid)
@@ -310,21 +310,28 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, Color color, bool left)
     {
+        const double TIGHTNESS_TABLE = 0.5; // 在转盘进行抓取放置时略微松手，防止碰倒物料
         this->x = left ? action_right.x : action_back.x;
         this->y = left ? action_right.y : action_back.y;
         this->z = left ? action_right.z : action_back.z;
-        this->cat_ = cat;
+        this->tightness = cat ? 1 : TIGHTNESS_TABLE;
         this->look_ = false;
         // 前往转盘，必须扩展y轴
         bool valid = calculate_position(true);
         if (valid)
         {
-            if (!cat_)
+            if (!cat)
             {
                 cargo_table_.put_next(color);
             }
             else
+            {
                 cargo_table_.get_next();
+                sc_ptr_->WritePos(5,
+                                  round(ARM_JOINT5_POS_WHEN_OPEN +
+                                        (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * TIGHTNESS_TABLE),
+                                  0, Speed[5]);
+            }
             if (read_all_position())
             {
                 if (Position[2] <= Position_now[2]) // 第2关节位置靠后，不能最后移动第2关节
@@ -332,42 +339,66 @@ namespace my_hand_eye
                     if (Position[3] <= Position_now[3]) // 第3关节位置靠后，不能最后移动第3关节
                     {
                         sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
-                        u8 ID[] = {2, 3, 6};
-                        wait_until_static(ID, 3);
+                        if (!cat)
+                        {
+                            u8 ID[] = {2, 3, 6};
+                            wait_until_static(ID, 3);
+                        }
+                        else
+                        {
+                            u8 ID[] = {2, 3, 5, 6};
+                            wait_until_static(ID, 4);
+                        }
 
                         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                         sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
-                        u8 ID2[] = {4};
-                        wait_until_static(ID2, 1);
+                        u8 ID2[] = {1, 4};
+                        wait_until_static(ID2, 2);
                     }
                     else
                     {
                         sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
                         sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
-                        u8 ID[] = {2, 4, 6};
-                        wait_until_static(ID, 3);
+                        if (!cat)
+                        {
+                            u8 ID[] = {2, 4, 6};
+                            wait_until_static(ID, 3);
+                        }
+                        else
+                        {
+                            u8 ID[] = {2, 4, 5, 6};
+                            wait_until_static(ID, 4);
+                        }
 
                         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                         sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
-                        u8 ID2[] = {3};
-                        wait_until_static(ID2, 1);
+                        u8 ID2[] = {1, 3};
+                        wait_until_static(ID2, 2);
                     }
                 }
                 else
                 {
                     sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-                    u8 ID[] = {3, 4, 6};
-                    wait_until_static(ID, 3);
+                    if (!cat)
+                    {
+                        u8 ID[] = {3, 4, 6};
+                        wait_until_static(ID, 3);
+                    }
+                    else
+                    {
+                        u8 ID[] = {3, 4, 5, 6};
+                        wait_until_static(ID, 4);
+                    }
 
                     sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-                    u8 ID2[] = {2};
-                    wait_until_static(ID2, 1);
+                    u8 ID2[] = {1, 2};
+                    wait_until_static(ID2, 2);
                 }
 
                 sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-                u8 ID3[] = {1, 5};
-                wait_until_static(ID3, 2);
+                u8 ID3[] = {5};
+                wait_until_static(ID3, 1);
             }
         }
         return valid;
@@ -508,6 +539,7 @@ namespace my_hand_eye
                 double deg3 = ((double)Position[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
                 double deg4 = ((double)Position[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
                 valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z, true);
+                tightness = ((double)Position[5] - ARM_JOINT5_POS_WHEN_OPEN) / (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN);
             }
             else
             {
@@ -516,6 +548,7 @@ namespace my_hand_eye
                 double deg3 = ((double)Position_now[3] - ARM_JOINT3_POS_WHEN_DEG0) / (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * 180.0;
                 double deg4 = ((double)Position_now[4] - ARM_JOINT4_POS_WHEN_DEG0) / (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * 180.0;
                 valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z, true);
+                tightness = ((double)Position_now[5] - ARM_JOINT5_POS_WHEN_OPEN) / (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN);
             }
         }
         return valid;
@@ -595,16 +628,10 @@ namespace my_hand_eye
                 -0.1182056319706967, -0.9561792813633755, -0.2678593109485405);
     }
 
-    // cv::Mat Pos::R_cam_to_end()
-    // {
-    //     return (cv::Mat_<double>(3, 3) << 0, 0, 1,
-    //             -1, 0, 0,
-    //             0, -1, 0);
-    // }
-
     cv::Mat Pos::T_cam_to_end()
     {
-        return (cv::Mat_<double>(3, 1) << 0.2917834651447677, 0.08588367819412923, 2.177792138385806);
+        // return (cv::Mat_<double>(3, 1) << 0.2917834651447677, 0.08588367819412923, 2.177792138385806);
+        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, 0.031208171, 1.825703402136746);
     }
 
     cv::Mat Pos::R_end_to_base()
@@ -784,7 +811,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::calculate_pixel_position(double cargo_x, double cargo_y, double cargo_z, 
+    bool Pos::calculate_pixel_position(double cargo_x, double cargo_y, double cargo_z,
                                        double &u, double &v, bool read)
     {
         bool valid = read ? refresh_xyz() : true;
@@ -847,13 +874,20 @@ namespace my_hand_eye
                 Tce = point_end - Rce * point_cam;
                 ROS_INFO_STREAM("loop" << i << " T_cam_to_end: " << Tce);
             }
-            cv::Mat ext = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) *
-                          R_T2homogeneous_matrix(Rce, Tce);
-            double Z = (correct_z - ext.at<double>(2, 3)) / ext.row(2).colRange(0, 3).clone().t().dot(point_temp);
+            cv::Mat ext1 = R_T2homogeneous_matrix(R_end_to_base(), T_end_to_base()) *
+                           R_T2homogeneous_matrix(Rce, Tce);
+            // ROS_INFO_STREAM("ext1: " << ext1);
+            double Z = (correct_z - ext1.at<double>(2, 3)) / ext1.row(2).colRange(0, 3).clone().t().dot(point_temp);
             cv::Mat point_cam1 = (cv::Mat_<double>(4, 1) << Z * point_temp.at<double>(0, 0),
                                   Z * point_temp.at<double>(1, 0), Z, 1);
-            cv::Mat point_base1 = ext * point_cam1;
-            ROS_INFO_STREAM("After correction: " << point_base1.rowRange(0, 3));
+            cv::Mat point_base1 = ext1 * point_cam1;
+            ROS_INFO_STREAM("After correction1: " << point_base1.rowRange(0, 2));
+            cv::Mat ext2 = R_end_to_base() * Rce;
+            cv::Mat delta = R_end_to_base() * Tce + T_end_to_base();
+            // ROS_INFO_STREAM("ext2: " << ext2);
+            // ROS_INFO_STREAM("delta: " << delta);
+            cv::Mat point_base2 = (ext2 + delta * ext2.row(2).clone() / (correct_z - delta.at<double>(2, 0))) * point_temp;
+            ROS_INFO_STREAM("After correction2: " << point_base2.rowRange(0, 2) / point_base2.at<double>(2, 0) * correct_z);
         }
         return valid;
     }

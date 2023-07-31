@@ -7,7 +7,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
     controller.init(nh, pnh);
-    double x, y, z;
-    controller.remember(x, y, z);
+    double x, y, z, tightness;
+    controller.remember(x, y, z, tightness);
     return 0;
 }

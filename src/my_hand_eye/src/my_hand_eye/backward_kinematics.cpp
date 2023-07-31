@@ -235,9 +235,9 @@ namespace my_hand_eye
 
     bool Axis::_modify_alpha(double &alpha, bool look)
     {
-        alpha = 90;
+        const int ALPHA_MAX = 110; // alpha上限，超过此值无法抓取
         bool valid = false;
-        while (alpha >= 0 && alpha <= 110 && !valid)
+        while (alpha >= 0 && alpha <= ALPHA_MAX && !valid)
         {
             valid = _j123_length_and_height_is_valid(alpha);
             if (!valid)

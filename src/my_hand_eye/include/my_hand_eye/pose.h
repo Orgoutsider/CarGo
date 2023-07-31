@@ -10,7 +10,7 @@
 #define ARM_JOINT4_POS_WHEN_DEG180 3072
 #define ARM_JOINT4_POS_WHEN_DEG0 1024
 #define ARM_JOINT5_POS_WHEN_CATCH 661
-#define ARM_JOINT5_POS_WHEN_LOSEN 890
+#define ARM_JOINT5_POS_WHEN_OPEN 890
 #define ARM_INFO_XYZ(Pos) ROS_INFO_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_WARN_XYZ(Pos) ROS_WARN_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
 #define ARM_ERROR_XYZ(Pos) ROS_ERROR_STREAM("[" << (Pos).x << ", " << (Pos).y << ", " << (Pos).z << "]")
@@ -39,7 +39,6 @@ namespace my_hand_eye
     class Pos : public Axis
     {
     private:
-        bool cat_;           // cat=true抓
         bool look_;          // look=true观察
         s16 Position[6];     // 目标舵机位置
         s16 Position_now[6]; // 当前舵机位置
@@ -77,6 +76,7 @@ namespace my_hand_eye
         void get_points(double h, my_hand_eye::PointArray &arr);
 
     public:
+        double tightness;   // 取值0～1，为0时最松，为1时最紧
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
         Action action_default;
         Action action_left;

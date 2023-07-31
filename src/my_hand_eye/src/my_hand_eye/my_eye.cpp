@@ -43,33 +43,33 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		bool valid = false;
-		switch (arm_goal_.route)
-		{
-		case arm_goal_.route_rest:
-			ros::Duration(0.4).sleep();
-			break;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// bool valid = false;
+		// switch (arm_goal_.route)
+		// {
+		// case arm_goal_.route_rest:
+		// 	ros::Duration(0.4).sleep();
+		// 	break;
 
-		case arm_goal_.route_raw_material_area:
-			valid = operate_raw_material_area(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_raw_material_area:
+		// 	valid = operate_raw_material_area(image_rect, debug_image);
+		// 	break;
 
-		default:
-			break;
-		}
-		if (valid && arm_controller_.show_detections)
-			debug_image_publisher_.publish(debug_image);
+		// default:
+		// 	break;
+		// }
+		// if (valid && arm_controller_.show_detections)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// // 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_green, debug_image, true);
+		// arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_blue, debug_image, false);
 		// if (arm_controller_.show_detections)
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_extrinsics_correction(image_rect, 6.79367, 25.4134, arm_controller_.z_turntable, color_green, debug_image);
+		// arm_controller_.log_extrinsics_correction(image_rect, -6.18287, 20.3357, arm_controller_.z_turntable, color_blue, debug_image);
 		// if (arm_controller_.show_detections)
 		// 	debug_image_publisher_.publish(debug_image);
 
@@ -83,15 +83,15 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 		//
 		// 直接抓取
-		// static bool finish = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.catch_straightly(image_rect, color_red, arm_controller_.z_turntable, finish, debug_image, true, false);
-		// 	if (arm_controller_.show_detections)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
+		static bool finish = false;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!finish)
+		{
+			double u, v;
+			arm_controller_.catch_straightly(image_rect, color_blue, finish, debug_image, true, false);
+			if (arm_controller_.show_detections)
+				debug_image_publisher_.publish(debug_image);
+		}
 
 		// 椭圆识别
 		// static bool finish = false;

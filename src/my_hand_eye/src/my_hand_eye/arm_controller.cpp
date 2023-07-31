@@ -9,9 +9,8 @@ namespace my_hand_eye
           border_roi_(320, 0, 1280, 1080),
           threshold(60),
           z_parking_area(1.524628),
-          z_turntable(14.4654) // 比赛转盘，抓取范围17.3到34
-    //   z_turntable(16.4750)// 老转盘
-    //   z_turntable(15.57)  // 新转盘
+          z_turntable(12.93052) // 比赛转盘
+    //   初始化列表记得复制一份到下面
     {
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
@@ -20,11 +19,14 @@ namespace my_hand_eye
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : stop_(false), can_catch_(true),
           ps_(&sm_st_, &sc_),
-          default_roi_(0, 0, 1920, 1080),
+          default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
-          threshold(100),
+          threshold(60),
           z_parking_area(1.524628),
-          z_turntable(14.4654)
+          z_turntable(12.93052) // 比赛转盘
+    //   初始化列表记得复制一份到上面
+    //   z_turntable(16.4750)// 老转盘（弃用）
+    //   z_turntable(15.57)  // 新转盘（弃用）
     {
         init(nh, pnh);
     }
@@ -235,7 +237,6 @@ namespace my_hand_eye
                                                   double correct_x, double correct_y, double correct_z, Color color,
                                                   sensor_msgs::ImagePtr &debug_image)
     {
-        // OpenCV(4.1.1) /home/nvidia/host/build_opencv/nv_opencv/modules/core/src/arithm.cpp:663: error: (-209:Sizes of input arguments do not match) The operation is neither 'array op array' (where arrays have the same size and the same number of channels), nor 'array op scalar', nor 'scalar op array' in function 'arithm_op'
         static bool flag = false;
         // 尚未初始化位姿
         if (!flag)
@@ -377,8 +378,8 @@ namespace my_hand_eye
                         if (valid)
                         {
                             ps_.go_to_table(false, color, left);
+                            ps_.reset(left);
                         }
-                        ps_.reset(left);
                     }
                     finish = true;
                 }
@@ -439,15 +440,19 @@ namespace my_hand_eye
     //     return valid;
     // }
 
-    bool ArmController::remember(double &x, double &y, double &z)
+    bool ArmController::remember(double &x, double &y, double &z, double &tightness)
     {
         if (ps_.refresh_xyz())
+        {
             ARM_INFO_XYZ(ps_);
+            ROS_INFO_STREAM("tightness: " << ps_.tightness);
+            x = ps_.x;
+            y = ps_.y;
+            z = ps_.z;
+            tightness = ps_.tightness;
+        }
         else
             return false;
-        x = ps_.x;
-        y = ps_.y;
-        z = ps_.z;
         return true;
     }
 
