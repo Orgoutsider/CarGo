@@ -9,10 +9,10 @@ servo:
   ]
 
 #x, y, z
-default_action: [0.0, 7.491, 53.156]
+default_action: [0.0, 10.2264, 51.9209]
 
 back_action:
-  [0.0, -21.6178, 36.4906]
+  [0.0, -23.025584897, 36.4906]
 
 down_action: [-32.0955, -13.315, 5.85853]
 # center_action:
