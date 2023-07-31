@@ -136,7 +136,6 @@ namespace my_hand_eye
         {
             u8 ID[] = {1, 2, 3, 4, 5};
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             if (arrived(ID, 5))
             {
                 ROS_INFO("Pose has arrived");
@@ -151,22 +150,25 @@ namespace my_hand_eye
                     u8 ID1[] = {4};
                     wait_until_static(ID1, 1);
                     sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
+                    sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
                     u8 ID2[] = {1, 2, 3, 5};
                     wait_until_static(ID2, 4);
                 }
                 else
                 {
                     sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
-                    sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
-                    u8 ID1[] = {3, 4};
-                    wait_until_static(ID1, 2);
+                    u8 ID1[] = {3};
+                    wait_until_static(ID1, 1);
                     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-                    u8 ID2[] = {1, 2, 5};
-                    wait_until_static(ID2, 3);
+                    sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+                    sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
+                    u8 ID2[] = {1, 2, 4, 5};
+                    wait_until_static(ID2, 4);
                 }
             }
             else
             {
+                sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
                 sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
                 wait_until_static(ID, 5);
             }
@@ -178,12 +180,10 @@ namespace my_hand_eye
     {
         // 时间（单位s）=[(位置-目标)/速度]+(速度/(加速度*100)) or 0.1
         double time = 15.0;
-        if (ID == 5)
+        if (ID == 5 || ID == 1)
             time = abs((Position[ID] - Position_now[ID]) * 1.0 / (Speed[ID] + 0.01)) + 0.1;
         else if (ID == 3 || ID == 4)
             time = abs((Position[ID] - Position_now[ID]) * 1.0 / (Speed[ID] + 0.01)) + Speed[ID] / (100.0 * ACC[ID] + 0.01);
-        else if (ID == 1)
-            time = abs((Position[ID] - Position_now[ID]) * 0.2 / (Speed[ID] + 0.01)) + 0.1;
         else if (ID == 2)
             time = abs((Position[ID] - Position_now[ID]) * 0.02 / (Speed[ID] + 0.01)) + Speed[ID] / (100.0 * ACC[ID] + 0.01);
         else
@@ -310,7 +310,7 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, Color color, bool left)
     {
-        const double TIGHTNESS_TABLE = 0.5; // 在转盘进行抓取放置时略微松手，防止碰倒物料
+        const double TIGHTNESS_TABLE = 0.742358; // 在转盘进行抓取放置时略微松手，防止碰倒物料
         this->x = left ? action_right.x : action_back.x;
         this->y = left ? action_right.y : action_back.y;
         this->z = left ? action_right.z : action_back.z;
