@@ -41,7 +41,7 @@ namespace motion_controller
         ros::Time move_time_, arm_time_;             // 接收时间
         ros::Time move_stamp_, arm_stamp_;           // 感知时间
         bool move_active_, arm_active_;              // 传感器是否活动
-        bool move_initialized_, arm_initialized_;  // 传感器已经初始化
+        bool move_initialized_, arm_initialized_;    // 传感器已经初始化
         double timeout_;                             // 最大超时
         // 转弯
         bool _turn();
@@ -50,12 +50,14 @@ namespace motion_controller
         // 通过全局定位信息转弯
         bool _turn_by_position();
         void _timer_callback(const ros::TimerEvent &event);
-        void _arm_done_callback(const actionlib::SimpleClientGoalState &state, const my_hand_eye::ArmResultConstPtr &result);
+        void _arm_done_callback(const actionlib::SimpleClientGoalState &state,
+                                const my_hand_eye::ArmResultConstPtr &result);
         void _arm_active_callback();
         void _arm_feedback_callback(const my_hand_eye::ArmFeedbackConstPtr &feedback);
-        void _move_done_callback(const actionlib::SimpleClientGoalState &state, const MoveResultConstPtr &result);
+        void _move_done_callback(const actionlib::SimpleClientGoalState &state,
+                                 const motion_controller::MoveResultConstPtr &result);
         void _move_active_callback();
-        void _move_feedback_callback(const MoveFeedbackConstPtr &feedback);
+        void _move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback);
 
     public:
         MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
