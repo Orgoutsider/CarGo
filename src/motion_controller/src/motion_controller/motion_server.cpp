@@ -5,8 +5,8 @@ namespace motion_controller
     MotionServer::MotionServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
-          kp_angular_(1), ki_angular_(0.6), kd_angular_(0),
-          kp_linear_(0.6), ki_linear_(0.15), kd_linear_(0)
+          kp_angular_(1.6), ki_angular_(0.6), kd_angular_(0),
+          kp_linear_(1.6), ki_linear_(0), kd_linear_(0)
     {
         pnh.param<bool>("param_modification", param_modification_, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
@@ -39,7 +39,7 @@ namespace motion_controller
         geometry_msgs::Pose2D pose = goal->pose;
         bool success = false;
         std::vector<double> controll;
-        if (pose.theta)
+        if (goal->pose.theta)
         {
             PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
             while (!success && ros::ok())
@@ -117,7 +117,7 @@ namespace motion_controller
             }
         }
         // 平移
-        if (pose.x || pose.y)
+        if (goal->pose.x || goal->pose.y)
         {
             PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_},
                                {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},

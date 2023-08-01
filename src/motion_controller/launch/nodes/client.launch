@@ -1,7 +1,7 @@
 <launch>
-    <arg name="theta" default="1.17" />
-    <arg name="x" default="0" />
-    <arg name="y" default="0" />
+    <arg name="theta" default="0" />
+    <arg name="x" default="-0.2" />
+    <arg name="y" default="0.1" />
 
     <node name="motion_controller_client_node" pkg="motion_controller" type="motion_controller_client_node" args="$(arg theta) $(arg x) $(arg y)" respawn="false" output="screen" /> 
 </launch>
