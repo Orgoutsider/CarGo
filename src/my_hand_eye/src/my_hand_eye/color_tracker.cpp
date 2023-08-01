@@ -10,7 +10,7 @@ namespace my_hand_eye
 
     double ColorMethod::hue_value_tan(double y, double x)
     {
-        return Angle(y, x)._get_degree() / 2;
+        return Angle::atan2(y, x)._get_degree() / 2;
     }
 
     double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin, cv::Mat &mask_img)
@@ -63,10 +63,7 @@ namespace my_hand_eye
     }
 
     ColorTracker::ColorTracker() : gain_(0.4), speed_max_(1.7),
-                                   h_min_{156, 156, 33, 90},
-                                   h_max_{10, 10, 85, 124},
                                    s_min_{43, 43, 43, 43},
-                                   v_min_{33, 26, 29, 26},
                                    flag_(false),
                                    left_color(0), right_color(0) {}
 
@@ -77,17 +74,17 @@ namespace my_hand_eye
         GaussianBlur(hsv, hsv, Size(3, 3), 0, 0);
         cvtColor(hsv, hsv, COLOR_BGR2HSV);
         Mat dst, white;
-        if (h_max_[color_] >= h_min_[color_])
+        if (h_max[color_] >= h_min[color_])
         {
-            Scalar low = Scalar(h_min_[color_], s_min_[color_], v_min_[color_]);
-            Scalar up = Scalar(h_max_[color_], 255, 255);
+            Scalar low = Scalar(h_min[color_], s_min_[color_], v_min[color_]);
+            Scalar up = Scalar(h_max[color_], 255, 255);
             inRange(hsv, low, up, dst);
         }
         else // 色相范围分成两段的情况，如红色
         {
-            Scalar low1 = Scalar(0, s_min_[0], v_min_[0]);
-            Scalar up1 = Scalar(h_max_[color_], 255, 255);
-            Scalar low2 = Scalar(h_min_[color_], s_min_[color_], v_min_[color_]);
+            Scalar low1 = Scalar(0, s_min_[0], v_min[0]);
+            Scalar up1 = Scalar(h_max[color_], 255, 255);
+            Scalar low2 = Scalar(h_min[color_], s_min_[color_], v_min[color_]);
             Scalar up2 = Scalar(180, 255, 255);
             Mat dst1, dst2;
             inRange(hsv, low1, up1, dst1);
@@ -220,13 +217,38 @@ namespace my_hand_eye
         v = rect_.center.y;
     }
 
-    bool ColorTracker::target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
+    bool ColorTracker::target_init(ros::NodeHandle &nh,
+                                   cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
                                    const Color color, int white_vmin, double center_x, double center_y,
                                    bool show_detections)
     {
         using namespace cv;
         if (objArray.boxes.size() == 4)
         {
+            if (h_max.empty() || h_min.empty() || v_min.empty())
+            {
+                if (nh.hasParam("h_max"))
+                    nh.getParam("h_max", h_max);
+                else
+                {
+                    ROS_WARN("Parameter h_max not available.");
+                    return false;
+                }
+                if (nh.hasParam("h_min"))
+                    nh.getParam("h_min", h_min);
+                else
+                {
+                    ROS_WARN("Parameter h_min not available.");
+                    return false;
+                }
+                if (nh.hasParam("v_min"))
+                    nh.getParam("v_min", v_min);
+                else
+                {
+                    ROS_WARN("Parameter v_min not available.");
+                    return false;
+                }
+            }
             color_ = color;
             show_detections_ = show_detections;
             if (!objArray.boxes[color_].center.x)

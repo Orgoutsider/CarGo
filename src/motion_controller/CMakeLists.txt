@@ -107,8 +107,8 @@ generate_dynamic_reconfigure_options(
 #   cfg/laser_params.cfg
   cfg/params_PID_srv.cfg
   cfg/params_PID_stm32.cfg
-  cfg/line.cfg
-  cfg/corners.cfg
+  cfg/controller.cfg
+  # cfg/corners.cfg
   cfg/params_PID_vision.cfg
 )
 

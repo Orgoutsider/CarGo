@@ -14,12 +14,13 @@ namespace motion_controller
         timeout_ = pnh.param("timeout", 1.0);
         if (!follower_.param_modification)
         {
-            nh.setParam("/width_road", width_road_);
-            // vision_publisher = nh.advertise<Distance>("/vision_usb_cam", 5);
             go_client_ = nh.advertiseService("Go", &MotionController::go, this);
         }
         else
+        {
             timer_.start();
+            dr_server_.setCallback(boost::bind(&MotionController::_dr_callback, this, _1, _2));
+        }
     }
 
     bool MotionController::_turn()
@@ -99,77 +100,78 @@ namespace motion_controller
 
     void MotionController::_timer_callback(const ros::TimerEvent &event)
     {
-        // if (get_position())
-        // {
-        //     if (follower_.param_modification)
-        //     {
-        //         if (!follower_.has_started && follower_.motor_status)
-        //         {
-        //             set_position(0, 0, 0);
-        //             follower_.start(true, theta_);
-        //         }
-        //         follower_.follow(theta_, event.current_real);
-        //     }
-        //     else
-        //     {
-        //         // 转弯结束关闭转弯订阅
-        //         if (finish_turning_)
-        //         {
-        //             if (!can_turn())
-        //                 follower_.start(false);
-        //             finish_turning_ = false;
-        //         }
-        //         if (arrive())
-        //         {
-        //             ac_arm_.waitForServer();
-        //             my_hand_eye::ArmGoal goal;
-        //             switch (where_is_car())
-        //             {
-        //             case route_QR_code_board:
-        //                 goal.route = goal.route_QR_code_board;
-        //                 break;
-
-        //             case route_raw_material_area:
-        //                 goal.route = goal.route_raw_material_area;
-        //                 break;
-
-        //             case route_roughing_area:
-        //                 goal.route = goal.route_roughing_area;
-        //                 break;
-
-        //             case route_semi_finishing_area:
-        //                 goal.route = goal.route_semi_finishing_area;
-        //                 break;
-
-        //             case route_parking_area:
-        //                 goal.route = goal.route_parking_area;
-        //                 break;
-
-        //             default:
-        //                 return;
-        //             }
-        //             ac_arm_.sendGoal(goal, boost::bind(&MotionController::_done_callback, this, _1, _2),
-        //                              boost::bind(&MotionController::_active_callback, this),
-        //                              boost::bind(&MotionController::_feedback_callback, this, _1));
-        //             doing();
-        //         }
-        //     }
-        // }
-
-        // 抓三
-        static bool flag = true;
-        if (flag)
+        if (follower_.param_modification)
         {
-            ac_arm_.waitForServer();
-            my_hand_eye::ArmGoal goal;
-            goal.route = goal.route_raw_material_area;
-            ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
-                             boost::bind(&MotionController::_arm_active_callback, this),
-                             boost::bind(&MotionController::_arm_feedback_callback, this, _1));
-            flag = false;
+            if (get_position())
+            {
+                if (!follower_.has_started && follower_.motor_status)
+                {
+                    set_position(0, 0, 0);
+                    follower_.start(true, theta_);
+                }
+                follower_.follow(theta_, event.current_real);
+            }
+            // 抓三
+            static bool flag = true;
+            if (flag)
+            {
+                ac_arm_.waitForServer();
+                my_hand_eye::ArmGoal goal;
+                goal.route = goal.route_raw_material_area;
+                ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
+                                 boost::bind(&MotionController::_arm_active_callback, this),
+                                 boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                flag = false;
+            }
+            else
+            {
+            }
         }
-        else
+        else if (get_position())
         {
+            {
+                // 转弯结束关闭转弯订阅
+                if (finish_turning_)
+                {
+                    if (!can_turn())
+                        follower_.start(false);
+                    finish_turning_ = false;
+                }
+                if (arrive())
+                {
+                    ac_arm_.waitForServer();
+                    my_hand_eye::ArmGoal goal;
+                    switch (where_is_car())
+                    {
+                    case route_QR_code_board:
+                        goal.route = goal.route_QR_code_board;
+                        break;
+
+                    case route_raw_material_area:
+                        goal.route = goal.route_raw_material_area;
+                        break;
+
+                    case route_roughing_area:
+                        goal.route = goal.route_roughing_area;
+                        break;
+
+                    case route_semi_finishing_area:
+                        goal.route = goal.route_semi_finishing_area;
+                        break;
+
+                    case route_parking_area:
+                        goal.route = goal.route_parking_area;
+                        break;
+
+                    default:
+                        return;
+                    }
+                    ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
+                                     boost::bind(&MotionController::_arm_active_callback, this),
+                                     boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                    doing();
+                }
+            }
         }
     }
 
@@ -299,6 +301,11 @@ namespace motion_controller
             return false;
         }
         return true;
+    }
+
+    void MotionController::_dr_callback(controllerConfig &config, uint32_t level)
+    {
+        
     }
 
     bool MotionController::get_position()

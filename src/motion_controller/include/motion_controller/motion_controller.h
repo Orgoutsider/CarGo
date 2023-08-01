@@ -9,7 +9,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <my_hand_eye/ArmAction.h>
 #include <motion_controller/MoveAction.h>
-#include <motion_controller/Distance.h>
+#include <dynamic_reconfigure/server.h>
 #include <motion_controller/Go.h>
 
 #include "motion_controller/line_follower.h"
@@ -40,6 +40,7 @@ namespace motion_controller
         ros::Time stamp_;                            // 一直更新的时间戳，用于激活
         ros::Time move_time_, arm_time_;             // 接收时间
         ros::Time move_stamp_, arm_stamp_;           // 感知时间
+        dynamic_reconfigure::Server<controllerConfig> dr_server_;
         bool move_active_, arm_active_;              // 传感器是否活动
         bool move_initialized_, arm_initialized_;    // 传感器已经初始化
         double timeout_;                             // 最大超时
@@ -58,6 +59,8 @@ namespace motion_controller
                                  const motion_controller::MoveResultConstPtr &result);
         void _move_active_callback();
         void _move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback);
+        // 动态调参
+        void _dr_callback(controllerConfig &config, uint32_t level);
 
     public:
         MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh);

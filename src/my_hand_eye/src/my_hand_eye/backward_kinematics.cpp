@@ -7,11 +7,9 @@ namespace my_hand_eye
         state = normal;
     }
 
-    Angle::Angle(double v1, double v2)
+    Angle Angle::atan2(double v1, double v2)
     {
-        double rad = std::atan2(v1, v2);
-        deg = degree(rad);
-        state = normal;
+        return Angle(degree(std::atan2(v1, v2)));
     }
 
     double Angle::_get_degree()
@@ -46,7 +44,7 @@ namespace my_hand_eye
         }
     }
 
-    double degree(double rad)
+    double Angle::degree(double rad)
     {
         return rad / M_PI * 180;
     }
@@ -162,7 +160,7 @@ namespace my_hand_eye
 
     Angle Axis::_calculate_j1()
     {
-        Angle j1(y + ARM_P, x);
+        Angle j1 = Angle::atan2(y + ARM_P, x);
         if (j1._get_degree() < 0)
             j1 = j1 + Angle(360);
         return j1;
@@ -182,7 +180,7 @@ namespace my_hand_eye
             return j3;
         }
         double sin3 = std::sqrt(1 - cos3 * cos3);
-        return Angle(sin3, cos3);
+        return Angle::atan2(sin3, cos3);
     }
 
     Angle Axis::_calculate_j2(double alpha)
@@ -192,7 +190,7 @@ namespace my_hand_eye
         double H = this->H(alpha);
         double K1 = ARM_A2 + ARM_A3 * j3.cos();
         double K2 = ARM_A3 * j3.sin();
-        return (Angle(L, H) - Angle(K2, K1));
+        return (Angle::atan2(L, H) - Angle::atan2(K2, K1));
     }
 
     Angle Axis::_calculate_j4(double alpha)

@@ -13,12 +13,11 @@ namespace motion_controller
         cmd_vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 3);
         if (param_modification)
         {
-            dr_server_.setCallback(boost::bind(&LineFollower::_dr_callback, this, _1, _2));
             theta_publisher_ = nh.advertise<std_msgs::Float64>("theta", 5);
         }
     }
 
-    void LineFollower::_dr_callback(lineConfig &config, uint32_t level)
+    void LineFollower::dr(controllerConfig &config)
     {
         if (front_back_ != config.front_back)
             front_back_ = config.front_back;

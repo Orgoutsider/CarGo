@@ -3,8 +3,7 @@
 
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/Twist.h>
-#include <dynamic_reconfigure/server.h>
-#include <motion_controller/lineConfig.h>
+#include <motion_controller/controllerConfig.h>
 #include "motion_controller/pid_controller.h"
 
 namespace motion_controller
@@ -22,14 +21,14 @@ namespace motion_controller
         ros::Publisher cmd_vel_publisher_; // 底盘速度话题发布
         ros::Publisher theta_publisher_;   // 调试时使用，观察theta变化
         PIDController pid_;
-        dynamic_reconfigure::Server<lineConfig> dr_server_;
-        void _dr_callback(lineConfig &config, uint32_t level);
 
     public:
         LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);
-        bool param_modification; // 动态调参
+        bool param_modification; // 动态调参，与子类（MotionController）共用
         bool motor_status;       // 调参，即停选项
         bool has_started;        // 是否已经启动
+        // 用于走直线动态调参
+        void dr(controllerConfig &config);
         // 启动并输入theta，自动转成目标角度
         bool start(bool start, double theta = 0);
         // 使用pid走直线，如果LineFollower尚未启动，则不做处理

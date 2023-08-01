@@ -21,11 +21,12 @@ namespace my_hand_eye
     private:
         double deg;
         int state; // 目前角度计算是否出错
+        static double degree(double rad);
     public:
         const int error = 1;
         const int normal = 0;
         Angle(double deg);           // 角度值
-        Angle(double v1, double v2); // atan2
+        static Angle atan2(double v1, double v2); // atan2
         double _get_degree();        // 获得角度值
         double rad();                // 转弧度制
         double cos();
@@ -41,7 +42,6 @@ namespace my_hand_eye
         bool operator>(const Angle &t);        // 重载>
         bool operator<(const Angle &t);        // 重载<
     };
-    double degree(double rad);
     struct Action
     {
         double x, y, z;

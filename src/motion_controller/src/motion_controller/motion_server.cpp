@@ -9,9 +9,8 @@ namespace motion_controller
           kp_linear_(0.6), ki_linear_(0.15), kd_linear_(0)
     {
         pnh.param<bool>("param_modification", param_modification_, false);
-        server_.registerPreemptCallback(boost::bind(&MotionServer::_preempt_callback, this));
-        server_.start();
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
+        server_.start();
         if (param_modification_)
         {
             dr_server_.setCallback(boost::bind(&MotionServer::_dr_callback, this, _1, _2));
@@ -40,11 +39,54 @@ namespace motion_controller
         geometry_msgs::Pose2D pose = goal->pose;
         bool success = false;
         std::vector<double> controll;
-        if (goal->pose.theta)
+        if (pose.theta)
         {
             PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
             while (!success && ros::ok())
             {
+                if (server_.isPreemptRequested())
+                {
+                    ROS_WARN("Preempt Requested!");
+                    _get_pose_now(pose);
+                    PIDController pid({pose.x, pose.y, 0}, {kp_linear_, kp_linear_, kp_angular_},
+                                      {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
+                                      {0.01, 0.01, 0.02}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
+                    while (!success && ros::ok())
+                    {
+                        if (_get_pose_now(pose))
+                        {
+                            if (pid.update({pose.x, pose.y, pose.theta}, header_.stamp, controll, success))
+                            {
+                                // 组织发布速度消息
+                                geometry_msgs::Twist twist;
+                                twist.linear.x = controll[0];
+                                twist.linear.y = controll[1];
+                                twist.angular.z = controll[2];
+                                tme.velocity = twist;
+                            }
+                            else
+                            {
+                                // 组织发布速度消息
+                                tme.velocity = geometry_msgs::Twist();
+                            }
+                        }
+                        else
+                        {
+                            // 组织发布速度消息
+                            tme.velocity = geometry_msgs::Twist();
+                        }
+                        tme.end = false;
+                        cmd_vel_publisher_.publish(tme);
+                        rate.sleep();
+                    }
+
+                    TwistMightEnd tme;
+                    tme.end = true;
+                    tme.velocity = geometry_msgs::Twist();
+                    cmd_vel_publisher_.publish(tme);
+                    server_.setPreempted(MoveResult(), "Got preempted by a new goal");
+                    return;
+                }
                 if (_get_pose_now(pose))
                 {
                     // pose.theta从-pi到+pi
@@ -75,7 +117,7 @@ namespace motion_controller
             }
         }
         // 平移
-        if (goal->pose.x || goal->pose.y)
+        if (pose.x || pose.y)
         {
             PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_},
                                {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
@@ -83,6 +125,49 @@ namespace motion_controller
             success = false;
             while (!success && ros::ok())
             {
+                if (server_.isPreemptRequested())
+                {
+                    ROS_WARN("Preempt Requested!");
+                    _get_pose_now(pose);
+                    PIDController pid({pose.x, pose.y, 0}, {kp_linear_, kp_linear_, kp_angular_},
+                                      {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
+                                      {0.01, 0.01, 0.02}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
+                    while (!success && ros::ok())
+                    {
+                        if (_get_pose_now(pose))
+                        {
+                            if (pid.update({pose.x, pose.y, pose.theta}, header_.stamp, controll, success))
+                            {
+                                // 组织发布速度消息
+                                geometry_msgs::Twist twist;
+                                twist.linear.x = controll[0];
+                                twist.linear.y = controll[1];
+                                twist.angular.z = controll[2];
+                                tme.velocity = twist;
+                            }
+                            else
+                            {
+                                // 组织发布速度消息
+                                tme.velocity = geometry_msgs::Twist();
+                            }
+                        }
+                        else
+                        {
+                            // 组织发布速度消息
+                            tme.velocity = geometry_msgs::Twist();
+                        }
+                        tme.end = false;
+                        cmd_vel_publisher_.publish(tme);
+                        rate.sleep();
+                    }
+
+                    TwistMightEnd tme;
+                    tme.end = true;
+                    tme.velocity = geometry_msgs::Twist();
+                    cmd_vel_publisher_.publish(tme);
+                    server_.setPreempted(MoveResult(), "Got preempted by a new goal");
+                    return;
+                }
                 if (_get_pose_now(pose))
                 {
                     if (pid2.update({pose.x, pose.y, pose.theta}, header_.stamp, controll, success))
@@ -124,16 +209,6 @@ namespace motion_controller
         ROS_INFO("Move success!");
     }
 
-    void MotionServer::_preempt_callback()
-    {
-        ROS_WARN("Preempt Requested!");
-        TwistMightEnd tme;
-        tme.end = true;
-        tme.velocity = geometry_msgs::Twist();
-        cmd_vel_publisher_.publish(tme);
-        server_.setPreempted(MoveResult(), "Got preempted by a new goal");
-    }
-
     void MotionServer::_dr_callback(motion_controller::params_PID_srvConfig &config, uint32_t level)
     {
         if (!param_modification_)
@@ -149,7 +224,7 @@ namespace motion_controller
         if (config.ki_linear != ki_linear_)
             ki_linear_ = config.ki_linear;
         if (config.kd_linear != kd_linear_)
-            kd_linear_ = config.kd_linear; 
+            kd_linear_ = config.kd_linear;
     }
 
     bool MotionServer::_add_pose_goal(geometry_msgs::Pose2D pose)

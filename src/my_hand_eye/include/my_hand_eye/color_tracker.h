@@ -38,10 +38,7 @@ namespace my_hand_eye
         double gain_;      // 矩形框扩大
         double speed_max_; // 最高速度
         Color color_;      // 当前寻找颜色
-        const int h_max_[4];
-        const int h_min_[4];
         const int s_min_[4];
-        const int v_min_[4];
         int white_vmin_;
         bool show_detections_;
         bool flag_;                  // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
@@ -63,9 +60,14 @@ namespace my_hand_eye
     public:
         int left_color;  // 左侧颜色
         int right_color; // 右侧颜色
+        // 颜色范围用于接收yolov5产生的参数
+        std::vector<double> h_max;
+        std::vector<double> h_min;
+        std::vector<double> v_min;
         ColorTracker();
         void get_center(double &u, double &v);
-        bool target_init(cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
+        bool target_init(ros::NodeHandle &nh,
+                         cv_bridge::CvImage &cv_image, vision_msgs::BoundingBox2DArray &objArray,
                          const Color color, int white_vmin, double center_x, double center_y,
                          bool show_detections); // 目标初始化
         // 颜色顺序初始化

@@ -5,9 +5,9 @@
     <include file="$(find motion_controller)/launch/nodes/performer.launch" />
     <!-- 选择调节pid的节点 -->
     <!-- 循线节点 -->
-    <include file="$(find motion_controller)/launch/nodes/controller.launch">
+    <!-- <include file="$(find motion_controller)/launch/nodes/controller.launch">
         <arg name="param_modification" value="true" />
-    </include>
+    </include> -->
 
     <!-- 视觉节点 -->
     <!-- 机械臂节点 -->
@@ -27,9 +27,9 @@
     </include> -->
 
     <!-- 服务节点 -->
-    <!-- <include file="$(find motion_controller)/launch/nodes/server.launch">
+    <include file="$(find motion_controller)/launch/nodes/server.launch">
         <arg name="param_modification" value="true" />
-    </include> -->
+    </include>
     
     <!-- stm32pid不用开启执行节点 -->
     <!-- <include file="$(find motion_controller)/launch/nodes/stm32_pid.launch" /> -->

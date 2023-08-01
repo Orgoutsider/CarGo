@@ -38,11 +38,10 @@ namespace motion_controller
         // pid速度参考：线速度0.2，角速度0.5
         // Optional callback that gets called in a separate thread whenever a new goal is received, allowing users to have blocking callbacks.
         void _execute_callback(const motion_controller::MoveGoalConstPtr &goal);
-        // 挤占服务时回调函数
-        void _preempt_callback();
         void _dr_callback(motion_controller::params_PID_srvConfig &config, uint32_t level);
         // 将目标点转换到odom_combined坐标系并存储
         bool _add_pose_goal(geometry_msgs::Pose2D pose);
+        // 获取当前位姿，如果获取失败，则不改变pose
         bool _get_pose_now(geometry_msgs::Pose2D &pose);
 
     public:

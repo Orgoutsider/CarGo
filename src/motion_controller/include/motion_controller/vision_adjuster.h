@@ -8,7 +8,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <dynamic_reconfigure/server.h>
 #include <my_hand_eye/Pose2DMightEnd.h>
-#include <motion_controller/Distance.h>
 #include <motion_controller/TwistMightEnd.h>
 #include <motion_controller/params_PID_visionConfig.h>
 
@@ -52,7 +51,6 @@ namespace motion_controller
         geometry_msgs::TransformStamped tfs_;
         // 动态参数
         dynamic_reconfigure::Server<params_PID_visionConfig> dr_server_;
-        // void _usb_cam_callback(const DistanceConstPtr &msg);
         void _eye_callback(const my_hand_eye::Pose2DMightEndConstPtr &msg);
         void _dr_callback(params_PID_visionConfig &config, uint32_t level);
         bool _get_transform();

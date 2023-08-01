@@ -1,29 +1,30 @@
 #!/usr/bin/env python
 
-import os
-import sys
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-import cv2
-import numpy as np
-import rospy
-import random
-from cv_bridge import CvBridge
-from sensor_msgs.msg import Image
-# from detection_msgs.msg import BoundingBox, BoundingBoxes
-
+import ctypes
+from detector_trt import Detector
+from yolov5_ros.cfg import drConfig
+from dynamic_reconfigure.server import Server
+from yolov5_ros.srv import cargoSrv, cargoSrvResponse
 from vision_msgs.msg import BoundingBox2DArray, \
     BoundingBox2D
-from yolov5_ros.srv import cargoSrv, cargoSrvResponse
-from dynamic_reconfigure.server import Server
-from yolov5_ros.cfg import drConfig
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+import random
+import rospy
+import numpy as np
+import cv2
+import os
+import sys
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+# from detection_msgs.msg import BoundingBox, BoundingBoxes
+
 
 # add yolov5_deepsort_tensorrt submodule to path
 path = os.path.abspath(".")
 # 核心
-sys.path.insert(0,path + "/src/yolov5_ros/src/")
-from detector_trt import Detector
+sys.path.insert(0, path + "/src/yolov5_ros/src/")
 # import tracker_trt
-import ctypes
+
 
 def plot_one_box(x, img, color=None, label=None, line_thickness=None):
     """
@@ -61,6 +62,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None):
             lineType=cv2.LINE_AA,
         )
 
+
 R_Low1_add = np.array([0, 0, -13], dtype=np.uint8)
 R_up1_add = np.array([0, 0, 0], dtype=np.uint8)
 
@@ -85,14 +87,43 @@ G_up = np.array([77, 255, 255], dtype=np.uint8)
 B_Low = np.array([100, 43, 46], dtype=np.uint8)
 B_up = np.array([124, 255, 255], dtype=np.uint8)
 
-single_color = [[1], [1], [2], [3]]
+color_dict = {"red": 1, "green": 2, "blue": 3}
+hsv_dict = {"h": 0, "s": 1, "v": 2}
+single_color = [[color_dict["red"]], [color_dict["red"]],
+                [color_dict["green"]], [color_dict["blue"]]]
+
 
 class Yolov5Detector:
     def __init__(self):
+        self.colors = range(color_dict["red"], color_dict["blue"] + 1)
+        self.low_raw = [R_Low1 + R_Low1_add, R_Low2 +
+                        R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
+        self.up_raw = [R_up1 + R_up1_add, R_up2 +
+                       R_up2_add, G_up + G_up_add, B_up + B_up_add]
+        self.low = [R_Low1 + R_Low1_add, R_Low2 +
+                    R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
+        self.up = [R_up1 + R_up1_add, R_up2 +
+                   R_up2_add, G_up + G_up_add, B_up + B_up_add]
+        self.param_modification = rospy.get_param('~param_modification', False)
+        if self.param_modification:
+            self.dr_srv = Server(drConfig, self.dr_callback)
+        else:
+            rospy.loginfo("Defualt setting: don't modify paramater")
+            rospy.set_param("h_max", [0, self.low[color_dict["red"]][hsv_dict["h"]],
+                                      self.up[color_dict["green"]][hsv_dict["h"]], 
+                                      self.up[color_dict["blue"]][hsv_dict["h"]]])
+            rospy.set_param("h_min", [0, self.up[color_dict["red"]][hsv_dict["h"]],
+                                      self.low[color_dict["green"]][hsv_dict["h"]], 
+                                      self.low[color_dict["blue"]][hsv_dict["h"]]])
+            rospy.set_param(
+                "v_min", [self.low[color][hsv_dict["v"]] for color in range(4)])
+            
         self.line_thickness = rospy.get_param("~line_thickness", 3)
-        PLUGIN_LIBRARY = rospy.get_param("~plugin_library", "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/libmyplugins.so")
+        PLUGIN_LIBRARY = rospy.get_param(
+            "~plugin_library", "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/libmyplugins.so")
         ctypes.CDLL(PLUGIN_LIBRARY)
-        engine_file_path = rospy.get_param("~engine_file_path", "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/best.engine")
+        engine_file_path = rospy.get_param(
+            "~engine_file_path", "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/best.engine")
         self.detector = Detector(engine_file_path)
 
         # Initialize image publisher
@@ -101,54 +132,48 @@ class Yolov5Detector:
             self.image_pub = rospy.Publisher(
                 rospy.get_param("~output_image_topic", "/yolov5/image_out"), Image, queue_size=1
             )
-        
+
         # Initialize CV_Bridge
         self.bridge = CvBridge()
 
-        self.colors = range(1, 4)
-        self.low_raw = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
-        self.up_raw = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
-        self.low = [R_Low1 + R_Low1_add, R_Low2 + R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
-        self.up = [R_up1 + R_up1_add, R_up2 + R_up2_add, G_up + G_up_add, B_up + B_up_add]
-        self.gain = 0.1 # 扩张比例
+        self.gain = 0.1  # 扩张比例
         self.srv = rospy.Service('cargoSrv', cargoSrv, self.callback)
-        self.param_modification = rospy.get_param('~param_modification', False)
-        if self.param_modification:
-            self.dr_srv = Server(drConfig, self.dr_callback)
-        else:
-            rospy.loginfo("Defualt setting: don't modify paramater")
 
     def callback(self, req):
         # print(data.header)
         rospy.logdebug("Get an image")
         data = req.image
         im = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
-        
+
         result_boxes, result_scores, result_classid = self.detector.detect(im)
         objArray = BoundingBox2DArray()
         objArray.boxes = [BoundingBox2D()] * 4
         objArray.header = data.header
-        flag = [False] * 4 #没有检测到
+        flag = [False] * 4  # 没有检测到
         color_id = [0, 2, 1, 0]
         im_plot = im.copy()
         if len(result_boxes) > 0:
             for i in range(len(result_boxes)):
                 result_box = result_boxes[i]
-                # start_row and start_col are the cordinates 
+                # start_row and start_col are the cordinates
                 # from where we will start cropping
-                # end_row and end_col is the end coordinates 
+                # end_row and end_col is the end coordinates
                 # where we stop
-                size_row,size_col=result_box[3]-result_box[1], result_box[2]-result_box[0]
-                start_row,start_col=int(max(0, result_box[1] - size_row * self.gain)),int(max(0, result_box[0] - size_col * self.gain))
-                end_row,end_col=int(min(im.shape[0] ,result_box[3] + size_row * self.gain)),int(min(im.shape[1], result_box[2] + size_col * self.gain))
-                
-                roi = im[start_row:end_row,start_col:end_col]
+                size_row, size_col = result_box[3] - \
+                    result_box[1], result_box[2]-result_box[0]
+                start_row, start_col = int(max(0, result_box[1] - size_row * self.gain)), int(
+                    max(0, result_box[0] - size_col * self.gain))
+                end_row, end_col = int(min(im.shape[0], result_box[3] + size_row * self.gain)), int(
+                    min(im.shape[1], result_box[2] + size_col * self.gain))
+
+                roi = im[start_row:end_row, start_col:end_col]
                 if self.param_modification:
                     cv2.imshow("roi", roi)
                     cv2.waitKey(100)
                 roi = cv2.GaussianBlur(roi, (3, 3), 0)
                 roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-                element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))
+                element = cv2.getStructuringElement(
+                    cv2.MORPH_ELLIPSE, (13, 13))
                 s_max = 0
                 if self.param_modification:
                     # cv2.imshow("im0", im0)
@@ -159,7 +184,7 @@ class Yolov5Detector:
                     if flag[color]:
                         continue
 
-                    if color == 1:#红色
+                    if color == color_dict["red"]:  # 红色
                         # print(self._low[0])
                         # print(self._up[0])
                         dst1 = cv2.inRange(roi, self.low[0], self.up[0])
@@ -173,7 +198,8 @@ class Yolov5Detector:
                         cv2.waitKey(100)
                     dst = cv2.erode(dst, element)
 
-                    contours, hierarchy = cv2.findContours(dst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) #查找轮廓                
+                    contours, hierarchy = cv2.findContours(
+                        dst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # 查找轮廓
                     for contour in contours:
                         rect = cv2.minAreaRect(contour)
                         size = rect[1]
@@ -185,11 +211,11 @@ class Yolov5Detector:
                     flag[color_max] = True
                     # rospy.loginfo("Succeed to detect!")
                     obj = BoundingBox2D()
-                    obj.center.x = (result_box[0] + result_box[2]) / 2 #中心点
+                    obj.center.x = (result_box[0] + result_box[2]) / 2  # 中心点
                     obj.center.y = (result_box[1] + result_box[3]) / 2
-                    obj.center.theta = np.pi / 2 #由x轴逆时针转至W(宽)的角度。
-                    obj.size_x = (result_box[2] - result_box[0])#长
-                    obj.size_y = (result_box[3] - result_box[1])#宽
+                    obj.center.theta = np.pi / 2  # 由x轴逆时针转至W(宽)的角度。
+                    obj.size_x = (result_box[2] - result_box[0])  # 长
+                    obj.size_y = (result_box[3] - result_box[1])  # 宽
                     objArray.boxes[color_max] = obj
 
                     # Annotate the image
@@ -201,12 +227,13 @@ class Yolov5Detector:
                             result_box,
                             im_plot,
                             label="{}:{:.2f}".format(
-                                categories[int(result_classid[i])], result_scores[i]
+                                categories[int(result_classid[i])
+                                           ], result_scores[i]
                             ),
                             color=tuple(box_color),
                             line_thickness=self.line_thickness
                         )
-        
+
         else:
             rospy.logwarn("Cannot detect cargo!")
 
@@ -221,12 +248,11 @@ class Yolov5Detector:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im_plot, "bgr8"))
 
         return cargoSrvResponse(objArray)
-    
 
     def dr_callback(self, config, level):
         if not self.param_modification:
             return config
-        
+
         low_raw = self.low_raw[config.color]
         up_raw = self.up_raw[config.color]
         low = self.low[config.color]
@@ -236,29 +262,33 @@ class Yolov5Detector:
             self.colors = single_color[config.color]
             rospy.loginfo('Succeed to modify paramater!')
 
-        if low_raw[0] + config.h_low != low[0] and low_raw[0] + config.h_low >= 0:
+        if low_raw[hsv_dict["h"]] + config.h_low != low[hsv_dict["h"]] and \
+                low_raw[hsv_dict["h"]] + config.h_low >= 0:
             flag = True
-            low[0] = low_raw[0] + config.h_low
+            low[hsv_dict["h"]] = low_raw[hsv_dict["h"]] + config.h_low
 
-        if low_raw[1] + config.s_low != low[1] and low_raw[1] + config.s_low >= 0:
+        if low_raw[hsv_dict["s"]] + config.s_low != low[hsv_dict["s"]] and \
+                low_raw[hsv_dict["s"]] + config.s_low >= 0:
             flag = True
-            low[1] = low_raw[1] + config.s_low
+            low[hsv_dict["s"]] = low_raw[hsv_dict["s"]] + config.s_low
 
-        if low_raw[2] + config.v_low != low[2] and low_raw[2] + config.v_low >= 0:
+        if low_raw[hsv_dict["v"]] + config.v_low != low[hsv_dict["v"]] and \
+                low_raw[hsv_dict["v"]] + config.v_low >= 0:
             flag = True
-            low[2] = low_raw[2] + config.v_low
+            low[hsv_dict["v"]] = low_raw[hsv_dict["v"]] + config.v_low
 
-        if up_raw[0] + config.h_up != up[0] and up_raw[0] + config.h_up <= 255:
-            up[0] = up_raw[0] + config.h_up
+        if up_raw[hsv_dict["h"]] + config.h_up != up[hsv_dict["h"]] and \
+                up_raw[hsv_dict["h"]] + config.h_up <= 255:
+            up[hsv_dict["h"]] = up_raw[hsv_dict["h"]] + config.h_up
             self.up[config.color] = up
             rospy.loginfo('Succeed to modify paramater!')
-        
+
         if flag:
-            self.low[config.color] = low           
+            self.low[config.color] = low
             rospy.loginfo('Succeed to modify paramater!')
 
         return config
-    
+
     def destroy(self):
         self.detector.destroy()
 
@@ -269,7 +299,7 @@ if __name__ == "__main__":
     categories = ["cargo"]
     rospy.init_node("yolov5", anonymous=True)
     detector = Yolov5Detector()
-    
+
     rospy.spin()
     # cv2.destroyAllWindows()
     detector.destroy()

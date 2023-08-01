@@ -86,6 +86,7 @@ namespace my_hand_eye
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
         cargo_x_.reserve(10);
         cargo_y_.reserve(10);
+        nh_ = &nh;
     }
 
     bool ArmController::add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image)
@@ -524,7 +525,7 @@ namespace my_hand_eye
             double center_x = 0, center_y = 0;
             if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
                 get_center(objArray, center_u, center_v, center_x, center_y, true) &&
-                tracker_.target_init(cv_image_, objArray, color, white_vmin_,
+                tracker_.target_init(*nh_, cv_image_, objArray, color, white_vmin_,
                                      center_x, center_y, show_detections))
             {
                 if (first)

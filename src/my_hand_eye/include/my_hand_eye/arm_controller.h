@@ -27,6 +27,7 @@ namespace my_hand_eye
         Border border_;
         SMS_STS sm_st_;
         SCSCL sc_;
+        ros::NodeHandle *nh_;             // 节点句柄
         ros::ServiceClient cargo_client_; // yolov5+颜色识别
         ros::ServiceClient plot_client_;  // 运动范围绘制
         cv::Rect default_roi_;            // 默认截图矩形
