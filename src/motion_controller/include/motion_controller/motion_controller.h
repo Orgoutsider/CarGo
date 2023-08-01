@@ -61,6 +61,8 @@ namespace motion_controller
         void _move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback);
         // 动态调参
         void _dr_callback(controllerConfig &config, uint32_t level);
+        // 当move与视觉协同时调用的循环
+        void _move_with_vision();
 
     public:
         MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
@@ -70,8 +72,6 @@ namespace motion_controller
         bool get_position();
         // 开/关循线回调
         bool go(Go::Request &req, Go::Response &resp);
-        // 当move与视觉协同时调用的循环
-        bool spin();
     };
 
 } // namespace motion_controller

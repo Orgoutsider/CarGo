@@ -111,21 +111,6 @@ namespace motion_controller
                 }
                 follower_.follow(theta_, event.current_real);
             }
-            // 抓三
-            static bool flag = true;
-            if (flag)
-            {
-                ac_arm_.waitForServer();
-                my_hand_eye::ArmGoal goal;
-                goal.route = goal.route_raw_material_area;
-                ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
-                                 boost::bind(&MotionController::_arm_active_callback, this),
-                                 boost::bind(&MotionController::_arm_feedback_callback, this, _1));
-                flag = false;
-            }
-            else
-            {
-            }
         }
         else if (get_position())
         {
@@ -305,7 +290,25 @@ namespace motion_controller
 
     void MotionController::_dr_callback(controllerConfig &config, uint32_t level)
     {
-        
+        follower_.dr(config);
+    }
+
+    void MotionController::_move_with_vision()
+    {
+        static bool flag = true;
+        if (flag)
+        {
+            ac_arm_.waitForServer();
+            my_hand_eye::ArmGoal goal;
+            goal.route = goal.route_raw_material_area;
+            ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
+                             boost::bind(&MotionController::_arm_active_callback, this),
+                             boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+            flag = false;
+        }
+        else
+        {
+        }
     }
 
     bool MotionController::get_position()

@@ -47,21 +47,15 @@ namespace motion_controller
                 if (server_.isPreemptRequested())
                 {
                     ROS_WARN("Preempt Requested!");
-                    _get_pose_now(pose);
-                    PIDController pid({pose.x, pose.y, 0}, {kp_linear_, kp_linear_, kp_angular_},
-                                      {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
-                                      {0.01, 0.01, 0.02}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
                     while (!success && ros::ok())
                     {
                         if (_get_pose_now(pose))
                         {
-                            if (pid.update({pose.x, pose.y, pose.theta}, header_.stamp, controll, success))
+                            if (pid1.update({pose.theta}, header_.stamp, controll, success))
                             {
                                 // 组织发布速度消息
                                 geometry_msgs::Twist twist;
-                                twist.linear.x = controll[0];
-                                twist.linear.y = controll[1];
-                                twist.angular.z = controll[2];
+                                twist.angular.z = controll[0];
                                 tme.velocity = twist;
                             }
                             else
@@ -129,20 +123,16 @@ namespace motion_controller
                 {
                     ROS_WARN("Preempt Requested!");
                     _get_pose_now(pose);
-                    PIDController pid({pose.x, pose.y, 0}, {kp_linear_, kp_linear_, kp_angular_},
-                                      {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
-                                      {0.01, 0.01, 0.02}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
+                    PIDController pid({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
                     while (!success && ros::ok())
                     {
                         if (_get_pose_now(pose))
                         {
-                            if (pid.update({pose.x, pose.y, pose.theta}, header_.stamp, controll, success))
+                            if (pid.update({pose.theta}, header_.stamp, controll, success))
                             {
                                 // 组织发布速度消息
                                 geometry_msgs::Twist twist;
-                                twist.linear.x = controll[0];
-                                twist.linear.y = controll[1];
-                                twist.angular.z = controll[2];
+                                twist.angular.z = controll[0];
                                 tme.velocity = twist;
                             }
                             else

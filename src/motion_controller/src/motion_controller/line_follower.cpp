@@ -19,6 +19,8 @@ namespace motion_controller
 
     void LineFollower::dr(controllerConfig &config)
     {
+        if (!param_modification)
+            return;
         if (front_back_ != config.front_back)
             front_back_ = config.front_back;
         if (front_left_ != config.front_left)
