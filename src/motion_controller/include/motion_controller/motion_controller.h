@@ -37,13 +37,13 @@ namespace motion_controller
         ArmClient ac_arm_;                           // 机械臂客户端
         ros::ServiceServer go_client_;               // 一键式客户端
         geometry_msgs::Pose2D move_pose_, arm_pose_; // 目标姿态
-        ros::Time stamp_;                            // 一直更新的时间戳，用于激活
         ros::Time move_time_, arm_time_;             // 接收时间
         ros::Time move_stamp_, arm_stamp_;           // 感知时间
-        dynamic_reconfigure::Server<controllerConfig> dr_server_;
-        bool move_active_, arm_active_;              // 传感器是否活动
-        bool move_initialized_, arm_initialized_;    // 传感器已经初始化
-        double timeout_;                             // 最大超时
+        dynamic_reconfigure::Server<routeConfig> dr_server_;
+        bool move_active_, arm_active_;           // 传感器是否活动
+        bool move_initialized_, arm_initialized_; // 传感器已经初始化
+        double timeout_;                          // 最大超时
+        int dr_route_;                            // 调参时面向的场景
         // 转弯
         bool _turn();
         // 掉头，需要改变之后的转弯方向
@@ -60,7 +60,7 @@ namespace motion_controller
         void _move_active_callback();
         void _move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback);
         // 动态调参
-        void _dr_callback(controllerConfig &config, uint32_t level);
+        void _dr_callback(routeConfig &config, uint32_t level);
         // 当move与视觉协同时调用的循环
         void _move_with_vision();
 

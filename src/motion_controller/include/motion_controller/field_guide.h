@@ -2,24 +2,16 @@
 #define _FIELD_GUIDE_H_
 
 #include <ros/ros.h>
+#include <motion_controller/routeConfig.h>
 
 namespace motion_controller
 {
-    enum Route
-    {
-        route_QR_code_board,
-        route_raw_material_area,
-        route_roughing_area,
-        route_semi_finishing_area,
-        route_parking_area
-    };
-
     class FieldGuide
     {
     private:
         bool doing_;
         int where_; // route索引
-        std::array<Route, 8> route_;
+        std::array<int, 14> route_;
         double length_field_; // 场地（车道部分）长宽
         double x_raw_material_area_;
         double y_roughing_area_;
@@ -38,7 +30,7 @@ namespace motion_controller
         double x_QR_code_board_;     // 二维码板
         double y_parking_area_;      // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
         FieldGuide();
-        Route where_is_car() const;
+        int where_is_car() const;
         // 当前任务正在完成，不可接下一任务
         void doing();
         // 当前任务已完成，接下一任务，更新loop_

@@ -3,8 +3,8 @@
 namespace my_hand_eye
 {
 	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-		: motor_status_(false), arm_controller_(nh, pnh),
-		  as_(nh, "Arm", false)
+		: arm_controller_(nh, pnh),
+		  as_(nh, "Arm", false), finish_adjusting_(true)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
@@ -130,13 +130,44 @@ namespace my_hand_eye
 		if (as_.isPreemptRequested() || !ros::ok())
 		{
 			ROS_ERROR("Arm Preempt Requested!");
-			stop_adjustment();
-			if (arm_goal_.route != arm_goal_.route_rest)
-				arm_goal_.route = arm_goal_.route_rest;
+			cancel_all();
 			as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 			return;
 		}
 		arm_goal_.route = as_.acceptNewGoal()->route;
+		if (finish_adjusting_)
+		{
+			finish_adjusting_ = false;
+		}
+		if (param_modification_)
+		{
+			switch (arm_goal_.route)
+			{
+			case arm_goal_.route_border:
+				target_ = arm_controller_.target_pose.target_border;
+				break;
+
+			case arm_goal_.route_raw_material_area:
+				target_ = arm_controller_.target_pose.target_center;
+				break;
+
+			case arm_goal_.route_roughing_area:
+				target_ = arm_controller_.target_pose.target_ellipse;
+				break;
+
+			case arm_goal_.route_semi_finishing_area:
+				target_ = arm_controller_.target_pose.target_ellipse;
+				break;
+
+			case arm_goal_.route_parking_area:
+				target_ = arm_controller_.target_pose.target_parking_area;
+				break;
+
+			default:
+				break;
+			}
+		}
+
 		// as_.setSucceeded(ArmResult(), "Arm finish tasks");
 	}
 
@@ -144,13 +175,11 @@ namespace my_hand_eye
 	{
 		ROS_ERROR("Arm Preempt Requested!");
 		// 不正常现象，需要停止所有与底盘相关的联系，避免后续受到影响
-		stop_adjustment();
-		if (arm_goal_.route != arm_goal_.route_rest)
-			arm_goal_.route = arm_goal_.route_rest;
+		cancel_all();
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 	}
 
-	void MyEye::stop_adjustment()
+	void MyEye::cancel_all()
 	{
 		if (!finish_adjusting_)
 		{
@@ -168,10 +197,12 @@ namespace my_hand_eye
 			}
 			finish_adjusting_ = true;
 		}
+		if (arm_goal_.route != arm_goal_.route_rest)
+			arm_goal_.route = arm_goal_.route_rest;
 	}
 
-	bool MyEye::operate_raw_material_area(const sensor_msgs::ImageConstPtr &image_rect,
-										  sensor_msgs::ImagePtr &debug_image)
+	bool MyEye::operate_center(const sensor_msgs::ImageConstPtr &image_rect,
+							   sensor_msgs::ImagePtr &debug_image)
 	{
 		static bool last_finish = true;
 		// if (last_finish && arm_goal_)
@@ -234,32 +265,87 @@ namespace my_hand_eye
 		return valid;
 	}
 
+	bool MyEye::operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
+								sensor_msgs::ImagePtr &debug_image)
+	{
+		static bool last_finish = true;
+		if (last_finish && (arm_goal_.route == arm_goal_.route_roughing_area ||
+							arm_goal_.route == arm_goal_.route_semi_finishing_area))
+		{
+			finish_adjusting_ = false;
+			last_finish = false;
+			ROS_INFO("Start operate ellipse...");
+		}
+		else if (!last_finish && (arm_goal_.route == arm_goal_.route_rest))
+		{
+			if (!finish_adjusting_)
+				finish_adjusting_ = true;
+			last_finish = true;
+			if (param_modification_)
+			{
+				ROS_INFO("Finish operate ellipse...");
+				return true;
+			}
+			return false;
+		}
+		else if (last_finish) // 前后一样完成就不用赋值了
+		{
+			ros::Duration(0.1).sleep();
+			return true;
+		}
+		bool valid = true;
+		if (!finish_adjusting_)
+		{
+			static int err_cnt = 0;
+			Pose2DMightEnd msg;
+			msg.end = finish_adjusting_;
+			valid = arm_controller_.find_ellipse(image_rect, msg, debug_image);
+			if (valid)
+			{
+				if (msg.end)
+				{
+					finish_adjusting_ = true;
+				}
+				pose_publisher_.publish(msg);
+				if (err_cnt)
+					err_cnt = 0;
+			}
+			else
+			{
+				// 发送此数据表示车辆即刻停止，重新寻找定位物体
+				msg.pose.x = msg.not_change;
+				msg.pose.y = msg.not_change;
+				msg.pose.theta = msg.not_change;
+				if ((++err_cnt) > 5)
+				{
+					finish_adjusting_ = true;
+					msg.end = finish_adjusting_;
+					ROS_WARN("Could not find ellipse. Try...");
+				}
+				pose_publisher_.publish(msg);
+			}
+		}
+		else if (!param_modification_)
+		{
+			// valid = arm_controller_.track(image_rect, )
+		}
+		// last_finish = finish_;
+		return valid;
+	}
+
 	void MyEye::dr_callback(drConfig &config, uint32_t level)
 	{
 		if (arm_controller_.z_parking_area != config.z_parking_area)
 			arm_controller_.z_parking_area = config.z_parking_area;
 		if (arm_controller_.threshold != config.threshold)
 			arm_controller_.threshold = config.threshold;
-		if (arm_controller_.target_pose.pose[config.target].x != config.target_x)
-			arm_controller_.target_pose.pose[config.target].x = config.target_x;
-		if (arm_controller_.target_pose.pose[config.target].y != config.target_y)
-			arm_controller_.target_pose.pose[config.target].y = config.target_y;
-		if (arm_controller_.target_pose.pose[config.target].theta !=
+		if (arm_controller_.target_pose.pose[target_].x != config.target_x)
+			arm_controller_.target_pose.pose[target_].x = config.target_x;
+		if (arm_controller_.target_pose.pose[target_].y != config.target_y)
+			arm_controller_.target_pose.pose[target_].y = config.target_y;
+		if (arm_controller_.target_pose.pose[target_].theta !=
 			config.target_theta_deg / 180 * CV_PI)
-			arm_controller_.target_pose.pose[config.target].theta =
+			arm_controller_.target_pose.pose[target_].theta =
 				config.target_theta_deg / 180 * CV_PI;
-		if (motor_status_ != config.motor_status)
-		{
-			motor_status_ = config.motor_status;
-			if (motor_status_)
-			{
-				if (finish_adjusting_)
-				{
-					finish_adjusting_ = false;
-				}
-			}
-			else
-				stop_adjustment();
-		}
 	}
 } // namespace my_hand_eye

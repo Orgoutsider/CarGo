@@ -17,7 +17,7 @@ namespace motion_controller
         }
     }
 
-    void LineFollower::dr(controllerConfig &config)
+    void LineFollower::dr(routeConfig &config)
     {
         if (!param_modification)
             return;

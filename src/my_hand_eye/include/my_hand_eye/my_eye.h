@@ -16,9 +16,8 @@ namespace my_hand_eye
     {
     private:
         bool param_modification_;
-        bool motor_status_;
         bool finish_adjusting_; // 反馈：是否已完成位姿调整
-        int route_;
+        TargetPose::Target target_;
         ros::Publisher debug_image_publisher_;
         ArmController arm_controller_;
         ArrayofTaskArraysConstPtr tasks_;
@@ -37,10 +36,13 @@ namespace my_hand_eye
         // 挤占服务时回调函数
         void preempt_callback();
         // 强制关闭与底盘的联系
-        void stop_adjustment();
+        void cancel_all();
         // 转盘处执行的函数
-        bool operate_raw_material_area(const sensor_msgs::ImageConstPtr &image_rect,
-                                       sensor_msgs::ImagePtr &debug_image);
+        bool operate_center(const sensor_msgs::ImageConstPtr &image_rect,
+                            sensor_msgs::ImagePtr &debug_image);
+        // 椭圆处执行的函数
+        bool operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
+                             sensor_msgs::ImagePtr &debug_image);
 
     public:
         MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh);

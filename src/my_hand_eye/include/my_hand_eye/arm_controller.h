@@ -62,9 +62,9 @@ namespace my_hand_eye
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
         bool cargo_is_static(double speed, bool reset);
-        bool ellipse_target_find(const sensor_msgs::ImageConstPtr &image_rect,
-                                 cv::Rect &roi, vision_msgs::BoundingBox2DArray &objArray,
-                                 sensor_msgs::ImagePtr &debug_image);
+        bool detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
+                            cv::Rect &roi, vision_msgs::BoundingBox2DArray &objArray,
+                            sensor_msgs::ImagePtr &debug_image);
 
     public:
         ArmController();
@@ -103,6 +103,9 @@ namespace my_hand_eye
         // 计算圆盘中心点位置
         bool find_center(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);
+        // 计算椭圆位置
+        bool find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                          sensor_msgs::ImagePtr &debug_image);
         // 计算停车区位置
         bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                sensor_msgs::ImagePtr &debug_image);

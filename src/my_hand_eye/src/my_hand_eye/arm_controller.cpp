@@ -657,9 +657,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::ellipse_target_find(const sensor_msgs::ImageConstPtr &image_rect,
-                                            cv::Rect &roi, vision_msgs::BoundingBox2DArray &objArray,
-                                            sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
+                                       cv::Rect &roi, vision_msgs::BoundingBox2DArray &objArray,
+                                       sensor_msgs::ImagePtr &debug_image)
     {
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
@@ -748,12 +748,10 @@ namespace my_hand_eye
             // imshow("Contours_1", imageContours);
             // imshow("mm", mm); // 显示第一次排除结果，用于调试
             // cv::waitKey(10);
-            if (!arr.clustering(centers, m_ellipses))
-                return false;
-            if (!arr.generate_bounding_rect(m_ellipses, cv_image))
-                return false;
             // 颜色标定
-            if (!arr.color_classification(cv_image, white_vmin_))
+            if (!arr.clustering(centers, m_ellipses) ||
+                !arr.generate_bounding_rect(m_ellipses, cv_image) ||
+                !arr.color_classification(cv_image, white_vmin_))
                 return false;
             objArray.header = image_rect->header;
             if (!arr.detection(objArray, roi, cv_image, show_detections))
@@ -785,7 +783,7 @@ namespace my_hand_eye
         }
         finish = false;
         vision_msgs::BoundingBox2DArray objArray;
-        bool valid = ellipse_target_find(image_rect, default_roi_, objArray, debug_image);
+        bool valid = detect_ellipse(image_rect, default_roi_, objArray, debug_image);
         if (valid)
         {
             double x = 0, y = 0;
@@ -866,6 +864,16 @@ namespace my_hand_eye
         }
         last_finish = msg.end;
         return valid;
+    }
+
+    bool ArmController::find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                                     sensor_msgs::ImagePtr &debug_image)
+    {
+        static bool last_finish = true;
+        if (!msg.end && last_finish)
+            ps_.reset();
+        last_finish = msg.end;
+        return true;
     }
 
     bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,

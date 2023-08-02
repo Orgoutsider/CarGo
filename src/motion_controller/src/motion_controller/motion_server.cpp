@@ -71,6 +71,10 @@ namespace motion_controller
                         }
                         tme.end = false;
                         cmd_vel_publisher_.publish(tme);
+                        feedback.is_paning = false;
+                        feedback.pose_now = pose;
+                        feedback.header = header_;
+                        server_.publishFeedback(feedback);
                         rate.sleep();
                     }
 
@@ -148,6 +152,10 @@ namespace motion_controller
                         }
                         tme.end = false;
                         cmd_vel_publisher_.publish(tme);
+                        feedback.is_paning = false;
+                        feedback.pose_now = pose;
+                        feedback.header = header_;
+                        server_.publishFeedback(feedback);
                         rate.sleep();
                     }
 

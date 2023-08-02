@@ -17,7 +17,7 @@ namespace my_hand_eye
             target_parking_area,
             target_border
         };
-        std::array<geometry_msgs::Pose2D, target_border + 1> pose; // 单位为m
+        std::map<Target, geometry_msgs::Pose2D> pose; // 单位为m
         // 利用目标位姿计算发送的位姿，自动填入not_change
         void calc(Pose2DMightEnd &pme, const Target target);
 

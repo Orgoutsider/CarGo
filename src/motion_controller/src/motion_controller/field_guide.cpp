@@ -7,9 +7,11 @@
 namespace motion_controller
 {
   FieldGuide::FieldGuide()
-      : route_({route_QR_code_board, route_raw_material_area,
-                route_roughing_area, route_semi_finishing_area, route_raw_material_area,
-                route_roughing_area, route_semi_finishing_area, route_parking_area}),
+      : route_({route_QR_code_board, route_raw_material_area, route_border,
+                route_roughing_area, route_border, route_semi_finishing_area, 
+                route_border, route_raw_material_area, route_border,
+                route_roughing_area, route_border, route_semi_finishing_area, route_border,
+                route_parking_area}),
         doing_(false), where_(0), left_(true),
         x_(0), y_(0), theta_(0), loop_(0),
         length_car_(0.296), width_road_(0.45), length_field_(2),
@@ -17,7 +19,7 @@ namespace motion_controller
         y_roughing_area_(1.15), x_semi_finishing_area_(1.2),
         length_parking_area_(0.3), y_road_up_up_(0.078), y_parking_area_(0.7) {}
 
-  Route FieldGuide::where_is_car() const 
+  int FieldGuide::where_is_car() const 
   {
     return route_[where_];
   }

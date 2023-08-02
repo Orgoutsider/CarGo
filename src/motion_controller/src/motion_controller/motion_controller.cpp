@@ -8,7 +8,7 @@ namespace motion_controller
           listener_(buffer_), follower_(nh, pnh),
           ac_move_(nh, "Move", true), ac_arm_(nh, "Arm", true),
           move_active_(false), arm_active_(false),
-          move_initialized_(false), arm_initialized_(false)
+          move_initialized_(false), arm_initialized_(false), dr_route_(route_rest)
     {
         timer_ = nh.createTimer(ros::Rate(4), &MotionController::_timer_callback, this, false, false);
         timeout_ = pnh.param("timeout", 1.0);
@@ -111,66 +111,110 @@ namespace motion_controller
                 }
                 follower_.follow(theta_, event.current_real);
             }
+            static bool flag = true;
+            if (flag && follower_.motor_status)
+            {
+                ac_arm_.waitForServer();
+                my_hand_eye::ArmGoal goal;
+                switch (dr_route_)
+                {
+                case route_raw_material_area:
+                    goal.route = goal.route_raw_material_area;
+                    break;
+
+                case route_roughing_area:
+                    goal.route = goal.route_roughing_area;
+                    break;
+
+                case route_semi_finishing_area:
+                    goal.route = goal.route_semi_finishing_area;
+                    break;
+
+                case route_parking_area:
+                    goal.route = goal.route_parking_area;
+                    break;
+
+                default:
+                    return;
+                }
+                ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
+                                 boost::bind(&MotionController::_arm_active_callback, this),
+                                 boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                flag = false;
+            }
+            else if (!follower_.motor_status)
+            {
+                ac_arm_.cancelAllGoals();
+                if (dr_route_ == route_raw_material_area)
+                {
+                    ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+                    ac_move_.cancelAllGoals();
+                }
+                flag = true;
+            }
+            else if (dr_route_ == route_raw_material_area) // motor_status_ && !flag
+            {
+                _move_with_vision();
+            }
         }
         else if (get_position())
         {
+            // 转弯结束关闭转弯订阅
+            if (finish_turning_)
             {
-                // 转弯结束关闭转弯订阅
-                if (finish_turning_)
+                if (!can_turn())
+                    follower_.start(false);
+                finish_turning_ = false;
+            }
+            if (arrive())
+            {
+                ac_arm_.waitForServer();
+                my_hand_eye::ArmGoal goal;
+                switch (where_is_car())
                 {
-                    if (!can_turn())
-                        follower_.start(false);
-                    finish_turning_ = false;
+                case route_QR_code_board:
+                    goal.route = goal.route_QR_code_board;
+                    break;
+
+                case route_raw_material_area:
+                    goal.route = goal.route_raw_material_area;
+                    break;
+
+                case route_roughing_area:
+                    goal.route = goal.route_roughing_area;
+                    break;
+
+                case route_semi_finishing_area:
+                    goal.route = goal.route_semi_finishing_area;
+                    break;
+
+                case route_parking_area:
+                    goal.route = goal.route_parking_area;
+                    break;
+
+                default:
+                    return;
                 }
-                if (arrive())
-                {
-                    ac_arm_.waitForServer();
-                    my_hand_eye::ArmGoal goal;
-                    switch (where_is_car())
-                    {
-                    case route_QR_code_board:
-                        goal.route = goal.route_QR_code_board;
-                        break;
-
-                    case route_raw_material_area:
-                        goal.route = goal.route_raw_material_area;
-                        break;
-
-                    case route_roughing_area:
-                        goal.route = goal.route_roughing_area;
-                        break;
-
-                    case route_semi_finishing_area:
-                        goal.route = goal.route_semi_finishing_area;
-                        break;
-
-                    case route_parking_area:
-                        goal.route = goal.route_parking_area;
-                        break;
-
-                    default:
-                        return;
-                    }
-                    ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
-                                     boost::bind(&MotionController::_arm_active_callback, this),
-                                     boost::bind(&MotionController::_arm_feedback_callback, this, _1));
-                    doing();
-                }
+                ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
+                                 boost::bind(&MotionController::_arm_active_callback, this),
+                                 boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                doing();
             }
         }
     }
 
     void MotionController::_arm_active_callback()
     {
-        if (timer_.hasStarted())
+        if (timer_.hasStarted() && where_is_car() != route_raw_material_area)
             timer_.stop();
-        if (where_is_car() == route_raw_material_area && loop_ == 1)
-            _U_turn();
+        // if (where_is_car() == route_raw_material_area && loop_ == 1)
+        //     _U_turn();
     }
 
     void MotionController::_arm_feedback_callback(const my_hand_eye::ArmFeedbackConstPtr &feedback)
     {
-        if (where_is_car() == route_raw_material_area)
+        if ((where_is_car() == route_raw_material_area && !follower_.param_modification) ||
+            (follower_.param_modification && follower_.motor_status && dr_route_ == route_raw_material_area))
         {
             arm_stamp_ = feedback->pme.header.stamp;
             arm_time_ = ros::Time::now();
@@ -181,20 +225,20 @@ namespace motion_controller
                 arm_pose_.x = 0;
             if (arm_pose_.y == feedback->pme.not_change)
                 arm_pose_.y = 0;
-        }
-        if (!arm_active_)
-        {
-            if (!arm_initialized_)
+            if (!arm_active_)
             {
-                MoveGoal goal;
-                goal.pose = arm_pose_;
-                ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
-                                  boost::bind(&MotionController::_move_active_callback, this),
-                                  boost::bind(&MotionController::_move_feedback_callback, this, _1));
-                arm_initialized_ = true;
+                if (!arm_initialized_)
+                {
+                    MoveGoal goal;
+                    goal.pose = arm_pose_;
+                    ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
+                                      boost::bind(&MotionController::_move_active_callback, this),
+                                      boost::bind(&MotionController::_move_feedback_callback, this, _1));
+                    arm_initialized_ = true;
+                }
+                if (!arm_stamp_.is_zero()) // is_zero说明出现问题
+                    arm_active_ = true;
             }
-            if (stamp_ >= arm_stamp_ && !stamp_.is_zero() && !arm_stamp_.is_zero())
-                arm_active_ = true;
         }
     }
 
@@ -205,53 +249,57 @@ namespace motion_controller
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());
         else
             ROS_ERROR_STREAM("*** Arm finished: " << state.toString());
-        if (where_is_car() == route_raw_material_area || where_is_car() == route_roughing_area)
-            follower_.start(true);
-        else if (where_is_car() == route_semi_finishing_area)
-        {
-            if (loop_ == 0)
-                _U_turn();
-            follower_.start(true);
-        }
-        else if (where_is_car() == route_parking_area)
-        {
-            ac_move_.waitForServer();
-            // 先移动到停车区的下侧
-            get_position();
-            motion_controller::MoveGoal goal1;
-            goal1.pose.x = y_ - (y_road_up_up_ + length_car_ / 2);
-            goal1.pose.theta = M_PI / 2;
-            goal1.pose.y = -(x_ - length_car_ / 2);
-            ac_move_.sendGoalAndWait(goal1, ros::Duration(20), ros::Duration(0.1));
-            motion_controller::MoveGoal goal2;
-            goal2.pose.y = -(y_road_up_up_ + length_car_ / 2 - length_parking_area_ / 2);
-            ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
-            if (get_position())
-                ROS_INFO_STREAM("Finish! x: " << x_ << " y: " << y_);
-            return;
-        }
+        // if (where_is_car() == route_raw_material_area || where_is_car() == route_roughing_area)
+        //     follower_.start(true);
+        // else if (where_is_car() == route_semi_finishing_area)
+        // {
+        //     if (loop_ == 0)
+        //         _U_turn();
+        //     follower_.start(true);
+        // }
+        // else if (where_is_car() == route_parking_area)
+        // {
+        //     ac_move_.waitForServer();
+        //     // 先移动到停车区的下侧
+        //     get_position();
+        //     motion_controller::MoveGoal goal1;
+        //     goal1.pose.x = y_ - (y_road_up_up_ + length_car_ / 2);
+        //     goal1.pose.theta = M_PI / 2;
+        //     goal1.pose.y = -(x_ - length_car_ / 2);
+        //     ac_move_.sendGoalAndWait(goal1, ros::Duration(20), ros::Duration(0.1));
+        //     motion_controller::MoveGoal goal2;
+        //     goal2.pose.y = -(y_road_up_up_ + length_car_ / 2 - length_parking_area_ / 2);
+        //     ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
+        //     if (get_position())
+        //         ROS_INFO_STREAM("Finish! x: " << x_ << " y: " << y_);
+        //     return;
+        // }
 
-        finish();
-        if (!timer_.hasStarted())
-            timer_.start();
-        follower_.start(true);
+        // finish();
+        // if (!timer_.hasStarted())
+        //     timer_.start();
+        // follower_.start(true);
     }
 
     void MotionController::_move_active_callback(){};
 
     void MotionController::_move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback)
     {
-        move_stamp_ = feedback->header.stamp;
-        move_time_ = ros::Time::now();
-        move_pose_ = feedback->pose_now;
-        if (!move_active_)
+        if ((where_is_car() == route_raw_material_area && !follower_.param_modification) ||
+            (follower_.param_modification && follower_.motor_status && dr_route_ == route_raw_material_area))
         {
-            if (!move_initialized_)
+            move_stamp_ = feedback->header.stamp;
+            move_time_ = ros::Time::now();
+            move_pose_ = feedback->pose_now;
+            if (!move_active_)
             {
-                move_active_ = true;
+                if (!move_initialized_)
+                {
+                    move_initialized_ = true;
+                }
+                if (!move_stamp_.is_zero()) // is_zero说明坐标转换失败
+                    move_active_ = true;
             }
-            if (stamp_ >= move_stamp_ && !stamp_.is_zero() && !move_stamp_.is_zero())
-                move_active_ = true;
         }
     }
 
@@ -288,26 +336,59 @@ namespace motion_controller
         return true;
     }
 
-    void MotionController::_dr_callback(controllerConfig &config, uint32_t level)
+    void MotionController::_dr_callback(routeConfig &config, uint32_t level)
     {
         follower_.dr(config);
+        if (config.where != dr_route_)
+        {
+            dr_route_ = config.where;
+            if (follower_.motor_status)
+            {
+                ac_arm_.cancelAllGoals();
+                if (dr_route_ == route_raw_material_area)
+                {
+                    ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+                    ac_move_.cancelAllGoals();
+                }
+                ROS_WARN("Please shut down motor_status!");
+            }
+        }
     }
 
     void MotionController::_move_with_vision()
     {
-        static bool flag = true;
-        if (flag)
+        double diff = 0;
+        if (move_active_ && arm_active_)
         {
-            ac_arm_.waitForServer();
-            my_hand_eye::ArmGoal goal;
-            goal.route = goal.route_raw_material_area;
-            ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
-                             boost::bind(&MotionController::_arm_active_callback, this),
-                             boost::bind(&MotionController::_arm_feedback_callback, this, _1));
-            flag = false;
+            diff = ros::Duration(arm_stamp_ - move_stamp_).toSec();
+            if (diff > 1.0)
+                ROS_ERROR("Timestamps of arm and move are %f seconds apart.", diff);
         }
-        else
+        ros::Time now = ros::Time::now();
+        // check which sensors are still active
+        if (move_active_ && (now - move_stamp_).toSec() > timeout_)
         {
+            move_active_ = false;
+            ROS_WARN("Move feedback not active any more");
+        }
+        if (arm_active_ && (now - arm_stamp_).toSec() > timeout_)
+        {
+            arm_active_ = false;
+            ROS_WARN("Arm feedback not active any more");
+        }
+        if (move_initialized_ && arm_initialized_ &&
+            (diff > 1.0 || !move_active_ ||
+             (diff > 0 && (fabs(move_pose_.x - arm_pose_.x) > 0.05) ||
+              fabs(move_pose_.y - arm_pose_.y) > 0.05 ||
+              fabs(move_pose_.theta - arm_pose_.theta) > 0.1)))
+        {
+            move_active_ = false;
+            move_initialized_ = false;
+            MoveGoal goal;
+            goal.pose = arm_pose_;
+            ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
+                              boost::bind(&MotionController::_move_active_callback, this),
+                              boost::bind(&MotionController::_move_feedback_callback, this, _1));
         }
     }
 
