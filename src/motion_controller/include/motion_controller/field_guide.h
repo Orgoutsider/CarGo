@@ -35,7 +35,7 @@ namespace motion_controller
         void doing();
         // 当前任务已完成，接下一任务，更新loop_
         void finish();
-        bool arrive();
+        bool arrive() const;
         // 下一路段没有任务，可以直接转弯
         bool can_turn() const;
         // 位于任务点所在道路，距离下一任务点的距离

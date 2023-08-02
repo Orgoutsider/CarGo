@@ -42,7 +42,7 @@ namespace motion_controller
       ROS_WARN("route_ is out of range!");
   }
 
-  bool FieldGuide::arrive()
+  bool FieldGuide::arrive() const
   {
     if (doing_)
       return false;

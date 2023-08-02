@@ -1,6 +1,9 @@
 #ifndef _MOTION_CONTROLLER_H_
 #define _MOTION_CONTROLLER_H_
 
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -28,6 +31,7 @@ namespace motion_controller
         double delta_y_;
         double delta_theta_;
         bool finish_turning_; // 转弯之后关闭弯道视觉订阅
+        boost::mutex mtx_;
         tf2_ros::Buffer buffer_;
         tf2_ros::TransformListener listener_;
         // ros::Publisher vision_publisher;            // 视觉信息发布者
@@ -44,11 +48,11 @@ namespace motion_controller
         bool move_initialized_, arm_initialized_; // 传感器已经初始化
         double timeout_;                          // 最大超时
         int dr_route_;                            // 调参时面向的场景
-        // 转弯
+        // 转弯，已加锁
         bool _turn();
-        // 掉头，需要改变之后的转弯方向
+        // 掉头，需要改变之后的转弯方向，已加锁
         void _U_turn();
-        // 通过全局定位信息转弯
+        // 通过全局定位信息转弯，已加锁
         bool _turn_by_position();
         void _timer_callback(const ros::TimerEvent &event);
         void _arm_done_callback(const actionlib::SimpleClientGoalState &state,
@@ -59,16 +63,16 @@ namespace motion_controller
                                  const motion_controller::MoveResultConstPtr &result);
         void _move_active_callback();
         void _move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback);
-        // 动态调参
+        // 动态调参，已加锁
         void _dr_callback(routeConfig &config, uint32_t level);
-        // 当move与视觉协同时调用的循环
+        // 当move与视觉协同时调用的循环，已加锁
         void _move_with_vision();
 
     public:
         MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
-        // 设置当前位置
+        // 设置当前位置，已加锁
         bool set_position(double x, double y, double theta);
-        // 获取当前位置
+        // 获取当前位置，已加锁
         bool get_position();
         // 开/关循线回调
         bool go(Go::Request &req, Go::Response &resp);

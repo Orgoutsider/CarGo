@@ -43,6 +43,8 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
+		if (!as_.isActive())
+			return;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		bool valid = false;
 		switch (arm_goal_.route)
@@ -125,15 +127,13 @@ namespace my_hand_eye
 
 	void MyEye::goal_callback()
 	{
-		// if (goal->route != goal->route_parking_area)
-		// 	ros::Duration(2).sleep();
-		if (as_.isPreemptRequested() || !ros::ok())
-		{
-			ROS_ERROR("Arm Preempt Requested!");
-			cancel_all();
-			as_.setPreempted(ArmResult(), "Got preempted by a new goal");
-			return;
-		}
+		// if (as_.isPreemptRequested() || !ros::ok())
+		// {
+		// 	ROS_ERROR("Arm Preempt Requested!");
+		// 	cancel_all();
+		// 	as_.setPreempted(ArmResult(), "Got preempted by a new goal");
+		// 	return;
+		// }
 		arm_goal_.route = as_.acceptNewGoal()->route;
 		if (finish_adjusting_)
 		{

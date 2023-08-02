@@ -45,6 +45,7 @@ namespace motion_controller
         // 转弯后前进一段距离
         goal2.pose.y = left_ ? 0.1 : -0.1;
         ac_move_.sendGoalAndWait(goal2, ros::Duration(13), ros::Duration(0.1));
+        boost::lock_guard<boost::mutex> lk(mtx_);
         // 转弯后定时器将订阅关闭
         finish_turning_ = true;
         return true;
@@ -58,6 +59,7 @@ namespace motion_controller
         if (!goal.pose.theta)
             goal.pose.theta = M_PI;
         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+        boost::lock_guard<boost::mutex> lk(mtx_);
         // 需要改变之后的转弯方向
         left_ = !left_;
     }
@@ -93,6 +95,7 @@ namespace motion_controller
         // 转弯后前进一段距离
         goal2.pose.y = left_ ? 0.1 : -0.1;
         ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
+        boost::lock_guard<boost::mutex> lk(mtx_);
         // 转弯后定时器将订阅关闭
         finish_turning_ = true;
         return true;
@@ -139,8 +142,10 @@ namespace motion_controller
                         if (!follower_.has_started && follower_.motor_status)
                         {
                             set_position(0, 0, 0);
+                            boost::lock_guard<boost::mutex> lk(mtx_);
                             follower_.start(true, theta_);
                         }
+                        boost::lock_guard<boost::mutex> lk(mtx_);
                         follower_.follow(theta_, event.current_real);
                     }
                     return;
@@ -165,12 +170,13 @@ namespace motion_controller
         else if (get_position())
         {
             // 转弯结束关闭转弯订阅
-            if (finish_turning_)
-            {
-                if (!can_turn())
-                    follower_.start(false);
-                finish_turning_ = false;
-            }
+            // if (finish_turning_)
+            // {
+            //     boost::lock_guard<boost::mutex> lk(mtx_);
+            //     if (!can_turn())
+            //         follower_.start(false);
+            //     finish_turning_ = false;
+            // }
             if (arrive())
             {
                 ac_arm_.waitForServer();
@@ -203,6 +209,7 @@ namespace motion_controller
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                boost::lock_guard<boost::mutex> lk(mtx_);
                 doing();
             }
         }
@@ -231,15 +238,18 @@ namespace motion_controller
                 ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
                 return;
             }
-            arm_stamp_ = feedback->pme.header.stamp;
-            arm_time_ = ros::Time::now();
-            arm_pose_ = feedback->pme.pose;
-            if (arm_pose_.theta == feedback->pme.not_change)
-                arm_pose_.theta = 0;
-            if (arm_pose_.x == feedback->pme.not_change)
-                arm_pose_.x = 0;
-            if (arm_pose_.y == feedback->pme.not_change)
-                arm_pose_.y = 0;
+            {
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                arm_stamp_ = feedback->pme.header.stamp;
+                arm_time_ = ros::Time::now();
+                arm_pose_ = feedback->pme.pose;
+                if (arm_pose_.theta == feedback->pme.not_change)
+                    arm_pose_.theta = 0;
+                if (arm_pose_.x == feedback->pme.not_change)
+                    arm_pose_.x = 0;
+                if (arm_pose_.y == feedback->pme.not_change)
+                    arm_pose_.y = 0;
+            }
             if (!arm_active_)
             {
                 if (!arm_initialized_)
@@ -249,10 +259,14 @@ namespace motion_controller
                     ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
                                       boost::bind(&MotionController::_move_active_callback, this),
                                       boost::bind(&MotionController::_move_feedback_callback, this, _1));
+                    boost::lock_guard<boost::mutex> lk(mtx_);
                     arm_initialized_ = true;
                 }
                 if (!arm_stamp_.is_zero()) // is_zero说明出现问题
+                {
+                    boost::lock_guard<boost::mutex> lk(mtx_);
                     arm_active_ = true;
+                }
             }
         }
     }
@@ -264,6 +278,7 @@ namespace motion_controller
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());
         else
             ROS_ERROR_STREAM("*** Arm finished: " << state.toString());
+
         // if (where_is_car() == route_raw_material_area || where_is_car() == route_roughing_area)
         //     follower_.start(true);
         // else if (where_is_car() == route_semi_finishing_area)
@@ -292,6 +307,7 @@ namespace motion_controller
 
         if (!follower_.param_modification)
         {
+            boost::lock_guard<boost::mutex> lk(mtx_);
             finish();
             // follower_.start(true);
         }
@@ -306,17 +322,24 @@ namespace motion_controller
         if ((where_is_car() == route_raw_material_area && !follower_.param_modification) ||
             (follower_.param_modification && follower_.motor_status && dr_route_ == route_raw_material_area))
         {
-            move_stamp_ = feedback->header.stamp;
-            move_time_ = ros::Time::now();
-            move_pose_ = feedback->pose_now;
+            {
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                move_stamp_ = feedback->header.stamp;
+                move_time_ = ros::Time::now();
+                move_pose_ = feedback->pose_now;
+            }
             if (!move_active_)
             {
                 if (!move_initialized_)
                 {
+                    boost::lock_guard<boost::mutex> lk(mtx_);
                     move_initialized_ = true;
                 }
                 if (!move_stamp_.is_zero()) // is_zero说明坐标转换失败
+                {
+                    boost::lock_guard<boost::mutex> lk(mtx_);
                     move_active_ = true;
+                }
             }
         }
     }
@@ -332,15 +355,19 @@ namespace motion_controller
 
     bool MotionController::set_position(double x, double y, double theta)
     {
-        x_ = x;
-        y_ = y;
-        // 将theta_限定在(-pi,pi]之间
-        theta_ = (theta <= -M_PI) ? theta + M_PI : (theta > M_PI ? theta - M_PI : theta);
+        {
+            boost::lock_guard<boost::mutex> lk(mtx_);
+            x_ = x;
+            y_ = y;
+            // 将theta_限定在(-pi,pi]之间
+            theta_ = (theta <= -M_PI) ? theta + M_PI : (theta > M_PI ? theta - M_PI : theta);
+        }
         try
         {
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
             geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",
                                                                           "base_footprint", ros::Time(0));
+            boost::lock_guard<boost::mutex> lk(mtx_);
             delta_x_ = x - tfs.transform.translation.x;
             delta_y_ = y - tfs.transform.translation.y;
             // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
@@ -356,14 +383,23 @@ namespace motion_controller
 
     void MotionController::_dr_callback(routeConfig &config, uint32_t level)
     {
-        follower_.dr(config);
+        // boost::lock_guard对象构造时，自动调用mtx.lock()进行上锁
+        // boost::lock_guard对象析构时，自动调用mtx.unlock()释放锁
+        {
+            boost::lock_guard<boost::mutex> lk(mtx_);
+            follower_.dr(config);
+        }
         if (follower_.motor_status != config.motor_status)
         {
-            follower_.motor_status = config.motor_status;
+            {
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                follower_.motor_status = config.motor_status;
+            }
             if (dr_route_ == route_rest)
             {
                 if (!follower_.motor_status && follower_.has_started)
                 {
+                    boost::lock_guard<boost::mutex> lk(mtx_);
                     follower_.start(false);
                 }
             }
@@ -389,6 +425,7 @@ namespace motion_controller
                 }
                 ROS_WARN("Please shut down motor_status!");
             }
+            boost::lock_guard<boost::mutex> lk(mtx_);
             dr_route_ = config.where;
         }
     }
@@ -409,11 +446,13 @@ namespace motion_controller
         // 里程计/视觉活动：对接收时间进行比较 !is_zero()
         if (move_active_ && ((now - move_stamp_).toSec() > timeout_ || move_stamp_.is_zero()))
         {
+            boost::lock_guard<boost::mutex> lk(mtx_);
             move_active_ = false;
             ROS_WARN("Move feedback not active any more");
         }
         if (arm_active_ && ((now - arm_stamp_).toSec() > timeout_ || arm_stamp_.is_zero()))
         {
+            boost::lock_guard<boost::mutex> lk(mtx_);
             arm_active_ = false;
             ROS_WARN("Arm feedback not active any more");
         }
@@ -428,8 +467,11 @@ namespace motion_controller
               fabs(move_pose_.y - arm_pose_.y) > 0.05 ||
               fabs(move_pose_.theta - arm_pose_.theta) > 0.1)))
         {
-            move_active_ = false;
-            move_initialized_ = false;
+            {
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                move_active_ = false;
+                move_initialized_ = false;
+            }
             MoveGoal goal;
             goal.pose = arm_pose_;
             ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
@@ -438,7 +480,11 @@ namespace motion_controller
         }
         // 视觉不活动，说明找不到目标对象
         if (move_initialized_ && arm_initialized_ && !arm_active_)
+        {
             ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+            boost::lock_guard<boost::mutex> lk(mtx_);
+            move_initialized_ = false;
+        }
     }
 
     bool MotionController::get_position()
@@ -448,6 +494,7 @@ namespace motion_controller
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
             geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",
                                                                           "base_footprint", ros::Time(0));
+            boost::lock_guard<boost::mutex> lk(mtx_);
             x_ = delta_x_ + tfs.transform.translation.x;
             y_ = delta_y_ + tfs.transform.translation.y;
             theta_ = delta_theta_ + atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
