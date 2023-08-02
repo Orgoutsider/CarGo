@@ -310,7 +310,7 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, Color color, bool left)
     {
-        const double TIGHTNESS_TABLE = 0.742358; // 在转盘进行抓取放置时略微松手，防止碰倒物料
+        const double TIGHTNESS_TABLE = 0; // 在转盘进行抓取放置时略微松手，防止碰倒物料
         this->x = left ? action_right.x : action_back.x;
         this->y = left ? action_right.y : action_back.y;
         this->z = left ? action_right.z : action_back.z;

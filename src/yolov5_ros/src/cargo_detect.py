@@ -87,15 +87,15 @@ G_up = np.array([77, 255, 255], dtype=np.uint8)
 B_Low = np.array([100, 43, 46], dtype=np.uint8)
 B_up = np.array([124, 255, 255], dtype=np.uint8)
 
-color_dict = {"red": 1, "green": 2, "blue": 3}
+color_dict = {"red1": 0, "red2": 1, "green": 2, "blue": 3}
 hsv_dict = {"h": 0, "s": 1, "v": 2}
-single_color = [[color_dict["red"]], [color_dict["red"]],
+single_color = [[color_dict["red2"]], [color_dict["red2"]],
                 [color_dict["green"]], [color_dict["blue"]]]
 
 
 class Yolov5Detector:
     def __init__(self):
-        self.colors = range(color_dict["red"], color_dict["blue"] + 1)
+        self.colors = range(color_dict["red2"], color_dict["blue"] + 1)
         self.low_raw = [R_Low1 + R_Low1_add, R_Low2 +
                         R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
         self.up_raw = [R_up1 + R_up1_add, R_up2 +
@@ -109,14 +109,14 @@ class Yolov5Detector:
             self.dr_srv = Server(drConfig, self.dr_callback)
         else:
             rospy.loginfo("Defualt setting: don't modify paramater")
-            rospy.set_param("h_max", [0, self.low[color_dict["red"]][hsv_dict["h"]],
-                                      self.up[color_dict["green"]][hsv_dict["h"]], 
-                                      self.up[color_dict["blue"]][hsv_dict["h"]]])
-            rospy.set_param("h_min", [0, self.up[color_dict["red"]][hsv_dict["h"]],
-                                      self.low[color_dict["green"]][hsv_dict["h"]], 
-                                      self.low[color_dict["blue"]][hsv_dict["h"]]])
+            rospy.set_param("h_max", [0, self.up[color_dict["red1"]][hsv_dict["h"]].item(),
+                                      self.up[color_dict["green"]][hsv_dict["h"]].item(), 
+                                      self.up[color_dict["blue"]][hsv_dict["h"]].item()])
+            rospy.set_param("h_min", [0, self.low[color_dict["red2"]][hsv_dict["h"]].item(),
+                                      self.low[color_dict["green"]][hsv_dict["h"]].item(), 
+                                      self.low[color_dict["blue"]][hsv_dict["h"]].item()])
             rospy.set_param(
-                "v_min", [self.low[color][hsv_dict["v"]] for color in range(4)])
+                "v_min", [self.low[color][hsv_dict["v"]].item() for color in range(4)])
             
         self.line_thickness = rospy.get_param("~line_thickness", 3)
         PLUGIN_LIBRARY = rospy.get_param(
@@ -184,11 +184,11 @@ class Yolov5Detector:
                     if flag[color]:
                         continue
 
-                    if color == color_dict["red"]:  # 红色
+                    if color == color_dict["red2"]:  # 红色
                         # print(self._low[0])
                         # print(self._up[0])
-                        dst1 = cv2.inRange(roi, self.low[0], self.up[0])
-                        dst2 = cv2.inRange(roi, self.low[1], self.up[1])
+                        dst1 = cv2.inRange(roi, self.low[color_dict["red1"]], self.up[color_dict["red1"]])
+                        dst2 = cv2.inRange(roi, self.low[color_dict["red2"]], self.up[color_dict["red2"]])
                         dst = dst1 + dst2
                     else:
                         dst = cv2.inRange(roi, self.low[color], self.up[color])

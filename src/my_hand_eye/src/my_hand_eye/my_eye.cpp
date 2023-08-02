@@ -88,7 +88,7 @@ namespace my_hand_eye
 		if (!finish)
 		{
 			double u, v;
-			arm_controller_.catch_straightly(image_rect, color_blue, finish, debug_image, true, false);
+			arm_controller_.catch_straightly(image_rect, color_red, finish, debug_image, true, false);
 			if (arm_controller_.show_detections)
 				debug_image_publisher_.publish(debug_image);
 		}
