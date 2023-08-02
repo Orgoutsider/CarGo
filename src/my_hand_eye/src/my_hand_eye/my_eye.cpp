@@ -43,23 +43,23 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// bool valid = false;
-		// switch (arm_goal_.route)
-		// {
-		// case arm_goal_.route_rest:
-		// 	ros::Duration(0.4).sleep();
-		// 	break;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		bool valid = false;
+		switch (arm_goal_.route)
+		{
+		case arm_goal_.route_rest:
+			ros::Duration(0.4).sleep();
+			break;
 
-		// case arm_goal_.route_raw_material_area:
-		// 	valid = operate_raw_material_area(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_raw_material_area:
+			valid = operate_center(image_rect, debug_image);
+			break;
 
-		// default:
-		// 	break;
-		// }
-		// if (valid && arm_controller_.show_detections)
-		// 	debug_image_publisher_.publish(debug_image);
+		default:
+			return;
+		}
+		if (valid && arm_controller_.show_detections)
+			debug_image_publisher_.publish(debug_image);
 
 		// // 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -83,15 +83,15 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 		//
 		// 直接抓取
-		static bool finish = false;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!finish)
-		{
-			double u, v;
-			arm_controller_.catch_straightly(image_rect, color_red, finish, debug_image, true, false);
-			if (arm_controller_.show_detections)
-				debug_image_publisher_.publish(debug_image);
-		}
+		// static bool finish = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!finish)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.catch_straightly(image_rect, color_red, finish, debug_image, true, false);
+		// 	if (arm_controller_.show_detections)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
 
 		// 椭圆识别
 		// static bool finish = false;
@@ -205,25 +205,29 @@ namespace my_hand_eye
 							   sensor_msgs::ImagePtr &debug_image)
 	{
 		static bool last_finish = true;
-		// if (last_finish && arm_goal_)
-		// {
-		// 	finish_adjusting_ = false;
-		// 	ROS_INFO("Start operate raw material area...");
-		// }
-		// else if (!last_finish && finish_)
-		// {
-		// 	if (!finish_adjusting_)
-		// 		finish_adjusting_ = true;
-		// 	last_finish = finish_;
-		// 	if (param_modification_)
-		// 		ROS_INFO("Finish operate raw material area...");
-		// 	return true;
-		// }
-		// else if (finish_) // 前后一样完成就不用赋值了
-		// {
-		// 	ros::Duration(0.1).sleep();
-		// 	return true;
-		// }
+		if (last_finish && (arm_goal_.route == arm_goal_.route_raw_material_area))
+		{
+			finish_adjusting_ = false;
+			last_finish = false;
+			ROS_INFO("Start operate ellipse...");
+		}
+		else if (!last_finish && (arm_goal_.route == arm_goal_.route_rest))
+		{
+			if (!finish_adjusting_)
+				finish_adjusting_ = true;
+			last_finish = true;
+			if (param_modification_)
+			{
+				ROS_INFO("Finish operate ellipse...");
+				return true;
+			}
+			return false;
+		}
+		else if (last_finish) // 前后一样完成就不用赋值了
+		{
+			ros::Duration(0.1).sleep();
+			return true;
+		}
 		bool valid = true;
 		static bool first = false;
 		if (!finish_adjusting_)
@@ -238,7 +242,9 @@ namespace my_hand_eye
 				{
 					finish_adjusting_ = true;
 				}
-				pose_publisher_.publish(msg);
+				ArmFeedback feedback;
+				feedback.pme = msg;
+				as_.publishFeedback(feedback);
 				if (err_cnt)
 					err_cnt = 0;
 			}
@@ -254,14 +260,15 @@ namespace my_hand_eye
 					msg.end = finish_adjusting_;
 					ROS_WARN("Could not find 3 cargos. Try to catch...");
 				}
-				pose_publisher_.publish(msg);
+				ArmFeedback feedback;
+				feedback.pme = msg;
+				as_.publishFeedback(feedback);
 			}
 		}
 		else if (!param_modification_)
 		{
 			// valid = arm_controller_.track(image_rect, )
 		}
-		// last_finish = finish_;
 		return valid;
 	}
 
@@ -320,16 +327,15 @@ namespace my_hand_eye
 				{
 					finish_adjusting_ = true;
 					msg.end = finish_adjusting_;
-					ROS_WARN("Could not find ellipse. Try...");
+					ROS_WARN("Could not find ellipse. Try to put...");
 				}
 				pose_publisher_.publish(msg);
 			}
 		}
 		else if (!param_modification_)
 		{
-			// valid = arm_controller_.track(image_rect, )
+			// put
 		}
-		// last_finish = finish_;
 		return valid;
 	}
 

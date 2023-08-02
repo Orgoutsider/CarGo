@@ -6,10 +6,12 @@ namespace my_hand_eye
     {
         pose[target_center].theta = Pose2DMightEnd::not_change;
         pose[target_center].x = 0;
-        pose[target_center].y = 0.28;
+        pose[target_center].y = 0.32;
+
+        // 偏差必须大于0.01
         tolerance[target_center].theta = Pose2DMightEnd::not_change;
-        tolerance[target_center].x = 0.02;
-        tolerance[target_center].y = 0.02;
+        tolerance[target_center].x = 0.015;
+        tolerance[target_center].y = 0.015;
     }
 
     void TargetPose::calc(Pose2DMightEnd &pme, const Target target)
@@ -28,6 +30,7 @@ namespace my_hand_eye
             abs(pme.pose.x) <= tolerance[target].x && abs(pme.pose.y) <= tolerance[target].y)
         {
             pme.end = true;
+            pme.pose.theta = pme.pose.x = pme.pose.y = pme.not_change;
         }
         else
             pme.end = false;

@@ -102,15 +102,6 @@ namespace motion_controller
     {
         if (follower_.param_modification)
         {
-            if (get_position())
-            {
-                if (!follower_.has_started && follower_.motor_status)
-                {
-                    set_position(0, 0, 0);
-                    follower_.start(true, theta_);
-                }
-                follower_.follow(theta_, event.current_real);
-            }
             static bool flag = true;
             if (flag && follower_.motor_status)
             {
@@ -118,6 +109,10 @@ namespace motion_controller
                 my_hand_eye::ArmGoal goal;
                 switch (dr_route_)
                 {
+                case route_QR_code_board:
+                    goal.route = goal.route_QR_code_board;
+                    break;
+
                 case route_raw_material_area:
                     goal.route = goal.route_raw_material_area;
                     break;
@@ -133,6 +128,22 @@ namespace motion_controller
                 case route_parking_area:
                     goal.route = goal.route_parking_area;
                     break;
+
+                case route_border:
+                    goal.route = goal.route_border;
+                    break;
+
+                case route_rest:
+                    if (get_position())
+                    {
+                        if (!follower_.has_started && follower_.motor_status)
+                        {
+                            set_position(0, 0, 0);
+                            follower_.start(true, theta_);
+                        }
+                        follower_.follow(theta_, event.current_real);
+                    }
+                    return;
 
                 default:
                     return;
@@ -205,7 +216,9 @@ namespace motion_controller
 
     void MotionController::_arm_active_callback()
     {
-        if (timer_.hasStarted() && where_is_car() != route_raw_material_area)
+        if (timer_.hasStarted() &&
+            ((where_is_car() != route_raw_material_area && !follower_.param_modification) ||
+             (follower_.param_modification && follower_.motor_status && dr_route_ != route_raw_material_area)))
             timer_.stop();
         // if (where_is_car() == route_raw_material_area && loop_ == 1)
         //     _U_turn();
@@ -216,6 +229,14 @@ namespace motion_controller
         if ((where_is_car() == route_raw_material_area && !follower_.param_modification) ||
             (follower_.param_modification && follower_.motor_status && dr_route_ == route_raw_material_area))
         {
+            if (feedback->pme.end)
+            {
+                if (timer_.hasStarted())
+                    timer_.stop();
+                ROS_INFO("Succeeded to move with vision");
+                ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+                return;
+            }
             arm_stamp_ = feedback->pme.header.stamp;
             arm_time_ = ros::Time::now();
             arm_pose_ = feedback->pme.pose;
@@ -357,7 +378,9 @@ namespace motion_controller
 
     void MotionController::_move_with_vision()
     {
+        // 利用定时器spin
         double diff = 0;
+        // 里程计/视觉分离：对传感器时间差进行比较
         if (move_active_ && arm_active_)
         {
             diff = ros::Duration(arm_stamp_ - move_stamp_).toSec();
@@ -366,16 +389,22 @@ namespace motion_controller
         }
         ros::Time now = ros::Time::now();
         // check which sensors are still active
-        if (move_active_ && (now - move_stamp_).toSec() > timeout_)
+        // 里程计/视觉活动：对接收时间进行比较 !is_zero()
+        if (move_active_ && ((now - move_stamp_).toSec() > timeout_ || move_stamp_.is_zero()))
         {
             move_active_ = false;
             ROS_WARN("Move feedback not active any more");
         }
-        if (arm_active_ && (now - arm_stamp_).toSec() > timeout_)
+        if (arm_active_ && ((now - arm_stamp_).toSec() > timeout_ || arm_stamp_.is_zero()))
         {
             arm_active_ = false;
             ROS_WARN("Arm feedback not active any more");
         }
+        // 判定里程计偏离
+        // 条件：均已初始化完毕
+        // 1.当里程计位置偏离视觉位置时，且里程计滞后于视觉时间
+        // 2.当里程计不活动
+        // 3.当里程计与视觉偏离，且视觉超前
         if (move_initialized_ && arm_initialized_ &&
             (diff > 1.0 || !move_active_ ||
              (diff > 0 && (fabs(move_pose_.x - arm_pose_.x) > 0.05) ||
@@ -390,6 +419,9 @@ namespace motion_controller
                               boost::bind(&MotionController::_move_active_callback, this),
                               boost::bind(&MotionController::_move_feedback_callback, this, _1));
         }
+        // 视觉不活动，说明找不到目标对象
+        if (move_initialized_ && arm_initialized_ && !arm_active_)
+            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
     }
 
     bool MotionController::get_position()
