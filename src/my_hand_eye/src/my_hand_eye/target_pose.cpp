@@ -6,7 +6,7 @@ namespace my_hand_eye
     {
         pose[target_center].theta = Pose2DMightEnd::not_change;
         pose[target_center].x = 0;
-        pose[target_center].y = 0.32;
+        pose[target_center].y = 0.325;
 
         // 偏差必须大于0.01
         tolerance[target_center].theta = Pose2DMightEnd::not_change;
