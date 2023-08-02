@@ -35,12 +35,6 @@ namespace motion_controller
             ki_ = config.ki;
         if (kd_ != config.kd)
             kd_ = config.kd;
-        if (motor_status != config.motor_status)
-        {
-            motor_status = config.motor_status;
-            if (!motor_status && has_started)
-                start(false);
-        }
     }
 
     bool LineFollower::start(bool start, double theta)

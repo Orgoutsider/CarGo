@@ -153,17 +153,11 @@ namespace motion_controller
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
                 flag = false;
             }
-            else if (!follower_.motor_status)
+            else if (!follower_.motor_status && !flag)
             {
-                ac_arm_.cancelAllGoals();
-                if (dr_route_ == route_raw_material_area)
-                {
-                    ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
-                    ac_move_.cancelAllGoals();
-                }
-                flag = true;
+                flag = true; // 等待下一次启动
             }
-            else if (dr_route_ == route_raw_material_area) // motor_status_ && !flag
+            else if (dr_route_ == route_raw_material_area && follower_.motor_status && !flag)
             {
                 _move_with_vision();
             }
@@ -296,10 +290,13 @@ namespace motion_controller
         //     return;
         // }
 
-        // finish();
-        // if (!timer_.hasStarted())
-        //     timer_.start();
-        // follower_.start(true);
+        if (!follower_.param_modification)
+        {
+            finish();
+            // follower_.start(true);
+        }
+        if (!timer_.hasStarted())
+            timer_.start();
     }
 
     void MotionController::_move_active_callback(){};
@@ -360,9 +357,28 @@ namespace motion_controller
     void MotionController::_dr_callback(routeConfig &config, uint32_t level)
     {
         follower_.dr(config);
+        if (follower_.motor_status != config.motor_status)
+        {
+            follower_.motor_status = config.motor_status;
+            if (dr_route_ == route_rest)
+            {
+                if (!follower_.motor_status && follower_.has_started)
+                {
+                    follower_.start(false);
+                }
+            }
+            else if (!follower_.motor_status)
+            {
+                ac_arm_.cancelAllGoals();
+                if (dr_route_ == route_raw_material_area)
+                {
+                    ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+                    ac_move_.cancelAllGoals();
+                }
+            }
+        }
         if (config.where != dr_route_)
         {
-            dr_route_ = config.where;
             if (follower_.motor_status)
             {
                 ac_arm_.cancelAllGoals();
@@ -373,6 +389,7 @@ namespace motion_controller
                 }
                 ROS_WARN("Please shut down motor_status!");
             }
+            dr_route_ = config.where;
         }
     }
 

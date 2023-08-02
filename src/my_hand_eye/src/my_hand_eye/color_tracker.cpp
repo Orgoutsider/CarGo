@@ -170,8 +170,8 @@ namespace my_hand_eye
         cv::Rect rect_new;
         rect_new.x = MAX(0, c_start);
         rect_new.y = MAX(0, r_start);
-        rect_new.width = MAX(0, std::min(cv_image.image.cols, c_end) - rect_new.x);
-        rect_new.height = MAX(0, std::min(cv_image.image.rows, r_end) - rect_new.y);
+        rect_new.width = MAX(0, MIN(cv_image.image.cols, c_end) - rect_new.x);
+        rect_new.height = MAX(0, MIN(cv_image.image.rows, r_end) - rect_new.y);
         return rect_new;
     }
 

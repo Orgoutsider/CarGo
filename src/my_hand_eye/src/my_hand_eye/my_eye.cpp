@@ -139,36 +139,31 @@ namespace my_hand_eye
 		{
 			finish_adjusting_ = false;
 		}
-		if (param_modification_)
+		switch (arm_goal_.route)
 		{
-			switch (arm_goal_.route)
-			{
-			case arm_goal_.route_border:
-				target_ = arm_controller_.target_pose.target_border;
-				break;
+		case arm_goal_.route_border:
+			target_ = arm_controller_.target_pose.target_border;
+			break;
 
-			case arm_goal_.route_raw_material_area:
-				target_ = arm_controller_.target_pose.target_center;
-				break;
+		case arm_goal_.route_raw_material_area:
+			target_ = arm_controller_.target_pose.target_center;
+			break;
 
-			case arm_goal_.route_roughing_area:
-				target_ = arm_controller_.target_pose.target_ellipse;
-				break;
+		case arm_goal_.route_roughing_area:
+			target_ = arm_controller_.target_pose.target_ellipse;
+			break;
 
-			case arm_goal_.route_semi_finishing_area:
-				target_ = arm_controller_.target_pose.target_ellipse;
-				break;
+		case arm_goal_.route_semi_finishing_area:
+			target_ = arm_controller_.target_pose.target_ellipse;
+			break;
 
-			case arm_goal_.route_parking_area:
-				target_ = arm_controller_.target_pose.target_parking_area;
-				break;
+		case arm_goal_.route_parking_area:
+			target_ = arm_controller_.target_pose.target_parking_area;
+			break;
 
-			default:
-				break;
-			}
+		default:
+			break;
 		}
-
-		// as_.setSucceeded(ArmResult(), "Arm finish tasks");
 	}
 
 	void MyEye::preempt_callback()
@@ -232,7 +227,7 @@ namespace my_hand_eye
 		static bool first = false;
 		if (!finish_adjusting_)
 		{
-			static int err_cnt = 0;
+			// static int err_cnt = 0;
 			Pose2DMightEnd msg;
 			msg.end = finish_adjusting_;
 			valid = arm_controller_.find_center(image_rect, msg, debug_image);
@@ -241,12 +236,17 @@ namespace my_hand_eye
 				if (msg.end)
 				{
 					finish_adjusting_ = true;
+					arm_goal_.route = arm_goal_.route_rest;
+					last_finish = true;
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					ROS_INFO("Finish operate ellipse...");
 				}
 				ArmFeedback feedback;
 				feedback.pme = msg;
 				as_.publishFeedback(feedback);
-				if (err_cnt)
-					err_cnt = 0;
+				// if (err_cnt)
+				// 	err_cnt = 0;
+				return valid;
 			}
 			else
 			{
@@ -254,12 +254,12 @@ namespace my_hand_eye
 				msg.pose.x = msg.not_change;
 				msg.pose.y = msg.not_change;
 				msg.pose.theta = msg.not_change;
-				if ((++err_cnt) > 5)
-				{
-					finish_adjusting_ = true;
-					msg.end = finish_adjusting_;
-					ROS_WARN("Could not find 3 cargos. Try to catch...");
-				}
+				// if ((++err_cnt) > 5)
+				// {
+				// 	finish_adjusting_ = true;
+				// 	msg.end = finish_adjusting_;
+				// 	ROS_WARN("Could not find 3 cargos. Try to catch...");
+				// }
 				ArmFeedback feedback;
 				feedback.pme = msg;
 				as_.publishFeedback(feedback);
