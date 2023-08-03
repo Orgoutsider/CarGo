@@ -17,7 +17,7 @@ namespace my_hand_eye
     private:
         bool param_modification_;
         bool finish_adjusting_; // 反馈：是否已完成位姿调整
-        TargetPose::Target target_;
+        bool finish_;           // 是否已完成arm任务
         ros::Publisher debug_image_publisher_;
         ArmController arm_controller_;
         ArrayofTaskArraysConstPtr tasks_;

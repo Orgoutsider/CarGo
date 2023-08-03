@@ -131,6 +131,7 @@ namespace my_hand_eye
     {
         if (cargo_client_.exists())
         {
+            ROS_INFO_ONCE("Service is up and available.");
             cv_bridge::CvImagePtr cv_image;
             bool flag = add_image(image_rect, cv_image);
             cv_image->image = cv_image->image(roi).clone();
@@ -198,7 +199,10 @@ namespace my_hand_eye
             return flag;
         }
         else
+        {
+            ROS_WARN_ONCE("Service is not up and available. Please wait.");
             return false;
+        }
     }
 
     bool ArmController::log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
@@ -295,10 +299,13 @@ namespace my_hand_eye
         if (objArray.boxes.size() == 4)
         {
             double u_sum = 0, v_sum = 0;
-            for (size_t color = color_red; color <= color_blue; color++)
+            for (int color = color_red; color <= color_blue; color++)
             {
                 if (!objArray.boxes[color].center.x)
+                {
+                    ROS_WARN("Color %d cargo does not exist.", color);
                     return false;
+                }
                 u_sum += objArray.boxes[color].center.x;
                 v_sum += objArray.boxes[color].center.y;
             }
@@ -491,7 +498,6 @@ namespace my_hand_eye
         static std::vector<cv::Point> pt;
         double radius = 0, speed = -1, u = 0, v = 0;
         bool rst = false; // 用于重启静止检测
-        x = y = 0;
         cv_bridge::CvImagePtr cv_image;
         if (can_catch_ && !stop_) // 抓后重启或第一次
         {
@@ -608,6 +614,7 @@ namespace my_hand_eye
             }
             else
             {
+                finish = false;
                 can_catch_ = false;
                 return false;
             }
@@ -849,12 +856,13 @@ namespace my_hand_eye
         if (!msg.end && last_finish)
             ps_.reset();
         vision_msgs::BoundingBox2DArray objArray;
+        Pose2DMightEnd pme;
         double center_u, center_v;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                     get_center(objArray, center_u, center_v, msg.pose.x, msg.pose.y, true);
+                     get_center(objArray, center_u, center_v, pme.pose.x, pme.pose.y, true);
         if (valid)
         {
-            target_pose.calc(msg, target_pose.target_center);
+            target_pose.calc(pme, msg);
             msg.header = image_rect->header;
         }
         if (valid && show_detections && !cv_image_.image.empty())

@@ -4,7 +4,7 @@ namespace my_hand_eye
 {
 	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 		: arm_controller_(nh, pnh),
-		  as_(nh, "Arm", false), finish_adjusting_(true)
+		  as_(nh, "Arm", false), finish_adjusting_(true), finish_(true)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
@@ -50,8 +50,7 @@ namespace my_hand_eye
 		switch (arm_goal_.route)
 		{
 		case arm_goal_.route_rest:
-			ros::Duration(0.4).sleep();
-			break;
+			return;
 
 		case arm_goal_.route_raw_material_area:
 			valid = operate_center(image_rect, debug_image);
@@ -142,23 +141,23 @@ namespace my_hand_eye
 		switch (arm_goal_.route)
 		{
 		case arm_goal_.route_border:
-			target_ = arm_controller_.target_pose.target_border;
+			arm_controller_.target_pose.target = arm_controller_.target_pose.target_border;
 			break;
 
 		case arm_goal_.route_raw_material_area:
-			target_ = arm_controller_.target_pose.target_center;
+			arm_controller_.target_pose.target = arm_controller_.target_pose.target_center;
 			break;
 
 		case arm_goal_.route_roughing_area:
-			target_ = arm_controller_.target_pose.target_ellipse;
+			arm_controller_.target_pose.target = arm_controller_.target_pose.target_ellipse;
 			break;
 
 		case arm_goal_.route_semi_finishing_area:
-			target_ = arm_controller_.target_pose.target_ellipse;
+			arm_controller_.target_pose.target = arm_controller_.target_pose.target_ellipse;
 			break;
 
 		case arm_goal_.route_parking_area:
-			target_ = arm_controller_.target_pose.target_parking_area;
+			arm_controller_.target_pose.target = arm_controller_.target_pose.target_parking_area;
 			break;
 
 		default:
@@ -192,6 +191,8 @@ namespace my_hand_eye
 			}
 			finish_adjusting_ = true;
 		}
+		if (!finish_)
+			finish_ = true;
 		if (arm_goal_.route != arm_goal_.route_rest)
 			arm_goal_.route = arm_goal_.route_rest;
 	}
@@ -199,32 +200,14 @@ namespace my_hand_eye
 	bool MyEye::operate_center(const sensor_msgs::ImageConstPtr &image_rect,
 							   sensor_msgs::ImagePtr &debug_image)
 	{
-		static bool last_finish = true;
-		if (last_finish && (arm_goal_.route == arm_goal_.route_raw_material_area))
+		if (finish_)
 		{
 			finish_adjusting_ = false;
-			last_finish = false;
-			ROS_INFO("Start operate ellipse...");
-		}
-		else if (!last_finish && (arm_goal_.route == arm_goal_.route_rest))
-		{
-			if (!finish_adjusting_)
-				finish_adjusting_ = true;
-			last_finish = true;
-			if (param_modification_)
-			{
-				ROS_INFO("Finish operate ellipse...");
-				return true;
-			}
-			return false;
-		}
-		else if (last_finish) // 前后一样完成就不用赋值了
-		{
-			ros::Duration(0.1).sleep();
-			return true;
+			finish_ = false;
+			ROS_INFO("Start operate center...");
 		}
 		bool valid = true;
-		static bool first = false;
+		static bool first = true;
 		if (!finish_adjusting_)
 		{
 			// static int err_cnt = 0;
@@ -236,16 +219,10 @@ namespace my_hand_eye
 				if (msg.end)
 				{
 					finish_adjusting_ = true;
-					arm_goal_.route = arm_goal_.route_rest;
-					last_finish = true;
-					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					ROS_INFO("Finish operate ellipse...");
 				}
 				ArmFeedback feedback;
 				feedback.pme = msg;
 				as_.publishFeedback(feedback);
-				// if (err_cnt)
-				// 	err_cnt = 0;
 				return valid;
 			}
 			else
@@ -254,12 +231,6 @@ namespace my_hand_eye
 				msg.pose.x = msg.not_change;
 				msg.pose.y = msg.not_change;
 				msg.pose.theta = msg.not_change;
-				// if ((++err_cnt) > 5)
-				// {
-				// 	finish_adjusting_ = true;
-				// 	msg.end = finish_adjusting_;
-				// 	ROS_WARN("Could not find 3 cargos. Try to catch...");
-				// }
 				ArmFeedback feedback;
 				feedback.pme = msg;
 				as_.publishFeedback(feedback);
@@ -267,7 +238,19 @@ namespace my_hand_eye
 		}
 		else if (!param_modification_)
 		{
-			// valid = arm_controller_.track(image_rect, )
+			// double x = 0, y = 0;
+			// bool finish = false;
+			// valid = arm_controller_.track(image_rect, color_green, first, x, y, debug_image) &&
+			// 		arm_controller_.catch_after_tracking(x, y, color_green, false, finish);
+			// arm_goal_.route = arm_goal_.route_rest;
+			// finish_ = true;
+			// as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			// ROS_INFO("Finish operate center...");
+		}
+		else
+		{
+			double x = 0, y = 0;
+			valid = arm_controller_.track(image_rect, color_green, first, x, y, debug_image);
 		}
 		return valid;
 	}
@@ -275,30 +258,11 @@ namespace my_hand_eye
 	bool MyEye::operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
 								sensor_msgs::ImagePtr &debug_image)
 	{
-		static bool last_finish = true;
-		if (last_finish && (arm_goal_.route == arm_goal_.route_roughing_area ||
-							arm_goal_.route == arm_goal_.route_semi_finishing_area))
+		if (finish_)
 		{
 			finish_adjusting_ = false;
-			last_finish = false;
+			finish_ = false;
 			ROS_INFO("Start operate ellipse...");
-		}
-		else if (!last_finish && (arm_goal_.route == arm_goal_.route_rest))
-		{
-			if (!finish_adjusting_)
-				finish_adjusting_ = true;
-			last_finish = true;
-			if (param_modification_)
-			{
-				ROS_INFO("Finish operate ellipse...");
-				return true;
-			}
-			return false;
-		}
-		else if (last_finish) // 前后一样完成就不用赋值了
-		{
-			ros::Duration(0.1).sleep();
-			return true;
 		}
 		bool valid = true;
 		if (!finish_adjusting_)
@@ -345,13 +309,13 @@ namespace my_hand_eye
 			arm_controller_.z_parking_area = config.z_parking_area;
 		if (arm_controller_.threshold != config.threshold)
 			arm_controller_.threshold = config.threshold;
-		if (arm_controller_.target_pose.pose[target_].x != config.target_x)
-			arm_controller_.target_pose.pose[target_].x = config.target_x;
-		if (arm_controller_.target_pose.pose[target_].y != config.target_y)
-			arm_controller_.target_pose.pose[target_].y = config.target_y;
-		if (arm_controller_.target_pose.pose[target_].theta !=
+		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x != config.target_x)
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x = config.target_x;
+		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y != config.target_y)
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y = config.target_y;
+		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta !=
 			config.target_theta_deg / 180 * CV_PI)
-			arm_controller_.target_pose.pose[target_].theta =
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta =
 				config.target_theta_deg / 180 * CV_PI;
 	}
 } // namespace my_hand_eye

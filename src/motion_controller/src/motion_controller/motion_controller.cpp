@@ -18,8 +18,8 @@ namespace motion_controller
         }
         else
         {
-            timer_.start();
             dr_server_.setCallback(boost::bind(&MotionController::_dr_callback, this, _1, _2));
+            timer_.start();
         }
     }
 
@@ -236,6 +236,9 @@ namespace motion_controller
                     timer_.stop();
                 ROS_INFO("Succeeded to move with vision");
                 ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                arm_initialized_ = arm_active_ = false;
+                move_initialized_ = move_active_ = false;
                 return;
             }
             {
@@ -250,23 +253,21 @@ namespace motion_controller
                 if (arm_pose_.y == feedback->pme.not_change)
                     arm_pose_.y = 0;
             }
-            if (!arm_active_)
+            if (!arm_active_ && !arm_stamp_.is_zero()) // is_zero说明出现问题
             {
                 if (!arm_initialized_)
                 {
                     MoveGoal goal;
                     goal.pose = arm_pose_;
+                    ROS_INFO_STREAM("First move... x:" << goal.pose.x << " y:" << goal.pose.y << " theta:" << goal.pose.theta);
                     ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
                                       boost::bind(&MotionController::_move_active_callback, this),
                                       boost::bind(&MotionController::_move_feedback_callback, this, _1));
                     boost::lock_guard<boost::mutex> lk(mtx_);
                     arm_initialized_ = true;
                 }
-                if (!arm_stamp_.is_zero()) // is_zero说明出现问题
-                {
-                    boost::lock_guard<boost::mutex> lk(mtx_);
-                    arm_active_ = true;
-                }
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                arm_active_ = true;
             }
         }
     }
@@ -310,9 +311,9 @@ namespace motion_controller
             boost::lock_guard<boost::mutex> lk(mtx_);
             finish();
             // follower_.start(true);
+            if (!timer_.hasStarted())
+                timer_.start();
         }
-        if (!timer_.hasStarted())
-            timer_.start();
     }
 
     void MotionController::_move_active_callback(){};
@@ -328,18 +329,14 @@ namespace motion_controller
                 move_time_ = ros::Time::now();
                 move_pose_ = feedback->pose_now;
             }
-            if (!move_active_)
+            if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
             {
+                boost::lock_guard<boost::mutex> lk(mtx_);
                 if (!move_initialized_)
                 {
-                    boost::lock_guard<boost::mutex> lk(mtx_);
                     move_initialized_ = true;
                 }
-                if (!move_stamp_.is_zero()) // is_zero说明坐标转换失败
-                {
-                    boost::lock_guard<boost::mutex> lk(mtx_);
-                    move_active_ = true;
-                }
+                move_active_ = true;
             }
         }
     }
@@ -395,22 +392,25 @@ namespace motion_controller
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 follower_.motor_status = config.motor_status;
             }
-            if (dr_route_ == route_rest)
+            if (dr_route_ == route_rest && !follower_.motor_status && follower_.has_started)
             {
-                if (!follower_.motor_status && follower_.has_started)
-                {
-                    boost::lock_guard<boost::mutex> lk(mtx_);
-                    follower_.start(false);
-                }
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                follower_.start(false);
             }
-            else if (!follower_.motor_status)
+            if (!follower_.motor_status)
             {
-                ac_arm_.cancelAllGoals();
-                if (dr_route_ == route_raw_material_area)
+                if (dr_route_ != route_rest)
+                    ac_arm_.cancelAllGoals();
+                if (dr_route_ == route_raw_material_area && timer_.hasStarted())
                 {
                     ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
                     ac_move_.cancelAllGoals();
+                    boost::lock_guard<boost::mutex> lk(mtx_);
+                    arm_initialized_ = arm_active_ = false;
+                    move_initialized_ = move_active_ = false;
                 }
+                if (!timer_.hasStarted())
+                    timer_.start();
             }
         }
         if (config.where != dr_route_)
@@ -418,10 +418,13 @@ namespace motion_controller
             if (follower_.motor_status)
             {
                 ac_arm_.cancelAllGoals();
-                if (dr_route_ == route_raw_material_area)
+                if (dr_route_ == route_raw_material_area && timer_.hasStarted())
                 {
                     ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
                     ac_move_.cancelAllGoals();
+                    boost::lock_guard<boost::mutex> lk(mtx_);
+                    arm_initialized_ = arm_active_ = false;
+                    move_initialized_ = move_active_ = false;
                 }
                 ROS_WARN("Please shut down motor_status!");
             }
@@ -435,38 +438,52 @@ namespace motion_controller
         // 利用定时器spin
         double diff = 0;
         // 里程计/视觉分离：对传感器时间差进行比较
-        if (move_active_ && arm_active_)
+        if (move_active_ && arm_active_ && !arm_stamp_.is_zero() && !move_stamp_.is_zero())
         {
             diff = ros::Duration(arm_stamp_ - move_stamp_).toSec();
-            if (diff > 1.0)
+            if (diff > 2.0)
                 ROS_ERROR("Timestamps of arm and move are %f seconds apart.", diff);
         }
         ros::Time now = ros::Time::now();
         // check which sensors are still active
         // 里程计/视觉活动：对接收时间进行比较 !is_zero()
-        if (move_active_ && ((now - move_stamp_).toSec() > timeout_ || move_stamp_.is_zero()))
+        if (move_active_ && ((now - move_time_).toSec() > timeout_ || move_stamp_.is_zero()))
         {
-            boost::lock_guard<boost::mutex> lk(mtx_);
-            move_active_ = false;
-            ROS_WARN("Move feedback not active any more");
+            {
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                move_active_ = false;
+            }
+            if (move_stamp_.is_zero())
+                ROS_WARN("Move feedback not active any more");
+            else
+                ROS_WARN("Move feedback not active any more, timeout:%lf", (now - move_stamp_).toSec());
         }
-        if (arm_active_ && ((now - arm_stamp_).toSec() > timeout_ || arm_stamp_.is_zero()))
+        if (arm_active_ && ((now - arm_time_).toSec() > timeout_ || arm_stamp_.is_zero()))
         {
-            boost::lock_guard<boost::mutex> lk(mtx_);
-            arm_active_ = false;
-            ROS_WARN("Arm feedback not active any more");
+            {
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                arm_active_ = false;
+            }
+            if (arm_stamp_.is_zero())
+                ROS_WARN("Arm feedback not active any more");
+            else
+                ROS_WARN("Arm feedback not active any more, timeout:%lf", (now - arm_stamp_).toSec());
         }
         // 判定里程计偏离
-        // 条件：均已初始化完毕
+        // 条件：均已初始化完毕，且视觉活动
         // 1.当里程计位置偏离视觉位置时，且里程计滞后于视觉时间
         // 2.当里程计不活动
         // 3.当里程计与视觉偏离，且视觉超前
-        if (move_initialized_ && arm_initialized_ &&
-            (diff > 1.0 || !move_active_ ||
-             (diff > 0 && (fabs(move_pose_.x - arm_pose_.x) > 0.05) ||
-              fabs(move_pose_.y - arm_pose_.y) > 0.05 ||
-              fabs(move_pose_.theta - arm_pose_.theta) > 0.1)))
+        if (move_initialized_ && arm_initialized_ && arm_active_ &&
+            (diff > 2.0 || !move_active_ ||
+             (diff > 0.5 && (fabs(move_pose_.x - arm_pose_.x) > 0.05 ||
+                             fabs(move_pose_.y - arm_pose_.y) > 0.05 ||
+                             fabs(move_pose_.theta - arm_pose_.theta) > 0.1))))
         {
+            if (diff > 0.5 && (fabs(move_pose_.x - arm_pose_.x) > 0.05 ||
+                               fabs(move_pose_.y - arm_pose_.y) > 0.05 ||
+                               fabs(move_pose_.theta - arm_pose_.theta) > 0.1))
+                ROS_WARN("Pose of move is invalid!");
             {
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 move_active_ = false;
@@ -474,6 +491,7 @@ namespace motion_controller
             }
             MoveGoal goal;
             goal.pose = arm_pose_;
+            ROS_INFO_STREAM("x:" << goal.pose.x << " y:" << goal.pose.y << " theta:" << goal.pose.theta);
             ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
                               boost::bind(&MotionController::_move_active_callback, this),
                               boost::bind(&MotionController::_move_feedback_callback, this, _1));
@@ -481,9 +499,11 @@ namespace motion_controller
         // 视觉不活动，说明找不到目标对象
         if (move_initialized_ && arm_initialized_ && !arm_active_)
         {
+            // 停下重新找
             ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
             boost::lock_guard<boost::mutex> lk(mtx_);
-            move_initialized_ = false;
+            arm_initialized_ = false;
+            move_initialized_ = move_active_ = false;
         }
     }
 
