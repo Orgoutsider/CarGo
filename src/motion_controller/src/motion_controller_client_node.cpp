@@ -25,7 +25,8 @@ void active_cb()
 void feedback_cb(const motion_controller::MoveFeedbackConstPtr &feedback)
 {
     ROS_INFO_STREAM("is_paning:" << (bool)feedback->is_paning << " theta:"
-                                 << feedback->pose_now.theta << " x:" << feedback->pose_now.x << " y:" << feedback->pose_now.y);
+                                 << feedback->pose_now.theta << " x:"
+                                 << feedback->pose_now.x << " y:" << feedback->pose_now.y);
 }
 
 int main(int argc, char *argv[])

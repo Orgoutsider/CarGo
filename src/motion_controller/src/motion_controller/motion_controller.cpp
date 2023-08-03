@@ -110,6 +110,7 @@ namespace motion_controller
             {
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
+                goal.loop = loop_;
                 switch (dr_route_)
                 {
                 case route_QR_code_board:
@@ -181,6 +182,7 @@ namespace motion_controller
             {
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
+                goal.loop = loop_;
                 switch (where_is_car())
                 {
                 case route_QR_code_board:

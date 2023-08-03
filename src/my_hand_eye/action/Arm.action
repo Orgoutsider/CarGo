@@ -1,4 +1,5 @@
 # 任务点编号
+uint8 loop
 uint8 route
 uint8 route_QR_code_board=0
 uint8 route_raw_material_area=1

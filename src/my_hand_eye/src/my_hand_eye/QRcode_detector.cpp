@@ -36,7 +36,8 @@ namespace my_hand_eye
 			if (i != 3) // 不显示 +
 			{
 				char txt_temp[2] = {str[i]};
-				putText(resImg, txt_temp, cv::Point(ptx_info[ii] + txt_Xoffset, pty_info[ii] + txt_Yoffset), cv::FONT_HERSHEY_PLAIN, txt_size, cv::Scalar::all(255), txt_thick, cv::FILLED, false);
+				putText(resImg, txt_temp, cv::Point(ptx_info[ii] + txt_Xoffset, pty_info[ii] + txt_Yoffset),
+						cv::FONT_HERSHEY_PLAIN, txt_size, cv::Scalar::all(255), txt_thick, cv::FILLED, false);
 				num[ii++] = str[i];
 			}
 		}

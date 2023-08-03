@@ -4,7 +4,7 @@ namespace my_hand_eye
 {
 	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 		: arm_controller_(nh, pnh),
-		  as_(nh, "Arm", false), finish_adjusting_(true), finish_(true)
+		  as_(nh, "Arm", false), finish_adjusting_(true), finish_(true), loop_(0), task_idx_(0)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
@@ -29,6 +29,31 @@ namespace my_hand_eye
 		as_.registerGoalCallback(boost::bind(&MyEye::goal_callback, this));
 		as_.registerPreemptCallback(boost::bind(&MyEye::preempt_callback, this));
 		as_.start();
+	}
+
+	void MyEye::next_task()
+	{
+		if ((++task_idx_) >= 3)
+			task_idx_ = 0;
+	}
+
+	Color MyEye::which_color() const
+	{
+		switch (tasks_->loop[loop_].task[task_idx_])
+		{
+		case color_red:
+			return color_red;
+
+		case color_green:
+			return color_green;
+
+		case color_blue:
+			return color_blue;
+
+		default:
+			ROS_ERROR("which_color: Color error!");
+			return color_red;
+		}
 	}
 
 	void MyEye::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
@@ -134,6 +159,7 @@ namespace my_hand_eye
 		// 	return;
 		// }
 		arm_goal_.route = as_.acceptNewGoal()->route;
+		loop_ = as_.acceptNewGoal()->loop;
 		if (finish_adjusting_)
 		{
 			finish_adjusting_ = false;
@@ -207,7 +233,6 @@ namespace my_hand_eye
 			ROS_INFO("Start operate center...");
 		}
 		bool valid = true;
-		static bool first = true;
 		if (!finish_adjusting_)
 		{
 			// static int err_cnt = 0;
@@ -238,10 +263,19 @@ namespace my_hand_eye
 		}
 		else if (!debug_)
 		{
-			// double x = 0, y = 0;
-			// bool finish = false;
-			// valid = arm_controller_.track(image_rect, color_green, first, x, y, debug_image) &&
-			// 		arm_controller_.catch_after_tracking(x, y, color_green, false, finish);
+			double x = 0, y = 0;
+			static bool first = true;
+			bool finish = false;
+			valid = arm_controller_.track(image_rect, which_color(), first, x, y, debug_image) &&
+					arm_controller_.catch_after_tracking(x, y, which_color(), (task_idx_ == 2), finish);
+			if (finish)
+			{
+				next_task();
+				if (task_idx_ == 0)
+				{
+					first = true;
+				}
+			}
 			// arm_goal_.route = arm_goal_.route_rest;
 			// finish_ = true;
 			// as_.setSucceeded(ArmResult(), "Arm finish tasks");
@@ -249,6 +283,7 @@ namespace my_hand_eye
 		}
 		else
 		{
+			static bool first = true;
 			double x = 0, y = 0;
 			valid = arm_controller_.track(image_rect, color_green, first, x, y, debug_image);
 		}
