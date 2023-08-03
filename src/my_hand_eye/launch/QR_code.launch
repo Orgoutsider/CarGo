@@ -5,6 +5,7 @@
     <arg name="respawn" default="true"/>
     <arg name="camera_name" default="/eye" />
     <arg name="ft_servo" default="ft_servo" />
+    <arg name="flag" default="false" />
     <arg name="show_detections" default="true" />
     <arg name="if_detect_QR_code" default="true" />
     <arg name="if_emulation" default="true" />
@@ -34,8 +35,10 @@
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
         <param name="if_detect_QR_code" type="bool" value="$(arg if_detect_QR_code)" />
+        <param name="flag" type="bool" value="$(arg flag)" />
         <param name="white_vmin" type="int" value="160" />
-        <param name="speed_standard" type="double" value="0.12" />
+        <param name="speed_standard_static" type="double" value="0.16" />
+        <param name="speed_standard_motion" type="double" value="0.07" />
         <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
     </node>
 

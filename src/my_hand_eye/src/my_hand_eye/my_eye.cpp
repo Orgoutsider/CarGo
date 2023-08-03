@@ -4,11 +4,10 @@ namespace my_hand_eye
 {
 	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 		: arm_controller_(nh, pnh),
-		  as_(nh, "Arm", false), finish_adjusting_(true), finish_(true), loop_(0), task_idx_(0)
+		  as_(nh, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
-		tasks_ = boost::shared_ptr<ArrayofTaskArrays>(new ArrayofTaskArrays);
 		pnh.param<std::string>("transport_hint", transport_hint_, "raw");
 		pnh.param<bool>("show_detections", arm_controller_.show_detections, false);
 		pnh.param<bool>("debug", debug_, false);
@@ -38,9 +37,9 @@ namespace my_hand_eye
 			task_idx_ = 0;
 	}
 
-	Color MyEye::which_color() const
+	Color MyEye::which_color(bool next) const
 	{
-		switch (tasks_->loop[loop_].task[task_idx_])
+		switch (tasks_.loop[arm_goal_.loop].task[(task_idx_ + next) >= 3 ? 0 : (task_idx_ + next)])
 		{
 		case color_red:
 			return color_red;
@@ -59,10 +58,10 @@ namespace my_hand_eye
 
 	void MyEye::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
 	{
-		tasks_ = task;
+		tasks_ = *task;
 		ROS_INFO_STREAM(
-			"Get tasks:" << unsigned(tasks_->loop[0].task[0]) << unsigned(tasks_->loop[0].task[1]) << unsigned(tasks_->loop[0].task[2]) << "+"
-						 << unsigned(tasks_->loop[1].task[0]) << unsigned(tasks_->loop[1].task[1]) << unsigned(tasks_->loop[1].task[2]));
+			"Get tasks:" << unsigned(tasks_.loop[0].task[0]) << unsigned(tasks_.loop[0].task[1]) << unsigned(tasks_.loop[0].task[2]) << "+"
+						 << unsigned(tasks_.loop[1].task[0]) << unsigned(tasks_.loop[1].task[1]) << unsigned(tasks_.loop[1].task[2]));
 		camera_image_subscriber_ =
 			it_->subscribe<MyEye>("image_rect", 1, &MyEye::image_callback, this, image_transport::TransportHints(transport_hint_));
 	}
@@ -159,8 +158,7 @@ namespace my_hand_eye
 		// 	as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 		// 	return;
 		// }
-		arm_goal_.route = as_.acceptNewGoal()->route;
-		loop_ = as_.acceptNewGoal()->loop;
+		arm_goal_ = *(as_.acceptNewGoal());
 		if (finish_adjusting_)
 		{
 			finish_adjusting_ = false;
@@ -268,7 +266,8 @@ namespace my_hand_eye
 			static bool first = true;
 			bool finish = false;
 			valid = arm_controller_.track(image_rect, which_color(), first, x, y, debug_image) &&
-					arm_controller_.catch_after_tracking(x, y, which_color(), (task_idx_ == 2), finish);
+					arm_controller_.catch_after_tracking(x, y, which_color(), which_color(true),
+														 task_idx_ == 2, finish);
 			if (finish)
 			{
 				next_task();

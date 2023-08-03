@@ -71,7 +71,9 @@ namespace my_hand_eye
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
-        speed_standard_ = pnh.param<double>("speed_standard", 0.12);
+        speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
+        speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.07);
+        tracker_.flag = pnh.param<bool>("flag", false);
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -288,7 +290,7 @@ namespace my_hand_eye
         if (valid)
         {
             // ROS_INFO_STREAM("(" << x << ", " << y << ")");
-            valid = tracker_.calculate_radius_and_speed(x, y, radius, speed_standard_, speed);
+            valid = tracker_.calculate_radius_and_speed(x, y, radius, speed_standard_static_, speed);
         }
         return valid;
     }
@@ -303,7 +305,7 @@ namespace my_hand_eye
             {
                 if (!objArray.boxes[color].center.x)
                 {
-                    ROS_WARN("Color %d cargo does not exist.", color);
+                    ROS_WARN("get_center: Color %d cargo does not exist.", color);
                     return false;
                 }
                 u_sum += objArray.boxes[color].center.x;
@@ -466,24 +468,52 @@ namespace my_hand_eye
 
     bool ArmController::cargo_is_static(double speed, bool reset)
     {
-        static int cnt = 0;
+        static int cnt_static = 0, cnt_motion = 0;
+        static bool motion_before = false;
         if (reset)
         {
-            cnt = 0;
+            cnt_static = 0;
+            cnt_motion = 0;
+            motion_before = false;
             return false;
         }
         if (speed < 0) // -1
         {
-            cnt = 0;
+            cnt_static = 0;
+            cnt_motion = 0;
+            motion_before = false;
             return false;
         }
-        else if (speed < speed_standard_)
-        {
-            cnt++;
-            return (cnt >= 3);
-        }
         else
-            cnt = 0;
+        {
+            if (speed < speed_standard_static_)
+            {
+                cnt_static++;
+                if ((cnt_static >= 3) && motion_before) // 放弃从开始就停止的块
+                {
+                    cnt_motion = 0;
+                    motion_before = false;
+                    return true;
+                }
+            }
+            else
+            {
+                cnt_static = 0;
+            }
+            if (speed > speed_standard_motion_ && !motion_before)
+            {
+                cnt_motion++;
+                if (cnt_motion >= 3)
+                {
+                    ROS_INFO("Can catch after now.");
+                    motion_before = true;
+                }
+            }
+            else if (!motion_before && cnt_motion)
+            {
+                cnt_motion = 0;
+            }
+        }
         return false;
     }
 
@@ -491,9 +521,9 @@ namespace my_hand_eye
                               double &x, double &y, sensor_msgs::ImagePtr &debug_image)
     {
         using namespace cv;
-        const int INTERVAL = 50; // 间隔一段时间后重新进行目标检测
-        static int cnt = INTERVAL;
-        const double PERMIT = 2.5;
+        const int TRACKING = 0, DETECTING = 1; // 1:重新进行目标检测
+        static int state = DETECTING;
+        const double PERMIT = 3;
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
         double radius = 0, speed = -1, u = 0, v = 0;
@@ -504,12 +534,12 @@ namespace my_hand_eye
             ps_.reset();
             current_color_ = color;
             can_catch_ = false;
-            cnt = INTERVAL;
+            state = DETECTING;
         }
         else if (!can_catch_ && stop_) // 停留不可抓
         {
             stop_ = false;
-            cnt = 0;
+            state = TRACKING;
         }
         else if (can_catch_ && stop_) // 不正常状态
         {
@@ -517,41 +547,48 @@ namespace my_hand_eye
             stop_ = false;
             can_catch_ = false;
             ps_.reset();
-            cnt = INTERVAL;
+            state = DETECTING;
             current_color_ = color;
         }
         else if (current_color_ != color)
         {
             ROS_WARN("Color has changed!");
+            stop_ = false;
+            can_catch_ = false;
+            ps_.reset();
+            state = DETECTING;
             current_color_ = color;
         }
-        if ((++cnt) > INTERVAL) // 间隔一段时间后重新进行目标检测
+        if (state == DETECTING)
         {
             vision_msgs::BoundingBox2DArray objArray;
-            double center_x = 0, center_y = 0;
-            if (detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                get_center(objArray, center_u, center_v, center_x, center_y, true) &&
-                tracker_.target_init(*nh_, cv_image_, objArray, color, white_vmin_,
-                                     center_x, center_y, show_detections))
+            static double center_x = 0, center_y = 0;
+            if (detect_cargo(image_rect, objArray, debug_image, default_roi_))
             {
                 if (first)
                 {
-                    if (!tracker_.order_init(objArray, ps_, z_turntable))
+                    if (!get_center(objArray, center_u, center_v, center_x, center_y, true) ||
+                        !tracker_.target_init(*nh_, cv_image_, objArray, color, white_vmin_,
+                                              center_x, center_y, show_detections) ||
+                        !tracker_.order_init(objArray, ps_, z_turntable))
                     {
-                        cnt--;
                         return false;
                     }
                     else
+                    {
                         first = false;
+                    }
                 }
+                else if (!tracker_.target_init(*nh_, cv_image_, objArray, color, white_vmin_,
+                                               center_x, center_y, show_detections))
+                    return false;
                 calculate_radius_and_speed(u, v, x, y, radius, speed);
                 first_radius = radius;
-                cnt = 0;
+                state = TRACKING;
                 rst = true;
             }
             else
             {
-                cnt--;
                 return false;
             }
         }
@@ -561,13 +598,13 @@ namespace my_hand_eye
                 return false;
             if (!tracker_.target_track(*cv_image, ps_, z_turntable))
             {
-                cnt = INTERVAL;
+                state = DETECTING;
                 return false;
             }
             if (!calculate_radius_and_speed(u, v, x, y, radius, speed))
                 return false;
             if (abs(radius - first_radius) > PERMIT)
-                cnt = INTERVAL;
+                state = DETECTING;
             if (show_detections && !cv_image->image.empty())
             {
                 // 目标绘制
@@ -587,7 +624,7 @@ namespace my_hand_eye
         }
         if (show_detections)
             pt.push_back(cv::Point(u, v));
-        // ROS_INFO_STREAM("speed:" << speed);
+        // ROS_INFO_STREAM("speed:" << speed << " radius:" << abs(radius - first_radius));
         if (cargo_is_static(speed, rst))
         {
             if (tracker_.no_obstacles())
@@ -601,7 +638,8 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::catch_after_tracking(double x, double y, const Color color, bool left, bool &finish)
+    bool ArmController::catch_after_tracking(double x, double y, const Color color, const Color color_next,
+                                             bool left, bool &finish)
     {
         if (!stop_)
             return false;
@@ -615,16 +653,22 @@ namespace my_hand_eye
             else
             {
                 finish = false;
-                can_catch_ = false;
                 return false;
             }
+            can_catch_ = true;
             stop_ = false;
             finish = true;
             // 此后不再判断对应的颜色是否有障碍物
-            if (tracker_.left_color == color)
-                tracker_.left_color = 0;
-            else if (tracker_.right_color == color)
+            if (tracker_.left_color == color_next)
+            {
+                tracker_.left_color = tracker_.right_color;
                 tracker_.right_color = 0;
+            }
+            else if (tracker_.right_color == color_next)
+            {
+                tracker_.right_color = tracker_.left_color;
+                tracker_.left_color = 0;
+            }
             return true;
         }
     }

@@ -41,7 +41,6 @@ namespace my_hand_eye
         const int s_min_[4];
         int white_vmin_;
         bool show_detections_;
-        bool flag_;                  // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
         double center_x_, center_y_; // 转盘中心实际位置
         double radius_;              // 半径
         cv::Point2d last_pt_;
@@ -58,6 +57,7 @@ namespace my_hand_eye
         bool _update_time(cv_bridge::CvImage &cv_image);
 
     public:
+        bool flag;       // 顺/逆时针标志，flag_为true时逆时针，theta增大，默认顺时针
         int left_color;  // 左侧颜色
         int right_color; // 右侧颜色
         // 颜色范围用于接收yolov5产生的参数
@@ -76,7 +76,7 @@ namespace my_hand_eye
         bool target_track(cv_bridge::CvImage &cv_image, Pos &ps, double z);
         // 计算物体半径和速度
         bool calculate_radius_and_speed(double x, double y, double &radius,
-                                        double speed_standard, double &speed);
+                                        double speed_standard_static, double &speed);
         bool no_obstacles(); // 无障碍物
     };
 } // namespace my_hand_eye

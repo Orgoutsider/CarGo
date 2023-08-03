@@ -64,7 +64,6 @@ namespace my_hand_eye
 
     ColorTracker::ColorTracker() : gain_(0.4), speed_max_(1.7),
                                    s_min_{43, 43, 43, 43},
-                                   flag_(false),
                                    left_color(0), right_color(0) {}
 
     bool ColorTracker::_set_rect(cv_bridge::CvImage &cv_image, cv::Rect &roi)
@@ -102,8 +101,8 @@ namespace my_hand_eye
         erode(dst, dst, element);
         // if (show_detections_)
         // {
-        // imshow("dst", dst); // 用于调试
-        // waitKey(1);
+        //     imshow("dst", dst); // 用于调试
+        //     waitKey(1);
         // }
         std::vector<std::vector<cv::Point>> contours;                  // 轮廓容器
         Point2f vtx[4];                                                // 矩形顶点容器
@@ -157,9 +156,9 @@ namespace my_hand_eye
         else
         {
             ROS_WARN("_set_rect: contours are empty!");
-            imshow("dst", dst); // 用于调试
-            imshow("src", hsv);
-            waitKey(10);
+            // imshow("dst", dst); // 用于调试
+            // imshow("src", hsv);
+            // waitKey(10);
             return false;
         }
     }
@@ -258,6 +257,7 @@ namespace my_hand_eye
             // 把目标物体的矩形框传递进来
             Rect rect_ori(objArray.boxes[color_].center.x - width / 2,
                           objArray.boxes[color_].center.y - height / 2, width, height);
+            last_time_ = this_time_ = ros::Time();
             _update_time(cv_image);
             last_pt_.x = last_pt_.y = 0;
             center_x_ = center_x;
@@ -283,7 +283,6 @@ namespace my_hand_eye
             int cnt = 0;
             for (int color = color_red; color <= color_blue; color++)
             {
-                // 不是正要抓的
                 if (color == color_)
                 {
                     if (!objArray.boxes[color].center.x)
@@ -299,6 +298,7 @@ namespace my_hand_eye
                         return false;
                     continue;
                 }
+                // 不是正要抓的
                 if (!objArray.boxes[color].center.x)
                     return false;
                 else
@@ -348,9 +348,9 @@ namespace my_hand_eye
         {
             double last_theta = atan2(last_pt_.y - center_y_, last_pt_.x - center_x_);
             double dt = (this_time_ - last_time_).toSec();
-            double d_theta = (flag_ ? 1 : -1) * dt * speed_max_;
+            double d_theta = (flag ? 1 : -1) * dt * speed_max_;
             Rect rect_new = rect_ori;
-
+            // ROS_INFO_STREAM("last_theta:" << last_theta << " center_x:" << center_x_ << " center_y:" << center_y_ << " x:" << last_pt_.x << " y:" << last_pt_.y);
             rect_new |= _predict_rect(cv_image, ps, rect_ori, last_theta + 1.0 / 6 * d_theta, z, true);
             rect_new |= _predict_rect(cv_image, ps, rect_ori, last_theta + 2.0 / 6 * d_theta, z, false);
             rect_new |= _predict_rect(cv_image, ps, rect_ori, last_theta + 3.0 / 6 * d_theta, z, false);
@@ -359,8 +359,8 @@ namespace my_hand_eye
             rect_new |= _predict_rect(cv_image, ps, rect_ori, last_theta + d_theta, z, false);
             // if (show_detections_)
             // {
-            // imshow("new", cv_image.image(rect_new));
-            // waitKey(3);
+            //     imshow("new", cv_image.image(rect_new));
+            //     waitKey(3);
             // }
 
             // 生成新位置
@@ -370,7 +370,7 @@ namespace my_hand_eye
     }
 
     bool ColorTracker::calculate_radius_and_speed(double x, double y, double &radius,
-                                                  double speed_standard, double &speed)
+                                                  double speed_standard_static, double &speed)
     {
         radius_ = sqrt((x - center_x_) * (x - center_x_) + (y - center_y_) * (y - center_y_));
         radius = radius_;
@@ -384,18 +384,21 @@ namespace my_hand_eye
             d_theta[0] = (this_theta < last_theta) ? last_theta - this_theta : last_theta + CV_PI * 2 - this_theta;
             d_theta[1] = (this_theta >= last_theta) ? this_theta - last_theta : this_theta + CV_PI * 2 - last_theta;
             last_pt_ = cv::Point2d(x, y);
-            if (d_theta[flag_] <= d_theta[!flag_] || d_theta[!flag_] == 0)
+            // ROS_INFO_STREAM("last_theta:" << last_theta << " center_x:" << center_x_ << " center_y:" << center_y_ << " x:" << last_pt_.x << " y:" << last_pt_.y);
+            if (d_theta[flag] <= d_theta[!flag] || d_theta[!flag] == 0)
             {
-                if (d_theta[!flag_] == 0)
+                if (d_theta[!flag] == 0)
                     speed = 0;
                 else
-                    speed = d_theta[flag_] / dt;
+                    speed = d_theta[flag] / dt;
+                if (err_cnt)
+                    err_cnt = 0;
                 return true;
             }
             else
             {
-                speed = d_theta[!flag_] / dt;
-                if (speed < speed_standard)
+                speed = 0;
+                if (speed < speed_standard_static)
                 {
                     if (err_cnt)
                         err_cnt = 0;
@@ -404,10 +407,8 @@ namespace my_hand_eye
                 else if (err_cnt > 6)
                 {
                     err_cnt = 0;
-                    flag_ = !flag_;
-                    speed = -1;
-                    ROS_WARN("Direction has changed!");
-                    return false;
+                    ROS_WARN_ONCE("Direction may not be right!");
+                    return true;
                 }
                 else
                 {
@@ -422,7 +423,7 @@ namespace my_hand_eye
             ROS_WARN("this_time_ is zero!");
             return false;
         }
-        else
+        else // 初始化
         {
             speed = -1;
             last_pt_ = cv::Point2d(x, y);

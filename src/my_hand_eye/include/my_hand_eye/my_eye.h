@@ -18,11 +18,10 @@ namespace my_hand_eye
         bool debug_;
         bool finish_adjusting_; // 反馈：是否已完成位姿调整
         bool finish_;           // 是否已完成arm任务
-        int loop_;              // 第几轮
         int task_idx_;          // 第几种颜色
         ros::Publisher debug_image_publisher_;
         ArmController arm_controller_;
-        ArrayofTaskArraysConstPtr tasks_;
+        ArrayofTaskArrays tasks_;
         std::shared_ptr<image_transport::ImageTransport> it_;
         std::string transport_hint_;
         image_transport::Subscriber camera_image_subscriber_;
@@ -32,7 +31,7 @@ namespace my_hand_eye
         ArmGoal arm_goal_;
         dynamic_reconfigure::Server<my_hand_eye::drConfig> dr_server_;
         void next_task();
-        Color which_color() const;
+        Color which_color(bool next = false) const;
         void task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task);
         void image_callback(const sensor_msgs::ImageConstPtr &image_rect);
         // Optional callback that gets called in a separate thread whenever a new goal is received, allowing users to have blocking callbacks.

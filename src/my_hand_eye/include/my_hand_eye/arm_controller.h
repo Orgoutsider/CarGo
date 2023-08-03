@@ -15,7 +15,8 @@ namespace my_hand_eye
     class ArmController : public BorderMethod
     {
     private:
-        double speed_standard_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
+        double speed_standard_static_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
+        double speed_standard_motion_; // 速度标准，当速度大于此标准足够多次数时，判定为运动
         bool emulation_;        // 是否进行仿真或摄像头测试
         bool stop_;             // 用于颜色追踪，物料是否已停
         bool can_catch_;        // 用于颜色追踪，物料是否可以抓取
@@ -92,7 +93,8 @@ namespace my_hand_eye
         bool track(const sensor_msgs::ImageConstPtr &image_rect, const Color color, bool &first,
                    double &x, double &y, sensor_msgs::ImagePtr &debug_image);
         // 跟踪后抓取，配合catch()使用
-        bool catch_after_tracking(double x, double y, const Color color, bool left, bool &finish);
+        bool catch_after_tracking(double x, double y, const Color color, const Color color_next, 
+                                  bool left, bool &finish);
         bool find_points_with_height(double h, bool done);
         // 椭圆识别，摄像头测试时z无效
         bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
