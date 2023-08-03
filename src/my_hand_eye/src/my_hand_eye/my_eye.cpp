@@ -8,6 +8,7 @@ namespace my_hand_eye
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh));
+		tasks_ = boost::shared_ptr<ArrayofTaskArrays>(new ArrayofTaskArrays);
 		pnh.param<std::string>("transport_hint", transport_hint_, "raw");
 		pnh.param<bool>("show_detections", arm_controller_.show_detections, false);
 		pnh.param<bool>("debug", debug_, false);
