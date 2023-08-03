@@ -13,17 +13,17 @@ namespace motion_controller
           theta_thr_(10),
           y_goal_(48), y_ground_(3),
           cnt_tolerance_(2), y_thr_(3),
-          distance_thr_(0.05), motor_status_(false),
+          distance_thr_(0.05), startup_(false),
           delta_x_(0), delta_y_(0), finish_turning_(false),
           listener_(buffer_),
           ac_move_(nh, "Move", true), ac_arm_(nh, "Arm", true)
     {
         nh.setParam("/width_road", width_road_);
-        pnh.param<bool>("param_modification", param_modification_, false);
+        pnh.param<bool>("debug", debug_, false);
         pnh.param<std::string>("transport_hint", transport_hint_, "raw");
         it_ = std::shared_ptr<image_transport::ImageTransport>(
             new image_transport::ImageTransport(nh));
-        if (param_modification_)
+        if (debug_)
         {
             dr_server_.setCallback(boost::bind(&VisionController::_dr_callback, this, _1, _2));
             start_image_subscriber(true);
@@ -170,7 +170,7 @@ namespace motion_controller
             cv::Scalar sum = cv::sum(roi);
             grey = sum[0] / 255 / (roi.cols * roi.rows);
         }
-        if (param_modification_ && !motor_status_)
+        if (debug_ && !startup_)
             ROS_INFO_STREAM("y:" << y << "grey:" << grey << "yellow:" << yellow);
         if (loop_ == 1 && where_is_car() == route_parking_area)
             return grey > 0.5;
@@ -210,7 +210,7 @@ namespace motion_controller
         // 原先代码
         // 色彩分离查找车道线
         inRange(srcF, black_low_, black_up_, srcF);
-        if (param_modification_ && !motor_status_)
+        if (debug_ && !startup_)
         // if (where_is_car() == route_semi_finishing_area)
         {
             imshow("inRange", srcF);
@@ -220,7 +220,7 @@ namespace motion_controller
         Mat element = getStructuringElement(MORPH_RECT, Size(5, 1));
         // morphologyEx(srcF, srcF, MORPH_CLOSE, element);
         dilate(srcF, srcF, element);
-        if (param_modification_ && !motor_status_)
+        if (debug_ && !startup_)
         {
             imshow("line1", srcF);
             waitKey(1);
@@ -237,7 +237,7 @@ namespace motion_controller
         int n[] = {4};
         fillPoly(mask, pp, n, 1, Scalar(255));
         bitwise_and(srcF, mask, srcF);
-        if (param_modification_ && !motor_status_)
+        if (debug_ && !startup_)
         // if (where_is_car() == route_semi_finishing_area)
         {
             imshow("mask", mask);
@@ -261,7 +261,7 @@ namespace motion_controller
             Mat Hough = Mat::zeros(srcF.size(), CV_8UC3);
             bool note[width_ / 2] = {0};
             double y[lines.size()] = {0};
-            if (param_modification_)
+            if (debug_)
             {
                 line(res, Point(0, y_ground_), Point(width_, y_ground_), Scalar(0, 255, 0), 1, LINE_AA);
                 line(res, Point(0, y_goal_), Point(width_, y_goal_), Scalar(255, 0, 0), 1, LINE_AA);
@@ -277,7 +277,7 @@ namespace motion_controller
                 double theta_d = theta * 180 / CV_PI;
                 if (90 - theta_thr_ < theta_d && theta_d < 90 + theta_thr_ && _color_judge(hsv, note, line))
                 {
-                    if (param_modification_ && !motor_status_)
+                    if (debug_ && !startup_)
                     // if (where_is_car() == route_semi_finishing_area)
                     {
                         plot_line(Hough, rho, theta, Scalar(0, 0, 255)); // 红色表示正确识别
@@ -296,7 +296,7 @@ namespace motion_controller
                 }
                 else
                 {
-                    if (param_modification_ && !motor_status_)
+                    if (debug_ && !startup_)
                     // if (where_is_car() == route_semi_finishing_area)
                     {
                         plot_line(Hough, rho, theta, Scalar(255, 0, 0)); // 蓝色表示错误识别
@@ -307,7 +307,7 @@ namespace motion_controller
             {
                 if (flag_cnt)
                 {
-                    if (cnt_ == 0 && !param_modification_)
+                    if (cnt_ == 0 && !debug_)
                         start_vision_follower(false);
                     cnt_++;
                     // if (where_is_car() == route_semi_finishing_area)
@@ -323,7 +323,7 @@ namespace motion_controller
                     {
                         if (timer_.hasStarted())
                             timer_.stop();
-                        if (!param_modification_)
+                        if (!debug_)
                         {
                             ROS_INFO("Turning corners ...");
                             err_cnt = 0;
@@ -334,11 +334,11 @@ namespace motion_controller
                 else if (cnt_ != 0) // 必须连续检测到
                 {
                     cnt_ = 0;
-                    if (!param_modification_)
+                    if (!debug_)
                         start_vision_follower(true);
                 }
             }
-            if (param_modification_ && !motor_status_)
+            if (debug_ && !startup_)
             // if (where_is_car() == route_semi_finishing_area)
             {
                 imshow("Hough", Hough);
@@ -365,24 +365,24 @@ namespace motion_controller
                 }
                 if (abs(distance) < distance_thr_)
                 {
-                    if (!param_modification_)
+                    if (!debug_)
                     {
                         err_cnt++;
                         ROS_INFO_STREAM("err_cnt: " << err_cnt);
                     }
-                    else if (!motor_status_)
+                    else if (!startup_)
                     {
                         // ROS_INFO("Corner is in front of my car.");
                         cnt_ = 0;
                     }
-                    if (err_cnt > 2 && !param_modification_)
+                    if (err_cnt > 2 && !debug_)
                     {
                         vision_publisher.publish(Distance());
                         // 客户端转弯，顺时针对应右转
                         if (!_turn()) // 出现了错误识别，重新开启弯道节点
                         {
                             ROS_WARN("Corner detection error, restart ...");
-                            if (!param_modification_)
+                            if (!debug_)
                             {
                                 start_vision_follower(true);
                                 if (!timer_.hasStarted())
@@ -392,10 +392,10 @@ namespace motion_controller
                         }
                         if (!timer_.hasStarted())
                             timer_.start();
-                        if (!param_modification_)
+                        if (!debug_)
                             start_vision_follower(true);
                     }
-                    else if (param_modification_ && !motor_status_)
+                    else if (debug_ && !startup_)
                     {
                         cnt_ = 0;
                         vision_publisher.publish(Distance());
@@ -411,9 +411,9 @@ namespace motion_controller
                 else
                 {
                     // 必须连续达到要求
-                    if (err_cnt != 0 || param_modification_)
+                    if (err_cnt != 0 || debug_)
                         err_cnt = 0;
-                    if (param_modification_ && !motor_status_)
+                    if (debug_ && !startup_)
                     {
                         // ROS_INFO("Corner is in front of my car.");
                         cnt_ = 0;
@@ -421,9 +421,9 @@ namespace motion_controller
                         vision_publisher.publish(Distance());
                         // ROS_INFO_STREAM("distance: " << distance);
                     }
-                    else // (param_modification_ && motor_status_) || !param_modification_
+                    else // (debug_ && startup_) || !debug_
                     {
-                        if (param_modification_)
+                        if (debug_)
                         {
                             line(res, Point(0, y_now), Point(width_, y_now), Scalar(0, 0, 255), 1, LINE_AA);
                             ROS_INFO_STREAM("distance: " << distance);
@@ -435,14 +435,14 @@ namespace motion_controller
                     }
                 }
             }
-            else if (cnt_ >= cnt_tolerance_ && !param_modification_ && tot == 0)
+            else if (cnt_ >= cnt_tolerance_ && !debug_ && tot == 0)
             {
                 start_vision_follower(true);
                 cnt_ = 0;
                 if (!timer_.hasStarted())
                     timer_.start();
             }
-            if (param_modification_)
+            if (debug_)
             {
                 imshow("res", res);
                 waitKey(1);
@@ -451,7 +451,7 @@ namespace motion_controller
         else if (cnt_ != 0)
         {
             cnt_ = 0;
-            if (!param_modification_)
+            if (!debug_)
             {
                 start_vision_follower(true);
                 if (!timer_.hasStarted())
@@ -459,7 +459,7 @@ namespace motion_controller
             }
         }
         // 应急方案，使用全局定位转弯，需要调试
-        // else if (!param_modification_)
+        // else if (!debug_)
         // {
         //     if (_turn_by_position())
         //     {
@@ -528,7 +528,7 @@ namespace motion_controller
 
     void VisionController::_dr_callback(motion_controller::cornersConfig &config, uint32_t level)
     {
-        if (!param_modification_)
+        if (!debug_)
             return;
         // return;
         if (r_start_ != config.r_start)
@@ -604,10 +604,10 @@ namespace motion_controller
             cnt_tolerance_ = config.cnt_tolerance;
         if (distance_thr_ != config.distance_thr)
             distance_thr_ = config.distance_thr;
-        if (motor_status_ != config.motor_status)
+        if (startup_ != config.startup)
         {
-            motor_status_ = config.motor_status;
-            if (motor_status_)
+            startup_ = config.startup;
+            if (startup_)
                 cv::destroyAllWindows();
         }
     }

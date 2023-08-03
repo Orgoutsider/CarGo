@@ -8,7 +8,7 @@ ros::Publisher pub;
 void cb(motion_controller::params_PID_stm32Config &config, uint32_t level)
 {
     geometry_msgs::Twist v;
-    if (config.motor_status)
+    if (config.startup)
         v.linear.x = config.target_speed;
     pub.publish(v);
 }

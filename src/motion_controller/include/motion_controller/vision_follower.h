@@ -15,8 +15,8 @@ namespace motion_controller
     class VisionFollower
     {
     private:
-        bool param_modification_; // 动态调参
-        bool motor_status_;       // 调参，即停选项
+        bool debug_; // 动态调参
+        bool startup_;       // 调参，即停选项
         bool start_image_sub_;    // 是否开启订阅
         std::string transport_hint_;
         // 默认（320，240）图片

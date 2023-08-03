@@ -7,11 +7,11 @@ namespace motion_controller
           kp_(3.8), ki_(0.4), kd_(0.3),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.02}, {0.1}, {0.5}),
           linear_velocity_(0.2), has_started(false),
-          motor_status(false)
+          startup(false)
     {
-        pnh.param<bool>("param_modification", param_modification, false);
+        pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 3);
-        if (param_modification)
+        if (debug)
         {
             theta_publisher_ = nh.advertise<std_msgs::Float64>("theta", 5);
         }
@@ -19,7 +19,7 @@ namespace motion_controller
 
     void LineFollower::dr(routeConfig &config)
     {
-        if (!param_modification)
+        if (!debug)
             return;
         if (front_back_ != config.front_back)
             front_back_ = config.front_back;
@@ -103,10 +103,10 @@ namespace motion_controller
                     twist.linear.y = -linear_velocity_;
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -controll[0];
-                if (motor_status)
+                if (startup)
                     cmd_vel_publisher_.publish(twist);
             }
-            if (param_modification)
+            if (debug)
             {
                 std_msgs::Float64 msg;
                 msg.data = theta;

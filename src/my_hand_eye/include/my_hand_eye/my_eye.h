@@ -15,7 +15,7 @@ namespace my_hand_eye
     class MyEye
     {
     private:
-        bool param_modification_;
+        bool debug_;
         bool finish_adjusting_; // 反馈：是否已完成位姿调整
         bool finish_;           // 是否已完成arm任务
         ros::Publisher debug_image_publisher_;

@@ -140,8 +140,8 @@ class Yolov5Detector:
         self.score_thr = 0.8
         self.srv = rospy.Service('cargoSrv', cargoSrv, self.callback)
         rospy.loginfo("Service set up!")
-        self.param_modification = rospy.get_param('~param_modification', False)
-        if self.param_modification:
+        self.debug = rospy.get_param('~debug', False)
+        if self.debug:
             self.dr_srv = Server(drConfig, self.dr_callback)
         else:
             rospy.loginfo("Defualt setting: don't modify paramater")
@@ -202,14 +202,14 @@ class Yolov5Detector:
                 start_row,start_col=int(max(0, xyxy[1] - size_row * self.gain)),int(max(0, xyxy[0] - size_col * self.gain))
                 end_row,end_col=int(min(im0.shape[0] ,xyxy[3] + size_row * self.gain)),int(min(im0.shape[1], xyxy[2] + size_col * self.gain))
                 roi = im0[start_row:end_row,start_col:end_col]
-                if self.param_modification:
+                if self.debug:
                     cv2.imshow("roi", roi)
                     cv2.waitKey(100)
                 roi = cv2.GaussianBlur(roi, (3, 3), 0)
                 roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
                 element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
                 s_max = 0
-                if self.param_modification:
+                if self.debug:
                     # cv2.imshow("im0", im0)
                     cv2.imshow("hsv", roi)
                     cv2.waitKey(100)
@@ -227,7 +227,7 @@ class Yolov5Detector:
                     else:
                         dst = cv2.inRange(roi, self.low[color], self.up[color])
 
-                    if self.param_modification:
+                    if self.debug:
                         cv2.imshow("dst", dst)
                         cv2.waitKey(100)
                     dst = cv2.erode(dst, element)
@@ -296,7 +296,7 @@ class Yolov5Detector:
     
 
     def dr_callback(self, config, level):
-        if not self.param_modification:
+        if not self.debug:
             return config
         
         low_raw = self.low_raw[config.color]

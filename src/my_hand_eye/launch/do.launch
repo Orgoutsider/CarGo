@@ -6,13 +6,13 @@
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="if_detect_QR_code" default="false" />
     <arg name="if_emulation" default="false" />
-    <arg name="param_modification" default="false" />
+    <arg name="debug" default="false" />
 
     <include file="$(find my_hand_eye)/launch/eye.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
     </include>
     <include file="$(find my_hand_eye)/launch/include/yolov5.launch" >
-        <arg name="param_modification" value="false" />
+        <arg name="debug" value="false" />
     </include>
 
     <!-- Set parameters -->
@@ -32,6 +32,6 @@
         <param name="white_vmin" type="int" value="120" />
         <param name="speed_standard" type="double" value="0.2" />
         <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
-        <param name="param_modification" type="bool" value="$(arg param_modification)" />
+        <param name="debug" type="bool" value="$(arg debug)" />
     </node>
 </launch>

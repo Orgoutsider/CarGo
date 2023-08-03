@@ -12,7 +12,7 @@ namespace motion_controller
     {
         timer_ = nh.createTimer(ros::Rate(4), &MotionController::_timer_callback, this, false, false);
         timeout_ = pnh.param("timeout", 1.0);
-        if (!follower_.param_modification)
+        if (!follower_.debug)
         {
             go_client_ = nh.advertiseService("Go", &MotionController::go, this);
         }
@@ -103,10 +103,10 @@ namespace motion_controller
 
     void MotionController::_timer_callback(const ros::TimerEvent &event)
     {
-        if (follower_.param_modification)
+        if (follower_.debug)
         {
             static bool flag = true;
-            if (flag && follower_.motor_status)
+            if (flag && follower_.startup)
             {
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
@@ -139,7 +139,7 @@ namespace motion_controller
                 case route_rest:
                     if (get_position())
                     {
-                        if (!follower_.has_started && follower_.motor_status)
+                        if (!follower_.has_started && follower_.startup)
                         {
                             set_position(0, 0, 0);
                             boost::lock_guard<boost::mutex> lk(mtx_);
@@ -158,11 +158,11 @@ namespace motion_controller
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
                 flag = false;
             }
-            else if (!follower_.motor_status && !flag)
+            else if (!follower_.startup && !flag)
             {
                 flag = true; // 等待下一次启动
             }
-            else if (dr_route_ == route_raw_material_area && follower_.motor_status && !flag)
+            else if (dr_route_ == route_raw_material_area && follower_.startup && !flag)
             {
                 _move_with_vision();
             }
@@ -218,8 +218,8 @@ namespace motion_controller
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
-            ((where_is_car() != route_raw_material_area && !follower_.param_modification) ||
-             (follower_.param_modification && follower_.motor_status && dr_route_ != route_raw_material_area)))
+            ((where_is_car() != route_raw_material_area && !follower_.debug) ||
+             (follower_.debug && follower_.startup && dr_route_ != route_raw_material_area)))
             timer_.stop();
         // if (where_is_car() == route_raw_material_area && loop_ == 1)
         //     _U_turn();
@@ -227,8 +227,8 @@ namespace motion_controller
 
     void MotionController::_arm_feedback_callback(const my_hand_eye::ArmFeedbackConstPtr &feedback)
     {
-        if ((where_is_car() == route_raw_material_area && !follower_.param_modification) ||
-            (follower_.param_modification && follower_.motor_status && dr_route_ == route_raw_material_area))
+        if ((where_is_car() == route_raw_material_area && !follower_.debug) ||
+            (follower_.debug && follower_.startup && dr_route_ == route_raw_material_area))
         {
             if (feedback->pme.end)
             {
@@ -306,7 +306,7 @@ namespace motion_controller
         //     return;
         // }
 
-        if (!follower_.param_modification)
+        if (!follower_.debug)
         {
             boost::lock_guard<boost::mutex> lk(mtx_);
             finish();
@@ -320,8 +320,8 @@ namespace motion_controller
 
     void MotionController::_move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback)
     {
-        if ((where_is_car() == route_raw_material_area && !follower_.param_modification) ||
-            (follower_.param_modification && follower_.motor_status && dr_route_ == route_raw_material_area))
+        if ((where_is_car() == route_raw_material_area && !follower_.debug) ||
+            (follower_.debug && follower_.startup && dr_route_ == route_raw_material_area))
         {
             {
                 boost::lock_guard<boost::mutex> lk(mtx_);
@@ -386,18 +386,18 @@ namespace motion_controller
             boost::lock_guard<boost::mutex> lk(mtx_);
             follower_.dr(config);
         }
-        if (follower_.motor_status != config.motor_status)
+        if (follower_.startup != config.startup)
         {
             {
                 boost::lock_guard<boost::mutex> lk(mtx_);
-                follower_.motor_status = config.motor_status;
+                follower_.startup = config.startup;
             }
-            if (dr_route_ == route_rest && !follower_.motor_status && follower_.has_started)
+            if (dr_route_ == route_rest && !follower_.startup && follower_.has_started)
             {
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 follower_.start(false);
             }
-            if (!follower_.motor_status)
+            if (!follower_.startup)
             {
                 if (dr_route_ != route_rest)
                     ac_arm_.cancelAllGoals();
@@ -415,7 +415,7 @@ namespace motion_controller
         }
         if (config.where != dr_route_)
         {
-            if (follower_.motor_status)
+            if (follower_.startup)
             {
                 ac_arm_.cancelAllGoals();
                 if (dr_route_ == route_raw_material_area && timer_.hasStarted())
@@ -426,7 +426,7 @@ namespace motion_controller
                     arm_initialized_ = arm_active_ = false;
                     move_initialized_ = move_active_ = false;
                 }
-                ROS_WARN("Please shut down motor_status!");
+                ROS_WARN("Please shut down startup!");
             }
             boost::lock_guard<boost::mutex> lk(mtx_);
             dr_route_ = config.where;

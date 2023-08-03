@@ -1,7 +1,7 @@
 <launch>
-    <arg name="param_modification" default="false" />
+    <arg name="debug" default="false" />
     <node name="motion_controller_follower_node" pkg="motion_controller" type="motion_controller_follower_node" respawn="false" output="screen" >
         <param name="transport_hint" value="raw" />
-        <param name="param_modification" value="$(arg param_modification)" />
+        <param name="debug" value="$(arg debug)" />
     </node>
 </launch>

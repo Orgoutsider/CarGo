@@ -10,8 +10,8 @@ namespace my_hand_eye
 			new image_transport::ImageTransport(nh));
 		pnh.param<std::string>("transport_hint", transport_hint_, "raw");
 		pnh.param<bool>("show_detections", arm_controller_.show_detections, false);
-		pnh.param<bool>("param_modification", param_modification_, false);
-		if (param_modification_)
+		pnh.param<bool>("debug", debug_, false);
+		if (debug_)
 			dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
 		bool if_detect_QR_code = pnh.param<bool>("if_detect_QR_code", true);
 		if (if_detect_QR_code)
@@ -236,7 +236,7 @@ namespace my_hand_eye
 				as_.publishFeedback(feedback);
 			}
 		}
-		else if (!param_modification_)
+		else if (!debug_)
 		{
 			// double x = 0, y = 0;
 			// bool finish = false;
@@ -296,7 +296,7 @@ namespace my_hand_eye
 				pose_publisher_.publish(msg);
 			}
 		}
-		else if (!param_modification_)
+		else if (!debug_)
 		{
 			// put
 		}

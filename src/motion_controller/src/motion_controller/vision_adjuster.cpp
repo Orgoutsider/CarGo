@@ -17,8 +17,8 @@ namespace motion_controller
         eye_subscriber_ = nh.subscribe<my_hand_eye::Pose2DMightEnd>(
             "/vision_eye", 3, &VisionAdjuster::_eye_callback, this);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_vision", 3);
-        pnh.param<bool>("param_modification", param_modification_, false);
-        if (param_modification_)
+        pnh.param<bool>("debug", debug_, false);
+        if (debug_)
             dr_server_.setCallback(boost::bind(&VisionAdjuster::_dr_callback, this, _1, _2));
     }
 

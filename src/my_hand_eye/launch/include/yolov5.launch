@@ -29,7 +29,7 @@
     <!-- Optional topic (publishing annotated image) -->
     <arg name="publish_image" default="true"/>
     <arg name="output_image_topic" default="/yolov5/image_out"/>
-    <arg name="param_modification" default="false"/>
+    <arg name="debug" default="false"/>
 
 
     <node pkg="yolov5_ros" name="cargo_detect" type="cargo_detect.py" output="screen">
@@ -56,7 +56,7 @@
 
         <param name="publish_image" value="$(arg publish_image)"/>
         <param name="output_image_topic" value="$(arg output_image_topic)"/>
-        <param name="param_modification" value="$(arg param_modification)"/>
+        <param name="debug" value="$(arg debug)"/>
     </node>
     <!-- <include file="$(find camera_launch)/launch/d435.launch"/> -->
 

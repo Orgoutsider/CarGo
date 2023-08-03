@@ -11,15 +11,15 @@ namespace motion_controller
           rho_thr_(5), theta_thr_(5), theta_thr_horizontal_(16),
           kp_(0.03), kd_(0.015),
           black_low_(0, 0, 0), black_up_(180, 255, 98),
-          motor_status_(false), start_image_sub_(false)
+          startup_(false), start_image_sub_(false)
     {
         it_ = std::shared_ptr<image_transport::ImageTransport>(
             new image_transport::ImageTransport(nh));
         pnh.param<std::string>("transport_hint", transport_hint_, "raw");
         cmd_vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 1);
-        pnh.param<bool>("param_modification", param_modification_, false);
+        pnh.param<bool>("debug", debug_, false);
         start_server_ = nh.advertiseService("Start", &VisionFollower::_do_start_req, this);
-        if (param_modification_)
+        if (debug_)
         {
             image_subscriber_ = it_->subscribe("/usb_cam/image_rect_color", 1,
                                                &VisionFollower::_image_callback, this,
@@ -73,7 +73,7 @@ namespace motion_controller
     //     plot_line(line_left, rho_left, theta, cv::Scalar(255), 3);
     //     cv::Mat line_right = cv::Mat::zeros(yellow_.size(), CV_8UC1);
     //     plot_line(line_right, rho_right, theta, cv::Scalar(255), 3);
-    //     if (param_modification_ && !motor_status_)
+    //     if (debug_ && !startup_)
     //     {
     //         cv::imshow("yellow", yellow_);
     //         cv::imshow("grey", grey_);
@@ -108,7 +108,7 @@ namespace motion_controller
         Mat srcF;
         cvtColor(cv_image->image, srcF, COLOR_BGR2HSV);
         inRange(srcF, black_low_, black_up_, srcF);
-        if (param_modification_ && !motor_status_)
+        if (debug_ && !startup_)
         {
             imshow("inRange", srcF);
             waitKey(1);
@@ -117,7 +117,7 @@ namespace motion_controller
         Mat element = getStructuringElement(MORPH_RECT, Size(3, 1));
         // morphologyEx(srcF, srcF, MORPH_CLOSE, element);
         dilate(srcF, srcF, element);
-        if (param_modification_ && !motor_status_)
+        if (debug_ && !startup_)
         {
             imshow("line1", srcF);
             waitKey(1);
@@ -133,7 +133,7 @@ namespace motion_controller
         int n[] = {6};
         fillPoly(mask, pp, n, 1, Scalar(255));
         bitwise_and(srcF, mask, srcF);
-        if (param_modification_ && !motor_status_)
+        if (debug_ && !startup_)
         {
             imshow("mask", mask);
             imshow("line2", srcF);
@@ -179,7 +179,7 @@ namespace motion_controller
                     theta_aver[left] += theta;
                     lines_left_right[left][num[left]] = line;
                     num[left]++;
-                    if (param_modification_ && !motor_status_)
+                    if (debug_ && !startup_)
                     {
                         // 左边绘制红色
                         plot_line(Hough, rho, theta, Scalar(0, 0, 255));
@@ -197,14 +197,14 @@ namespace motion_controller
                     theta_aver[right] += theta;
                     lines_left_right[right][num[right]] = line;
                     num[right]++;
-                    if (param_modification_ && !motor_status_)
+                    if (debug_ && !startup_)
                     {
                         // 右边绘制蓝色
                         plot_line(Hough, rho, theta, Scalar(255, 0, 0));
                     }
                 }
             }
-            if (param_modification_ && !motor_status_)
+            if (debug_ && !startup_)
             {
                 imshow("Hough", Hough);
                 waitKey(1);
@@ -230,7 +230,7 @@ namespace motion_controller
                 double a = cos(theta_aver[i]), b = sin(theta_aver[i]);
                 x[i] = ((rho_aver[i] - b * judge_line_) / a);
                 // 直线绘制
-                if (param_modification_ && !motor_status_)
+                if (debug_ && !startup_)
                 {
                     plot_line(res, rho_aver[i], theta_aver[i], Scalar(0, 0, 255));
                     line(res, Point(0, judge_line_), Point(c_end_ - c_start_, judge_line_), Scalar(255, 0, 0), 1, LINE_AA);
@@ -238,7 +238,7 @@ namespace motion_controller
                     waitKey(1);
                 }
             }
-            if (param_modification_ && !motor_status_)
+            if (debug_ && !startup_)
             {
                 imshow("res", res);
                 waitKey(1);
@@ -258,7 +258,7 @@ namespace motion_controller
             twist.linear.x = linear_velocity_;
             twist.angular.z = (err_aver != 0) ? -kp_ * err_aver - kd_ * d_err : 0;
             err_aver_last = err_aver;
-            if (param_modification_ && motor_status_)
+            if (debug_ && startup_)
                 ROS_INFO_STREAM("err:" << err_aver);
             // ROS_INFO_STREAM(minx << ' ' << maxx);
             return true;
@@ -278,7 +278,7 @@ namespace motion_controller
     //     Mat srcF, sure_bg, sure_fg, unknown, markers;
     //     cvtColor(cv_image->image, srcF, COLOR_BGR2GRAY);
     //     threshold(srcF, srcF, threshold_, 255, THRESH_BINARY_INV);
-    //     if (param_modification_)
+    //     if (debug_)
     //     {
     //         imshow("thresh", srcF);
     //         waitKey(1);
@@ -326,7 +326,7 @@ namespace motion_controller
     //             markers_data++;
     //         }
     //     }
-    //     if (param_modification_)
+    //     if (debug_)
     //     {
     //         // 中间图像，调试用
     //         Mat markers_copy = markers.clone();
@@ -350,7 +350,7 @@ namespace motion_controller
     //         imshow("copy", markers_copy);
     //     }
     //     watershed(cv_image->image, markers);
-    //     if (param_modification_)
+    //     if (debug_)
     //     {
     //         for (int row = 0; row < markers.rows; row++)
     //         {
@@ -398,7 +398,7 @@ namespace motion_controller
         cv_image->image = cv_image->image(Range(r_start_, r_end_), Range(c_start_, c_end_));
         geometry_msgs::Twist twist;
         _find_lines(cv_image, twist);
-        if (!param_modification_ || (param_modification_ && motor_status_))
+        if (!debug_ || (debug_ && startup_))
             cmd_vel_publisher_.publish(twist);
         else
             cmd_vel_publisher_.publish(geometry_msgs::Twist());
@@ -406,7 +406,7 @@ namespace motion_controller
 
     void VisionFollower::_dr_callback(lineConfig &config, uint32_t level)
     {
-        if (!param_modification_)
+        if (!debug_)
             return;
         if (r_start_ != config.r_start)
         {
@@ -473,10 +473,10 @@ namespace motion_controller
             kd_ = config.kd;
         if (black_up_[2] != config.v_black_up)
             black_up_[2] = config.v_black_up;
-        if (motor_status_ != config.motor_status)
+        if (startup_ != config.startup)
         {
-            motor_status_ = config.motor_status;
-            if (motor_status_)
+            startup_ = config.startup;
+            if (startup_)
                 cv::destroyAllWindows();
         }
     }

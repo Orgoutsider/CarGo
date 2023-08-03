@@ -104,8 +104,8 @@ class Yolov5Detector:
                     R_Low2_add, G_Low + G_Low_add, B_Low + B_Low_add]
         self.up = [R_up1 + R_up1_add, R_up2 +
                    R_up2_add, G_up + G_up_add, B_up + B_up_add]
-        self.param_modification = rospy.get_param('~param_modification', False)
-        if self.param_modification:
+        self.debug = rospy.get_param('~debug', False)
+        if self.debug:
             self.dr_srv = Server(drConfig, self.dr_callback)
         else:
             rospy.loginfo("Defualt setting: don't modify paramater")
@@ -167,7 +167,7 @@ class Yolov5Detector:
                     min(im.shape[1], result_box[2] + size_col * self.gain))
 
                 roi = im[start_row:end_row, start_col:end_col]
-                if self.param_modification:
+                if self.debug:
                     cv2.imshow("roi", roi)
                     cv2.waitKey(100)
                 roi = cv2.GaussianBlur(roi, (3, 3), 0)
@@ -175,7 +175,7 @@ class Yolov5Detector:
                 element = cv2.getStructuringElement(
                     cv2.MORPH_ELLIPSE, (13, 13))
                 s_max = 0
-                if self.param_modification:
+                if self.debug:
                     # cv2.imshow("im0", im0)
                     cv2.imshow("hsv", roi)
                     cv2.waitKey(100)
@@ -193,7 +193,7 @@ class Yolov5Detector:
                     else:
                         dst = cv2.inRange(roi, self.low[color], self.up[color])
 
-                    if self.param_modification:
+                    if self.debug:
                         cv2.imshow("dst", dst)
                         cv2.waitKey(100)
                     dst = cv2.erode(dst, element)
@@ -250,7 +250,7 @@ class Yolov5Detector:
         return cargoSrvResponse(objArray)
 
     def dr_callback(self, config, level):
-        if not self.param_modification:
+        if not self.debug:
             return config
 
         low_raw = self.low_raw[config.color]

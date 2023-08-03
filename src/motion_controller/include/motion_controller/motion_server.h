@@ -21,7 +21,7 @@ namespace motion_controller
     class MotionServer
     {
     private:
-        bool param_modification_; // 是否进行pid调节
+        bool debug_; // 是否进行pid调节
         double kp_angular_;
         double ki_angular_;
         double kd_angular_;

@@ -25,7 +25,7 @@ namespace motion_controller
             not_change_theta
         };
 
-        bool param_modification_;
+        bool debug_;
         Unchanging not_change_;
         // // 弯道pid
         // double kp_usb_cam_;

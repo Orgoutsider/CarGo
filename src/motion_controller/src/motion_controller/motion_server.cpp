@@ -8,10 +8,10 @@ namespace motion_controller
           kp_angular_(1.6), ki_angular_(0.6), kd_angular_(0),
           kp_linear_(1.6), ki_linear_(0), kd_linear_(0)
     {
-        pnh.param<bool>("param_modification", param_modification_, false);
+        pnh.param<bool>("debug", debug_, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
         server_.start();
-        if (param_modification_)
+        if (debug_)
         {
             dr_server_.setCallback(boost::bind(&MotionServer::_dr_callback, this, _1, _2));
             ROS_INFO("PID adjusting...");
@@ -209,7 +209,7 @@ namespace motion_controller
 
     void MotionServer::_dr_callback(motion_controller::params_PID_srvConfig &config, uint32_t level)
     {
-        if (!param_modification_)
+        if (!debug_)
             return;
         if (config.kp_angular != kp_angular_)
             kp_angular_ = config.kp_angular;
