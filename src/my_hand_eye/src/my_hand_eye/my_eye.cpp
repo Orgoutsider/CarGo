@@ -274,12 +274,12 @@ namespace my_hand_eye
 				if (task_idx_ == 0)
 				{
 					first = true;
+					finish_ = true;
+					arm_goal_.route = arm_goal_.route_rest;
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					ROS_INFO("Finish operate center...");
 				}
 			}
-			// arm_goal_.route = arm_goal_.route_rest;
-			// finish_ = true;
-			// as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			// ROS_INFO("Finish operate center...");
 		}
 		else
 		{

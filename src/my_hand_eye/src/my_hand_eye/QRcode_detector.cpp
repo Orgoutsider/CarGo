@@ -30,7 +30,7 @@ namespace my_hand_eye
 		my_hand_eye::ArrayofTaskArrays arr;
 		arr.loop.reserve(2);
 		std::string str = info->data;
-		char num[6];
+		char num[7] = {'\0'};
 		for (size_t i = 0; i < str.size(); i++)
 		{
 			if (i != 3) // 不显示 +
@@ -49,7 +49,7 @@ namespace my_hand_eye
 			for (int j = 0; j < 3; j++)
 			{
 				task = num[ii++] - '0';
-				tarr.task[i] = task;
+				tarr.task[j] = task;
 			}
 			arr.loop.push_back(tarr);
 		}

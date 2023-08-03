@@ -19,7 +19,9 @@
     <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
 
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
-    <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen" />
+    <group if="$(arg if_detect_QR_code)">
+        <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen" />
+    </group>
     <node pkg="my_hand_eye" type="my_hand_eye_do_node" name="$(arg node_namespace)" output="screen">
 
         <!-- Remap topics from those used in code to those on the ROS network -->
