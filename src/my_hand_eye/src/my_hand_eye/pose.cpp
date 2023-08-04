@@ -185,7 +185,7 @@ namespace my_hand_eye
         else if (ID == 3 || ID == 4)
             time = abs((Position[ID] - Position_now[ID]) * 1.0 / (Speed[ID] + 0.01)) + Speed[ID] / (100.0 * ACC[ID] + 0.01);
         else if (ID == 2)
-            time = abs((Position[ID] - Position_now[ID]) * 0.02 / (Speed[ID] + 0.01)) + Speed[ID] / (100.0 * ACC[ID] + 0.01);
+            time = abs((Position[ID] - Position_now[ID]) * 0.025 / (Speed[ID] + 0.01)) + Speed[ID] / (100.0 * ACC[ID] + 0.01);
         else
             ROS_ERROR("ID error!");
         time = time > 15.0 ? 15.0 : time;
@@ -200,7 +200,7 @@ namespace my_hand_eye
             if (ID[i] == 6 && !cargo_table_.arrived())
                 return false;
             else if ((ID[i] != 6) && (!read_position(ID[i]) ||
-                                      abs(Position[ID[i]] - Position_now[ID[i]]) > 3))
+                                      abs(Position[ID[i]] - Position_now[ID[i]]) > 4))
                 return false;
         }
         return true;
@@ -224,14 +224,18 @@ namespace my_hand_eye
 
     bool Pos::reset(bool left)
     {
-        return left
-                   ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
-                   : go_to(action_default.x, action_default.y, action_default.z, false, true, false);
+        bool valid = left
+                         ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
+                         : go_to(action_default.x, action_default.y, action_default.z, false, true, false);
+        rst_time = ros::Time::now();
+        return valid;
     }
 
     bool Pos::look_down()
     {
-        return go_to(action_down.x, action_down.y, action_down.z, false, true, true);
+        bool valid = go_to(action_down.x, action_down.y, action_down.z, false, true, true);
+        rst_time = ros::Time::now();
+        return valid;
     }
 
     bool Pos::go_to_and_wait(double x, double y, double z, bool cat)
@@ -395,7 +399,8 @@ namespace my_hand_eye
                     u8 ID2[] = {1, 2};
                     wait_until_static(ID2, 2);
                 }
-
+                if (!cat)
+                    ros::Duration(0.2).sleep(); // 等待放好
                 sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
                 u8 ID3[] = {5};
                 wait_until_static(ID3, 1);
@@ -558,7 +563,6 @@ namespace my_hand_eye
     {
         double time_max = 0;
         double load_max = 0;
-        double b = 0.5; // 在估计时间的特定比例开始采样
         if (read_all_position())
         {
             for (int i = 0; i < IDN; i++)
@@ -570,10 +574,8 @@ namespace my_hand_eye
         else
             time_max = 15;
         ROS_INFO("Done! Wait for %lf seconds", time_max);
-        ros::Duration du(time_max * b); // 以秒为单位
-        du.sleep();
+        ros::Duration du(time_max); // 以秒为单位
         ros::Time now = ros::Time::now();
-        du = ros::Duration(time_max * (1 - b));
         ros::Time time_after_now = now + du;
         ros::Rate rt(7);
         int cnt = 0;
@@ -631,7 +633,7 @@ namespace my_hand_eye
     cv::Mat Pos::T_cam_to_end()
     {
         // return (cv::Mat_<double>(3, 1) << -0.07835864392309588, 0.031208171, 1.825703402136746);
-        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, 0.031208171, 1.625703402136746);
+        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.268791829, 1.625703402136746);
     }
 
     cv::Mat Pos::R_end_to_base()

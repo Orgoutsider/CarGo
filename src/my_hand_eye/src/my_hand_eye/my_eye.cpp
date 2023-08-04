@@ -68,24 +68,24 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		// if (!as_.isActive())
-		// 	return;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// bool valid = false;
-		// switch (arm_goal_.route)
-		// {
-		// case arm_goal_.route_rest:
-		// 	return;
+		if (!as_.isActive())
+			return;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		bool valid = false;
+		switch (arm_goal_.route)
+		{
+		case arm_goal_.route_rest:
+			return;
 
-		// case arm_goal_.route_raw_material_area:
-		// 	valid = operate_center(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_raw_material_area:
+			valid = operate_center(image_rect, debug_image);
+			break;
 
-		// default:
-		// 	return;
-		// }
-		// if (valid && arm_controller_.show_detections)
-		// 	debug_image_publisher_.publish(debug_image);
+		default:
+			return;
+		}
+		if (valid && arm_controller_.show_detections)
+			debug_image_publisher_.publish(debug_image);
 
 		// // 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -109,15 +109,15 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 		//
 		// 直接抓取
-		static bool finish = false;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!finish)
-		{
-			double u, v;
-			arm_controller_.catch_straightly(image_rect, color_red, finish, debug_image, false, false);
-			if (arm_controller_.show_detections)
-				debug_image_publisher_.publish(debug_image);
-		}
+		// static bool finish = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!finish)
+		// {
+		// 	double u, v;
+		// 	arm_controller_.catch_straightly(image_rect, color_red, finish, debug_image, false, false);
+		// 	if (arm_controller_.show_detections)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
 
 		// 椭圆识别
 		// static bool finish = false;
@@ -266,7 +266,7 @@ namespace my_hand_eye
 			static bool first = true;
 			bool finish = false;
 			valid = arm_controller_.track(image_rect, which_color(), first, x, y, debug_image) &&
-					arm_controller_.catch_after_tracking(x, y, which_color(), which_color(true),
+					arm_controller_.catch_after_tracking(x, y, which_color(false), which_color(true),
 														 task_idx_ == 2, finish);
 			if (finish)
 			{

@@ -271,6 +271,10 @@ namespace motion_controller
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 arm_active_ = true;
             }
+            else if (!arm_stamp_.is_zero() && arm_pose_.theta == 0 && arm_pose_.x == 0 && arm_pose_.y == 0)
+            {
+                ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+            }
         }
     }
 

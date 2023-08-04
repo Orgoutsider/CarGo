@@ -83,6 +83,7 @@ namespace my_hand_eye
         Action action_back;
         Action action_right;
         Action action_down;
+        ros::Time rst_time; // 在此时间后进行图像处理
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();

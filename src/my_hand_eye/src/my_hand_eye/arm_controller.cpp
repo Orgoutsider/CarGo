@@ -210,12 +210,16 @@ namespace my_hand_eye
     bool ArmController::log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
                                      sensor_msgs::ImagePtr &debug_image, bool center)
     {
-        static bool flag = false; // 尚未初始化位姿
-        if (!flag)
+        static bool flag = true; // 尚未初始化位姿
+        if (flag)
         {
-            flag = true;
+            flag = false;
             ps_.reset();
+            return false;
         }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         vision_msgs::BoundingBox2DArray objArray;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
         if (valid)
@@ -244,13 +248,17 @@ namespace my_hand_eye
                                                   double correct_x, double correct_y, double correct_z, Color color,
                                                   sensor_msgs::ImagePtr &debug_image)
     {
-        static bool flag = false;
+        static bool flag = true;
         // 尚未初始化位姿
-        if (!flag)
+        if (flag)
         {
-            flag = true;
+            flag = false;
             ps_.reset();
+            return false;
         }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         vision_msgs::BoundingBox2DArray objArray;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
         if (valid)
@@ -355,10 +363,13 @@ namespace my_hand_eye
                                          bool left, bool hold, bool midpoint)
     {
         const int MAX_SIZE = 5;
-        if (!cargo_x_.size())
+        static bool flag = true;
+        if (flag)
         {
             current_color_ = color;
+            flag = false;
             ps_.reset();
+            return false;
         }
         else if (current_color_ != color || cargo_x_.size() >= MAX_SIZE)
         {
@@ -366,7 +377,11 @@ namespace my_hand_eye
             cargo_y_.clear();
             current_color_ = color;
             ps_.reset();
+            return false;
         }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         finish = false;
         vision_msgs::BoundingBox2DArray objArray;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
@@ -550,6 +565,7 @@ namespace my_hand_eye
             current_color_ = color;
             can_catch_ = false;
             state = DETECTING;
+            return false;
         }
         else if (!can_catch_ && stop_) // 停留不可抓
         {
@@ -564,6 +580,7 @@ namespace my_hand_eye
             ps_.reset();
             state = DETECTING;
             current_color_ = color;
+            return false;
         }
         else if (current_color_ != color)
         {
@@ -573,7 +590,11 @@ namespace my_hand_eye
             ps_.reset();
             state = DETECTING;
             current_color_ = color;
+            return false;
         }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         if (state == DETECTING)
         {
             vision_msgs::BoundingBox2DArray objArray;
@@ -661,6 +682,7 @@ namespace my_hand_eye
             return false;
         else
         {
+            ROS_INFO_STREAM("x:" << x << " y:" << y);
             bool valid = ps_.go_to_and_wait(x, y, z_turntable, true);
             if (valid)
             {
@@ -832,12 +854,15 @@ namespace my_hand_eye
     bool ArmController::put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
                                          bool &finish, sensor_msgs::ImagePtr &debug_image)
     {
-        if (!cargo_x_.size())
+        static bool flag = true;
+        if (flag)
         {
+            flag = false;
             current_color_ = color;
             if (!emulation_)
             {
                 ps_.reset();
+                return false;
             }
         }
         else if (current_color_ != color || cargo_x_.size() >= 10)
@@ -845,9 +870,15 @@ namespace my_hand_eye
             cargo_x_.clear();
             cargo_y_.clear();
             if (!emulation_)
+            {
                 ps_.reset();
+                return false;
+            }
             current_color_ = color;
         }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         finish = false;
         vision_msgs::BoundingBox2DArray objArray;
         bool valid = detect_ellipse(image_rect, default_roi_, objArray, debug_image);
@@ -885,8 +916,11 @@ namespace my_hand_eye
         static bool last_finish = true;
         double distance = 0, yaw = 0;
         if (!msg.end && last_finish)
+        {
             ps_.look_down();
-        last_finish = msg.end;
+            last_finish = false;
+            return false;
+        }
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;
@@ -906,6 +940,8 @@ namespace my_hand_eye
             ROS_INFO_STREAM("distance: " << distance << " yaw: " << yaw);
             debug_image = cv_image->toImageMsg();
         }
+        // write sth
+        last_finish = msg.end;
         return valid;
     }
 
@@ -914,7 +950,14 @@ namespace my_hand_eye
     {
         static bool last_finish = true;
         if (!msg.end && last_finish)
+        {
             ps_.reset();
+            last_finish = false;
+            return false;
+        }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         vision_msgs::BoundingBox2DArray objArray;
         Pose2DMightEnd pme;
         double center_u, center_v;
@@ -939,7 +982,14 @@ namespace my_hand_eye
     {
         static bool last_finish = true;
         if (!msg.end && last_finish)
+        {
             ps_.reset();
+            last_finish = false;
+            return false;
+        }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         last_finish = msg.end;
         return true;
     }
@@ -953,7 +1003,11 @@ namespace my_hand_eye
         {
             flag = false;
             ps_.reset();
+            return false;
         }
+        if ((image_rect->header.stamp.is_zero()) ||
+            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+            return false;
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;

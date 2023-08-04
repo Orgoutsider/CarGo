@@ -16,6 +16,7 @@ namespace my_hand_eye
 
     void TargetPose::calc(Pose2DMightEnd &pme_arm, Pose2DMightEnd &pme_target)
     {
+        static int err_cnt = 0;
         // cm转化成m并转换坐标系
         pme_target.pose.theta = (pose[target].theta == pme_arm.not_change)
                                     ? pme_arm.not_change
@@ -30,10 +31,21 @@ namespace my_hand_eye
             abs(pme_target.pose.x) <= tolerance[target].x && 
             abs(pme_target.pose.y) <= tolerance[target].y)
         {
-            pme_target.end = true;
+            err_cnt++;
             pme_target.pose.theta = pme_target.pose.x = pme_target.pose.y = pme_target.not_change;
+            if (err_cnt > 1)
+            {
+                pme_target.end = true;    
+                err_cnt = 0;           
+            }
+            else
+                pme_target.end = false;
         }
         else
+        {
             pme_target.end = false;
+            if (err_cnt)
+                err_cnt = 0;
+        }
     }
 } // namespace my_hand_eye

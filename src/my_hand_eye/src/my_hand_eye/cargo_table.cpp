@@ -3,7 +3,7 @@
 namespace my_hand_eye
 {
     CargoTable::CargoTable(SMS_STS *sm_st_ptr)
-        : ID(6), where_(0), where_last_(0),
+        : ID(6), where_(2), where_last_(2),
           sm_st_ptr_(sm_st_ptr),
           what_color_({0}), where_cargo_({-1, -1, -1}) {}
 
@@ -53,7 +53,7 @@ namespace my_hand_eye
             sleep(1);
             return false;
         }
-        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 - Position_now) <= 3;
+        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 - Position_now) <= 4;
     }
 
     bool CargoTable::is_moving()
@@ -75,9 +75,9 @@ namespace my_hand_eye
         // 时间（单位s）=[(位置-目标)/速度]+(速度/(加速度*100)) or 0.1
         int Position = where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120;
         int Position_now = where_last_ * ARM_CARGO_TABLE_POS_WHEN_DEG120;
-        double time = abs((Position - Position_now) * 0.02 / (Speed + 0.01)) + Speed / (100.0 * ACC + 0.01);
+        double time = abs((Position - Position_now) * 0.025 / (Speed + 0.01)) + Speed / (100.0 * ACC + 0.01);
         time = time > 15.0 ? 15.0 : time;
-        ROS_INFO_STREAM("ID:" << ID << " time:" << time);
+        ROS_INFO_STREAM("ID:" << unsigned(ID) << " time:" << time);
         return time;
     }
 
@@ -109,7 +109,7 @@ namespace my_hand_eye
         }
         catch(const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            ROS_ERROR("Exception: %s", e.what());
         }        
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
     }
