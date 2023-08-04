@@ -72,7 +72,7 @@ namespace my_hand_eye
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
-        speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.07);
+        speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
         tracker_.flag = pnh.param<bool>("flag", false);
         if (!ps_.begin(ft_servo.c_str()))
         {
@@ -523,7 +523,7 @@ namespace my_hand_eye
         using namespace cv;
         const int TRACKING = 0, DETECTING = 1; // 1:重新进行目标检测
         static int state = DETECTING;
-        const double PERMIT = 3;
+        const double PERMIT = 2.2;
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
         double radius = 0, speed = -1, u = 0, v = 0;
