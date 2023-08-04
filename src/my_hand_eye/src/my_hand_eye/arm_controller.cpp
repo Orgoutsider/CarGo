@@ -12,8 +12,8 @@ namespace my_hand_eye
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
-        cargo_x_.reserve(10);
-        cargo_y_.reserve(10);
+        cargo_x_.reserve(3);
+        cargo_y_.reserve(3);
     };
 
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
@@ -86,8 +86,8 @@ namespace my_hand_eye
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
-        cargo_x_.reserve(10);
-        cargo_y_.reserve(10);
+        cargo_x_.reserve(3);
+        cargo_y_.reserve(3);
         nh_ = &nh;
     }
 
@@ -341,6 +341,11 @@ namespace my_hand_eye
 
     void ArmController::average_position(double &x, double &y)
     {
+        if (cargo_x_.empty() || cargo_y_.empty())
+        {
+            x = y = 0;
+            return;
+        }
         x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
         y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
     }
@@ -466,20 +471,28 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::cargo_is_static(double speed, bool reset)
+    bool ArmController::cargo_is_static(double speed, bool reset, double x, double y)
     {
-        static int cnt_static = 0, cnt_motion = 0;
+        static int cnt_motion = 0;
         static bool motion_before = false;
         if (reset)
         {
-            cnt_static = 0;
+            if (!cargo_x_.empty() || !cargo_y_.empty())
+            {
+                cargo_x_.clear();
+                cargo_y_.clear();
+            }
             cnt_motion = 0;
             motion_before = false;
             return false;
         }
         if (speed < 0) // -1
         {
-            cnt_static = 0;
+            if (!cargo_x_.empty() || !cargo_y_.empty())
+            {
+                cargo_x_.clear();
+                cargo_y_.clear();
+            }
             cnt_motion = 0;
             motion_before = false;
             return false;
@@ -488,17 +501,19 @@ namespace my_hand_eye
         {
             if (speed < speed_standard_static_)
             {
-                cnt_static++;
-                if ((cnt_static >= 3) && motion_before) // 放弃从开始就停止的块
+                cargo_x_.push_back(x);
+                cargo_y_.push_back(y);
+                if ((cargo_x_.size() >= 3) && motion_before) // 放弃从开始就停止的块
                 {
                     cnt_motion = 0;
                     motion_before = false;
                     return true;
                 }
             }
-            else
+            else if (!cargo_x_.empty() || !cargo_y_.empty())
             {
-                cnt_static = 0;
+                cargo_x_.clear();
+                cargo_y_.clear();
             }
             if (speed > speed_standard_motion_ && !motion_before)
             {
@@ -526,7 +541,7 @@ namespace my_hand_eye
         const double PERMIT = 2.2;
         static double center_u = 0, center_v = 0, first_radius = 0;
         static std::vector<cv::Point> pt;
-        double radius = 0, speed = -1, u = 0, v = 0;
+        double radius = 0, speed = -1, u = 0, v = 0, nx = 0, ny = 0;
         bool rst = false; // 用于重启静止检测
         cv_bridge::CvImagePtr cv_image;
         if (can_catch_ && !stop_) // 抓后重启或第一次
@@ -582,7 +597,7 @@ namespace my_hand_eye
                 else if (!tracker_.target_init(*nh_, cv_image_, objArray, color, white_vmin_,
                                                center_x, center_y, show_detections))
                     return false;
-                calculate_radius_and_speed(u, v, x, y, radius, speed);
+                calculate_radius_and_speed(u, v, nx, ny, radius, speed);
                 first_radius = radius;
                 state = TRACKING;
                 rst = true;
@@ -601,7 +616,7 @@ namespace my_hand_eye
                 state = DETECTING;
                 return false;
             }
-            if (!calculate_radius_and_speed(u, v, x, y, radius, speed))
+            if (!calculate_radius_and_speed(u, v, nx, ny, radius, speed))
                 return false;
             if (abs(radius - first_radius) > PERMIT)
                 state = DETECTING;
@@ -625,11 +640,12 @@ namespace my_hand_eye
         if (show_detections)
             pt.push_back(cv::Point(u, v));
         // ROS_INFO_STREAM("speed:" << speed << " radius:" << abs(radius - first_radius));
-        if (cargo_is_static(speed, rst))
+        if (cargo_is_static(speed, rst, nx, ny))
         {
             if (tracker_.no_obstacles())
             {
                 stop_ = true;
+                average_position(x, y);
                 ROS_INFO("There is no obstacles");
             }
             else
