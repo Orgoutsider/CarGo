@@ -855,12 +855,12 @@ namespace my_hand_eye
         {
             flag = false;
             current_color_ = color;
-            ps_.reset();
+            ps_.reset(true);
             return false;
         }
         else if (current_color_ != color)
         {
-            ps_.reset();
+            ps_.reset(true);
             current_color_ = color;
             return false;
         }
