@@ -121,6 +121,11 @@ namespace my_hand_eye
         return valid;
     }
 
+    bool Pos::check_stamp(const ros::Time &stamp)
+    {
+        return !stamp.is_zero() && (stamp - rst_time_).toSec() > 0;
+    }
+
     bool Pos::go_to(double x, double y, double z, bool cat, bool look, bool expand_y)
     {
         bool valid = refresh_xyz(); // 此时xyz为当前值
@@ -227,14 +232,14 @@ namespace my_hand_eye
         bool valid = left
                          ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
                          : go_to(action_default.x, action_default.y, action_default.z, false, true, false);
-        rst_time = ros::Time::now();
+        rst_time_ = ros::Time::now();
         return valid;
     }
 
     bool Pos::look_down()
     {
         bool valid = go_to(action_down.x, action_down.y, action_down.z, false, true, true);
-        rst_time = ros::Time::now();
+        rst_time_ = ros::Time::now();
         return valid;
     }
 

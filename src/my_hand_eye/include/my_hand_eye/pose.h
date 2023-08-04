@@ -48,6 +48,7 @@ namespace my_hand_eye
         SMS_STS *sm_st_ptr_; // 舵机
         SCSCL *sc_ptr_;
         CargoTable cargo_table_;
+        ros::Time rst_time_; // 在此时间后进行图像处理
         const double fx = 788.709302;
         const double fy = 940.728627;
         const double cx = 932.106780;
@@ -76,19 +77,19 @@ namespace my_hand_eye
         void get_points(double h, my_hand_eye::PointArray &arr);
 
     public:
-        double tightness;   // 取值0～1，为0时最松，为1时最紧
+        double tightness;                                                           // 取值0～1，为0时最松，为1时最紧
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
         Action action_default;
         Action action_left;
         Action action_back;
         Action action_right;
         Action action_down;
-        ros::Time rst_time; // 在此时间后进行图像处理
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions);                      // 获取速度加速度
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default");           // 获取设定动作
+        bool check_stamp(const ros::Time &stamp);                                             // 检查图片是否在机械臂重置后读取
         bool go_to(double x, double y, double z, bool cat, bool look, bool expand_y = false); // 运动到指定位置，抓/不抓
         // bool do_first_step(double x, double y);                        // 两步抓取第一步
         bool reset(bool left = false);                               // 重置位置，可选前侧/左侧

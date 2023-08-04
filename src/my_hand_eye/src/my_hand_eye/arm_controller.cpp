@@ -217,8 +217,7 @@ namespace my_hand_eye
             ps_.reset();
             return false;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
@@ -256,8 +255,7 @@ namespace my_hand_eye
             ps_.reset();
             return false;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
@@ -379,8 +377,7 @@ namespace my_hand_eye
             ps_.reset();
             return false;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         finish = false;
         vision_msgs::BoundingBox2DArray objArray;
@@ -592,8 +589,7 @@ namespace my_hand_eye
             current_color_ = color;
             return false;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         if (state == DETECTING)
         {
@@ -876,8 +872,7 @@ namespace my_hand_eye
             }
             current_color_ = color;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         finish = false;
         vision_msgs::BoundingBox2DArray objArray;
@@ -955,8 +950,7 @@ namespace my_hand_eye
             last_finish = false;
             return false;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
         Pose2DMightEnd pme;
@@ -987,8 +981,7 @@ namespace my_hand_eye
             last_finish = false;
             return false;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         last_finish = msg.end;
         return true;
@@ -1005,8 +998,7 @@ namespace my_hand_eye
             ps_.reset();
             return false;
         }
-        if ((image_rect->header.stamp.is_zero()) ||
-            (image_rect->header.stamp - ps_.rst_time).toSec() < 0)
+        if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
