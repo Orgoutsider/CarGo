@@ -8,7 +8,8 @@ namespace my_hand_eye
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           threshold(60),
-          z_parking_area(1.524628),
+          z_parking_area(0.30121),
+          z_ellipse(3.80121),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
@@ -22,7 +23,8 @@ namespace my_hand_eye
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           threshold(60),
-          z_parking_area(1.524628),
+          z_parking_area(0.30121),
+          z_ellipse(3.80121),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -43,8 +45,6 @@ namespace my_hand_eye
         if (emulation_)
         {
             plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
-            white_vmin_ = pnh.param<int>("white_vmin", 170);
-            cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
             return;
         }
         XmlRpc::XmlRpcValue servo_descriptions;
@@ -847,59 +847,33 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
-                                         bool &finish, sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
+                                    sensor_msgs::ImagePtr &debug_image)
     {
         static bool flag = true;
         if (flag)
         {
             flag = false;
             current_color_ = color;
-            if (!emulation_)
-            {
-                ps_.reset();
-                return false;
-            }
+            ps_.reset();
+            return false;
         }
-        else if (current_color_ != color || cargo_x_.size() >= 10)
+        else if (current_color_ != color)
         {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            if (!emulation_)
-            {
-                ps_.reset();
-                return false;
-            }
+            ps_.reset();
             current_color_ = color;
+            return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
-        finish = false;
         vision_msgs::BoundingBox2DArray objArray;
         bool valid = detect_ellipse(image_rect, default_roi_, objArray, debug_image);
         if (valid)
         {
             double x = 0, y = 0;
-            if (emulation_)
-            {
-                if (!cargo_x_.size())
-                    cargo_x_.push_back(x);
-                return valid;
-            }
-            if (find_with_color(objArray, color, z, x, y))
+            if (find_with_color(objArray, color, z_parking_area, x, y))
             {
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
-                cargo_x_.push_back(x);
-                cargo_y_.push_back(y);
-                if (cargo_x_.size() == 10)
-                {
-                    double x_aver = 0, y_aver = 0;
-                    average_position(x_aver, y_aver);
-                    cargo_x_.clear();
-                    cargo_y_.clear();
-                    valid = ps_.go_to_and_wait(x_aver, y_aver, z, false);
-                    ps_.reset();
-                }
             }
         }
         return valid;

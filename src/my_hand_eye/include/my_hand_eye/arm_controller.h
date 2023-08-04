@@ -17,7 +17,7 @@ namespace my_hand_eye
     private:
         double speed_standard_static_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         double speed_standard_motion_; // 速度标准，当速度大于此标准足够多次数时，判定为运动
-        bool emulation_;               // 是否进行仿真或摄像头测试
+        bool emulation_;               // 是否进行仿真
         bool stop_;                    // 用于颜色追踪，物料是否已停
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
         int white_vmin_;               // 用于滤除白色
@@ -74,6 +74,7 @@ namespace my_hand_eye
         TargetPose target_pose; // 用于视觉位姿调节
         // double proportion_; // 杂色所占的比例
         const double z_turntable;
+        const double z_ellipse;
         double z_parking_area;
         int threshold;
         bool show_detections;
@@ -96,9 +97,9 @@ namespace my_hand_eye
         bool catch_after_tracking(double x, double y, const Color color, const Color color_next,
                                   bool left, bool &finish);
         bool find_points_with_height(double h, bool done);
-        // 椭圆识别，摄像头测试时z无效
-        bool put_with_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
-                              bool &finish, sensor_msgs::ImagePtr &debug_image);
+        // 椭圆识别，摄像头测试
+        bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
+                         sensor_msgs::ImagePtr &debug_image);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);
