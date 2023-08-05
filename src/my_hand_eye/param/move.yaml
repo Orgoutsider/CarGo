@@ -1,11 +1,11 @@
 servo:
   [
-    { id: 1, speed: 200, acc: 20 },
-    { id: 2, speed: 20, acc: 20 },
-    { id: 3, speed: 1000, acc: 20 },
-    { id: 4, speed: 1000, acc: 20 },
-    { id: 5, speed: 400, acc: 20 },
-    { id: 6, speed: 15, acc: 20 },
+    { id: 1, speed: 700, acc: 0 },
+    { id: 2, speed: 50, acc: 30 },
+    { id: 3, speed: 2400, acc: 80 },
+    { id: 4, speed: 2400, acc: 80 },
+    { id: 5, speed: 300, acc: 0 },
+    { id: 6, speed: 30, acc: 20 },
   ]
 
 #x, y, z
