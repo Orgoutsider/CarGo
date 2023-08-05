@@ -153,22 +153,19 @@ namespace my_hand_eye
                 {
                     sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
                     u8 ID1[] = {4};
-                    wait_until_static(ID1, 1);
+                    wait_until_arriving(ID1, 1, 200);
                     sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
                     sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-                    u8 ID2[] = {1, 2, 3, 5};
-                    wait_until_static(ID2, 4);
+                    wait_until_static(ID, 5);
                 }
                 else
                 {
-                    sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
-                    u8 ID1[] = {3};
-                    wait_until_static(ID1, 1);
+                    sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+                    u8 ID1[] = {3, 4};
+                    wait_until_arriving(ID1, 2, 200);
                     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-                    sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
                     sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-                    u8 ID2[] = {1, 2, 4, 5};
-                    wait_until_static(ID2, 4);
+                    wait_until_static(ID, 5);
                 }
             }
             else
@@ -198,14 +195,14 @@ namespace my_hand_eye
         return time;
     }
 
-    bool Pos::arrived(u8 ID[], u8 IDN)
+    bool Pos::arrived(u8 ID[], u8 IDN, int tolerance)
     {
         for (int i = 0; i < IDN; i++)
         {
-            if (ID[i] == 6 && !cargo_table_.arrived())
+            if (ID[i] == 6 && !cargo_table_.arrived(tolerance))
                 return false;
             else if ((ID[i] != 6) && (!read_position(ID[i]) ||
-                                      abs(Position[ID[i]] - Position_now[ID[i]]) > 4))
+                                      abs(Position[ID[i]] - Position_now[ID[i]]) > tolerance))
                 return false;
         }
         return true;
@@ -319,7 +316,7 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, Color color, bool left)
     {
-        const double TIGHTNESS_TABLE = 0; // 在转盘进行抓取放置时略微松手，防止碰倒物料
+        const double TIGHTNESS_TABLE = 0.65; // 在转盘进行抓取放置时略微松手
         this->x = left ? action_right.x : action_back.x;
         this->y = left ? action_right.y : action_back.y;
         this->z = left ? action_right.z : action_back.z;
@@ -336,73 +333,49 @@ namespace my_hand_eye
             else
             {
                 cargo_table_.get_next();
-                sc_ptr_->WritePos(5,
-                                  round(ARM_JOINT5_POS_WHEN_OPEN +
-                                        (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * TIGHTNESS_TABLE),
-                                  0, Speed[5]);
             }
+            u8 ID0[] = {6};
             if (read_all_position())
             {
                 if (Position[2] <= Position_now[2]) // 第2关节位置靠后，不能最后移动第2关节
                 {
-                    if (Position[3] <= Position_now[3]) // 第3关节位置靠后，不能最后移动第3关节
+                    if (Position[3] <= Position_now[3]) // 第23关节位置靠后，不能最后移动第23关节
                     {
                         sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
-                        if (!cat)
-                        {
-                            u8 ID[] = {2, 3, 6};
-                            wait_until_static(ID, 3);
-                        }
-                        else
-                        {
-                            u8 ID[] = {2, 3, 5, 6};
-                            wait_until_static(ID, 4);
-                        }
+                        wait_until_static(ID0, 1);
+                        u8 ID1[] = {2, 3};
+                        wait_until_arriving(ID1, 2, 200);
 
                         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                         sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
-                        u8 ID2[] = {1, 4};
-                        wait_until_static(ID2, 2);
+                        u8 ID2[] = {1, 2, 3, 4};
+                        wait_until_static(ID2, 4);
                     }
                     else
                     {
                         sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
                         sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
-                        if (!cat)
-                        {
-                            u8 ID[] = {2, 4, 6};
-                            wait_until_static(ID, 3);
-                        }
-                        else
-                        {
-                            u8 ID[] = {2, 4, 5, 6};
-                            wait_until_static(ID, 4);
-                        }
+                        wait_until_static(ID0, 1);
+                        u8 ID1[] = {2, 4};
+                        wait_until_arriving(ID1, 2, 200);
 
                         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                         sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
-                        u8 ID2[] = {1, 3};
-                        wait_until_static(ID2, 2);
+                        u8 ID2[] = {1, 2, 3, 4};
+                        wait_until_static(ID2, 4);
                     }
                 }
                 else
                 {
                     sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-                    if (!cat)
-                    {
-                        u8 ID[] = {3, 4, 6};
-                        wait_until_static(ID, 3);
-                    }
-                    else
-                    {
-                        u8 ID[] = {3, 4, 5, 6};
-                        wait_until_static(ID, 4);
-                    }
+                    wait_until_static(ID0, 1);
+                    u8 ID1[] = {3, 4};
+                    wait_until_arriving(ID1, 2, 200);
 
                     sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-                    u8 ID2[] = {1, 2};
-                    wait_until_static(ID2, 2);
+                    u8 ID2[] = {1, 2, 3, 4};
+                    wait_until_static(ID2, 4);
                 }
                 if (!cat)
                     ros::Duration(0.2).sleep(); // 等待放好
@@ -604,6 +577,32 @@ namespace my_hand_eye
             }
         }
         return load_max;
+    }
+
+    void Pos::wait_until_arriving(u8 ID[], u8 IDN, int tolerance)
+    {
+        double time_max = 0;
+        if (read_all_position())
+        {
+            for (int i = 0; i < IDN; i++)
+            {
+                double time = (ID[i] == 6) ? cargo_table_.calculate_time() : calculate_time(ID[i]);
+                time_max = time > time_max ? time : time_max;
+            }
+        }
+        else
+            time_max = 15;
+        ROS_INFO("Done! Wait for %lf seconds", time_max);
+        ros::Duration du(time_max); // 以秒为单位
+        ros::Time now = ros::Time::now();
+        ros::Time time_after_now = now + du;
+        ros::Rate rt(7);
+        while (ros::ok() && ros::Time::now() < time_after_now)
+        {
+            if (arrived(ID, IDN, tolerance))
+                break;
+            rt.sleep();
+        }
     }
 
     void Pos::end()

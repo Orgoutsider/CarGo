@@ -40,7 +40,7 @@ namespace my_hand_eye
         }
     }
 
-    bool CargoTable::arrived()
+    bool CargoTable::arrived(int tolerance)
     {
         int Position_now = sm_st_ptr_->ReadPos(6);
         if (Position_now != -1)
@@ -53,7 +53,7 @@ namespace my_hand_eye
             sleep(1);
             return false;
         }
-        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 - Position_now) <= 4;
+        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 - Position_now) <= tolerance;
     }
 
     bool CargoTable::is_moving()

@@ -54,7 +54,7 @@ namespace my_hand_eye
         const double cx = 932.106780;
         const double cy = 578.390364;
         double calculate_time(int ID); // 为指定舵机计算到达时间
-        bool arrived(u8 ID[], u8 IDN); // 判断所有是否到达指定位置附近
+        bool arrived(u8 ID[], u8 IDN, int tolerance = 4); // 判断所有是否到达指定位置附近
         // 计算各joint运动的position
         bool calculate_position(bool expand_y = false);
         bool read_position(int ID);      // 读指定舵机位置
@@ -63,6 +63,8 @@ namespace my_hand_eye
         bool is_moving(u8 ID[], u8 IDN); // 判断指定舵机运动
         // 等待静止且到达指定位置附近，如果show_load为真，返回最大load
         double wait_until_static(u8 ID[], u8 IDN, bool show_load = false);
+        // 等待静止且到达指定位置附近，可指定允差
+        void wait_until_arriving(u8 ID[], u8 IDN, int tolerance);
         cv::Mat R_cam_to_end();
         cv::Mat T_cam_to_end();
         // 在y > 0处使用

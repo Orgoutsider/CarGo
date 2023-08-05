@@ -7,7 +7,7 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
-          threshold(60),
+          threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
           z_turntable(12.93052) // 比赛转盘
@@ -22,7 +22,7 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
-          threshold(60),
+          threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
           z_turntable(12.93052) // 比赛转盘
@@ -516,11 +516,12 @@ namespace my_hand_eye
                 cargo_x_.push_back(x);
                 cargo_y_.push_back(y);
                 if ((cargo_x_.size() >= 3) &&
-                    (motion_before || (!last_static.is_zero() && (ros::Time::now() - last_static).toSec() > 4))) // 放弃从开始就停止的块
+                    (motion_before || catched)) // 放弃从开始就停止的块
                 {
                     cnt_motion = 0;
                     motion_before = false;
-                    last_static = ros::Time::now();
+                    if (!catched)
+                        catched = true;
                     return true;
                 }
             }
