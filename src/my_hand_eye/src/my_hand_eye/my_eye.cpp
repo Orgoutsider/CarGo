@@ -275,6 +275,7 @@ namespace my_hand_eye
 				{
 					first = true;
 					finish_ = true;
+					arm_controller_.last_static = ros::Time();
 					arm_goal_.route = arm_goal_.route_rest;
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
 					ROS_INFO("Finish operate center...");

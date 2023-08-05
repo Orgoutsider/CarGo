@@ -72,6 +72,7 @@ namespace my_hand_eye
         ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~ArmController();
         TargetPose target_pose; // 用于视觉位姿调节
+        ros::Time last_static; // 上一次运动后的静止时间
         // double proportion_; // 杂色所占的比例
         const double z_turntable;
         const double z_ellipse;

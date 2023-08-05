@@ -515,10 +515,12 @@ namespace my_hand_eye
             {
                 cargo_x_.push_back(x);
                 cargo_y_.push_back(y);
-                if ((cargo_x_.size() >= 3) && motion_before) // 放弃从开始就停止的块
+                if ((cargo_x_.size() >= 3) &&
+                    (motion_before || (!last_static.is_zero() && (ros::Time::now() - last_static).toSec() > 4))) // 放弃从开始就停止的块
                 {
                     cnt_motion = 0;
                     motion_before = false;
+                    last_static = ros::Time::now();
                     return true;
                 }
             }
