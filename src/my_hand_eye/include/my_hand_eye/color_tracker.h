@@ -3,7 +3,6 @@
 
 #include <opencv2/opencv.hpp>
 
-#include <ros/ros.h>
 #include <vision_msgs/BoundingBox2DArray.h>
 #include <cv_bridge/cv_bridge.h>
 

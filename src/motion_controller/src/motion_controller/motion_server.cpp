@@ -125,7 +125,7 @@ namespace motion_controller
             {
                 if (server_.isPreemptRequested() || !ros::ok())
                 {
-                    ROS_WARN("Move Preempt Requested!");
+                    ROS_INFO("Move Preempt Requested!");
                     _get_pose_now(pose);
                     PIDController pid({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
                     while (!success && ros::ok())

@@ -229,7 +229,7 @@ namespace my_hand_eye
 		{
 			finish_adjusting_ = false;
 			finish_ = false;
-			ROS_INFO("Start operate center...");
+			ROS_INFO("Start to operate center...");
 		}
 		bool valid = true;
 		if (!finish_adjusting_)
@@ -278,7 +278,7 @@ namespace my_hand_eye
 					arm_controller_.catched = false;
 					arm_goal_.route = arm_goal_.route_rest;
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					ROS_INFO("Finish operate center...");
+					ROS_INFO("Finish operating center...");
 				}
 			}
 		}
@@ -298,12 +298,11 @@ namespace my_hand_eye
 		{
 			finish_adjusting_ = false;
 			finish_ = false;
-			ROS_INFO("Start operate ellipse...");
+			ROS_INFO("Start to operate ellipse...");
 		}
 		bool valid = true;
 		if (!finish_adjusting_)
 		{
-			static int err_cnt = 0;
 			Pose2DMightEnd msg;
 			msg.end = finish_adjusting_;
 			valid = arm_controller_.find_ellipse(image_rect, msg, debug_image);
@@ -314,8 +313,6 @@ namespace my_hand_eye
 					finish_adjusting_ = true;
 				}
 				pose_publisher_.publish(msg);
-				if (err_cnt)
-					err_cnt = 0;
 			}
 			else
 			{
@@ -323,18 +320,19 @@ namespace my_hand_eye
 				msg.pose.x = msg.not_change;
 				msg.pose.y = msg.not_change;
 				msg.pose.theta = msg.not_change;
-				if ((++err_cnt) > 5)
-				{
-					finish_adjusting_ = true;
-					msg.end = finish_adjusting_;
-					ROS_WARN("Could not find ellipse. Try to put...");
-				}
 				pose_publisher_.publish(msg);
 			}
 		}
 		else if (!debug_)
 		{
 			// put
+		}
+		else
+		{
+			finish_ = true;
+			arm_goal_.route = arm_goal_.route_rest;
+			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			ROS_INFO("Finish operating ellipse...");
 		}
 		return valid;
 	}

@@ -23,7 +23,7 @@ namespace my_hand_eye
         int white_vmin_;               // 用于滤除白色
         Pos ps_;
         Color current_color_;
-        EllipseColor ellipse_color_order_[4];
+        EllipseColor ellipse_color_order_[4]; // 椭圆顺序（从左至右）
         ColorTracker tracker_;
         Border border_;
         SMS_STS sm_st_;
@@ -47,6 +47,8 @@ namespace my_hand_eye
                        cv_bridge::CvImagePtr &image); // 添加图片
         bool detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
                           sensor_msgs::ImagePtr &debug_image, cv::Rect &rect); // 向物块检测服务器发送请求
+        bool detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
+                            sensor_msgs::ImagePtr &debug_image, cv::Rect &rect);
         // 处理接收的图片，通过颜色确定位置，注意objArray中的数据对应的是原图
         bool find_with_color(vision_msgs::BoundingBox2DArray &objArray, const Color color,
                              double z, double &x, double &y);
@@ -56,16 +58,14 @@ namespace my_hand_eye
         // 处理接收的图片，求3物料重心
         bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
                         double &center_x, double &center_y, bool read = true);
-        // 中心点按从左往右排序
-        bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序
+        // 处理接收的图片，求相对椭圆位姿
+        bool get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray, geometry_msgs::Pose2D &pose);
+        bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
         bool cargo_is_static(double speed, bool reset, double x, double y);
-        bool detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
-                            cv::Rect &roi, vision_msgs::BoundingBox2DArray &objArray,
-                            sensor_msgs::ImagePtr &debug_image);
 
     public:
         ArmController();

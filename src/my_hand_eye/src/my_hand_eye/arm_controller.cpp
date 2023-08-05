@@ -325,6 +325,45 @@ namespace my_hand_eye
             return false;
     }
 
+    bool ArmController::get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray,
+                                         geometry_msgs::Pose2D &pose)
+    {
+        if (objArray.boxes.size() == 4)
+        {
+            bool read = true;
+            int cnt = 0;
+            double x[3], y[3];
+            double x_sum = 0, y_sum = 0;
+            for (int color = color_red; color <= color_blue; color++)
+            {
+                if (!objArray.boxes[color].center.x)
+                {
+                    ROS_WARN("get_ellipse_pose: Color %d ellipse does not exist.", color);
+                    return false;
+                }
+                if (!ps_.calculate_cargo_position(objArray.boxes[color].center.x,
+                                                  objArray.boxes[color].center.y,
+                                                  z_parking_area, x[cnt], y[cnt], read))
+                {
+                    ROS_WARN("get_ellipse_pose: Cannot calculate color %d ellipse's position", color);
+                    return false;
+                }
+                if (read)
+                    read = false;
+                x_sum += x[cnt];
+                y_sum += y[cnt];
+                cnt++;
+            }
+            pose.x = x_sum / 3;
+            pose.y = y_sum / 3;
+            pose.theta = (atan2(x[0] - x[1], y[0] - y[1]) +
+                          atan2(x[1] - x[2], y[1] - y[2]) + atan2(x[2] - x[0], y[2] - y[0])) /
+                         3;
+            return true;
+        }
+        return false;
+    }
+
     bool ArmController::set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray)
     {
         if (objArray.boxes.size() == 4)
@@ -745,14 +784,13 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
-                                       cv::Rect &roi, vision_msgs::BoundingBox2DArray &objArray,
-                                       sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
+                                       sensor_msgs::ImagePtr &debug_image, cv::Rect &rect)
     {
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;
-        cv_image->image = cv_image->image(roi);
+        cv_image->image = cv_image->image(rect);
         using namespace cv;
         Mat srcdst, srcCopy;                        // 从相机传进来需要两张图片
         Point2d _center;                            // 椭圆中心
@@ -841,8 +879,8 @@ namespace my_hand_eye
                 !arr.generate_bounding_rect(m_ellipses, cv_image) ||
                 !arr.color_classification(cv_image, white_vmin_))
                 return false;
-            objArray.header = image_rect->header;
-            if (!arr.detection(objArray, roi, cv_image, show_detections))
+            detections.header = image_rect->header;
+            if (!arr.detection(detections, rect, cv_image, show_detections))
                 return false;
         }
         if (show_detections && !cv_image->image.empty())
@@ -870,7 +908,7 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_ellipse(image_rect, default_roi_, objArray, debug_image);
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, default_roi_);
         if (valid)
         {
             double x = 0, y = 0;
@@ -930,13 +968,13 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        Pose2DMightEnd pme;
+        geometry_msgs::Pose2D pose;
         double center_u, center_v;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_) &&
-                     get_center(objArray, center_u, center_v, pme.pose.x, pme.pose.y, true);
+                     get_center(objArray, center_u, center_v, pose.x, pose.y, true);
         if (valid)
         {
-            target_pose.calc(pme, msg);
+            target_pose.calc(pose, msg);
             msg.header = image_rect->header;
         }
         if (valid && show_detections && !cv_image_.image.empty())
@@ -954,14 +992,23 @@ namespace my_hand_eye
         static bool last_finish = true;
         if (!msg.end && last_finish)
         {
-            ps_.reset();
+            ps_.reset(true);
             last_finish = false;
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
+        vision_msgs::BoundingBox2DArray objArray;
+        geometry_msgs::Pose2D pose;
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, default_roi_) &&
+                     get_ellipse_pose(objArray, pose);
+        if (valid)
+        {
+            target_pose.calc(pose, msg);
+            msg.header = image_rect->header;
+        }
         last_finish = msg.end;
-        return true;
+        return valid;
     }
 
     bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
