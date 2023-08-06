@@ -362,8 +362,8 @@ namespace my_hand_eye
             }
             pose.x = x_sum / 3;
             pose.y = y_sum / 3;
-            pose.theta = (atan2(x[0] - x[1], y[0] - y[1]) +
-                          atan2(x[1] - x[2], y[1] - y[2]) + atan2(x[2] - x[0], y[2] - y[0])) /
+            pose.theta = (atan((x[0] - x[1]) / (y[0] - y[1])) +
+                          atan((x[1] - x[2]) / (y[1] - y[2])) + atan((x[2] - x[0]) / (y[2] - y[0]))) /
                          3;
             return true;
         }
@@ -912,7 +912,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
-                                    sensor_msgs::ImagePtr &debug_image)
+                                    sensor_msgs::ImagePtr &debug_image, bool pose)
     {
         static bool flag = true;
         if (flag)
@@ -934,10 +934,19 @@ namespace my_hand_eye
         bool valid = detect_ellipse(image_rect, objArray, debug_image, default_roi_);
         if (valid)
         {
-            double x = 0, y = 0;
-            if (find_with_color(objArray, color, z_parking_area, x, y))
+            if (pose)
             {
-                ROS_INFO_STREAM("x:" << x << " y:" << y);
+                geometry_msgs::Pose2D pose;
+                if (get_ellipse_pose(objArray, pose))
+                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
+            }
+            else
+            {
+                double x = 0, y = 0;
+                if (find_with_color(objArray, color, z_parking_area, x, y))
+                {
+                    ROS_INFO_STREAM("x:" << x << " y:" << y);
+                }
             }
         }
         return valid;
