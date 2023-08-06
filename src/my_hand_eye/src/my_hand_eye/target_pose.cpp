@@ -1,4 +1,5 @@
 #include "my_hand_eye/target_pose.h"
+#include "my_hand_eye/backward_kinematics.h"
 
 namespace my_hand_eye
 {

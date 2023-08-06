@@ -1,9 +1,6 @@
 #ifndef _LINE_FOLLOWER_H_
 #define _LINE_FOLLOWER_H_
 
-#include <std_msgs/Float64.h>
-#include <geometry_msgs/Twist.h>
-
 #include "motion_controller/field_guide.h"
 #include "motion_controller/pid_controller.h"
 

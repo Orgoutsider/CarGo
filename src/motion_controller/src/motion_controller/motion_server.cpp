@@ -1,3 +1,5 @@
+#include <motion_controller/TwistMightEnd.h>
+
 #include "motion_controller/motion_server.h"
 
 namespace motion_controller

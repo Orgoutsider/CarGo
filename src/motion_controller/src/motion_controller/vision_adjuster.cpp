@@ -1,3 +1,5 @@
+#include <motion_controller/TwistMightEnd.h>
+
 #include "motion_controller/vision_adjuster.h"
 
 namespace motion_controller
