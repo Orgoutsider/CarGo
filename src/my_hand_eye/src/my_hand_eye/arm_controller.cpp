@@ -821,24 +821,33 @@ namespace my_hand_eye
         findContours(srcdst, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
 
         Mat imageContours = Mat::zeros(mm.size(), CV_8UC1);//创建轮廓展示图像，用于调试
+        Mat imageContours1 = Mat::zeros(mm.size(), CV_8UC1);
+        Mat imageContours2 = Mat::zeros(mm.size(), CV_8UC1);
+        Mat imageContours3 = Mat::zeros(mm.size(), CV_8UC1);
         // 如果查找到了轮廓
         if (contours.size())
         {
             int cnt = 0;
             // 轮廓展示，用于调试
-            // for (int i = 0; i < contours.size(); i++)
-            // {
-            //     drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
-            // }
-            // imshow("Contours_0", imageContours);
+            for (int i = 0; i < contours.size(); i++)
+            {
+                drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
+            }
+            imshow("Contours_0", imageContours);
             // 第一次排除
             for (std::vector<cv::Point> contour : contours)
             {
                 cnt++;
                 // 初筛
-                if (contourArea(contour) < con_Area_min_ ||
-                    contour.size() < con_Point_cont_ || contourArea(contour) > con_Area_max_)
+                if (contourArea(contour) < con_Area_min_)
                     continue;
+                drawContours(imageContours1, contours, cnt-1, Scalar(255), 1, 8, hierarchy);
+                if (contour.size() < con_Point_cont_)
+                    continue;
+                drawContours(imageContours2, contours, cnt-1, Scalar(255), 1, 8, hierarchy);
+                if (contourArea(contour) > con_Area_max_)
+                    continue;
+                drawContours(imageContours3, contours, cnt-1, Scalar(255), 1, 8, hierarchy);
                 // 利用直线斜率处处相等的原理
                 cv::Point pt[6];
                 for (int i = 1; i < 5; i++)
@@ -856,7 +865,6 @@ namespace my_hand_eye
                 if (abs(((pt[5].y - pt[3].y) * 1.0 / (pt[5].x - pt[3].x) -
                          (pt[4].y - pt[3].y) * 1.0 / (pt[4].x - pt[3].x))) < line_threshold)
                     continue;
-                drawContours(imageContours, contours, cnt-1, Scalar(255), 1, 8, hierarchy);
                 RotatedRect m_ellipsetemp;           // 创建接收椭圆的容器
                 m_ellipsetemp = fitEllipse(contour); // 找到的第一个轮廓，放置到m_ellipsetemp
                 if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2 ||
@@ -869,8 +877,10 @@ namespace my_hand_eye
                 centers.push_back(_center);
                 m_ellipses.push_back(m_ellipsetemp);
             }
-            imshow("Contours_1", imageContours);
-            imshow("mm", mm); // 显示第一次排除结果，用于调试
+            imshow("Contours_1", imageContours1);
+            imshow("Contours_2", imageContours2);
+            imshow("Contours_3", imageContours3);
+            // imshow("mm", mm); // 显示第一次排除结果，用于调试
             cv::waitKey(10);
             // 颜色标定
             if (!arr.clustering(centers, m_ellipses) ||
