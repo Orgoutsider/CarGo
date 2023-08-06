@@ -2,7 +2,6 @@
 #define _TARGET_POSE_H_
 
 #include <my_hand_eye/Pose2DMightEnd.h>
-#include "my_hand_eye/backward_kinematics.h"
 
 namespace my_hand_eye
 {
