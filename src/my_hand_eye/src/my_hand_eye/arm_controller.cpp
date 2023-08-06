@@ -2,8 +2,8 @@
 #include <numeric>
 #include <yolov5_ros/cargoSrv.h>
 
-#include "ellipse_detection/detect.h"
-#include "ellipse_detection/types.hpp"
+#include "detect.h"
+#include "types.hpp"
 #include "my_hand_eye/arm_controller.h"
 
 namespace my_hand_eye
@@ -825,12 +825,20 @@ namespace my_hand_eye
         {
             for (std::shared_ptr<zgh::Ellipse> &ell : ells)
             {
-                ROS_INFO_STREAM("coverangle : " << ell->coverangle << ",\tgoodness : " << ell->goodness << ",\tpolarity : " << ell->polarity);
-                RotatedRect m_ellipsetemp; // 创建接收椭圆的容器
-                m_ellipsetemp.center = cv::Point(ell->o.y, ell->o.x);
-                m_ellipsetemp.size = cv::Size(ell->a, ell->b);
-                m_ellipsetemp.angle = zgh::rad2angle(ell->phi);
-                ellipse(srcCopy, m_ellipsetemp, cv::Scalar(255, 255, 0), width); // 在图像中绘制椭圆
+                // ROS_INFO_STREAM("coverangle : " << ell->coverangle << ",\tgoodness : " << ell->goodness << ",\tpolarity : " << ell->polarity);
+                // RotatedRect m_ellipsetemp; // 创建接收椭圆的容器
+                // m_ellipsetemp.center = cv::Point(ell->o.y, ell->o.x);
+                // m_ellipsetemp.size = cv::Size(ell->a, ell->b);
+                // m_ellipsetemp.angle = zgh::rad2angle(ell->phi);
+                ellipse(srcCopy, cv::Point(ell->o.y, ell->o.x),
+                        cv::Size(ell->a, ell->b),
+                        zgh::rad2angle(PI_2 - ell->phi),
+                        0,
+                        360,
+                        cv::Scalar(0, 255, 0),
+                        width,
+                        8,
+                        0); // 在图像中绘制椭圆
                 imshow("ellipse", srcCopy);
                 waitKey(10);
             }
