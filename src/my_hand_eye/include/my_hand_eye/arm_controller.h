@@ -36,7 +36,7 @@ namespace my_hand_eye
         cv_bridge::CvImage cv_image_;
         std::vector<double> cargo_x_;
         std::vector<double> cargo_y_;
-        std::shared_ptr<cv::CEllipseDetectorYaed> yaed_;
+        cv::CEllipseDetectorYaed *yaed_;
         const int Gauss_size_ = 3; // 高斯平滑内核大小
         const int Canny_low_ = 50; // 第一次Canny边缘查找的第一滞后因子
         const int Canny_up_ = 100; // 第一次Canny边缘查找的第二滞后因子

@@ -12,6 +12,7 @@ namespace my_hand_eye
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           ellipse_roi_(480, 360, 960, 720),
+          yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
@@ -28,6 +29,7 @@ namespace my_hand_eye
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           ellipse_roi_(480, 360, 960, 720),
+          yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
@@ -43,6 +45,7 @@ namespace my_hand_eye
     {
         if (!emulation_)
             ps_.end();
+        delete yaed_;
     }
 
     void ArmController::init(ros::NodeHandle &nh, ros::NodeHandle &pnh)
@@ -95,8 +98,6 @@ namespace my_hand_eye
         cargo_x_.reserve(3);
         cargo_y_.reserve(3);
         nh_ = &nh;
-        yaed_ = std::shared_ptr<cv::CEllipseDetectorYaed>(
-            new cv::CEllipseDetectorYaed());
         // Parameters Settings (Sect. 4.2)
         int iThLength = 16;
         float fThObb = 3.0f;

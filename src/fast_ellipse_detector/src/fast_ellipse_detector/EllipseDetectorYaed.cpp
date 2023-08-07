@@ -81,7 +81,7 @@ namespace cv
 		int max_idx = 0;
 		for (int i = 0; i < ACC_R_SIZE; ++i)
 		{
-			(v[i] > max_val) ? max_val = v[i], max_idx = i : NULL;
+			(v[i] > max_val) ? max_val = v[i], max_idx = i : 0;
 		}
 
 		return max_idx + 90;
@@ -93,7 +93,7 @@ namespace cv
 		int max_idx = 0;
 		for (int i = 0; i < ACC_N_SIZE; ++i)
 		{
-			(v[i] > max_val) ? max_val = v[i], max_idx = i : NULL;
+			(v[i] > max_val) ? max_val = v[i], max_idx = i : 0;
 		}
 
 		return max_idx;
@@ -105,7 +105,7 @@ namespace cv
 		int max_idx = 0;
 		for (int i = 0; i < ACC_A_SIZE; ++i)
 		{
-			(v[i] > max_val) ? max_val = v[i], max_idx = i : NULL;
+			(v[i] > max_val) ? max_val = v[i], max_idx = i : 0;
 		}
 
 		return max_idx;
@@ -1701,41 +1701,44 @@ namespace cv
 		Toc(1); // preprocessing
 
 		// DEBUG
-		Mat3b out(I.rows, I.cols, Vec3b(0, 0, 0));
-		for (unsigned i = 0; i < points_1.size(); ++i)
-		{
-			// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
-			Vec3b color(255, 0, 0);
-			for (unsigned j = 0; j < points_1[i].size(); ++j)
-				out(points_1[i][j]) = color;
-		}
+		// Mat3b out(I.rows, I.cols, Vec3b(0, 0, 0));
+		// for (unsigned i = 0; i < points_1.size(); ++i)
+		// {
+		// 	// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
+		// 	Vec3b color(255, 0, 0);
+		// 	for (unsigned j = 0; j < points_1[i].size(); ++j)
+		// 		out(points_1[i][j]) = color;
+		// }
 
-		for (unsigned i = 0; i < points_2.size(); ++i)
-		{
-			// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
-			Vec3b color(0, 255, 0);
-			for (unsigned j = 0; j < points_2[i].size(); ++j)
-				out(points_2[i][j]) = color;
-		}
-		for (unsigned i = 0; i < points_3.size(); ++i)
-		{
-			// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
-			Vec3b color(0, 0, 255);
-			for (unsigned j = 0; j < points_3[i].size(); ++j)
-				out(points_3[i][j]) = color;
-		}
+		// for (unsigned i = 0; i < points_2.size(); ++i)
+		// {
+		// 	// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
+		// 	Vec3b color(0, 255, 0);
+		// 	for (unsigned j = 0; j < points_2[i].size(); ++j)
+		// 		out(points_2[i][j]) = color;
+		// }
+		// for (unsigned i = 0; i < points_3.size(); ++i)
+		// {
+		// 	// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
+		// 	Vec3b color(0, 0, 255);
+		// 	for (unsigned j = 0; j < points_3[i].size(); ++j)
+		// 		out(points_3[i][j]) = color;
+		// }
 
-		for (unsigned i = 0; i < points_4.size(); ++i)
-		{
-			// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
-			Vec3b color(255, 0, 255);
-			for (unsigned j = 0; j < points_4[i].size(); ++j)
-				out(points_4[i][j]) = color;
-		}
+		// for (unsigned i = 0; i < points_4.size(); ++i)
+		// {
+		// 	// Vec3b color(rand()%255, 128+rand()%127, 128+rand()%127);
+		// 	Vec3b color(255, 0, 255);
+		// 	for (unsigned j = 0; j < points_4[i].size(); ++j)
+		// 		out(points_4[i][j]) = color;
+		// }
 
 		// time estimation, validation  inside
-
 		Tic(2); // grouping
+		Tic(3);
+		Toc(3);
+		Tic(4);
+		Toc(4);
 		// find triplets
 		Triplets124(points_1, points_2, points_4, centers, ellipses);
 		Triplets231(points_2, points_3, points_1, centers, ellipses);
