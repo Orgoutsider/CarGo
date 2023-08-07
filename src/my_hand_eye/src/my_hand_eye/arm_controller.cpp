@@ -13,6 +13,7 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
+          ellipse_roi_(480, 360, 960, 720),
           threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
@@ -28,6 +29,7 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
+          ellipse_roi_(480, 360, 960, 720),
           threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
@@ -812,7 +814,7 @@ namespace my_hand_eye
         int line_Point[6] = {0, 0, 10, 20, 30, 40}; // 表示围成封闭轮廓点的序号，只要不太离谱即可
         const int line_threshold = 0.5;             // 判定阈值，小于即判定为直线
 
-        // resize(cv_image->image, srcdst, cv_image->image.size()); // 重设大小，可选
+        // resize(cv_image->image, srcdst, cv_image->image.size() / 2); // 重设大小，可选
         srcdst = cv_image->image.clone();
         srcCopy = srcdst.clone();
 
@@ -821,28 +823,28 @@ namespace my_hand_eye
         cvtColor(srcdst, srcdst, COLOR_BGR2GRAY);
         zgh::FuncTimerDecorator<int>("detectEllipse")(zgh::detectEllipse, srcdst.data,
                                                       srcdst.rows, srcdst.cols, ells, NONE_POL, width);
-        if (ells.size())
-        {
-            for (std::shared_ptr<zgh::Ellipse> &ell : ells)
-            {
+        // if (ells.size())
+        // {
+        //     for (std::shared_ptr<zgh::Ellipse> &ell : ells)
+        //     {
                 // ROS_INFO_STREAM("coverangle : " << ell->coverangle << ",\tgoodness : " << ell->goodness << ",\tpolarity : " << ell->polarity);
                 // RotatedRect m_ellipsetemp; // 创建接收椭圆的容器
                 // m_ellipsetemp.center = cv::Point(ell->o.y, ell->o.x);
                 // m_ellipsetemp.size = cv::Size(ell->a, ell->b);
                 // m_ellipsetemp.angle = zgh::rad2angle(ell->phi);
-                ellipse(srcCopy, cv::Point(ell->o.y, ell->o.x),
-                        cv::Size(ell->a, ell->b),
-                        zgh::rad2angle(PI_2 - ell->phi),
-                        0,
-                        360,
-                        cv::Scalar(0, 255, 0),
-                        width,
-                        8,
-                        0); // 在图像中绘制椭圆
-                imshow("ellipse", srcCopy);
-                waitKey(10);
-            }
-        }
+                // ellipse(srcCopy, cv::Point(ell->o.y, ell->o.x),
+                //         cv::Size(ell->a, ell->b),
+                //         zgh::rad2angle(PI_2 - ell->phi),
+                //         0,
+                //         360,
+                //         cv::Scalar(0, 255, 0),
+                //         width,
+                //         8,
+                //         0); // 在图像中绘制椭圆
+        //     }
+        // }
+        // imshow("ellipse", srcCopy);
+        // waitKey(10);
         // Canny(srcdst, srcdst, Canny_low_, Canny_up_, 3);
         // // imshow("step1.", srcdst);//用于调试
         // // ROI设置
@@ -939,7 +941,7 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_ellipse(image_rect, objArray, debug_image, default_roi_);
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_);
         if (valid)
         {
             if (pose)

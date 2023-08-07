@@ -23,7 +23,6 @@ logs/
 devel/
 .vscode/
 .catkin_tools/
-src/mmdetection_ros/
 # src/apriltag/
 # src/apriltag_ros/
 src/cv_camera/
@@ -41,3 +40,4 @@ src/yolov5_ros/src/yolov5/
 src/yolov5_ros/src/yolov5_deepsort_tensorrt/
 src/yolov5_ros/src/tensorrtx/
 src/lsn10/
+src/ellipse_detection/

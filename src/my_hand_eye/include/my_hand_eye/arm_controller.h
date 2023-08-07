@@ -31,6 +31,7 @@ namespace my_hand_eye
         ros::ServiceClient plot_client_;  // 运动范围绘制
         cv::Rect default_roi_;            // 默认截图矩形
         cv::Rect border_roi_;             // 边界截图矩形
+        cv::Rect ellipse_roi_;            // 椭圆截图矩形
         cv_bridge::CvImage cv_image_;
         std::vector<double> cargo_x_;
         std::vector<double> cargo_y_;
