@@ -837,6 +837,24 @@ namespace my_hand_eye
         double width = 2.0;
         std::vector<cv::Ellipse> ellsYaed;
         yaed_->Detect(srcdst, ellsYaed);
+
+        EllipseArray arr;
+        // 颜色标定
+        if (!arr.clustering(ellsYaed) ||
+            !arr.generate_bounding_rect(ellsYaed, cv_image) ||
+            !arr.color_classification(cv_image, white_vmin_))
+            return false;
+        detections.header = image_rect->header;
+        if (!arr.detection(detections, rect, cv_image, show_detections))
+            return false;
+        if (show_detections && !cv_image->image.empty())
+        {
+            Mat3b srcCopy = cv_image->image;
+            yaed_->DrawDetectedEllipses(srcCopy, ellsYaed);
+            // imshow("Yaed", srcCopy);
+            // waitKey(10);
+            debug_image = cv_image->toImageMsg();
+        }
         // std::vector<double> times = yaed_->GetTimes();
         // std::cout << "--------------------------------" << std::endl;
         // std::cout << "Execution Time: " << std::endl;
@@ -849,105 +867,6 @@ namespace my_hand_eye
         // std::cout << "--------------------------------" << std::endl;
         // std::cout << "Total:	         \t" << yaed_->GetExecTime() << std::endl;
         // std::cout << "--------------------------------" << std::endl;
-        // Mat3b srcCopy = cv_image->image;
-        // yaed_->DrawDetectedEllipses(srcCopy, ellsYaed);
-        // imshow("Yaed", srcCopy);
-		// waitKey(10);
-        // if (ells.size())
-        // {
-        //     for (std::shared_ptr<zgh::Ellipse> &ell : ells)
-        //     {
-        // ROS_INFO_STREAM("coverangle : " << ell->coverangle << ",\tgoodness : " << ell->goodness << ",\tpolarity : " << ell->polarity);
-        // RotatedRect m_ellipsetemp; // 创建接收椭圆的容器
-        // m_ellipsetemp.center = cv::Point(ell->o.y, ell->o.x);
-        // m_ellipsetemp.size = cv::Size(ell->a, ell->b);
-        // m_ellipsetemp.angle = zgh::rad2angle(ell->phi);
-        // ellipse(srcCopy, cv::Point(ell->o.y, ell->o.x),
-        //         cv::Size(ell->a, ell->b),
-        //         zgh::rad2angle(PI_2 - ell->phi),
-        //         0,
-        //         360,
-        //         cv::Scalar(0, 255, 0),
-        //         width,
-        //         8,
-        //         0); // 在图像中绘制椭圆
-        //     }
-        // }
-        // imshow("ellipse", srcCopy);
-        // waitKey(10);
-        // Canny(srcdst, srcdst, Canny_low_, Canny_up_, 3);
-        // // imshow("step1.", srcdst);//用于调试
-        // // ROI设置
-        // Mat mm = srdetectEllipsecCopy(Rect(0, 0, srcCopy.cols, srcCopy.rows));
-        // mm = {Scalar(0, 0, 0)}; // 把ROI中的像素值改为黑色
-
-        // // 第一次轮廓查找
-        // findContours(srcdst, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
-
-        // // Mat imageContours = Mat::zeros(mm.size(), CV_8UC1);//创建轮廓展示图像，用于调试
-        // // 如果查找到了轮廓
-        // if (contours.size())
-        // {
-
-        //     // // 轮廓展示，用于调试
-        //     // for (int i = 0; i < contours.size(); i++)
-        //     // {
-        //     //     drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
-        //     // }
-        //     // imshow("Contours_1", imageContours);
-        //     // 第一次排除
-        //     for (std::vector<cv::Point> contour : contours)
-        //     {
-        //         // 初筛
-        //         if (contourArea(contour) < con_Area_min_ ||
-        //             contour.size() < con_Point_cont_ || contourArea(contour) > con_Area_max_)
-        //             continue;
-        //         // 利用直线斜率处处相等的原理
-        //         Point2d pt[6];
-        //         for (int i = 1; i < 5; i++)
-        //         {
-        //             if (contours.size() - 1 < line_Point[5])
-        //             {
-        //                 pt[i] = contour[(int)floor(contours.size() / 4.0) * (i - 1)];
-        //             }
-        //             else
-        //                 pt[i] = contour[line_Point[i]];
-        //         }
-        //         if (abs(((pt[3].y - pt[1].y) * 1.0 / (pt[3].x - pt[1].x) -
-        //                  (pt[2].y - pt[1].y) * 1.0 / (pt[2].x - pt[2].x))) < line_threshold)
-        //             continue;
-        //         if (abs(((pt[5].y - pt[3].y) * 1.0 / (pt[5].x - pt[3].x) -
-        //                  (pt[4].y - pt[3].y) * 1.0 / (pt[4].x - pt[3].x))) < line_threshold)
-        //             continue;
-        //         // // 利用凹凸性的原理
-        //         // if (!abs((contours[i][0].y + contours[i][20].y) / 2 - contours[i][10].y))
-        //         //     continue;
-        //         // drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
-        //         RotatedRect m_ellipsetemp;           // 创建接收椭圆的容器
-        //         m_ellipsetemp = fitEllipse(contour); // 找到的第一个轮廓，放置到m_ellipsetemp
-        //         if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2 ||
-        //             m_ellipsetemp.size.height / m_ellipsetemp.size.width < 0.2)
-        //             continue;
-        //         ellipse(mm, m_ellipsetemp, cv::Scalar(255, 255, 255)); // 在图像中绘制椭圆，必要
-        //         _center = m_ellipsetemp.center;                        // 读取椭圆中心，必要
-        //         // drawCross(srcCopy, _center, Scalar(255, 0, 0), 30, 2);//绘制中心十字，用于调试
-        //         // circle(cv_image->image, _center, 1, Scalar(0, 255, 0), -1); // 画半径为1的圆(画点）, 用于调试
-        //         centers.push_back(_center);
-        //         m_ellipses.push_back(m_ellipsetemp);
-        //     }
-        // imshow("Contours_1", imageContours);
-        // imshow("mm", mm); // 显示第一次排除结果，用于调试
-        // cv::waitKey(10);
-        // 颜色标定
-        //     if (!arr.clustering(centers, m_ellipses) ||
-        //         !arr.generate_bounding_rect(m_ellipses, cv_image) ||
-        //         !arr.color_classification(cv_image, white_vmin_)) return false;
-        // detections.header = image_rect->header;
-        // if (!arr.detection(detections, rect, cv_image, show_detections))
-        //     return false;
-        // // }
-        // if (show_detections && !cv_image->image.empty())
-        //     debug_image = cv_image->toImageMsg();
         return true;
     }
 

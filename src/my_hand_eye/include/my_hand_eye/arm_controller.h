@@ -3,7 +3,6 @@
 #include <sensor_msgs/Image.h>
 #include <image_transport/image_transport.h>
 
-#include "fast_ellipse_detector/EllipseDetectorYaed.h"
 #include "my_hand_eye/square.h"
 #include "my_hand_eye/ellipse.h"
 #include "my_hand_eye/border.h"
