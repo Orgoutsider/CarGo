@@ -115,11 +115,7 @@ namespace my_hand_eye
         double dPreProcessingGaussSigma = 1.0;
 
         float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
-<<<<<<< HEAD
         float fMinReliability = 0.6f;           // Const parameters to discard bad ellipses
-=======
-        float fMinReliability = 0.6;            // Const parameters to discard bad ellipses
->>>>>>> 56bdcad7e7bd98cd975d5fc0a8954cc808bd2440
         yaed_->SetParameters(szPreProcessingGaussKernelSize,
                              dPreProcessingGaussSigma,
                              fThPos,

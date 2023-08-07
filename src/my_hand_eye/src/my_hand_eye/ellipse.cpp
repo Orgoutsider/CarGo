@@ -25,11 +25,6 @@ namespace my_hand_eye
         {
             if (flag_[i])
                 continue;
-<<<<<<< HEAD
-=======
-            if (ellipses[i]._a < ellipses[i]._b)
-                ROS_ERROR("!");
->>>>>>> 56bdcad7e7bd98cd975d5fc0a8954cc808bd2440
             double x_temp = ellipses[i]._xc, y_temp = ellipses[i]._yc, score_sum = ellipses[i]._score;
             int now = i, cnt = 1;
             for (int j = i + 1; j < ellipses.size(); j++)
@@ -93,12 +88,8 @@ namespace my_hand_eye
             {
                 cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a),
                                          cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a),
-<<<<<<< HEAD
                                          cvCeil(m_ellipses[ind_max]._a) * 2,
                                          cvCeil(m_ellipses[ind_max]._a) * 2);
-=======
-                                         cvCeil(m_ellipses[ind_max]._a), cvCeil(m_ellipses[ind_max]._a));
->>>>>>> 56bdcad7e7bd98cd975d5fc0a8954cc808bd2440
                 rect.x = std::max<int>(rect.x, 0);
                 rect.y = std::max<int>(rect.y, 0);
                 rect.width = std::min<int>(rect.width, cv_image->image.cols - rect.x);
@@ -165,13 +156,8 @@ namespace my_hand_eye
             if (e.hypothesis > hyp_max[e.color])
             {
                 vision_msgs::BoundingBox2D obj = vision_msgs::BoundingBox2D();
-<<<<<<< HEAD
                 obj.center.x = e.center.x / cv_image->image.cols * roi.width + roi.x;
                 obj.center.y = e.center.y / cv_image->image.rows * roi.height + roi.y;
-=======
-                obj.center.x = e.center.x / cv_image->image.rows * roi.width + roi.x;
-                obj.center.y = e.center.y / cv_image->image.cols * roi.height + roi.y;
->>>>>>> 56bdcad7e7bd98cd975d5fc0a8954cc808bd2440
                 obj.size_x = e.rect_target.width;
                 obj.size_y = e.rect_target.height;
                 objArray.boxes[e.color] = obj;
