@@ -44,8 +44,8 @@ namespace my_hand_eye
             //     usleep(1e5);
             // }
         }
-        // cv::imshow("mask_img", mask_img); // 用于调试
-        // cv::waitKey(10);
+        cv::imshow("mask_img", mask_img); // 用于调试
+        cv::waitKey(10);
         double H_Average = hue_value_tan(y, x); // 保存当前区域色相H的平均值
         return (H_Average < 0) ? H_Average + 180 : H_Average;
     }
