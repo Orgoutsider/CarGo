@@ -16,21 +16,21 @@ namespace my_hand_eye
     double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin, cv::Mat &mask_img)
     {
         cv::Mat mask = roi.clone();
-        mask_img = cv::Mat(mask.size(), CV_8UC1, cv::Scalar(255));
+        // mask_img = cv::Mat(mask.size(), CV_8UC1, cv::Scalar(255));
         cvtColor(mask, mask, cv::COLOR_BGR2HSV);
         // 设置像素遍历迭代器
         cv::MatConstIterator_<cv::Vec3b> maskStart = mask.begin<cv::Vec3b>();
         cv::MatConstIterator_<cv::Vec3b> maskEnd = mask.end<cv::Vec3b>();
-        cv::MatIterator_<uchar> mask_ImgStart = mask_img.begin<uchar>();
+        // cv::MatIterator_<uchar> mask_ImgStart = mask_img.begin<uchar>();
         double x = 0, y = 0;
         int cnt = 0;
-        for (; maskStart != maskEnd; maskStart++, mask_ImgStart++)
+        for (; maskStart != maskEnd; maskStart++)
         {
             // 过滤白色
             if ((*maskStart)[1] <= white_smax_ && (*maskStart)[2] >= white_vmin)
             {
                 // 用于调试
-                (*mask_ImgStart) = 0;
+                // (*mask_ImgStart) = 0;
                 continue;
             }
             int H_Val = (*maskStart)[0];
