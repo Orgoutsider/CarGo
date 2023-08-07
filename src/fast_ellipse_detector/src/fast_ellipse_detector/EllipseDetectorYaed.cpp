@@ -559,7 +559,7 @@ namespace cv
 		memset(accR, 0, sizeof(int) * ACC_R_SIZE);
 		memset(accA, 0, sizeof(int) * ACC_A_SIZE);
 
-		Tac(3); // estimation
+		// Tac(3); // estimation
 
 		// Get size of the 4 vectors of slopes (2 pairs of arcs)
 		int sz_ij1 = int(data_ij.Sa.size());
@@ -832,8 +832,8 @@ namespace cv
 		// Got all ellipse parameters!
 		Ellipse ell(a0, b0, fA, fB, fmod(rho + float(CV_PI) * 2.f, float(CV_PI)));
 
-		Toc(3); // estimation
-		Tac(4); // validation
+		// Toc(3); // estimation
+		// Tac(4); // validation
 
 		// Get the score. See Sect [3.3.1] in the paper
 
@@ -892,7 +892,7 @@ namespace cv
 		// no points found on the ellipse
 		if (counter_on_perimeter <= 0)
 		{
-			Toc(4); // validation
+			// Toc(4); // validation
 			return;
 		}
 
@@ -900,7 +900,7 @@ namespace cv
 		float score = float(counter_on_perimeter) * invNofPoints;
 		if (score < _fMinScore)
 		{
-			Toc(4); // validation
+			// Toc(4); // validation
 			return;
 		}
 
@@ -957,7 +957,7 @@ namespace cv
 
 		if (rel < _fMinReliability)
 		{
-			Toc(4); // validation
+			// Toc(4); // validation
 			return;
 		}
 
@@ -968,7 +968,7 @@ namespace cv
 		// The tentative detection has been confirmed. Save it!
 		ellipses.push_back(ell);
 
-		Toc(4); // Validation
+		// Toc(4); // Validation
 	};
 
 	// Get the coordinates of the center, given the intersection of the estimated lines. See Fig. [8] in Sect [3.2.3] in the paper.
@@ -1553,7 +1553,7 @@ namespace cv
 											 Mat1b &DN)
 	{
 
-		Tic(0); // edge detection
+		// Tic(0); // edge detection
 
 		// Smooth image
 		GaussianBlur(I, I, _szPreProcessingGaussKernelSize, _dPreProcessingGaussSigma);
@@ -1565,9 +1565,9 @@ namespace cv
 		// Detect edges
 		Canny3(I, E, DX, DY, 3);
 
-		Toc(0); // edge detection
+		// Toc(0); // edge detection
 
-		Tac(1); // preprocessing
+		// Tac(1); // preprocessing
 
 		// For each edge points, compute the edge direction
 		for (int i = 0; i < _szImg.height; ++i)
@@ -1688,7 +1688,7 @@ namespace cv
 		VVP points_1, points_2, points_3, points_4; // vector of points, one for each convexity class
 		std::unordered_map<uint, EllipseData> centers;	// hash map for reusing already computed EllipseData
 
-		Toc(1); // prepare data structure
+		// Toc(1); // prepare data structure
 
 		// Preprocessing
 		// From input image I, find edge point with coarse convexity along positive (DP) or negative (DN) diagonal
@@ -1698,7 +1698,7 @@ namespace cv
 		DetectEdges13(DP, points_1, points_3);
 		DetectEdges24(DN, points_2, points_4);
 
-		Toc(1); // preprocessing
+		// Toc(1); // preprocessing
 
 		// DEBUG
 		// Mat3b out(I.rows, I.cols, Vec3b(0, 0, 0));
@@ -1734,34 +1734,35 @@ namespace cv
 		// }
 
 		// time estimation, validation  inside
-		Tic(2); // grouping
-		Tic(3);
-		Toc(3);
-		Tic(4);
-		Toc(4);
+		// Tic(2); // grouping
+		// Tic(3);
+		// Toc(3);
+		// Tic(4);
+		// Toc(4);
 		// find triplets
 		Triplets124(points_1, points_2, points_4, centers, ellipses);
 		Triplets231(points_2, points_3, points_1, centers, ellipses);
 		Triplets342(points_3, points_4, points_2, centers, ellipses);
 		Triplets413(points_4, points_1, points_3, centers, ellipses);
-		Toc(2); // grouping
+		// Toc(2); // grouping
 		// time estimation, validation inside
 		_times[2] -= (_times[3] + _times[4]);
 
-		Tac(4); // validation
+		// Tac(4); // validation
 		// Sort detected ellipses with respect to score
 		sort(ellipses.begin(), ellipses.end());
-		Toc(4); // validation
+		// Toc(4); // validation
 
 		// Free accumulator memory
 		delete[] accN;
 		delete[] accR;
 		delete[] accA;
 
-		Tic(5);
+		// Tic(5);
 		// Cluster detections
 		ClusterEllipses(ellipses);
-		Toc(5);
+		// Toc(5);
+		Toc(1);
 	};
 
 	// Ellipse clustering procedure. See Sect [3.3.2] in the paper.

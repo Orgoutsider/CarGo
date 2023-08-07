@@ -28,7 +28,7 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
-          ellipse_roi_(480, 360, 960, 720),
+          ellipse_roi_(480, 540, 960, 360),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(0.30121),
@@ -106,7 +106,7 @@ namespace my_hand_eye
         int iNs = 16;
         float fMaxCenterDistance = sqrt(float(ellipse_roi_.width * ellipse_roi_.width + ellipse_roi_.height * ellipse_roi_.height)) * fTaoCenters;
 
-        float fThScoreScore = 0.7f;
+        float fThScoreScore = 0.8f;
 
         // Other constant parameters settings.
 
@@ -115,7 +115,7 @@ namespace my_hand_eye
         double dPreProcessingGaussSigma = 1.0;
 
         float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
-        float fMinReliability = 0.5;            // Const parameters to discard bad ellipses
+        float fMinReliability = 0.6;            // Const parameters to discard bad ellipses
         yaed_->SetParameters(szPreProcessingGaussKernelSize,
                              dPreProcessingGaussSigma,
                              fThPos,
@@ -831,43 +831,28 @@ namespace my_hand_eye
         using namespace cv;
         Mat1b srcdst; // 从相机传进来需要两张图片
         std::vector<cv::Ellipse> ells;
-        // Point2d _center;                            // 椭圆中心
-        // std::vector<Point2d> centers;               // 椭圆中心容器
-        // std::vector<std::vector<Point2i>> contours; // 创建容器，存储轮廓
-        // std::vector<Vec4i> hierarchy;               // 寻找轮廓所需参数
-        // std::vector<RotatedRect> m_ellipses;        // 第一次初筛后椭圆容器
-        // EllipseArray arr;
-        // 直线斜率处处相等原理的相关参数
-        // int line_Point[6] = {0, 0, 10, 20, 30, 40}; // 表示围成封闭轮廓点的序号，只要不太离谱即可
-        // const int line_threshold = 0.5;             // 判定阈值，小于即判定为直线
-        // resize(cv_image->image, srcdst, cv_image->image.size() / 2); // 重设大小，可选
-        // srcdst = cv_image->image.clone();
-        // srcCopy = srcdst.clone();
-
+        resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 1.7, cv_image->image.rows / 1.7)); // 重设大小，可选
         // 第一次预处理
-        // GaussianBlur(srcdst, srcdst, Size(Gauss_size_, Gauss_size_), 0, 0);
         cvtColor(cv_image->image, srcdst, COLOR_BGR2GRAY);
         double width = 2.0;
         std::vector<cv::Ellipse> ellsYaed;
         yaed_->Detect(srcdst, ellsYaed);
-        std::vector<double> times = yaed_->GetTimes();
-        std::cout << "--------------------------------" << std::endl;
-        std::cout << "Execution Time: " << std::endl;
-        std::cout << "Edge Detection: \t" << times[0] << std::endl;
-        std::cout << "Pre processing: \t" << times[1] << std::endl;
-        std::cout << "Grouping:       \t" << times[2] << std::endl;
-        std::cout << "Estimation:     \t" << times[3] << std::endl;
-        std::cout << "Validation:     \t" << times[4] << std::endl;
-        std::cout << "Clustering:     \t" << times[5] << std::endl;
-        std::cout << "--------------------------------" << std::endl;
-        std::cout << "Total:	         \t" << yaed_->GetExecTime() << std::endl;
-        std::cout << "--------------------------------" << std::endl;
-        Mat3b srcCopy = cv_image->image;
-        yaed_->DrawDetectedEllipses(srcCopy, ellsYaed);
-        imshow("Yaed", srcCopy);
-		waitKey(10);
-        // zgh::FuncTimerDecorator<int>("detectEllipse")(zgh::detectEllipse, srcdst.data,
-        //                                               srcdst.rows, srcdst.cols, ells, NONE_POL, width);
+        // std::vector<double> times = yaed_->GetTimes();
+        // std::cout << "--------------------------------" << std::endl;
+        // std::cout << "Execution Time: " << std::endl;
+        // std::cout << "Edge Detection: \t" << times[0] << std::endl;
+        // std::cout << "Pre processing: \t" << times[1] << std::endl;
+        // std::cout << "Grouping:       \t" << times[2] << std::endl;
+        // std::cout << "Estimation:     \t" << times[3] << std::endl;
+        // std::cout << "Validation:     \t" << times[4] << std::endl;
+        // std::cout << "Clustering:     \t" << times[5] << std::endl;
+        // std::cout << "--------------------------------" << std::endl;
+        // std::cout << "Total:	         \t" << yaed_->GetExecTime() << std::endl;
+        // std::cout << "--------------------------------" << std::endl;
+        // Mat3b srcCopy = cv_image->image;
+        // yaed_->DrawDetectedEllipses(srcCopy, ellsYaed);
+        // imshow("Yaed", srcCopy);
+		// waitKey(10);
         // if (ells.size())
         // {
         //     for (std::shared_ptr<zgh::Ellipse> &ell : ells)
