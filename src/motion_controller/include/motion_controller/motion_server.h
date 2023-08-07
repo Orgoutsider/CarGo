@@ -6,9 +6,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <actionlib/server/simple_action_server.h>
-#include <geometry_msgs/Twist.h>
 #include <motion_controller/MoveAction.h>
-#include <motion_controller/TwistMightEnd.h>
 #include <dynamic_reconfigure/server.h>
 #include <motion_controller/params_PID_srvConfig.h>
 

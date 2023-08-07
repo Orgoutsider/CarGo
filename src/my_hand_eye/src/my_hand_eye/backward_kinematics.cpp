@@ -1,5 +1,7 @@
 #include "my_hand_eye/backward_kinematics.h"
 
+#include <ros/ros.h>
+
 namespace my_hand_eye
 {
     Angle::Angle(double deg) : deg(deg)

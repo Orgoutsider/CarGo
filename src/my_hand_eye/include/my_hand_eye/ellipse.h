@@ -1,6 +1,7 @@
 #ifndef _ELLIPSE_H_
 #define _ELLIPSE_H_
 
+#include "fast_ellipse_detector/EllipseDetectorYaed.h"
 #include "my_hand_eye/color_tracker.h"
 
 namespace my_hand_eye
@@ -38,8 +39,8 @@ namespace my_hand_eye
     public:
         EllipseArray();
         // 聚类
-        bool clustering(std::vector<cv::Point2d> &centers, std::vector<cv::RotatedRect> &ellipses);
-        bool generate_bounding_rect(std::vector<cv::RotatedRect> &m_ellipses,
+        bool clustering(std::vector<cv::Ellipse> &ellipses);
+        bool generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
                                     cv_bridge::CvImagePtr &cv_image);
         // 颜色分类
         bool color_classification(cv_bridge::CvImagePtr &cv_image,

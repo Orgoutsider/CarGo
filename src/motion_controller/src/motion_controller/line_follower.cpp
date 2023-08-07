@@ -1,3 +1,6 @@
+#include <std_msgs/Float64.h>
+#include <geometry_msgs/Twist.h>
+
 #include "motion_controller/line_follower.h"
 
 namespace motion_controller

@@ -1,3 +1,7 @@
+#include <XmlRpcException.h>
+#include <numeric>
+#include <yolov5_ros/cargoSrv.h>
+
 #include "my_hand_eye/arm_controller.h"
 
 namespace my_hand_eye
@@ -7,6 +11,8 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
+          ellipse_roi_(480, 360, 960, 720),
+          yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
@@ -22,6 +28,8 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
+          ellipse_roi_(480, 540, 960, 360),
+          yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(0.30121),
           z_ellipse(3.80121),
@@ -37,6 +45,7 @@ namespace my_hand_eye
     {
         if (!emulation_)
             ps_.end();
+        delete yaed_;
     }
 
     void ArmController::init(ros::NodeHandle &nh, ros::NodeHandle &pnh)
@@ -89,6 +98,34 @@ namespace my_hand_eye
         cargo_x_.reserve(3);
         cargo_y_.reserve(3);
         nh_ = &nh;
+        // Parameters Settings (Sect. 4.2)
+        int iThLength = 16;
+        float fThObb = 3.0f;
+        float fThPos = 1.0f;
+        float fTaoCenters = 0.05f;
+        int iNs = 16;
+        float fMaxCenterDistance = sqrt(float(ellipse_roi_.width * ellipse_roi_.width + ellipse_roi_.height * ellipse_roi_.height)) * fTaoCenters;
+
+        float fThScoreScore = 0.8f;
+
+        // Other constant parameters settings.
+
+        // Gaussian filter parameters, in pre-processing
+        cv::Size szPreProcessingGaussKernelSize = cv::Size(5, 5);
+        double dPreProcessingGaussSigma = 1.0;
+
+        float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
+        float fMinReliability = 0.6f;           // Const parameters to discard bad ellipses
+        yaed_->SetParameters(szPreProcessingGaussKernelSize,
+                             dPreProcessingGaussSigma,
+                             fThPos,
+                             fMaxCenterDistance,
+                             iThLength,
+                             fThObb,
+                             fDistanceToEllipseContour,
+                             fThScoreScore,
+                             fMinReliability,
+                             iNs);
     }
 
     bool ArmController::add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image)
@@ -356,8 +393,8 @@ namespace my_hand_eye
             }
             pose.x = x_sum / 3;
             pose.y = y_sum / 3;
-            pose.theta = (atan2(x[0] - x[1], y[0] - y[1]) +
-                          atan2(x[1] - x[2], y[1] - y[2]) + atan2(x[2] - x[0], y[2] - y[0])) /
+            pose.theta = (atan((x[0] - x[1]) / (y[0] - y[1])) +
+                          atan((x[1] - x[2]) / (y[1] - y[2])) + atan((x[2] - x[0]) / (y[2] - y[0]))) /
                          3;
             return true;
         }
@@ -792,104 +829,48 @@ namespace my_hand_eye
             return false;
         cv_image->image = cv_image->image(rect);
         using namespace cv;
-        Mat srcdst, srcCopy;                        // 从相机传进来需要两张图片
-        Point2d _center;                            // 椭圆中心
-        std::vector<Point2d> centers;               // 椭圆中心容器
-        std::vector<std::vector<Point2i>> contours; // 创建容器，存储轮廓
-        std::vector<Vec4i> hierarchy;               // 寻找轮廓所需参数
-        std::vector<RotatedRect> m_ellipses;        // 第一次初筛后椭圆容器
-        EllipseArray arr;
-
-        // 直线斜率处处相等原理的相关参数
-        int line_Point[6] = {0, 0, 10, 20, 30, 40}; // 表示围成封闭轮廓点的序号，只要不太离谱即可
-        const int line_threshold = 0.5;             // 判定阈值，小于即判定为直线
-
-        // resize(cv_image->image, srcdst, cv_image->image.size()); // 重设大小，可选
-        srcdst = cv_image->image.clone();
-        srcCopy = srcdst.clone();
-
+        Mat1b srcdst; // 从相机传进来需要两张图片
+        std::vector<cv::Ellipse> ells;
+        resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 1.7, cv_image->image.rows / 1.7)); // 重设大小，可选
         // 第一次预处理
-        GaussianBlur(srcdst, srcdst, Size(Gauss_size_, Gauss_size_), 0, 0);
-        cvtColor(srcdst, srcdst, COLOR_BGR2GRAY);
-        Canny(srcdst, srcdst, Canny_low_, Canny_up_, 3);
-        // imshow("step1.", srcdst);//用于调试
-        // ROI设置
-        Mat mm = srcCopy(Rect(0, 0, srcCopy.cols, srcCopy.rows));
-        mm = {Scalar(0, 0, 0)}; // 把ROI中的像素值改为黑色
+        cvtColor(cv_image->image, srcdst, COLOR_BGR2GRAY);
+        std::vector<cv::Ellipse> ellsYaed;
+        yaed_->Detect(srcdst, ellsYaed);
 
-        // 第一次轮廓查找
-        findContours(srcdst, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
-
-        // Mat imageContours = Mat::zeros(mm.size(), CV_8UC1);//创建轮廓展示图像，用于调试
-        // 如果查找到了轮廓
-        if (contours.size())
-        {
-
-            // // 轮廓展示，用于调试
-            // for (int i = 0; i < contours.size(); i++)
-            // {
-            //     drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
-            // }
-            // imshow("Contours_1", imageContours);
-            // 第一次排除
-            for (std::vector<cv::Point> contour : contours)
-            {
-                // 初筛
-                if (contourArea(contour) < con_Area_min_ ||
-                    contour.size() < con_Point_cont_ || contourArea(contour) > con_Area_max_)
-                    continue;
-                // 利用直线斜率处处相等的原理
-                Point2d pt[6];
-                for (int i = 1; i < 5; i++)
-                {
-                    if (contours.size() - 1 < line_Point[5])
-                    {
-                        pt[i] = contour[(int)floor(contours.size() / 4.0) * (i - 1)];
-                    }
-                    else
-                        pt[i] = contour[line_Point[i]];
-                }
-                if (abs(((pt[3].y - pt[1].y) * 1.0 / (pt[3].x - pt[1].x) -
-                         (pt[2].y - pt[1].y) * 1.0 / (pt[2].x - pt[2].x))) < line_threshold)
-                    continue;
-                if (abs(((pt[5].y - pt[3].y) * 1.0 / (pt[5].x - pt[3].x) -
-                         (pt[4].y - pt[3].y) * 1.0 / (pt[4].x - pt[3].x))) < line_threshold)
-                    continue;
-                // // 利用凹凸性的原理
-                // if (!abs((contours[i][0].y + contours[i][20].y) / 2 - contours[i][10].y))
-                //     continue;
-                // drawContours(imageContours, contours, i, Scalar(255), 1, 8, hierarchy);
-                RotatedRect m_ellipsetemp;           // 创建接收椭圆的容器
-                m_ellipsetemp = fitEllipse(contour); // 找到的第一个轮廓，放置到m_ellipsetemp
-                if (m_ellipsetemp.size.width / m_ellipsetemp.size.height < 0.2 ||
-                    m_ellipsetemp.size.height / m_ellipsetemp.size.width < 0.2)
-                    continue;
-                ellipse(mm, m_ellipsetemp, cv::Scalar(255, 255, 255)); // 在图像中绘制椭圆，必要
-                _center = m_ellipsetemp.center;                        // 读取椭圆中心，必要
-                // drawCross(srcCopy, _center, Scalar(255, 0, 0), 30, 2);//绘制中心十字，用于调试
-                // circle(cv_image->image, _center, 1, Scalar(0, 255, 0), -1); // 画半径为1的圆(画点）, 用于调试
-                centers.push_back(_center);
-                m_ellipses.push_back(m_ellipsetemp);
-            }
-            // imshow("Contours_1", imageContours);
-            // imshow("mm", mm); // 显示第一次排除结果，用于调试
-            // cv::waitKey(10);
-            // 颜色标定
-            if (!arr.clustering(centers, m_ellipses) ||
-                !arr.generate_bounding_rect(m_ellipses, cv_image) ||
-                !arr.color_classification(cv_image, white_vmin_))
-                return false;
-            detections.header = image_rect->header;
-            if (!arr.detection(detections, rect, cv_image, show_detections))
-                return false;
-        }
+        EllipseArray arr;
+        // 颜色标定
+        if (!arr.clustering(ellsYaed) ||
+            !arr.generate_bounding_rect(ellsYaed, cv_image) ||
+            !arr.color_classification(cv_image, white_vmin_))
+            return false;
+        detections.header = image_rect->header;
+        if (!arr.detection(detections, rect, cv_image, show_detections))
+            return false;
         if (show_detections && !cv_image->image.empty())
+        {
+            Mat3b srcCopy = cv_image->image;
+            yaed_->DrawDetectedEllipses(srcCopy, ellsYaed);
+            // imshow("Yaed", srcCopy);
+            // waitKey(10);
             debug_image = cv_image->toImageMsg();
+        }
+        // std::vector<double> times = yaed_->GetTimes();
+        // std::cout << "--------------------------------" << std::endl;
+        // std::cout << "Execution Time: " << std::endl;
+        // std::cout << "Edge Detection: \t" << times[0] << std::endl;
+        // std::cout << "Pre processing: \t" << times[1] << std::endl;
+        // std::cout << "Grouping:       \t" << times[2] << std::endl;
+        // std::cout << "Estimation:     \t" << times[3] << std::endl;
+        // std::cout << "Validation:     \t" << times[4] << std::endl;
+        // std::cout << "Clustering:     \t" << times[5] << std::endl;
+        // std::cout << "--------------------------------" << std::endl;
+        // std::cout << "Total:	         \t" << yaed_->GetExecTime() << std::endl;
+        // std::cout << "--------------------------------" << std::endl;
         return true;
     }
 
     bool ArmController::log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
-                                    sensor_msgs::ImagePtr &debug_image)
+                                    sensor_msgs::ImagePtr &debug_image, bool pose)
     {
         static bool flag = true;
         if (flag)
@@ -908,13 +889,22 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_ellipse(image_rect, objArray, debug_image, default_roi_);
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_);
         if (valid)
         {
-            double x = 0, y = 0;
-            if (find_with_color(objArray, color, z_parking_area, x, y))
+            if (pose)
             {
-                ROS_INFO_STREAM("x:" << x << " y:" << y);
+                geometry_msgs::Pose2D pose;
+                if (get_ellipse_pose(objArray, pose))
+                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
+            }
+            else
+            {
+                double x = 0, y = 0;
+                if (find_with_color(objArray, color, z_parking_area, x, y))
+                {
+                    ROS_INFO_STREAM("x:" << x << " y:" << y);
+                }
             }
         }
         return valid;

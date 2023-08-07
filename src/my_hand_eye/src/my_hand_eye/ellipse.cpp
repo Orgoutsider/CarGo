@@ -9,47 +9,49 @@ namespace my_hand_eye
         ellipse_.reserve(3);
     };
 
-    bool EllipseArray::clustering(std::vector<cv::Point2d> &centers, std::vector<cv::RotatedRect> &ellipses)
+    bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses)
     {
-        if (centers.empty() || ellipses.empty())
+        if (ellipses.empty())
+        {
+            ROS_WARN("Could not find ellipse.");
             return false;
+        }
         if (!ellipse_.empty())
             ellipse_.clear();
-        const int MAXN = centers.size() + 10;
+        const int MAXN = ellipses.size() + 10;
         flag_.resize(MAXN, 0);
-        // ROS_INFO_STREAM(centers.size());
         // 聚类
-        for (int i = 0; i < centers.size(); i++)
+        for (int i = 0; i < ellipses.size(); i++)
         {
             if (flag_[i])
                 continue;
-            int x_temp = centers[i].x, y_temp = centers[i].y, count = 1, now = i;
-            for (int j = i + 1; j < centers.size(); j++)
+            double x_temp = ellipses[i]._xc, y_temp = ellipses[i]._yc, score_sum = ellipses[i]._score;
+            int now = i, cnt = 1;
+            for (int j = i + 1; j < ellipses.size(); j++)
             {
-                float thr = std::min<float>(std::min<float>(ellipses[i].size.width, ellipses[i].size.height),
-                                            std::min<float>(ellipses[j].size.width, ellipses[j].size.height)) /
-                            2;
-                if ((abs(centers[i].x - centers[j].x) < thr) &&
-                    (abs(centers[i].y - centers[j].y) < thr) &&
+                double thr = std::min<float>(ellipses[i]._b, ellipses[j]._b) / 2;
+                if ((abs(ellipses[i]._xc - ellipses[j]._xc) < thr) &&
+                    (abs(ellipses[i]._yc - ellipses[j]._yc) < thr) &&
                     !flag_[j])
                 {
 
                     flag_[now] = j;
                     now = j;
-                    x_temp = x_temp + centers[j].x;
-                    y_temp = y_temp + centers[j].y;
-                    count++;
+                    x_temp += ellipses[j]._xc * ellipses[j]._score;
+                    y_temp += ellipses[j]._yc * ellipses[j]._score;
+                    score_sum += ellipses[j]._score;
+                    cnt++;
                 }
-                if (j == centers.size() - 1)
+                if (j == ellipses.size() - 1)
                     flag_[now] = -1;
             }
-            if (i == centers.size() - 1)
+            if (i == ellipses.size() - 1)
                 flag_[now] = -1;
-            if (count > 2)
+            if (cnt >= 2)
             {
                 Ellipse e;
                 // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
-                e.center = cv::Point(x_temp / count, y_temp / count);
+                e.center = cv::Point2d(x_temp / score_sum, y_temp / score_sum);
                 ellipse_.push_back(e);
             }
         }
@@ -57,7 +59,7 @@ namespace my_hand_eye
         return true;
     };
 
-    bool EllipseArray::generate_bounding_rect(std::vector<cv::RotatedRect> &m_ellipses,
+    bool EllipseArray::generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
                                               cv_bridge::CvImagePtr &cv_image)
     {
         if (m_ellipses.empty() || ellipse_.empty())
@@ -70,7 +72,7 @@ namespace my_hand_eye
         {
             if (note[i])
                 continue;
-            int now = i, area_max = (m_ellipses[now].boundingRect()).area(), cnt = 1, ind_max = i;
+            int now = i, area_max = m_ellipses[now]._a * m_ellipses[now]._b, cnt = 1, ind_max = i;
             // ROS_INFO_STREAM(now);
             note[now] = true;
             while (flag_[now] != -1)
@@ -78,13 +80,16 @@ namespace my_hand_eye
                 cnt++;
                 now = flag_[now];
                 note[now] = true;
-                int area_temp = (m_ellipses[now].boundingRect()).area();
+                int area_temp = m_ellipses[now]._a * m_ellipses[now]._b;
                 area_max = (area_max > area_temp) ? area_max : area_temp;
                 ind_max = (area_max > area_temp) ? ind_max : now;
             }
-            if (cnt > 2)
+            if (cnt >= 2)
             {
-                cv::Rect rect = m_ellipses[ind_max].boundingRect();
+                cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a),
+                                         cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a),
+                                         cvCeil(m_ellipses[ind_max]._a) * 2,
+                                         cvCeil(m_ellipses[ind_max]._a) * 2);
                 rect.x = std::max<int>(rect.x, 0);
                 rect.y = std::max<int>(rect.y, 0);
                 rect.width = std::min<int>(rect.width, cv_image->image.cols - rect.x);
@@ -119,7 +124,7 @@ namespace my_hand_eye
             cv::Mat mask;
             // 保存当前区域色相H的平均值
             double H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin, mask);
-            // ROS_INFO_STREAM("H_Average:" << H_Average << " cnt:" << cnt << " " << mask.cols * mask.rows);
+            // ROS_INFO_STREAM("H_Average:" << H_Average);
             int id = color_red;
             double max_hyp = 0;
             for (int color = color_red; color <= color_blue; color++)
@@ -151,8 +156,8 @@ namespace my_hand_eye
             if (e.hypothesis > hyp_max[e.color])
             {
                 vision_msgs::BoundingBox2D obj = vision_msgs::BoundingBox2D();
-                obj.center.x = e.center.x + roi.x;
-                obj.center.y = e.center.y + roi.y;
+                obj.center.x = e.center.x / cv_image->image.cols * roi.width + roi.x;
+                obj.center.y = e.center.y / cv_image->image.rows * roi.height + roi.y;
                 obj.size_x = e.rect_target.width;
                 obj.size_y = e.rect_target.height;
                 objArray.boxes[e.color] = obj;

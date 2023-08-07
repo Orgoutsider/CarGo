@@ -1,12 +1,13 @@
 #ifndef _MY_EYE_H_
 #define _MY_EYE_H_
 
-#include "my_hand_eye/arm_controller.h"
 #include <actionlib/server/simple_action_server.h>
 #include <dynamic_reconfigure/server.h>
 #include <my_hand_eye/ArrayofTaskArrays.h>
 #include <my_hand_eye/ArmAction.h>
 #include <my_hand_eye/drConfig.h>
+
+#include "my_hand_eye/arm_controller.h"
 
 namespace my_hand_eye
 {

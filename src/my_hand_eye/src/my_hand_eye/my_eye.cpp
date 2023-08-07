@@ -68,24 +68,38 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		if (!as_.isActive())
-			return;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		bool valid = false;
-		switch (arm_goal_.route)
-		{
-		case arm_goal_.route_rest:
-			return;
+		// if (!as_.isActive())
+		// 	return;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// bool valid = false;
+		// switch (arm_goal_.route)
+		// {
+		// case arm_goal_.route_rest:
+		// 	return;
 
-		case arm_goal_.route_raw_material_area:
-			valid = operate_center(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_raw_material_area:
+		// 	valid = operate_center(image_rect, debug_image);
+		// 	break;
 
-		default:
-			return;
-		}
-		if (valid && arm_controller_.show_detections)
-			debug_image_publisher_.publish(debug_image);
+		// case arm_goal_.route_roughing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
+
+		// case arm_goal_.route_semi_finishing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
+
+		// case arm_goal_.route_parking_area:
+		// 	break;
+
+		// case arm_goal_.route_border:
+		// 	break;
+
+		// default:
+		// 	return;
+		// }
+		// if (valid && arm_controller_.show_detections)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// // 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -96,15 +110,6 @@ namespace my_hand_eye
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_extrinsics_correction(image_rect, -6.18287, 20.3357, arm_controller_.z_turntable, color_blue, debug_image);
-		// if (arm_controller_.show_detections)
-		// 	debug_image_publisher_.publish(debug_image);
-
-		// 目标跟踪
-		// static bool first = true;
-		// Color color = color_blue;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// double x, y;
-		// arm_controller_.track(image_rect, color, first, x, y, debug_image);
 		// if (arm_controller_.show_detections)
 		// 	debug_image_publisher_.publish(debug_image);
 		//
@@ -120,15 +125,11 @@ namespace my_hand_eye
 		// }
 
 		// 椭圆识别
-		// static bool finish = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double u, v;
-		// 	arm_controller_.log_ellipse(image_rect, color_red, debug_image);
-		// 	if (arm_controller_.show_detections)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
+		static bool finish = false;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		arm_controller_.log_ellipse(image_rect, color_red, debug_image, true);
+		if (arm_controller_.show_detections)
+			debug_image_publisher_.publish(debug_image);
 
 		// 边界线查找
 		// static bool finish = false;

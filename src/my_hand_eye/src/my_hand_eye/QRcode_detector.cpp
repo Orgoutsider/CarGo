@@ -1,6 +1,9 @@
-#include "my_hand_eye/QRcode_detector.h"
-
+#include <opencv2/opencv.hpp>
+#include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.hpp>
+#include <my_hand_eye/ArrayofTaskArrays.h>
+
+#include "my_hand_eye/QRcode_detector.h"
 
 PLUGINLIB_EXPORT_CLASS(my_hand_eye::QRcodeDetector, nodelet::Nodelet);
 

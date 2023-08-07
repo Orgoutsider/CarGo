@@ -12,8 +12,6 @@
 #define ARM_MAX_LEN ((ARM_A0) + (ARM_A2) + (ARM_A3) + sqrt((ARM_A4) * (ARM_A4) + (ARM_A5) * (ARM_A5)))
 #define ARM_MAX_HIGH ((ARM_A1) + (ARM_A2) + (ARM_A3) + sqrt((ARM_A4) * (ARM_A4) + (ARM_A5) * (ARM_A4)))
 
-#include <ros/ros.h>
-
 namespace my_hand_eye
 {
     class Angle

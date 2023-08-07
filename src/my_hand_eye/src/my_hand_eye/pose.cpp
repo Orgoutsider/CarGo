@@ -1,5 +1,8 @@
 #include "my_hand_eye/pose.h"
 
+#include <ros/ros.h>
+#include <ros/console.h>
+
 namespace my_hand_eye
 {
     ArmPose::ArmPose() : empty(true){};

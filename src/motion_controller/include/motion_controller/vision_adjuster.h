@@ -4,11 +4,9 @@
 #include <ros/ros.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
-#include <geometry_msgs/PoseStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <dynamic_reconfigure/server.h>
 #include <my_hand_eye/Pose2DMightEnd.h>
-#include <motion_controller/TwistMightEnd.h>
 #include <motion_controller/params_PID_visionConfig.h>
 
 #include "motion_controller/pid_controller.h"

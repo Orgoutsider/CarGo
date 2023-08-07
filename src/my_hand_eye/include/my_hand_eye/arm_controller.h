@@ -1,14 +1,12 @@
 #ifndef _ARM_CONTROLLER_H_
 #define _ARM_CONTROLLER_H_
+#include <sensor_msgs/Image.h>
+#include <image_transport/image_transport.h>
+
 #include "my_hand_eye/square.h"
 #include "my_hand_eye/ellipse.h"
 #include "my_hand_eye/border.h"
 #include "my_hand_eye/target_pose.h"
-
-#include <XmlRpcException.h>
-#include <sensor_msgs/Image.h>
-#include <image_transport/image_transport.h>
-#include <yolov5_ros/cargoSrv.h>
 
 namespace my_hand_eye
 {
@@ -33,9 +31,11 @@ namespace my_hand_eye
         ros::ServiceClient plot_client_;  // 运动范围绘制
         cv::Rect default_roi_;            // 默认截图矩形
         cv::Rect border_roi_;             // 边界截图矩形
+        cv::Rect ellipse_roi_;            // 椭圆截图矩形
         cv_bridge::CvImage cv_image_;
         std::vector<double> cargo_x_;
         std::vector<double> cargo_y_;
+        cv::CEllipseDetectorYaed *yaed_;
         const int Gauss_size_ = 3; // 高斯平滑内核大小
         const int Canny_low_ = 50; // 第一次Canny边缘查找的第一滞后因子
         const int Canny_up_ = 100; // 第一次Canny边缘查找的第二滞后因子
@@ -100,7 +100,7 @@ namespace my_hand_eye
         bool find_points_with_height(double h, bool done);
         // 椭圆识别，摄像头测试
         bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
-                         sensor_msgs::ImagePtr &debug_image);
+                         sensor_msgs::ImagePtr &debug_image, bool pose = false);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);

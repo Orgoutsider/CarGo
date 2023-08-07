@@ -1,10 +1,8 @@
 #ifndef _QRCODE_DETECTOR_H_
 #define _QRCODE_DETECTOR_H_
-#include "my_hand_eye/arm_controller.h"
 
-#include <nodelet/nodelet.h>
+#include <ros/ros.h>
 #include <std_msgs/String.h>
-#include <my_hand_eye/ArrayofTaskArrays.h>
 
 namespace my_hand_eye
 {

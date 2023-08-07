@@ -1,4 +1,5 @@
 #include "my_hand_eye/target_pose.h"
+#include "my_hand_eye/backward_kinematics.h"
 
 namespace my_hand_eye
 {
@@ -22,36 +23,36 @@ namespace my_hand_eye
         tolerance[target_ellipse].y = 0.01;
     }
 
-    void TargetPose::calc(geometry_msgs::Pose2D &pme_arm, Pose2DMightEnd &pme_target)
+    void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target)
     {
         static int err_cnt = 0;
         // cm转化成m并转换坐标系
-        pme_target.pose.theta = (pose[target].theta == pme_target.not_change)
-                                    ? pme_target.not_change
-                                    : (pme_arm.theta - pose[target].theta);
-        pme_target.pose.x = (pose[target].x == pme_target.not_change)
-                                ? pme_target.not_change
-                                : (pme_arm.y * 0.01 - pose[target].x);
-        pme_target.pose.y = (pose[target].y == pme_target.not_change)
-                                ? pme_target.not_change
-                                : (-pme_arm.x * 0.01 - pose[target].y);
-        if (abs(pme_target.pose.theta) <= tolerance[target].theta &&
-            abs(pme_target.pose.x) <= tolerance[target].x && 
-            abs(pme_target.pose.y) <= tolerance[target].y)
+        pose_target.pose.theta = (pose[target].theta == pose_target.not_change)
+                                    ? pose_target.not_change
+                                    : (pose_arm.theta - pose[target].theta);
+        pose_target.pose.x = (pose[target].x == pose_target.not_change)
+                                ? pose_target.not_change
+                                : (pose_arm.y * 0.01 - pose[target].x);
+        pose_target.pose.y = (pose[target].y == pose_target.not_change)
+                                ? pose_target.not_change
+                                : (-pose_arm.x * 0.01 - pose[target].y);
+        if (abs(pose_target.pose.theta) <= tolerance[target].theta &&
+            abs(pose_target.pose.x) <= tolerance[target].x && 
+            abs(pose_target.pose.y) <= tolerance[target].y)
         {
             err_cnt++;
-            pme_target.pose.theta = pme_target.pose.x = pme_target.pose.y = pme_target.not_change;
+            pose_target.pose.theta = pose_target.pose.x = pose_target.pose.y = pose_target.not_change;
             if (err_cnt > 1)
             {
-                pme_target.end = true;    
+                pose_target.end = true;    
                 err_cnt = 0;           
             }
             else
-                pme_target.end = false;
+                pose_target.end = false;
         }
         else
         {
-            pme_target.end = false;
+            pose_target.end = false;
             if (err_cnt)
                 err_cnt = 0;
         }
