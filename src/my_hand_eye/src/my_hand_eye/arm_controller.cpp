@@ -2,8 +2,6 @@
 #include <numeric>
 #include <yolov5_ros/cargoSrv.h>
 
-#include "detect.h"
-#include "types.hpp"
 #include "my_hand_eye/arm_controller.h"
 
 namespace my_hand_eye
@@ -97,6 +95,36 @@ namespace my_hand_eye
         cargo_x_.reserve(3);
         cargo_y_.reserve(3);
         nh_ = &nh;
+        yaed_ = std::shared_ptr<cv::CEllipseDetectorYaed>(
+            new cv::CEllipseDetectorYaed());
+        // Parameters Settings (Sect. 4.2)
+        int iThLength = 16;
+        float fThObb = 3.0f;
+        float fThPos = 1.0f;
+        float fTaoCenters = 0.05f;
+        int iNs = 16;
+        float fMaxCenterDistance = sqrt(float(ellipse_roi_.width * ellipse_roi_.width + ellipse_roi_.height * ellipse_roi_.height)) * fTaoCenters;
+
+        float fThScoreScore = 0.7f;
+
+        // Other constant parameters settings.
+
+        // Gaussian filter parameters, in pre-processing
+        cv::Size szPreProcessingGaussKernelSize = cv::Size(5, 5);
+        double dPreProcessingGaussSigma = 1.0;
+
+        float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
+        float fMinReliability = 0.5;            // Const parameters to discard bad ellipses
+        yaed_->SetParameters(szPreProcessingGaussKernelSize,
+                             dPreProcessingGaussSigma,
+                             fThPos,
+                             fMaxCenterDistance,
+                             iThLength,
+                             fThObb,
+                             fDistanceToEllipseContour,
+                             fThScoreScore,
+                             fMinReliability,
+                             iNs);
     }
 
     bool ArmController::add_image(const sensor_msgs::ImageConstPtr &image_rect, cv_bridge::CvImagePtr &image)
@@ -800,47 +828,63 @@ namespace my_hand_eye
             return false;
         cv_image->image = cv_image->image(rect);
         using namespace cv;
-        Mat srcdst, srcCopy; // 从相机传进来需要两张图片
-        std::vector<std::shared_ptr<zgh::Ellipse>> ells;
+        Mat1b srcdst; // 从相机传进来需要两张图片
+        std::vector<cv::Ellipse> ells;
         // Point2d _center;                            // 椭圆中心
         // std::vector<Point2d> centers;               // 椭圆中心容器
         // std::vector<std::vector<Point2i>> contours; // 创建容器，存储轮廓
         // std::vector<Vec4i> hierarchy;               // 寻找轮廓所需参数
         // std::vector<RotatedRect> m_ellipses;        // 第一次初筛后椭圆容器
         // EllipseArray arr;
-        double width = 2.0;
-
         // 直线斜率处处相等原理的相关参数
-        int line_Point[6] = {0, 0, 10, 20, 30, 40}; // 表示围成封闭轮廓点的序号，只要不太离谱即可
-        const int line_threshold = 0.5;             // 判定阈值，小于即判定为直线
-
+        // int line_Point[6] = {0, 0, 10, 20, 30, 40}; // 表示围成封闭轮廓点的序号，只要不太离谱即可
+        // const int line_threshold = 0.5;             // 判定阈值，小于即判定为直线
         // resize(cv_image->image, srcdst, cv_image->image.size() / 2); // 重设大小，可选
-        srcdst = cv_image->image.clone();
-        srcCopy = srcdst.clone();
+        // srcdst = cv_image->image.clone();
+        // srcCopy = srcdst.clone();
 
         // 第一次预处理
         // GaussianBlur(srcdst, srcdst, Size(Gauss_size_, Gauss_size_), 0, 0);
-        cvtColor(srcdst, srcdst, COLOR_BGR2GRAY);
-        zgh::FuncTimerDecorator<int>("detectEllipse")(zgh::detectEllipse, srcdst.data,
-                                                      srcdst.rows, srcdst.cols, ells, NONE_POL, width);
+        cvtColor(cv_image->image, srcdst, COLOR_BGR2GRAY);
+        double width = 2.0;
+        std::vector<cv::Ellipse> ellsYaed;
+        yaed_->Detect(srcdst, ellsYaed);
+        std::vector<double> times = yaed_->GetTimes();
+        std::cout << "--------------------------------" << std::endl;
+        std::cout << "Execution Time: " << std::endl;
+        std::cout << "Edge Detection: \t" << times[0] << std::endl;
+        std::cout << "Pre processing: \t" << times[1] << std::endl;
+        std::cout << "Grouping:       \t" << times[2] << std::endl;
+        std::cout << "Estimation:     \t" << times[3] << std::endl;
+        std::cout << "Validation:     \t" << times[4] << std::endl;
+        std::cout << "Clustering:     \t" << times[5] << std::endl;
+        std::cout << "--------------------------------" << std::endl;
+        std::cout << "Total:	         \t" << yaed_->GetExecTime() << std::endl;
+        std::cout << "--------------------------------" << std::endl;
+        Mat3b srcCopy = cv_image->image;
+        yaed_->DrawDetectedEllipses(srcCopy, ellsYaed);
+        imshow("Yaed", srcCopy);
+		waitKey(10);
+        // zgh::FuncTimerDecorator<int>("detectEllipse")(zgh::detectEllipse, srcdst.data,
+        //                                               srcdst.rows, srcdst.cols, ells, NONE_POL, width);
         // if (ells.size())
         // {
         //     for (std::shared_ptr<zgh::Ellipse> &ell : ells)
         //     {
-                // ROS_INFO_STREAM("coverangle : " << ell->coverangle << ",\tgoodness : " << ell->goodness << ",\tpolarity : " << ell->polarity);
-                // RotatedRect m_ellipsetemp; // 创建接收椭圆的容器
-                // m_ellipsetemp.center = cv::Point(ell->o.y, ell->o.x);
-                // m_ellipsetemp.size = cv::Size(ell->a, ell->b);
-                // m_ellipsetemp.angle = zgh::rad2angle(ell->phi);
-                // ellipse(srcCopy, cv::Point(ell->o.y, ell->o.x),
-                //         cv::Size(ell->a, ell->b),
-                //         zgh::rad2angle(PI_2 - ell->phi),
-                //         0,
-                //         360,
-                //         cv::Scalar(0, 255, 0),
-                //         width,
-                //         8,
-                //         0); // 在图像中绘制椭圆
+        // ROS_INFO_STREAM("coverangle : " << ell->coverangle << ",\tgoodness : " << ell->goodness << ",\tpolarity : " << ell->polarity);
+        // RotatedRect m_ellipsetemp; // 创建接收椭圆的容器
+        // m_ellipsetemp.center = cv::Point(ell->o.y, ell->o.x);
+        // m_ellipsetemp.size = cv::Size(ell->a, ell->b);
+        // m_ellipsetemp.angle = zgh::rad2angle(ell->phi);
+        // ellipse(srcCopy, cv::Point(ell->o.y, ell->o.x),
+        //         cv::Size(ell->a, ell->b),
+        //         zgh::rad2angle(PI_2 - ell->phi),
+        //         0,
+        //         360,
+        //         cv::Scalar(0, 255, 0),
+        //         width,
+        //         8,
+        //         0); // 在图像中绘制椭圆
         //     }
         // }
         // imshow("ellipse", srcCopy);

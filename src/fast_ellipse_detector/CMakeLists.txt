@@ -1,34 +1,17 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(my_hand_eye)
+project(fast_ellipse_detector)
+
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  nodelet
-  cv_bridge
-  image_transport
-  geometry_msgs
-  genmsg
-  vision_msgs
-  sensor_msgs
-  message_generation
-  yolov5_ros
-  actionlib
-  actionlib_msgs
-  dynamic_reconfigure
-  fast_ellipse_detector
-)
-set(OpenCV required PATHS /home/nano/opencv4/opencv/build)
-find_package(OpenCV REQUIRED)
+find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenCV REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -61,34 +44,31 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  TaskArray.msg
-  ArrayofTaskArrays.msg
-  Point.msg
-  PointArray.msg
-  Pose2DMightEnd.msg
-)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  Plot.srv
-)
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
 
 ## Generate actions in the 'action' folder
-add_action_files(
-  FILES
-  Arm.action
-)
+# add_action_files(
+#   FILES
+#   Action1.action
+#   Action2.action
+# )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  actionlib_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,9 +85,10 @@ generate_messages(
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-generate_dynamic_reconfigure_options(
-  cfg/arm.cfg
-)
+# generate_dynamic_reconfigure_options(
+#   cfg/DynReconf1.cfg
+#   cfg/DynReconf2.cfg
+# )
 
 ###################################
 ## catkin specific configuration ##
@@ -120,8 +101,8 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_QR_code
- CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime geometry_msgs genmsg vision_msgs sensor_msgs actionlib actionlib_msgs fast_ellipse_detector
+ LIBRARIES fast_ellipse_detector
+#  CATKIN_DEPENDS other_catkin_pkg
  DEPENDS OpenCV
 )
 
@@ -133,62 +114,29 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 include
-  ${catkin_INCLUDE_DIRS}
-  /usr/local/include/opencv4
+${catkin_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
-# add_library(${PROJECT_NAME} src/nijie.cpp src/pos.cpp src/SCS.cpp src/SCSCL.cpp src/SCSerial.cpp src/SMS_STS.cpp src/SMSBL.cpp src/SMSCL.cpp)
+# Declare a C++ library
+add_library(${PROJECT_NAME}
+  src/${PROJECT_NAME}/common.cpp
+  src/${PROJECT_NAME}/EllipseDetectorYaed.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-# target_link_libraries(${PROJECT_NAME}
-#   ${catkin_LIBRARIES}
-#   ${OpenCV_LIBRARIES}
-# )
-
-file(GLOB OpenCV_LIBRARIES /usr/local/lib/*.so)
-
-add_library(${PROJECT_NAME} 
-  src/${PROJECT_NAME}/arm_controller.cpp 
-  src/${PROJECT_NAME}/backward_kinematics.cpp 
-  src/${PROJECT_NAME}/border.cpp 
-  src/${PROJECT_NAME}/cargo_table.cpp 
-  src/${PROJECT_NAME}/ellipse.cpp 
-  src/${PROJECT_NAME}/color_tracker.cpp
-  src/${PROJECT_NAME}/pose.cpp 
-  src/${PROJECT_NAME}/my_eye.cpp
-  src/${PROJECT_NAME}/square.cpp
-  src/${PROJECT_NAME}/target_pose.cpp
-  src/${PROJECT_NAME}/SCS.cpp 
-  src/${PROJECT_NAME}/SCSCL.cpp 
-  src/${PROJECT_NAME}/SCSerial.cpp 
-  src/${PROJECT_NAME}/SMS_STS.cpp 
-  src/${PROJECT_NAME}/SMSBL.cpp 
-  src/${PROJECT_NAME}/SMSCL.cpp
-)
-
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
 
-add_library(${PROJECT_NAME}_QR_code src/${PROJECT_NAME}/QRcode_detector.cpp)
-add_dependencies(${PROJECT_NAME}_QR_code ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_QR_code
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-
-# target_include_directories(car_go_arm  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/fast_ellipse_detector_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -198,68 +146,12 @@ target_link_libraries(${PROJECT_NAME}_QR_code
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_ping_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_ping_node
-#   ${PROJECT_NAME}
+# target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-
-add_executable(${PROJECT_NAME}_ping_node src/${PROJECT_NAME}_ping_node.cpp)
-add_dependencies(${PROJECT_NAME}_ping_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_ping_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_QR_code_node src/${PROJECT_NAME}_QR_code_node.cpp)
-add_dependencies(${PROJECT_NAME}_QR_code_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_QR_code_node
-  ${PROJECT_NAME}_QR_code
-  ${catkin_LIBRARIES} 
-)
-
-add_executable(${PROJECT_NAME}_move_node src/${PROJECT_NAME}_move_node.cpp)
-add_dependencies(${PROJECT_NAME}_move_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_move_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_client_node src/${PROJECT_NAME}_client_node.cpp)
-add_dependencies(${PROJECT_NAME}_client_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_client_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_remember_node src/${PROJECT_NAME}_remember_node.cpp)
-add_dependencies(${PROJECT_NAME}_remember_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_remember_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_plot_client_node src/${PROJECT_NAME}_plot_client_node.cpp)
-add_dependencies(${PROJECT_NAME}_plot_client_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_plot_client_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_do_node src/${PROJECT_NAME}_do_node.cpp)
-add_dependencies(${PROJECT_NAME}_do_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_do_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_tasks_node src/${PROJECT_NAME}_tasks_node.cpp)
-add_dependencies(${PROJECT_NAME}_tasks_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME}_tasks_node
-  ${catkin_LIBRARIES}
-)
 
 #############
 ## Install ##
@@ -274,10 +166,6 @@ target_link_libraries(${PROJECT_NAME}_tasks_node
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
-catkin_install_python(PROGRAMS
-  scripts/plot_srv.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -312,7 +200,7 @@ catkin_install_python(PROGRAMS
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_my_hand_eye.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_fast_ellipse_detector.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
