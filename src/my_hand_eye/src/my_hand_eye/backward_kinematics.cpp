@@ -123,6 +123,16 @@ namespace my_hand_eye
 
     Action::Action(double x, double y, double z) : x(x), y(y), z(z) {}
 
+    Action Action::front2left()
+    {
+        return Action(-y - ARM_P, -ARM_P + x, z);
+    }
+
+    Action Action::arm2footprint()
+    {
+        return Action(0.01 * y, -0.01 * x, z);
+    }
+
     Axis::Axis() : expand_y(false) {}
 
     double Axis::height()

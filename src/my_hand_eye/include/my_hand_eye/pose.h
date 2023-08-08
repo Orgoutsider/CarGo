@@ -30,8 +30,6 @@ namespace my_hand_eye
         ArmPose();
     };
 
-    Action front2left(Action &ac);
-
     class Pos : public Axis
     {
     private:

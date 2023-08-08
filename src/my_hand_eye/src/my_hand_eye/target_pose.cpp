@@ -6,8 +6,9 @@ namespace my_hand_eye
     TargetPose::TargetPose() : target(target_center)
     {
         pose[target_center].theta = Pose2DMightEnd::not_change;
-        pose[target_center].x = 0.325;
-        pose[target_center].y = 0;
+        Action center = Action(0, 32.5, 0).arm2footprint();
+        pose[target_center].x = center.x;
+        pose[target_center].y = center.y;
 
         // 偏差必须大于0.01
         tolerance[target_center].theta = Pose2DMightEnd::not_change;
@@ -15,8 +16,9 @@ namespace my_hand_eye
         tolerance[target_center].y = 0.015;
 
         pose[target_ellipse].theta = 0;
-        pose[target_ellipse].x = -ARM_P * 0.01;
-        pose[target_ellipse].y = 0.333;
+        Action ellipse = Action(0, 19.3, 0).front2left().arm2footprint();
+        pose[target_ellipse].x = ellipse.x;
+        pose[target_ellipse].y = ellipse.y;
 
         tolerance[target_ellipse].theta = 0.02;
         tolerance[target_ellipse].x = 0.01;
@@ -26,26 +28,26 @@ namespace my_hand_eye
     void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target)
     {
         static int err_cnt = 0;
-        // cm转化成m并转换坐标系
+        Action a = Action(pose_arm.x, pose_arm.y, 0).arm2footprint();
         pose_target.pose.theta = (pose[target].theta == pose_target.not_change)
-                                    ? pose_target.not_change
-                                    : (pose_arm.theta - pose[target].theta);
+                                     ? pose_target.not_change
+                                     : (pose_arm.theta - pose[target].theta);
         pose_target.pose.x = (pose[target].x == pose_target.not_change)
-                                ? pose_target.not_change
-                                : (pose_arm.y * 0.01 - pose[target].x);
+                                 ? pose_target.not_change
+                                 : (a.x - pose[target].x);
         pose_target.pose.y = (pose[target].y == pose_target.not_change)
-                                ? pose_target.not_change
-                                : (-pose_arm.x * 0.01 - pose[target].y);
+                                 ? pose_target.not_change
+                                 : (a.y - pose[target].y);
         if (abs(pose_target.pose.theta) <= tolerance[target].theta &&
-            abs(pose_target.pose.x) <= tolerance[target].x && 
+            abs(pose_target.pose.x) <= tolerance[target].x &&
             abs(pose_target.pose.y) <= tolerance[target].y)
         {
             err_cnt++;
             pose_target.pose.theta = pose_target.pose.x = pose_target.pose.y = pose_target.not_change;
             if (err_cnt > 1)
             {
-                pose_target.end = true;    
-                err_cnt = 0;           
+                pose_target.end = true;
+                err_cnt = 0;
             }
             else
                 pose_target.end = false;

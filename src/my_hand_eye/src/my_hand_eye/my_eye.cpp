@@ -353,10 +353,16 @@ namespace my_hand_eye
 			arm_controller_.z_parking_area = config.z_parking_area;
 		if (arm_controller_.threshold != config.threshold)
 			arm_controller_.threshold = config.threshold;
-		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x != config.target_x)
-			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x = config.target_x;
-		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y != config.target_y)
-			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y = config.target_y;
+		Action a;
+		if (arm_controller_.target_pose.target == arm_controller_.target_pose.target_ellipse ||
+			arm_controller_.target_pose.target == arm_controller_.target_pose.target_border)
+			a = Action(config.target_x, config.target_y, 0).front2left().arm2footprint();
+		else
+			a = Action(config.target_x, config.target_y, 0).arm2footprint();
+		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x != a.x)
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x = a.x;
+		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y != a.y)
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y = a.y;
 		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta !=
 			config.target_theta_deg / 180 * CV_PI)
 			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta =

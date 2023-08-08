@@ -20,13 +20,14 @@ namespace my_hand_eye
         double deg;
         int state; // 目前角度计算是否出错
         static double degree(double rad);
+
     public:
         const int error = 1;
         const int normal = 0;
-        Angle(double deg);           // 角度值
+        Angle(double deg);                        // 角度值
         static Angle atan2(double v1, double v2); // atan2
-        double _get_degree();        // 获得角度值
-        double rad();                // 转弧度制
+        double _get_degree();                     // 获得角度值
+        double rad();                             // 转弧度制
         double cos();
         double sin();
         void _j_degree_convert(int joint);     // 将j1-j4和机械臂的角度互换
@@ -40,12 +41,18 @@ namespace my_hand_eye
         bool operator>(const Angle &t);        // 重载>
         bool operator<(const Angle &t);        // 重载<
     };
-    struct Action
+
+    class Action
     {
+    public:
         double x, y, z;
         Action();
         Action(double x, double y, double z);
+        Action front2left();
+        // cm转化成m并转换坐标系
+        Action arm2footprint();
     };
+
     class Axis : public Action
     {
     private:

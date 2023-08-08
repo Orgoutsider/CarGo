@@ -7,11 +7,6 @@ namespace my_hand_eye
 {
     ArmPose::ArmPose() : empty(true){};
 
-    Action front2left(Action &ac)
-    {
-        return Action(-ac.y - ARM_P, -ARM_P + ac.x, ac.z);
-    }
-
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : tightness(cat), look_(look),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr),
@@ -76,7 +71,7 @@ namespace my_hand_eye
             action_default = Action((double)action[0], (double)action[1], (double)action[2]);
             ROS_INFO_STREAM("Set action " << name);
             ARM_INFO_XYZ(action_default);
-            action_left = front2left(action_default);
+            action_left = action_default.front2left();
             ROS_INFO("Set action left");
             ARM_INFO_XYZ(action_left);
         }
@@ -85,7 +80,7 @@ namespace my_hand_eye
             action_back = Action((double)action[0], (double)action[1], (double)action[2]);
             ROS_INFO_STREAM("Set action " << name);
             ARM_INFO_XYZ(action_back);
-            action_right = front2left(action_back);
+            action_right = action_back.front2left();
             ROS_INFO("Set action right");
             ARM_INFO_XYZ(action_right);
         }
