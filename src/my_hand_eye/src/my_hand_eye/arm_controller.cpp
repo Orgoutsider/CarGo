@@ -106,7 +106,7 @@ namespace my_hand_eye
         int iNs = 16;
         float fMaxCenterDistance = sqrt(float(ellipse_roi_.width * ellipse_roi_.width + ellipse_roi_.height * ellipse_roi_.height)) * fTaoCenters;
 
-        float fThScoreScore = 0.8f;
+        float fThScoreScore = 0.5f;
 
         // Other constant parameters settings.
 
@@ -115,7 +115,7 @@ namespace my_hand_eye
         double dPreProcessingGaussSigma = 1.0;
 
         float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
-        float fMinReliability = 0.6f;           // Const parameters to discard bad ellipses
+        float fMinReliability = 0.5f;           // Const parameters to discard bad ellipses
         yaed_->SetParameters(szPreProcessingGaussKernelSize,
                              dPreProcessingGaussSigma,
                              fThPos,
@@ -832,7 +832,7 @@ namespace my_hand_eye
         using namespace cv;
         Mat1b srcdst; // 从相机传进来需要两张图片
         std::vector<cv::Ellipse> ells;
-        resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 1.7, cv_image->image.rows / 1.7)); // 重设大小，可选
+        resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2)); // 重设大小，可选
         // 第一次预处理
         cvtColor(cv_image->image, srcdst, COLOR_BGR2GRAY);
         std::vector<cv::Ellipse> ellsYaed;
@@ -991,7 +991,7 @@ namespace my_hand_eye
             return false;
         vision_msgs::BoundingBox2DArray objArray;
         geometry_msgs::Pose2D pose;
-        bool valid = detect_ellipse(image_rect, objArray, debug_image, default_roi_) &&
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
                      get_ellipse_pose(objArray, pose);
         if (valid)
         {

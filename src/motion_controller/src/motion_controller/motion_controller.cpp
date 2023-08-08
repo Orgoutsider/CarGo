@@ -280,8 +280,8 @@ namespace motion_controller
         {
             MoveGoal goal;
             goal.pose = feedback->pme.pose;
-            ROS_INFO_STREAM("x:" << goal.pose.x << " y:" << goal.pose.y << " theta:" << goal.pose.theta);
-            // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            ROS_INFO_STREAM("First move... x:" << goal.pose.x << " y:" << goal.pose.y << " theta:" << goal.pose.theta);
+            ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
         }
     }
 
