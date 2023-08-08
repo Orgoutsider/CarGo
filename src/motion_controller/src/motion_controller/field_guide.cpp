@@ -8,10 +8,11 @@ namespace motion_controller
 {
   FieldGuide::FieldGuide()
       : route_({route_QR_code_board, route_raw_material_area, route_border,
-                route_roughing_area, route_border, route_semi_finishing_area, 
+                route_roughing_area, route_border, route_semi_finishing_area,
                 route_border, route_raw_material_area, route_border,
                 route_roughing_area, route_border, route_semi_finishing_area, route_border,
                 route_parking_area}),
+        dr_route_(route_rest),
         doing_(false), where_(0), left_(true),
         x_(0), y_(0), theta_(0), loop_(0),
         length_car_(0.296), width_road_(0.45), length_field_(2),
@@ -19,9 +20,14 @@ namespace motion_controller
         y_roughing_area_(1.15), x_semi_finishing_area_(1.2),
         length_parking_area_(0.3), y_road_up_up_(0.078), y_parking_area_(0.7) {}
 
-  int FieldGuide::where_is_car() const 
+  int FieldGuide::where_is_car(bool debug, bool startup) const
   {
-    return route_[where_];
+    if (!debug)
+      return route_[where_];
+    else if (startup)
+      return dr_route_;
+    else
+      return route_rest;
   }
 
   void FieldGuide::doing()
@@ -29,11 +35,11 @@ namespace motion_controller
     doing_ = true;
   }
 
-  void FieldGuide::finish()
+  void FieldGuide::finished()
   {
     if (where_ + 1 < route_.size())
     {
-      if (loop_ == 0 && where_is_car() == route_semi_finishing_area)
+      if (loop_ == 0 && where_is_car(false) == route_semi_finishing_area)
         loop_++;
       where_++;
       doing_ = false;
@@ -42,18 +48,18 @@ namespace motion_controller
       ROS_WARN("route_ is out of range!");
   }
 
-  bool FieldGuide::arrive() const
+  bool FieldGuide::arrived() const
   {
     if (doing_)
       return false;
-    switch (where_is_car())
+    switch (where_is_car(false))
     {
     case route_QR_code_board:
       return x_ > x_QR_code_board_ - 0.1 && y_ < y_road_up_up_ + width_road_ - length_car_ / 2;
-    
+
     case route_raw_material_area:
       return abs(x_ - x_raw_material_area_) < 0.1 && y_ < y_road_up_up_ + width_road_ - length_car_ / 2;
-    
+
     case route_roughing_area:
       return y_ > y_roughing_area_ - 0.1 && x_ > length_field_ - width_road_ + length_car_ / 2;
 
@@ -62,7 +68,7 @@ namespace motion_controller
 
     case route_parking_area:
       return y_ < y_parking_area_ + 0.1 && x_ < width_road_ - length_car_ / 2;
-    
+
     default:
       ROS_ERROR("where_is_car returns invalid value!");
       return false;
@@ -71,12 +77,12 @@ namespace motion_controller
 
   bool FieldGuide::can_turn() const
   {
-    return (loop_ == 1 && y_ > y_road_up_up_ + width_road_ && where_is_car() == route_raw_material_area);
+    return (loop_ == 1 && y_ > y_road_up_up_ + width_road_ && where_is_car(false) == route_raw_material_area);
   }
 
   double FieldGuide::length_route() const
   {
-    switch (where_is_car())
+    switch (where_is_car(false))
     {
     case route_QR_code_board:
       return abs(x_QR_code_board_ - x_);
@@ -92,7 +98,7 @@ namespace motion_controller
 
     case route_parking_area:
       return abs(y_parking_area_ - y_);
-    
+
     default:
       ROS_ERROR("where_is_car returns invalid value!");
       return 0.5;
@@ -117,7 +123,7 @@ namespace motion_controller
         return y_ - (y_road_up_up_ + width_road_ / 2);
       else
         return x_ - width_road_ / 2;
-    
+
     case 11:
       if (left_)
         return (length_field_ - width_road_ / 2) - x_;
@@ -133,7 +139,7 @@ namespace motion_controller
     case 7:
       if (left_)
         return x_ - width_road_ / 2;
-      else 
+      else
         return (y_road_up_up_ + length_field_ - width_road_ / 2) - y_;
 
     default:
@@ -160,7 +166,7 @@ namespace motion_controller
         return -theta_;
       else
         return -(theta_ - M_PI / 2);
-    
+
     case 11:
       if (left_)
         return M_PI / 2 - theta_;
@@ -176,7 +182,7 @@ namespace motion_controller
     case 7:
       if (left_)
         return -theta_ - M_PI / 2;
-      else 
+      else
         return -theta_;
 
     default:
@@ -187,7 +193,8 @@ namespace motion_controller
 
   double FieldGuide::angle_U_turn() const
   {
-    if ((where_is_car() == route_semi_finishing_area && loop_ == 0) || (where_is_car() == route_raw_material_area && loop_ == 1))
+    if ((where_is_car(false) == route_semi_finishing_area && loop_ == 0) ||
+        (where_is_car(false) == route_raw_material_area && loop_ == 1))
     {
       return -theta_;
     }

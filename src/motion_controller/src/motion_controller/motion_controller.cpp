@@ -8,7 +8,7 @@ namespace motion_controller
           listener_(buffer_), follower_(nh, pnh),
           ac_move_(nh, "Move", true), ac_arm_(nh, "Arm", true),
           move_active_(false), arm_active_(false),
-          move_initialized_(false), arm_initialized_(false), dr_route_(route_rest)
+          move_initialized_(false), arm_initialized_(false)
     {
         timer_ = nh.createTimer(ros::Rate(4), &MotionController::_timer_callback, this, false, false);
         timeout_ = pnh.param("timeout", 1.0);
@@ -111,7 +111,7 @@ namespace motion_controller
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
                 goal.loop = loop_;
-                switch (dr_route_)
+                switch (where_is_car(follower_.debug, follower_.startup))
                 {
                 case route_QR_code_board:
                     goal.route = goal.route_QR_code_board;
@@ -178,12 +178,12 @@ namespace motion_controller
             //         follower_.start(false);
             //     finish_turning_ = false;
             // }
-            if (arrive())
+            if (arrived())
             {
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
                 goal.loop = loop_;
-                switch (where_is_car())
+                switch (where_is_car(follower_.debug, follower_.startup))
                 {
                 case route_QR_code_board:
                     goal.route = goal.route_QR_code_board;
@@ -220,8 +220,7 @@ namespace motion_controller
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
-            (((where_is_car() != route_raw_material_area) && !follower_.debug) ||
-             (follower_.debug && follower_.startup && dr_route_ != route_raw_material_area)))
+            (where_is_car(follower_.debug, follower_.startup) != route_raw_material_area))
             timer_.stop();
         // if (where_is_car() == route_raw_material_area && loop_ == 1)
         //     _U_turn();
@@ -229,8 +228,7 @@ namespace motion_controller
 
     void MotionController::_arm_feedback_callback(const my_hand_eye::ArmFeedbackConstPtr &feedback)
     {
-        if ((where_is_car() == route_raw_material_area && !follower_.debug) ||
-            (follower_.debug && follower_.startup && dr_route_ == route_raw_material_area))
+        if (where_is_car(follower_.debug, follower_.startup) == route_raw_material_area)
         {
             if (feedback->pme.end)
             {
@@ -271,10 +269,18 @@ namespace motion_controller
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 arm_active_ = true;
             }
-            else if (!arm_stamp_.is_zero() && arm_pose_.theta == 0 && arm_pose_.x == 0 && arm_pose_.y == 0)
+            else if (!arm_stamp_.is_zero() && arm_pose_.theta == 0 &&
+                     arm_pose_.x == 0 && arm_pose_.y == 0)
             {
                 ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
             }
+        }
+        else if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
+                 where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area)
+        {
+            MoveGoal goal;
+            goal.pose = feedback->pme.pose;
+            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(15), ros::Duration(0.1));
         }
     }
 
@@ -315,7 +321,7 @@ namespace motion_controller
         if (!follower_.debug)
         {
             boost::lock_guard<boost::mutex> lk(mtx_);
-            finish();
+            finished();
             // follower_.start(true);
             if (!timer_.hasStarted())
                 timer_.start();
@@ -326,8 +332,7 @@ namespace motion_controller
 
     void MotionController::_move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback)
     {
-        if ((where_is_car() == route_raw_material_area && !follower_.debug) ||
-            (follower_.debug && follower_.startup && dr_route_ == route_raw_material_area))
+        if (where_is_car(follower_.debug, follower_.startup) == route_raw_material_area)
         {
             {
                 boost::lock_guard<boost::mutex> lk(mtx_);

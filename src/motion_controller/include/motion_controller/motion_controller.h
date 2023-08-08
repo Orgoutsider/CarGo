@@ -47,7 +47,6 @@ namespace motion_controller
         bool move_active_, arm_active_;           // 传感器是否活动
         bool move_initialized_, arm_initialized_; // 传感器已经初始化
         double timeout_;                          // 最大超时
-        int dr_route_;                            // 调参时面向的场景
         // 转弯，已加锁
         bool _turn();
         // 掉头，需要改变之后的转弯方向，已加锁
