@@ -23,6 +23,7 @@ namespace my_hand_eye
     class EllipseArray : public ColorMethod
     {
     private:
+        const float score_min = 0.55f;
         const int red_hmin_ = 10;
         const int red_hmax_ = 156;
         const int green_hmin_ = 35;

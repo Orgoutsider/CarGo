@@ -80,9 +80,12 @@ namespace my_hand_eye
                 cnt++;
                 now = flag_[now];
                 note[now] = true;
-                int area_temp = m_ellipses[now]._a * m_ellipses[now]._b;
-                area_max = (area_max > area_temp) ? area_max : area_temp;
-                ind_max = (area_max > area_temp) ? ind_max : now;
+                if (m_ellipses[now]._score >= score_min)
+                {
+                    int area_temp = m_ellipses[now]._a * m_ellipses[now]._b;
+                    area_max = std::max(area_max, area_temp);
+                    ind_max = (area_max > area_temp) ? ind_max : now;
+                }
             }
             if (cnt > 2)
             {
@@ -90,10 +93,10 @@ namespace my_hand_eye
                                          cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a),
                                          cvCeil(m_ellipses[ind_max]._a) * 2,
                                          cvCeil(m_ellipses[ind_max]._a) * 2);
-                rect.x = std::max<int>(rect.x, 0);
-                rect.y = std::max<int>(rect.y, 0);
-                rect.width = std::min<int>(rect.width, cv_image->image.cols - rect.x);
-                rect.height = std::min<int>(rect.height, cv_image->image.rows - rect.y);
+                rect.x = std::max(rect.x, 0);
+                rect.y = std::max(rect.y, 0);
+                rect.width = std::min(rect.width, cv_image->image.cols - rect.x);
+                rect.height = std::min(rect.height, cv_image->image.rows - rect.y);
                 try
                 {
                     ellipse_.at(num).rect_target = rect;
