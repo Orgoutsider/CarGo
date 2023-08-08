@@ -393,8 +393,9 @@ namespace my_hand_eye
             }
             pose.x = x_sum / 3;
             pose.y = y_sum / 3;
-            pose.theta = (atan((x[0] - x[1]) / (y[0] - y[1])) +
-                          atan((x[1] - x[2]) / (y[1] - y[2])) + atan((x[2] - x[0]) / (y[2] - y[0]))) /
+            // 对象相对车体的偏角
+            pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
+                           atan((x[1] - x[2]) / (y[1] - y[2])) + atan((x[2] - x[0]) / (y[2] - y[0]))) /
                          3;
             return true;
         }

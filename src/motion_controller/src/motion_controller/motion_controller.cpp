@@ -220,7 +220,7 @@ namespace motion_controller
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
-            ((where_is_car() != route_raw_material_area && !follower_.debug) ||
+            (((where_is_car() != route_raw_material_area) && !follower_.debug) ||
              (follower_.debug && follower_.startup && dr_route_ != route_raw_material_area)))
             timer_.stop();
         // if (where_is_car() == route_raw_material_area && loop_ == 1)

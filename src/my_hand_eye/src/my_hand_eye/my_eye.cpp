@@ -160,10 +160,6 @@ namespace my_hand_eye
 		// 	return;
 		// }
 		arm_goal_ = *(as_.acceptNewGoal());
-		if (finish_adjusting_)
-		{
-			finish_adjusting_ = false;
-		}
 		switch (arm_goal_.route)
 		{
 		case arm_goal_.route_border:
@@ -295,10 +291,12 @@ namespace my_hand_eye
 	bool MyEye::operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
 								sensor_msgs::ImagePtr &debug_image)
 	{
+		static bool rst = true;
 		if (finish_)
 		{
 			finish_adjusting_ = false;
 			finish_ = false;
+			rst = true;
 			ROS_INFO("Start to operate ellipse...");
 		}
 		bool valid = true;
@@ -312,8 +310,19 @@ namespace my_hand_eye
 				if (msg.end)
 				{
 					finish_adjusting_ = true;
+					if (rst)
+						rst = false;
 				}
-				pose_publisher_.publish(msg);
+				if (rst)
+				{
+					rst = false;
+					// 大范围调整
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+				}
+				else // 小范围调整
+					pose_publisher_.publish(msg);
 			}
 			else
 			{

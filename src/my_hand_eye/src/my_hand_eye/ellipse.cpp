@@ -84,7 +84,7 @@ namespace my_hand_eye
                 area_max = (area_max > area_temp) ? area_max : area_temp;
                 ind_max = (area_max > area_temp) ? ind_max : now;
             }
-            if (cnt >= 2)
+            if (cnt > 2)
             {
                 cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a),
                                          cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a),
