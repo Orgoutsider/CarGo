@@ -37,8 +37,8 @@ namespace my_hand_eye
 
                     flag_[now] = j;
                     now = j;
-                    x_temp += ellipses[j]._xc * ellipses[j]._score;
-                    y_temp += ellipses[j]._yc * ellipses[j]._score;
+                    x_temp += ellipses[j]._xc * (ellipses[j]._score);
+                    y_temp += ellipses[j]._yc * (ellipses[j]._score);
                     score_sum += ellipses[j]._score;
                     cnt++;
                 }
@@ -47,7 +47,7 @@ namespace my_hand_eye
             }
             if (i == ellipses.size() - 1)
                 flag_[now] = -1;
-            if (cnt >= 2)
+            if (cnt > 2)
             {
                 Ellipse e;
                 // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
@@ -84,7 +84,7 @@ namespace my_hand_eye
                 area_max = (area_max > area_temp) ? area_max : area_temp;
                 ind_max = (area_max > area_temp) ? ind_max : now;
             }
-            if (cnt >= 2)
+            if (cnt > 2)
             {
                 cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a),
                                          cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a),

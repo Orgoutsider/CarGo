@@ -26,6 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 set(OpenCV required PATHS /home/nano/opencv4/opencv/build)
 find_package(OpenCV REQUIRED)
+find_package(Boost REQUIRED COMPONENTS thread)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -135,6 +136,7 @@ include_directories(
 include
   ${catkin_INCLUDE_DIRS}
   /usr/local/include/opencv4
+  ${Boost_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -175,6 +177,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 add_library(${PROJECT_NAME}_QR_code src/${PROJECT_NAME}/QRcode_detector.cpp)

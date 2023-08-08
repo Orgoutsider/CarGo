@@ -1,3 +1,5 @@
+#include <boost/thread/mutex.hpp>
+
 #include "my_hand_eye/color_tracker.h"
 
 namespace my_hand_eye
@@ -15,37 +17,30 @@ namespace my_hand_eye
 
     double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin, cv::Mat &mask_img)
     {
-        cv::Mat mask = roi.clone();
-        // mask_img = cv::Mat(mask.size(), CV_8UC1, cv::Scalar(255));
+        cv::Mat mask;
+        roi.convertTo(mask, CV_8UC3);
         cvtColor(mask, mask, cv::COLOR_BGR2HSV);
-        // 设置像素遍历迭代器
-        cv::MatConstIterator_<cv::Vec3b> maskStart = mask.begin<cv::Vec3b>();
-        cv::MatConstIterator_<cv::Vec3b> maskEnd = mask.end<cv::Vec3b>();
-        // cv::MatIterator_<uchar> mask_ImgStart = mask_img.begin<uchar>();
         double x = 0, y = 0;
         int cnt = 0;
-        for (; maskStart != maskEnd; maskStart++)
-        {
-            // 过滤白色
-            if ((*maskStart)[1] <= white_smax_ && (*maskStart)[2] >= white_vmin)
+        boost::mutex mtx;
+        mask.forEach<cv::Vec3b>([&](cv::Vec3b &pixel, const int position[])
+                                {
+            if (pixel[1] <= white_smax_ && pixel[2] >= white_vmin)
             {
-                // 用于调试
-                // (*mask_ImgStart) = 0;
-                continue;
+                // pixel[0] = pixel[1] = pixel[2] = 0;
+                return;
             }
-            int H_Val = (*maskStart)[0];
-            Angle color = hue_value(H_Val);
+            Angle color = hue_value(pixel[0]);
+            mtx.lock();
             x += color.cos();
             y += color.sin();
             cnt++;
-            // if (cnt % 200 == 0)
-            // {
-            //     ROS_INFO_STREAM(H_Val);
-            //     usleep(1e5);
-            // }
-        }
-        cv::imshow("mask_img", mask_img); // 用于调试
-        cv::waitKey(10);
+            mtx.unlock(); });
+        // if (mask.cols > 0 && mask.rows > 0)
+        // {
+        //     cv::imshow("mask_img", mask); // 用于调试
+        //     cv::waitKey(10);
+        // }
         double H_Average = hue_value_tan(y, x); // 保存当前区域色相H的平均值
         return (H_Average < 0) ? H_Average + 180 : H_Average;
     }

@@ -36,13 +36,6 @@ namespace my_hand_eye
         std::vector<double> cargo_x_;
         std::vector<double> cargo_y_;
         cv::CEllipseDetectorYaed *yaed_;
-        const int Gauss_size_ = 3; // 高斯平滑内核大小
-        const int Canny_low_ = 50; // 第一次Canny边缘查找的第一滞后因子
-        const int Canny_up_ = 100; // 第一次Canny边缘查找的第二滞后因子
-
-        const int con_Area_min_ = 4500;   // 粗筛-最小面积阈值
-        const int con_Point_cont_ = 20;   // 粗筛-图形最少点个数阈值，即连成某个封闭轮廓的点的个数，少于该阈值表明轮廓无效
-        const int con_Area_max_ = 200000; // 粗筛-最大面积阈值
         bool add_image(const sensor_msgs::ImageConstPtr &image_rect,
                        cv_bridge::CvImagePtr &image); // 添加图片
         bool detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
