@@ -9,8 +9,6 @@
 #include <my_hand_eye/Pose2DMightEnd.h>
 #include <motion_controller/params_PID_visionConfig.h>
 
-#include "motion_controller/pid_controller.h"
-
 namespace motion_controller
 {
     class VisionAdjuster
@@ -37,7 +35,6 @@ namespace motion_controller
         double kp_eye_linear_;
         double ki_eye_linear_;
         double kd_eye_linear_;
-        PIDController eye_pid_;
         // 车头摄像头视觉信息订阅
         ros::Subscriber usb_cam_subscriber_;
         // 机械手摄像头视觉信息订阅

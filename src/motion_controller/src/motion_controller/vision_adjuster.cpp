@@ -1,5 +1,6 @@
 #include <motion_controller/TwistMightEnd.h>
 
+#include "motion_controller/pid_controller.h"
 #include "motion_controller/vision_adjuster.h"
 
 namespace motion_controller
@@ -8,11 +9,7 @@ namespace motion_controller
         : listener_(buffer_),
           not_change_(not_change_theta),
           kp_eye_angular_(1.6), ki_eye_angular_(0.6), kd_eye_angular_(0),
-          kp_eye_linear_(1.6), ki_eye_linear_(0), kd_eye_linear_(0),
-          eye_pid_({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
-                   {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
-                   {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                   {0.005, 0.005, 0.01}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8})
+          kp_eye_linear_(1.6), ki_eye_linear_(0), kd_eye_linear_(0)
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
@@ -26,9 +23,13 @@ namespace motion_controller
 
     void VisionAdjuster::_eye_callback(const my_hand_eye::Pose2DMightEndConstPtr &msg)
     {
-        // 是否已经_get_transform，end为true时重置
+        // 是否有not_change的变量，end为true时重置
         static bool flag = false;
         static bool rst = true;
+        static bool paning = false;
+        static PIDController pid = PIDController({0}, {kp_eye_angular_},
+                                                 {ki_eye_angular_}, {kd_eye_angular_},
+                                                 {0.01}, {0.1}, {0.8});
         geometry_msgs::Pose2D pose = msg->pose;
         double change;
         if (msg->end)
@@ -40,7 +41,13 @@ namespace motion_controller
             if (flag)
                 flag = false;
             if (!rst)
+            {
                 rst = true;
+                paning = false;
+                pid = PIDController({0}, {kp_eye_angular_},
+                                    {ki_eye_angular_}, {kd_eye_angular_},
+                                    {0.01}, {0.1}, {0.8});
+            }
             return;
         }
         else if (msg->pose.x == msg->not_change && msg->pose.y == msg->not_change &&
@@ -80,13 +87,20 @@ namespace motion_controller
                 if (!_get_transform())
                     return;
                 not_change_ = not_change_theta;
+                pose.theta = 0;
                 flag = true;
+                paning = true;
+                pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
+                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
+                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
+                                    {0.005, 0.005, 0.01}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
             }
             else if (pose.x == msg->not_change)
             {
                 if (!_get_transform())
                     return;
                 not_change_ = not_change_x;
+                pose.x = 0;
                 flag = true;
             }
             else if (pose.y == msg->not_change)
@@ -94,46 +108,42 @@ namespace motion_controller
                 if (!_get_transform())
                     return;
                 not_change_ = not_change_y;
+                pose.y = 0;
                 flag = true;
             }
-            eye_pid_ = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
-                                     {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
-                                     {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                     {0.005, 0.005, 0.01}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
             rst = false;
-            if (flag)
-            {
-                switch (not_change_)
-                {
-                case not_change_theta:
-                    pose.theta = 0;
-                    break;
-
-                case not_change_x:
-                    pose.x = 0;
-                    break;
-
-                case not_change_y:
-                    pose.y = 0;
-                    break;
-
-                default:
-                    return;
-                }
-            }
         }
         std::vector<double> controll;
         bool success;
-        if (eye_pid_.update({pose.x, pose.y, pose.theta}, msg->header.stamp,
-                            controll, success))
+        if (paning)
         {
-            ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
+            if (pid.update({pose.x, pose.y, pose.theta}, msg->header.stamp,
+                           controll, success))
+            {
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta << " panning:" << paning);
+                TwistMightEnd tme;
+                tme.end = false;
+                tme.velocity.linear.x = controll[0];
+                tme.velocity.linear.y = controll[1];
+                tme.velocity.angular.z = controll[2];
+                cmd_vel_publisher_.publish(tme);
+            }
+        }
+        else if (pid.update({pose.theta}, msg->header.stamp, controll, success))
+        {
+            ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta << " panning:" << paning);
             TwistMightEnd tme;
             tme.end = false;
-            tme.velocity.linear.x = controll[0];
-            tme.velocity.linear.y = controll[1];
-            tme.velocity.angular.z = controll[2];
+            tme.velocity.angular.z = controll[0];
             cmd_vel_publisher_.publish(tme);
+            if (success)
+            {
+                paning = true;
+                pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
+                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
+                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
+                                    {0.005, 0.005, 0.01}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
+            }
         }
     }
 
