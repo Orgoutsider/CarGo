@@ -36,7 +36,7 @@ namespace my_hand_eye
             y += color.sin();
             cnt++;
             mtx.unlock(); });
-        // if (mask.cols > 0 && mask.rows > 0)
+        // if (!mask.empty())
         // {
         //     cv::imshow("mask_img", mask); // 用于调试
         //     cv::waitKey(10);

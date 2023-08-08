@@ -115,7 +115,7 @@ namespace my_hand_eye
         double dPreProcessingGaussSigma = 1.0;
 
         float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
-        float fMinReliability = 0.5f;           // Const parameters to discard bad ellipses
+        float fMinReliability = 0.45f;           // Const parameters to discard bad ellipses
         yaed_->SetParameters(szPreProcessingGaussKernelSize,
                              dPreProcessingGaussSigma,
                              fThPos,
@@ -363,8 +363,11 @@ namespace my_hand_eye
     }
 
     bool ArmController::get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray,
-                                         geometry_msgs::Pose2D &pose)
+                                         geometry_msgs::Pose2D &pose, bool rst)
     {
+        static geometry_msgs::Pose2D pose_fil;
+        if (rst)
+            pose_fil = geometry_msgs::Pose2D();
         if (objArray.boxes.size() == 4)
         {
             bool read = true;
@@ -397,6 +400,13 @@ namespace my_hand_eye
             pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
                            atan((x[1] - x[2]) / (y[1] - y[2])) + atan((x[2] - x[0]) / (y[2] - y[0]))) /
                          3;
+            if (pose_fil.x)
+            {
+                pose.x = pose_fil.x * 0.2 + pose.x * 0.8;
+                pose.y = pose_fil.y * 0.2 + pose.y * 0.8;
+                pose.theta = pose_fil.theta * 0.2 + pose.theta * 0.8;
+            }
+            pose_fil = pose;
             return true;
         }
         return false;
@@ -830,16 +840,16 @@ namespace my_hand_eye
             return false;
         cv_image->image = cv_image->image(rect);
         using namespace cv;
-        Mat1b srcdst; // 从相机传进来需要两张图片
         std::vector<cv::Ellipse> ells;
         resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2)); // 重设大小，可选
         // 第一次预处理
-        cvtColor(cv_image->image, srcdst, COLOR_BGR2GRAY);
+        Mat sat = saturation(cv_image->image, 100);
+        Mat1b srcdst;
+        cvtColor(sat, srcdst, COLOR_BGR2GRAY);
         std::vector<cv::Ellipse> ellsYaed;
         yaed_->Detect(srcdst, ellsYaed);
-
         EllipseArray arr;
-        // 颜色标定
+        // 聚类、颜色标定
         if (!arr.clustering(ellsYaed) ||
             !arr.generate_bounding_rect(ellsYaed, cv_image) ||
             !arr.color_classification(cv_image, white_vmin_))
@@ -896,7 +906,7 @@ namespace my_hand_eye
             if (pose)
             {
                 geometry_msgs::Pose2D pose;
-                if (get_ellipse_pose(objArray, pose))
+                if (get_ellipse_pose(objArray, pose, false))
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
             }
             else
@@ -981,10 +991,12 @@ namespace my_hand_eye
                                      sensor_msgs::ImagePtr &debug_image)
     {
         static bool last_finish = true;
+        bool rst = false;
         if (!msg.end && last_finish)
         {
             ps_.reset(true);
             last_finish = false;
+            rst = true;
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -992,9 +1004,11 @@ namespace my_hand_eye
         vision_msgs::BoundingBox2DArray objArray;
         geometry_msgs::Pose2D pose;
         bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                     get_ellipse_pose(objArray, pose);
+                     get_ellipse_pose(objArray, pose, rst);
         if (valid)
         {
+            if (rst)
+                rst = false;
             target_pose.calc(pose, msg);
             msg.header = image_rect->header;
         }

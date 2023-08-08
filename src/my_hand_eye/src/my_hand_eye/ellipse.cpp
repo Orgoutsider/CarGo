@@ -32,9 +32,9 @@ namespace my_hand_eye
                 double thr = std::min<float>(ellipses[i]._b, ellipses[j]._b) / 2;
                 if ((abs(ellipses[i]._xc - ellipses[j]._xc) < thr) &&
                     (abs(ellipses[i]._yc - ellipses[j]._yc) < thr) &&
+                    (abs(ellipses[i]._a / ellipses[i]._b - ellipses[j]._a / ellipses[j]._b) < 0.7) &&
                     !flag_[j])
                 {
-
                     flag_[now] = j;
                     now = j;
                     x_temp += ellipses[j]._xc * (ellipses[j]._score);
@@ -47,7 +47,7 @@ namespace my_hand_eye
             }
             if (i == ellipses.size() - 1)
                 flag_[now] = -1;
-            if (cnt > 2)
+            if (cnt >= 2)
             {
                 Ellipse e;
                 // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
@@ -68,11 +68,13 @@ namespace my_hand_eye
         // for (int i = 0; i < m_ellipses.size(); i++)
         //     ROS_INFO_STREAM(flag_[i]);
         int num = 0;
+        float ratio = 0.1f;
         for (int i = 0; i < m_ellipses.size(); i++)
         {
             if (note[i])
                 continue;
-            int now = i, area_max = m_ellipses[now]._a * m_ellipses[now]._b, cnt = 1, ind_max = i;
+            int now = i, cnt = 1, ind_max = i;
+            float area_max = m_ellipses[now]._a * m_ellipses[now]._b * m_ellipses[now]._score;
             // ROS_INFO_STREAM(now);
             note[now] = true;
             while (flag_[now] != -1)
@@ -80,19 +82,18 @@ namespace my_hand_eye
                 cnt++;
                 now = flag_[now];
                 note[now] = true;
-                if (m_ellipses[now]._score >= score_min)
-                {
-                    int area_temp = m_ellipses[now]._a * m_ellipses[now]._b;
-                    area_max = std::max(area_max, area_temp);
-                    ind_max = (area_max > area_temp) ? ind_max : now;
-                }
+                float area_temp = m_ellipses[now]._a * m_ellipses[now]._b * m_ellipses[now]._score;
+                area_max = std::max(area_max, area_temp);
+                ind_max = (area_max > area_temp) ? ind_max : now;
             }
-            if (cnt > 2)
+            if (cnt >= 2)
             {
-                cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a),
-                                         cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a),
-                                         cvCeil(m_ellipses[ind_max]._a) * 2,
-                                         cvCeil(m_ellipses[ind_max]._a) * 2);
+                cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a *
+                                                                               (1 + ratio)),
+                                         cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a *
+                                                                               (1 + ratio)),
+                                         cvCeil(m_ellipses[ind_max]._a) * 2 * (1 + ratio),
+                                         cvCeil(m_ellipses[ind_max]._a) * 2 * (1 + ratio));
                 rect.x = std::max(rect.x, 0);
                 rect.y = std::max(rect.y, 0);
                 rect.width = std::min(rect.width, cv_image->image.cols - rect.x);
@@ -159,39 +160,58 @@ namespace my_hand_eye
             if (e.hypothesis > hyp_max[e.color])
             {
                 vision_msgs::BoundingBox2D obj = vision_msgs::BoundingBox2D();
-                obj.center.x = e.center.x / cv_image->image.cols * roi.width + roi.x;
-                obj.center.y = e.center.y / cv_image->image.rows * roi.height + roi.y;
+                if (!show_detection)
+                {
+                    obj.center.x = e.center.x / cv_image->image.cols * roi.width + roi.x;
+                    obj.center.y = e.center.y / cv_image->image.rows * roi.height + roi.y;
+                }
+                else
+                {
+                    obj.center.x = e.center.x;
+                    obj.center.y = e.center.y;
+                }
                 obj.size_x = e.rect_target.width;
                 obj.size_y = e.rect_target.height;
                 objArray.boxes[e.color] = obj;
                 hyp_max[e.color] = e.hypothesis;
-                if (show_detection)
+            }
+        }
+        if (show_detection)
+        {
+            for (int color = color_red; color <= color_blue; color++)
+            {
+                if (!objArray.boxes[color].center.x)
+                    continue;
+                // 绘制中心十字，用于调试
+                cv::Scalar c;
+                switch (color)
                 {
-                    // 绘制中心十字，用于调试
-                    cv::Scalar c;
-                    switch (e.color)
-                    {
-                    case color_red:
-                        c = cv::Scalar(0, 0, 255);
-                        break;
+                case color_red:
+                    c = cv::Scalar(0, 0, 255);
+                    break;
 
-                    case color_green:
-                        c = cv::Scalar(0, 255, 0);
-                        break;
+                case color_green:
+                    c = cv::Scalar(0, 255, 0);
+                    break;
 
-                    case color_blue:
-                        c = cv::Scalar(255, 0, 0);
-                        break;
+                case color_blue:
+                    c = cv::Scalar(255, 0, 0);
+                    break;
 
-                    default:
-                        break;
-                    }
-                    draw_cross(cv_image->image,
-                               e.center,
-                               c, 30, 2);
-                    // imshow("srcCopy", cv_image->image); // 用于调试
-                    // cv::waitKey(60);
+                default:
+                    break;
                 }
+                draw_cross(cv_image->image,
+                           cv::Point2d(objArray.boxes[color].center.x, objArray.boxes[color].center.y),
+                           c, 30, 2);
+                objArray.boxes[color].center.x = objArray.boxes[color].center.x /
+                                                     cv_image->image.cols * roi.width +
+                                                 roi.x;
+                objArray.boxes[color].center.y = objArray.boxes[color].center.y /
+                                                     cv_image->image.rows * roi.height +
+                                                 roi.y;
+                // imshow("srcCopy", cv_image->image); // 用于调试
+                // cv::waitKey(60);
             }
         }
         return true;
