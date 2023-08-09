@@ -6,7 +6,7 @@ namespace my_hand_eye
         : upper_bound_{0, red_hmax_, green_hmax_, blue_hmax_},
           lower_bound_{0, red_hmin_, green_hmin_, blue_hmin_}
     {
-        ellipse_.reserve(3);
+        ellipse_.reserve(20);
     };
 
     bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses)
@@ -20,6 +20,7 @@ namespace my_hand_eye
             ellipse_.clear();
         const int MAXN = ellipses.size() + 10;
         flag_.resize(MAXN, 0);
+
         // 聚类
         for (int i = 0; i < ellipses.size(); i++)
         {
@@ -52,6 +53,7 @@ namespace my_hand_eye
                 Ellipse e;
                 // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
                 e.center = cv::Point2d(x_temp / score_sum, y_temp / score_sum);
+                e.score_aver = score_sum / cnt;
                 ellipse_.push_back(e);
             }
         }
@@ -100,6 +102,8 @@ namespace my_hand_eye
                 rect.height = std::min(rect.height, cv_image->image.rows - rect.y);
                 try
                 {
+                    if (!ellipse_.at(num).center.inside(rect))
+                        rect.width = rect.height = 0;
                     ellipse_.at(num).rect_target = rect;
                 }
                 catch (const std::exception &e)
@@ -127,16 +131,19 @@ namespace my_hand_eye
         {
             cv::Mat mask;
             // 保存当前区域色相H的平均值
-            double H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin, mask);
+            double H_Average = -1;
+            if (!e.rect_target.empty())
+                H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin, mask);
             // ROS_INFO_STREAM("H_Average:" << H_Average);
             int id = color_red;
             double max_hyp = 0;
             for (int color = color_red; color <= color_blue; color++)
             {
-                if (color_hypothesis(H_Average, lower_bound_[color], upper_bound_[color]) > max_hyp)
+                double hyp = color_hypothesis(H_Average, lower_bound_[color], upper_bound_[color]);
+                if (hyp > max_hyp)
                 {
                     id = color;
-                    max_hyp = color_hypothesis(H_Average, lower_bound_[color], upper_bound_[color]);
+                    max_hyp = hyp;
                 }
             }
             e.color = id;
@@ -157,7 +164,7 @@ namespace my_hand_eye
         for (Ellipse &e : ellipse_)
         {
             // ROS_INFO_STREAM(e.hypothesis << hyp_max[e.color]);
-            if (e.hypothesis > hyp_max[e.color])
+            if ((e.hypothesis + e.score_aver) * 0.5 > hyp_max[e.color])
             {
                 vision_msgs::BoundingBox2D obj = vision_msgs::BoundingBox2D();
                 if (!show_detection)
@@ -169,14 +176,14 @@ namespace my_hand_eye
                 {
                     obj.center.x = e.center.x;
                     obj.center.y = e.center.y;
+                    obj.size_x = e.rect_target.width;
+                    obj.size_y = e.rect_target.height;
                 }
-                obj.size_x = e.rect_target.width;
-                obj.size_y = e.rect_target.height;
                 objArray.boxes[e.color] = obj;
                 hyp_max[e.color] = e.hypothesis;
             }
         }
-        if (show_detection)
+        if (show_detection && !cv_image->image.empty())
         {
             for (int color = color_red; color <= color_blue; color++)
             {
@@ -201,9 +208,14 @@ namespace my_hand_eye
                 default:
                     break;
                 }
+                cv::Point pt1(objArray.boxes[color].center.x - objArray.boxes[color].size_x / 2,
+                              objArray.boxes[color].center.y - objArray.boxes[color].size_y / 2);
+                cv::Point pt2(objArray.boxes[color].center.x + objArray.boxes[color].size_x / 2,
+                              objArray.boxes[color].center.y + objArray.boxes[color].size_y / 2);
+                cv::rectangle(cv_image->image, pt1, pt2, cv::Scalar(0, 0, 0), 1, 4);
                 draw_cross(cv_image->image,
                            cv::Point2d(objArray.boxes[color].center.x, objArray.boxes[color].center.y),
-                           c, 30, 2);
+                           c, 15, 1);
                 objArray.boxes[color].center.x = objArray.boxes[color].center.x /
                                                      cv_image->image.cols * roi.width +
                                                  roi.x;
@@ -219,6 +231,8 @@ namespace my_hand_eye
 
     double EllipseArray::color_hypothesis(double h_val, int lower_bound, int upper_bound)
     {
+        if (h_val > 180 || h_val < 0)
+            return 0;
         double lower_diff = hue_value_diff(h_val, lower_bound);
         double upper_diff = hue_value_diff(h_val, upper_bound);
         double diff = hue_value_diff(upper_bound, lower_bound);

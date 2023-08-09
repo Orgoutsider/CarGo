@@ -28,7 +28,7 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
-          ellipse_roi_(480, 540, 960, 360),
+          ellipse_roi_(320, 540, 1280, 360),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(0.30121),
@@ -864,7 +864,7 @@ namespace my_hand_eye
         if (show_detections && !cv_image->image.empty())
         {
             Mat3b srcCopy = cv_image->image;
-            yaed_->DrawDetectedEllipses(srcCopy, ellsYaed);
+            yaed_->DrawDetectedEllipses(srcCopy, ellsYaed, 0, 1);
             // imshow("Yaed", srcCopy);
             // waitKey(10);
             debug_image = cv_image->toImageMsg();

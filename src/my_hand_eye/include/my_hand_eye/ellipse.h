@@ -11,6 +11,7 @@ namespace my_hand_eye
         cv::Point2d center; // 目标椭圆容器
         cv::Rect rect_target;
         int color;
+        double score_aver; // 分数总和排名前3
         double hypothesis;
     };
 
