@@ -90,10 +90,10 @@ namespace motion_controller
                 pose.theta = 0;
                 flag = true;
                 doing = direction_x;
-                pid = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
-                                    {ki_eye_linear_, ki_eye_angular_},
-                                    {kd_eye_linear_, kd_eye_angular_},
-                                    {0.005, 0.03}, {0.02, 0.05}, {0.2, 0.4});
+                pid = PIDController({0}, {kp_eye_linear_},
+                                    {ki_eye_linear_},
+                                    {kd_eye_linear_},
+                                    {0.01, 0.03}, {0.02, 0.05}, {0.2, 0.4});
             }
             else if (pose.x == msg->not_change)
             {
@@ -133,14 +133,14 @@ namespace motion_controller
                         pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                             {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                             {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                            {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                                            {0.01, 0.01, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
                         return;
                     }
                     doing = direction_x;
                     pid = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
                                         {ki_eye_linear_, ki_eye_angular_},
                                         {kd_eye_linear_, kd_eye_angular_},
-                                        {0.005, 0.03}, {0.02, 0.05}, {0.2, 0.4});
+                                        {0.01, 0.03}, {0.02, 0.05}, {0.2, 0.4});
                 }
             }
             break;
@@ -160,7 +160,7 @@ namespace motion_controller
                     pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                         {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                         {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                        {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                                        {0.01, 0.01, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
                 }
             }
             break;
