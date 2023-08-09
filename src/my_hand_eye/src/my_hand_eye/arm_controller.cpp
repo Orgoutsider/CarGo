@@ -115,7 +115,7 @@ namespace my_hand_eye
         double dPreProcessingGaussSigma = 1.0;
 
         float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
-        float fMinReliability = 0.45f;           // Const parameters to discard bad ellipses
+        float fMinReliability = 0.45f;          // Const parameters to discard bad ellipses
         yaed_->SetParameters(szPreProcessingGaussKernelSize,
                              dPreProcessingGaussSigma,
                              fThPos,
@@ -220,7 +220,6 @@ namespace my_hand_eye
                     }
                     // imshow("det", cv_image->image);
                     // cv::waitKey(10);
-                    debug_image = cv_image->toImageMsg();
                 }
                 if (detections.boxes.size())
                 {
@@ -235,6 +234,8 @@ namespace my_hand_eye
             }
             else
                 ROS_WARN("Responce invalid or failed to add image!");
+            if (show_detections && !cv_image->image.empty())
+                debug_image = cv_image->toImageMsg();
             return flag;
         }
         else
@@ -270,13 +271,14 @@ namespace my_hand_eye
                     if (show_detections && !cv_image_.image.empty())
                     {
                         draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
-                        debug_image = cv_image_.toImageMsg();
                     }
                 }
             }
             else if (find_with_color(objArray, color, z, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
         }
+        if (show_detections && !cv_image_.image.empty())
+            debug_image = cv_image_.toImageMsg();
         return valid;
     }
 
@@ -363,7 +365,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray,
-                                         geometry_msgs::Pose2D &pose)
+                                         Pose2DMightEnd &pose)
     {
         // static geometry_msgs::Pose2D pose_fil;
         // if (rst)
@@ -372,40 +374,42 @@ namespace my_hand_eye
         {
             bool read = true;
             int cnt = 0;
-            double x[3], y[3];
+            double x[5] = {0}, y[5] = {0};
             double x_sum = 0, y_sum = 0;
-            for (int color = color_red; color <= color_blue; color++)
+            for (int i = color_red; i <= color_blue; i++)
             {
-                if (!objArray.boxes[color].center.x)
+                if (!objArray.boxes[ellipse_color_order_[i].color].center.x)
                 {
-                    ROS_WARN("get_ellipse_pose: Color %d ellipse does not exist.", color);
-                    return false;
+                    ROS_WARN("get_ellipse_pose: Color %d ellipse does not exist.",
+                             ellipse_color_order_[i].color);
+                    continue;
                 }
-                if (!ps_.calculate_cargo_position(objArray.boxes[color].center.x,
-                                                  objArray.boxes[color].center.y,
+                if (!ps_.calculate_cargo_position(objArray.boxes[ellipse_color_order_[i].color].center.x,
+                                                  objArray.boxes[ellipse_color_order_[i].color].center.y,
                                                   z_parking_area, x[cnt], y[cnt], read))
                 {
-                    ROS_WARN("get_ellipse_pose: Cannot calculate color %d ellipse's position", color);
-                    return false;
+                    ROS_WARN("get_ellipse_pose: Cannot calculate color %d ellipse's position",
+                             ellipse_color_order_[i].color);
+                    continue;
                 }
                 if (read)
                     read = false;
                 x_sum += x[cnt];
-                y_sum += y[cnt];
+                y_sum += y[cnt] + (i - 2) * 15;
                 cnt++;
             }
-            pose.x = x_sum / 3;
-            pose.y = y_sum / 3;
+            pose.pose.x = x_sum / cnt;
+            pose.pose.y = y_sum / cnt;
             // 对象相对车体的偏角
-            pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
-                           atan((x[1] - x[2]) / (y[1] - y[2])) + atan((x[2] - x[0]) / (y[2] - y[0]))) /
-                         3;
-            // if (pose_fil.x)
-            // {
-            //     pose.x = pose_fil.x * 0.1 + pose.x * 0.9;
-            //     pose.y = pose_fil.y * 0.1 + pose.y * 0.9;
-            // }
-            // pose_fil = pose;
+            if (cnt == 3)
+                pose.pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
+                                    atan((x[1] - x[2]) / (y[1] - y[2])) +
+                                    atan((x[2] - x[0]) / (y[2] - y[0]))) /
+                                  3;
+            else if (cnt == 2)
+                pose.pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
+            else
+                pose.pose.theta = pose.not_change;
             return true;
         }
         return false;
@@ -415,10 +419,11 @@ namespace my_hand_eye
     {
         if (objArray.boxes.size() == 4)
         {
-            for (size_t color = color_red; color <= color_blue; color++)
+            for (int color = color_red; color <= color_blue; color++)
             {
                 if (!objArray.boxes[color].center.x)
                 {
+                    ROS_WARN("set_ellipse_color_order: Color %d ellipse does not exist.", color);
                     return false;
                 }
                 ellipse_color_order_[color].center_x = objArray.boxes[color].center.x;
@@ -883,6 +888,7 @@ namespace my_hand_eye
                                     sensor_msgs::ImagePtr &debug_image, bool pose)
     {
         static bool flag = true;
+        static bool rst = true;
         if (flag)
         {
             flag = false;
@@ -904,9 +910,18 @@ namespace my_hand_eye
         {
             if (pose)
             {
-                geometry_msgs::Pose2D pose;
-                if (get_ellipse_pose(objArray, pose))
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
+                if (rst)
+                {
+                    valid = set_ellipse_color_order(objArray);
+                }
+                if (valid)
+                {
+                    Pose2DMightEnd pose;
+                    if (get_ellipse_pose(objArray, pose))
+                        ROS_INFO_STREAM("x:" << pose.pose.x << " y:" << pose.pose.y << " theta:" << pose.pose.theta);
+                    if (rst)
+                        rst = false;
+                }
             }
             else
             {
@@ -945,13 +960,14 @@ namespace my_hand_eye
         {
             ROS_WARN("Could not find border!");
         }
-        if (valid && show_detections && !cv_image_.image.empty())
+        if (valid && show_detections)
         {
             ROS_INFO_STREAM("distance: " << distance << " yaw: " << yaw);
-            debug_image = cv_image->toImageMsg();
         }
         // write sth
         last_finish = msg.end;
+        if (show_detections && !cv_image_.image.empty())
+            debug_image = cv_image->toImageMsg();
         return valid;
     }
 
@@ -980,9 +996,10 @@ namespace my_hand_eye
         if (valid && show_detections && !cv_image_.image.empty())
         {
             draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
-            debug_image = cv_image_.toImageMsg();
         }
         last_finish = msg.end;
+        if (show_detections && !cv_image_.image.empty())
+            debug_image = cv_image_.toImageMsg();
         return valid;
     }
 
@@ -990,25 +1007,28 @@ namespace my_hand_eye
                                      sensor_msgs::ImagePtr &debug_image)
     {
         static bool last_finish = true;
-        // bool rst = false;
+        static bool rst = false;
         if (!msg.end && last_finish)
         {
             ps_.reset(true);
             last_finish = false;
-            // rst = true;
+            rst = true;
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        geometry_msgs::Pose2D pose;
-        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                     get_ellipse_pose(objArray, pose);
+        Pose2DMightEnd pose;
+        bool valid = rst ? detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
+                               set_ellipse_color_order(objArray) &&
+                               get_ellipse_pose(objArray, pose)
+                         : detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
+                               get_ellipse_pose(objArray, pose);
         if (valid)
         {
-            // if (rst)
-            //     rst = false;
-            target_pose.calc(pose, msg);
+            if (rst)
+                rst = false;
+            target_pose.calc(pose.pose, msg);
             msg.header = image_rect->header;
         }
         last_finish = msg.end;
