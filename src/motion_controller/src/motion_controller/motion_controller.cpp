@@ -111,33 +111,8 @@ namespace motion_controller
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
                 goal.loop = loop_;
-                switch (where_is_car(follower_.debug, follower_.startup))
+                if (where_is_car(follower_.debug, follower_.startup) == route_rest)
                 {
-                case route_QR_code_board:
-                    goal.route = goal.route_QR_code_board;
-                    break;
-
-                case route_raw_material_area:
-                    goal.route = goal.route_raw_material_area;
-                    break;
-
-                case route_roughing_area:
-                    goal.route = goal.route_roughing_area;
-                    break;
-
-                case route_semi_finishing_area:
-                    goal.route = goal.route_semi_finishing_area;
-                    break;
-
-                case route_parking_area:
-                    goal.route = goal.route_parking_area;
-                    break;
-
-                case route_border:
-                    goal.route = goal.route_border;
-                    break;
-
-                case route_rest:
                     if (get_position())
                     {
                         if (!follower_.has_started && follower_.startup)
@@ -150,10 +125,8 @@ namespace motion_controller
                         follower_.follow(theta_, event.current_real);
                     }
                     return;
-
-                default:
-                    return;
                 }
+                goal.route = where_is_car(follower_.debug, follower_.startup);
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
@@ -183,31 +156,12 @@ namespace motion_controller
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
                 goal.loop = loop_;
-                switch (where_is_car(follower_.debug, follower_.startup))
+                if (where_is_car(follower_.debug, follower_.startup) == route_rest)
                 {
-                case route_QR_code_board:
-                    goal.route = goal.route_QR_code_board;
-                    break;
-
-                case route_raw_material_area:
-                    goal.route = goal.route_raw_material_area;
-                    break;
-
-                case route_roughing_area:
-                    goal.route = goal.route_roughing_area;
-                    break;
-
-                case route_semi_finishing_area:
-                    goal.route = goal.route_semi_finishing_area;
-                    break;
-
-                case route_parking_area:
-                    goal.route = goal.route_parking_area;
-                    break;
-
-                default:
+                    ROS_ERROR("Assertion failed: where_is_car != route_rest");
                     return;
                 }
+                goal.route = where_is_car(follower_.debug, follower_.startup);
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
