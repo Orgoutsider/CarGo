@@ -14,15 +14,15 @@ namespace motion_controller
     class VisionAdjuster
     {
     private:
-        enum Unchanging
+        enum Direction
         {
-            not_change_x,
-            not_change_y,
-            not_change_theta
+            direction_theta,
+            direction_x,
+            direction_y
         };
 
         bool debug_;
-        Unchanging not_change_;
+        Direction not_change_;
         // // 弯道pid
         // double kp_usb_cam_;
         // double ki_usb_cam_;

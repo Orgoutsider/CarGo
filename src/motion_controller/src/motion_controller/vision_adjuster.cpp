@@ -7,9 +7,9 @@ namespace motion_controller
 {
     VisionAdjuster::VisionAdjuster()
         : listener_(buffer_),
-          not_change_(not_change_theta),
+          not_change_(direction_theta),
           kp_eye_angular_(1.2), ki_eye_angular_(0.0), kd_eye_angular_(1.2),
-          kp_eye_linear_(0.5), ki_eye_linear_(0), kd_eye_linear_(0)
+          kp_eye_linear_(0.7), ki_eye_linear_(0), kd_eye_linear_(0.6)
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
@@ -26,7 +26,7 @@ namespace motion_controller
         // 是否有not_change的变量，end为true时重置
         static bool flag = false;
         static bool rst = true;
-        static bool paning = false;
+        static Direction doing = direction_theta;
         static PIDController pid = PIDController({0}, {kp_eye_angular_},
                                                  {ki_eye_angular_}, {kd_eye_angular_},
                                                  {0.03}, {0.05}, {0.4});
@@ -43,7 +43,7 @@ namespace motion_controller
             if (!rst)
             {
                 rst = true;
-                paning = false;
+                doing = direction_theta;
                 pid = PIDController({0}, {kp_eye_angular_},
                                     {ki_eye_angular_}, {kd_eye_angular_},
                                     {0.03}, {0.05}, {0.4});
@@ -64,15 +64,15 @@ namespace motion_controller
             _get_change(change);
             switch (not_change_)
             {
-            case not_change_theta:
+            case direction_theta:
                 pose.theta = change;
                 break;
 
-            case not_change_x:
+            case direction_x:
                 pose.x = change;
                 break;
 
-            case not_change_y:
+            case direction_y:
                 pose.y = change;
                 break;
 
@@ -86,20 +86,20 @@ namespace motion_controller
             {
                 if (!_get_transform())
                     return;
-                not_change_ = not_change_theta;
+                not_change_ = direction_theta;
                 pose.theta = 0;
                 flag = true;
-                paning = true;
-                pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
-                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
-                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                    {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                doing = direction_x;
+                pid = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
+                                    {ki_eye_linear_, ki_eye_angular_},
+                                    {kd_eye_linear_, kd_eye_angular_},
+                                    {0.005, 0.03}, {0.02, 0.05}, {0.2, 0.4});
             }
             else if (pose.x == msg->not_change)
             {
                 if (!_get_transform())
                     return;
-                not_change_ = not_change_x;
+                not_change_ = direction_x;
                 pose.x = 0;
                 flag = true;
             }
@@ -107,7 +107,7 @@ namespace motion_controller
             {
                 if (!_get_transform())
                     return;
-                not_change_ = not_change_y;
+                not_change_ = direction_y;
                 pose.y = 0;
                 flag = true;
             }
@@ -115,12 +115,60 @@ namespace motion_controller
         }
         std::vector<double> controll;
         bool success;
-        if (paning)
+        switch (doing)
         {
-            if (pid.update({pose.x, pose.y, pose.theta}, msg->header.stamp,
-                           controll, success))
+        case direction_theta:
+            if (pid.update({pose.theta}, msg->header.stamp, controll, success))
             {
-                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta << " panning:" << paning);
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta << " doing:" << doing);
+                TwistMightEnd tme;
+                tme.end = false;
+                tme.velocity.angular.z = controll[0];
+                cmd_vel_publisher_.publish(tme);
+                if (success)
+                {
+                    if (not_change_ == direction_x)
+                    {
+                        doing = direction_y;
+                        pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
+                                            {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
+                                            {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
+                                            {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                        return;
+                    }
+                    doing = direction_x;
+                    pid = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
+                                        {ki_eye_linear_, ki_eye_angular_},
+                                        {kd_eye_linear_, kd_eye_angular_},
+                                        {0.005, 0.03}, {0.02, 0.05}, {0.2, 0.4});
+                }
+            }
+            break;
+
+        case direction_x:
+            if (pid.update({pose.x, pose.theta}, msg->header.stamp, controll, success))
+            {
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta << " doing:" << doing);
+                TwistMightEnd tme;
+                tme.end = false;
+                tme.velocity.linear.x = controll[0];
+                tme.velocity.angular.z = controll[1];
+                cmd_vel_publisher_.publish(tme);
+                if (success)
+                {
+                    doing = direction_y;
+                    pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
+                                        {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
+                                        {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
+                                        {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                }
+            }
+            break;
+
+        case direction_y:
+            if (pid.update({pose.x, pose.y, pose.theta}, msg->header.stamp, controll, success))
+            {
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta << " doing:" << doing);
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = controll[0];
@@ -128,22 +176,10 @@ namespace motion_controller
                 tme.velocity.angular.z = controll[2];
                 cmd_vel_publisher_.publish(tme);
             }
-        }
-        else if (pid.update({pose.theta}, msg->header.stamp, controll, success))
-        {
-            ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta << " panning:" << paning);
-            TwistMightEnd tme;
-            tme.end = false;
-            tme.velocity.angular.z = controll[0];
-            cmd_vel_publisher_.publish(tme);
-            if (success)
-            {
-                paning = true;
-                pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
-                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
-                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                    {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
-            }
+            break;
+
+        default:
+            break;
         }
     }
 
@@ -193,15 +229,15 @@ namespace motion_controller
         }
         switch (not_change_)
         {
-        case not_change_x:
+        case direction_x:
             change = tfs_.transform.translation.x - tfs_now.transform.translation.x;
             break;
 
-        case not_change_y:
+        case direction_y:
             change = tfs_.transform.translation.y - tfs_now.transform.translation.y;
             break;
 
-        case not_change_theta:
+        case direction_theta:
             change = atan2(tfs_.transform.rotation.z, tfs_.transform.rotation.w) * 2 -
                      atan2(tfs_now.transform.rotation.z, tfs_now.transform.rotation.w) * 2;
             // 将change限定在(-pi,pi]之间
@@ -211,7 +247,7 @@ namespace motion_controller
 
         default:
             ROS_ERROR("not_change_ invalid!");
-            not_change_ = not_change_theta;
+            not_change_ = direction_theta;
             change = 0;
             return false;
         }
