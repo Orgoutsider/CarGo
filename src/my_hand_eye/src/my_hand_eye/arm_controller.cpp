@@ -11,7 +11,7 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
-          ellipse_roi_(480, 360, 960, 720),
+          ellipse_roi_(320, 360, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(0.30121),
@@ -363,11 +363,11 @@ namespace my_hand_eye
     }
 
     bool ArmController::get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray,
-                                         geometry_msgs::Pose2D &pose, bool rst)
+                                         geometry_msgs::Pose2D &pose)
     {
-        static geometry_msgs::Pose2D pose_fil;
-        if (rst)
-            pose_fil = geometry_msgs::Pose2D();
+        // static geometry_msgs::Pose2D pose_fil;
+        // if (rst)
+        //     pose_fil = geometry_msgs::Pose2D();
         if (objArray.boxes.size() == 4)
         {
             bool read = true;
@@ -400,13 +400,12 @@ namespace my_hand_eye
             pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
                            atan((x[1] - x[2]) / (y[1] - y[2])) + atan((x[2] - x[0]) / (y[2] - y[0]))) /
                          3;
-            if (pose_fil.x)
-            {
-                pose.x = pose_fil.x * 0.2 + pose.x * 0.8;
-                pose.y = pose_fil.y * 0.2 + pose.y * 0.8;
-                pose.theta = pose_fil.theta * 0.2 + pose.theta * 0.8;
-            }
-            pose_fil = pose;
+            // if (pose_fil.x)
+            // {
+            //     pose.x = pose_fil.x * 0.1 + pose.x * 0.9;
+            //     pose.y = pose_fil.y * 0.1 + pose.y * 0.9;
+            // }
+            // pose_fil = pose;
             return true;
         }
         return false;
@@ -906,7 +905,7 @@ namespace my_hand_eye
             if (pose)
             {
                 geometry_msgs::Pose2D pose;
-                if (get_ellipse_pose(objArray, pose, false))
+                if (get_ellipse_pose(objArray, pose))
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
             }
             else
@@ -991,12 +990,12 @@ namespace my_hand_eye
                                      sensor_msgs::ImagePtr &debug_image)
     {
         static bool last_finish = true;
-        bool rst = false;
+        // bool rst = false;
         if (!msg.end && last_finish)
         {
             ps_.reset(true);
             last_finish = false;
-            rst = true;
+            // rst = true;
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -1004,11 +1003,11 @@ namespace my_hand_eye
         vision_msgs::BoundingBox2DArray objArray;
         geometry_msgs::Pose2D pose;
         bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                     get_ellipse_pose(objArray, pose, rst);
+                     get_ellipse_pose(objArray, pose);
         if (valid)
         {
-            if (rst)
-                rst = false;
+            // if (rst)
+            //     rst = false;
             target_pose.calc(pose, msg);
             msg.header = image_rect->header;
         }

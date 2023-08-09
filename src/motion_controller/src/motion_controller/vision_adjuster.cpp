@@ -8,8 +8,8 @@ namespace motion_controller
     VisionAdjuster::VisionAdjuster()
         : listener_(buffer_),
           not_change_(not_change_theta),
-          kp_eye_angular_(1.6), ki_eye_angular_(0.6), kd_eye_angular_(0),
-          kp_eye_linear_(1.6), ki_eye_linear_(0), kd_eye_linear_(0)
+          kp_eye_angular_(1.2), ki_eye_angular_(0.0), kd_eye_angular_(1.2),
+          kp_eye_linear_(0.5), ki_eye_linear_(0), kd_eye_linear_(0)
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
@@ -29,7 +29,7 @@ namespace motion_controller
         static bool paning = false;
         static PIDController pid = PIDController({0}, {kp_eye_angular_},
                                                  {ki_eye_angular_}, {kd_eye_angular_},
-                                                 {0.01}, {0.05}, {0.4});
+                                                 {0.03}, {0.05}, {0.4});
         geometry_msgs::Pose2D pose = msg->pose;
         double change;
         if (msg->end)
@@ -46,7 +46,7 @@ namespace motion_controller
                 paning = false;
                 pid = PIDController({0}, {kp_eye_angular_},
                                     {ki_eye_angular_}, {kd_eye_angular_},
-                                    {0.01}, {0.05}, {0.4});
+                                    {0.03}, {0.05}, {0.4});
             }
             return;
         }
@@ -93,7 +93,7 @@ namespace motion_controller
                 pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                     {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                     {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                    {0.005, 0.005, 0.01}, {0.01, 0.01, 0.05}, {0.1, 0.1, 0.4});
+                                    {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
             }
             else if (pose.x == msg->not_change)
             {
@@ -142,7 +142,7 @@ namespace motion_controller
                 pid = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                     {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                     {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                    {0.005, 0.005, 0.01}, {0.01, 0.01, 0.05}, {0.1, 0.1, 0.4});
+                                    {0.005, 0.005, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
             }
         }
     }

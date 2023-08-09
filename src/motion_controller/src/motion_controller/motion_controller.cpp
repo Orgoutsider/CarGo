@@ -113,14 +113,15 @@ namespace motion_controller
                 goal.loop = loop_;
                 if (where_is_car(follower_.debug, follower_.startup) == route_rest)
                 {
+                    if (!follower_.has_started)
+                    {
+                        set_position(0, 0, 0);
+                        boost::lock_guard<boost::mutex> lk(mtx_);
+                        follower_.start(true, theta_);
+                    }
                     if (get_position())
                     {
-                        if (!follower_.has_started && follower_.startup)
-                        {
-                            set_position(0, 0, 0);
-                            boost::lock_guard<boost::mutex> lk(mtx_);
-                            follower_.start(true, theta_);
-                        }
+                        ROS_INFO_STREAM("x:" << x_ << " y:" << y_);
                         boost::lock_guard<boost::mutex> lk(mtx_);
                         follower_.follow(theta_, event.current_real);
                     }

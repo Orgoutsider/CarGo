@@ -15,7 +15,7 @@ namespace my_hand_eye
         tolerance[target_center].x = 0.015;
         tolerance[target_center].y = 0.015;
 
-        pose[target_ellipse].theta = 0;
+        pose[target_ellipse].theta = Angle(-5.3347).rad();
         Action ellipse = Action(0, 19.3, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;

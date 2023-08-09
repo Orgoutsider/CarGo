@@ -101,7 +101,7 @@ namespace my_hand_eye
 		if (arm_controller_.show_detections)
 			debug_image_publisher_.publish(debug_image);
 
-		// // 输出检测物料位置
+		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_blue, debug_image, false);
 		// if (arm_controller_.show_detections)
@@ -125,7 +125,6 @@ namespace my_hand_eye
 		// }
 
 		// 椭圆识别
-		// static bool finish = false;
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
 		// if (arm_controller_.show_detections)
@@ -364,8 +363,8 @@ namespace my_hand_eye
 		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y != a.y)
 			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y = a.y;
 		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta !=
-			config.target_theta_deg / 180 * CV_PI)
+			Angle(config.target_theta_deg).rad())
 			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta =
-				config.target_theta_deg / 180 * CV_PI;
+				Angle(config.target_theta_deg).rad();
 	}
 } // namespace my_hand_eye
