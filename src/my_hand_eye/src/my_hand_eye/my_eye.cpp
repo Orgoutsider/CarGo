@@ -309,18 +309,29 @@ namespace my_hand_eye
 				if (msg.end)
 				{
 					finish_adjusting_ = true;
-					// if (rst)
-					// 	rst = false;
+					finish_ = true;
+					if (!debug_)
+					{
+						arm_controller_.put(which_color());
+						next_task();
+						arm_controller_.put(which_color());
+						next_task();
+						arm_controller_.put(which_color());
+						next_task();
+						if (arm_goal_.route == arm_goal_.route_roughing_area)
+						{
+							arm_controller_.catch_after_putting(which_color());
+							next_task();
+							arm_controller_.catch_after_putting(which_color());
+							next_task();
+							arm_controller_.catch_after_putting(which_color());
+							next_task();
+						}
+					}
+					arm_goal_.route = arm_goal_.route_rest;
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					ROS_INFO("Finish operating ellipse...");
 				}
-				// if (rst)
-				// {
-				// 	rst = false;
-				// 	// 大范围调整
-				// 	ArmFeedback feedback;
-				// 	feedback.pme = msg;
-				// 	as_.publishFeedback(feedback);
-				// }
-				// else // 小范围调整
 				pose_publisher_.publish(msg);
 			}
 			else
@@ -331,17 +342,6 @@ namespace my_hand_eye
 				msg.pose.theta = msg.not_change;
 				pose_publisher_.publish(msg);
 			}
-		}
-		else if (!debug_)
-		{
-			// put
-		}
-		else
-		{
-			finish_ = true;
-			arm_goal_.route = arm_goal_.route_rest;
-			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			ROS_INFO("Finish operating ellipse...");
 		}
 		return valid;
 	}

@@ -22,6 +22,7 @@ namespace my_hand_eye
         Pos ps_;
         Color current_color_;
         EllipseColor ellipse_color_order_[4]; // 椭圆顺序（从左至右）
+        std::map<Color, int> ellipse_color_map_;
         ColorTracker tracker_;
         Border border_;
         SMS_STS sm_st_;
@@ -94,6 +95,10 @@ namespace my_hand_eye
         // 椭圆识别，摄像头测试
         bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
+        // 固定位置放置
+        bool put(const Color color);
+        // 固定位置抓取
+        bool catch_after_putting(const Color color);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);

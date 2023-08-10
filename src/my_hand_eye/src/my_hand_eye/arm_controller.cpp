@@ -60,6 +60,9 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue default_action;
         XmlRpc::XmlRpcValue back_action;
         XmlRpc::XmlRpcValue down_action;
+        XmlRpc::XmlRpcValue put1_action;
+        XmlRpc::XmlRpcValue put2_action;
+        XmlRpc::XmlRpcValue put3_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
@@ -75,6 +78,18 @@ namespace my_hand_eye
         if (!pnh.getParam("down_action", down_action))
         {
             ROS_ERROR("No down action specified");
+        }
+        if (!pnh.getParam("put1_action", put1_action))
+        {
+            ROS_ERROR("No put1 action specified");
+        }
+        if (!pnh.getParam("put2_action", put2_action))
+        {
+            ROS_ERROR("No put2 action specified");
+        }
+        if (!pnh.getParam("put3_action", put3_action))
+        {
+            ROS_ERROR("No put3 action specified");
         }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
@@ -92,6 +107,9 @@ namespace my_hand_eye
         ps_.set_action(default_action);
         ps_.set_action(back_action, "back");
         ps_.set_action(down_action, "down");
+        ps_.set_action(put1_action, "put1");
+        ps_.set_action(put2_action, "put2");
+        ps_.set_action(put3_action, "put3");
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
@@ -431,6 +449,24 @@ namespace my_hand_eye
             }
             std::sort(ellipse_color_order_ + 1, ellipse_color_order_ + 3, [](EllipseColor e1, EllipseColor e2)
                       { return e1.center_x < e2.center_x; });
+            for (int i = color_red; i <= color_blue; i++)
+                switch (ellipse_color_order_[i].color)
+                {
+                case color_red:
+                    ellipse_color_map_[color_red] = i;
+                    break;
+
+                case color_green:
+                    ellipse_color_map_[color_green] = i;
+                    break;
+
+                case color_blue:
+                    ellipse_color_map_[color_blue] = i;
+                    break;
+
+                default:
+                    break;
+                }
             return true;
         }
         return false;
@@ -933,6 +969,18 @@ namespace my_hand_eye
             }
         }
         return valid;
+    }
+
+    bool ArmController::put(const Color color)
+    {
+        return ps_.go_to_table(false, color, true) && ps_.put(ellipse_color_map_[color], false) &&
+               ps_.reset(true);
+    }
+
+    bool ArmController::catch_after_putting(const Color color)
+    {
+        return ps_.put(ellipse_color_map_[color], true) && ps_.go_to_table(false, color, true) &&
+               ps_.reset(true);
     }
 
     bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,

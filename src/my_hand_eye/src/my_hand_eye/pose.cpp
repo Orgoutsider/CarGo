@@ -90,6 +90,12 @@ namespace my_hand_eye
             ROS_INFO_STREAM("Set action " << name);
             ARM_INFO_XYZ(action_down);
         }
+        else if (name == "put1" || name == "put2" || name == "put3")
+        {
+            action_put[name[3] - '0'] = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set action " << name);
+            ARM_INFO_XYZ(action_put[name[3] - '0']);
+        }
         else
             ROS_ERROR("set_action: Name error!");
     }
@@ -383,6 +389,11 @@ namespace my_hand_eye
             }
         }
         return valid;
+    }
+
+    bool Pos::put(int order, bool cat)
+    {
+        return go_to_and_wait(action_put[order].x, action_put[order].y, action_put[order].z, cat);
     }
 
     bool Pos::read_position(int ID)

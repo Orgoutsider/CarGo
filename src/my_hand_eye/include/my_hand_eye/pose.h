@@ -43,6 +43,12 @@ namespace my_hand_eye
         SCSCL *sc_ptr_;
         CargoTable cargo_table_;
         ros::Time rst_time_; // 在此时间后进行图像处理
+        Action action_default;
+        Action action_left;
+        Action action_back;
+        Action action_right;
+        Action action_down;
+        Action action_put[4];
         const double fx = 788.709302;
         const double fy = 940.728627;
         const double cx = 932.106780;
@@ -75,11 +81,6 @@ namespace my_hand_eye
     public:
         double tightness;                                                           // 取值0～1，为0时最松，为1时最紧
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
-        Action action_default;
-        Action action_left;
-        Action action_back;
-        Action action_right;
-        Action action_down;
         // double wait_time_;
         bool begin(const char *argv); // 打开串口
         void ping();
@@ -92,12 +93,13 @@ namespace my_hand_eye
         bool look_down();                                            // 查看左侧车道线
         bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
-        bool go_to_table(bool cat, Color color, bool left);
-        bool show_voltage();                     // 显示电压，需要时警告
-        bool read_all_position();                // 读所有舵机正确位置
-        bool refresh_xyz(bool read = true);      // 更新位置
-        ArmPose end_to_base_now();               // 更新位置，并返回旋转矩阵，平移向量
-        cv::Mat transformation_matrix(double z); // 透视变换矩阵（不保证实时性，配合refresh_xyz）
+        bool go_to_table(bool cat, Color color, bool left);          // 运动到转盘
+        bool put(int order, bool cat);                               // 运动到椭圆放置处，可选择是否抓取
+        bool show_voltage();                                         // 显示电压，需要时警告
+        bool read_all_position();                                    // 读所有舵机正确位置
+        bool refresh_xyz(bool read = true);                          // 更新位置
+        ArmPose end_to_base_now();                                   // 更新位置，并返回旋转矩阵，平移向量
+        cv::Mat transformation_matrix(double z);                     // 透视变换矩阵（不保证实时性，配合refresh_xyz）
         // 计算物料位置
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y, bool read = true);

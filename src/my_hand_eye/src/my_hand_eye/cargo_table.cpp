@@ -5,7 +5,7 @@ namespace my_hand_eye
     CargoTable::CargoTable(SMS_STS *sm_st_ptr)
         : ID(6), where_(2), where_last_(2),
           sm_st_ptr_(sm_st_ptr),
-          what_color_({0}), where_cargo_({-1, -1, -1}) {}
+          what_color_({0}), where_cargo_({-1, -1, -1, -1}) {}
 
     void CargoTable::set_speed_and_acc(XmlRpc::XmlRpcValue &servo_description)
     {
