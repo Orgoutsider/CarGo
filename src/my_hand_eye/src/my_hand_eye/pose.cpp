@@ -133,7 +133,8 @@ namespace my_hand_eye
     bool Pos::go_to(double x, double y, double z, bool cat, bool look, bool expand_y)
     {
         bool valid = refresh_xyz(); // 此时xyz为当前值
-        bool flag = (this->y) < 0;
+        bool flag1 = (this->y) < 0;
+        bool flag2 = (this->z) < 10;
         this->x = x;
         this->y = y;
         this->z = z; // 此时xyz为目标值
@@ -150,7 +151,7 @@ namespace my_hand_eye
                 ROS_INFO("Pose has arrived");
                 return valid;
             }
-            if (Position[2] >= Position_now[2] && flag)
+            if (Position[2] >= Position_now[2] && flag1 && !flag2);
             // 第2关节位置靠前，最后移动第2关节
             {
                 if (Position[3] >= Position_now[3]) // 第23关节位置靠前，最后移动第23关节
@@ -172,7 +173,7 @@ namespace my_hand_eye
                     wait_until_static(ID, 5);
                 }
             }
-            else
+            else if (flag2 && )
             {
                 sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
                 sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
@@ -244,14 +245,14 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::go_to_and_wait(double x, double y, double z, bool cat)
+    bool Pos::go_to_and_wait(double x, double y, double z, bool cat, bool expand_y)
     {
         this->x = x;
         this->y = y;
         this->z = z;
         this->tightness = cat;
         this->look_ = false;
-        bool valid = calculate_position();
+        bool valid = calculate_position(expand_y);
         if (valid)
         {
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
@@ -393,7 +394,7 @@ namespace my_hand_eye
 
     bool Pos::put(int order, bool cat)
     {
-        return go_to_and_wait(action_put[order].x, action_put[order].y, action_put[order].z, cat);
+        return go_to_and_wait(action_put[order].x, action_put[order].y, action_put[order].z, cat, true);
     }
 
     bool Pos::read_position(int ID)

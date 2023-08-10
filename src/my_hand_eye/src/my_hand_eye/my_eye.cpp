@@ -13,6 +13,8 @@ namespace my_hand_eye
 		pnh.param<bool>("debug", debug_, false);
 		if (debug_)
 			dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
+		else
+			ROS_INFO("my_hand_eye_do_node: don't modify paramater");
 		bool if_detect_QR_code = pnh.param<bool>("if_detect_QR_code", true);
 		if (if_detect_QR_code)
 			task_subscriber_ = nh.subscribe<my_hand_eye::ArrayofTaskArrays>(

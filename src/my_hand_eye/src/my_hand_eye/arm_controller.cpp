@@ -973,14 +973,14 @@ namespace my_hand_eye
 
     bool ArmController::put(const Color color)
     {
-        return ps_.go_to_table(false, color, true) && ps_.put(ellipse_color_map_[color], false) &&
-               ps_.reset(true);
+        return ps_.go_to_table(false, color, true) &&
+               ps_.put(ellipse_color_map_[color], false) && ps_.reset(true);
     }
 
     bool ArmController::catch_after_putting(const Color color)
     {
-        return ps_.put(ellipse_color_map_[color], true) && ps_.go_to_table(false, color, true) &&
-               ps_.reset(true);
+        return ps_.put(ellipse_color_map_[color], true) &&
+               ps_.go_to_table(false, color, true) && ps_.reset(true);
     }
 
     bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,

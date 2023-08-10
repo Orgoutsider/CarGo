@@ -91,7 +91,7 @@ namespace my_hand_eye
         // bool do_first_step(double x, double y);                        // 两步抓取第一步
         bool reset(bool left = false);                               // 重置位置，可选前侧/左侧
         bool look_down();                                            // 查看左侧车道线
-        bool go_to_and_wait(double x, double y, double z, bool cat); // 运动到指定位置，运动完成后抓/不抓
+        bool go_to_and_wait(double x, double y, double z, bool cat, bool expand_y = false); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);        // 通过中间点到达
         bool go_to_table(bool cat, Color color, bool left);          // 运动到转盘
         bool put(int order, bool cat);                               // 运动到椭圆放置处，可选择是否抓取
