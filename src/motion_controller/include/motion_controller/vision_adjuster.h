@@ -55,7 +55,7 @@ namespace motion_controller
         void _timer_callback(const ros::TimerEvent &event);
         void _dr_callback(params_PID_visionConfig &config, uint32_t level);
         bool _add_pose_goal(const my_hand_eye::Pose2DMightEnd &pose);
-        bool _get_pose_now(geometry_msgs::Pose2D &pose);
+        bool _get_pose_now(geometry_msgs::Pose2D &pose, ros::Time &stamp);
 
     public:
         VisionAdjuster();
