@@ -40,7 +40,7 @@ namespace motion_controller
         // 转弯controll
         geometry_msgs::Pose2D pose = goal->pose;
         bool success = false;
-        std::vector<double> controll;
+        std::vector<double> control;
         if (goal->pose.theta)
         {
             PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
@@ -53,11 +53,11 @@ namespace motion_controller
                     {
                         if (_get_pose_now(pose))
                         {
-                            if (pid1.update({pose.theta}, header_.stamp, controll, success))
+                            if (pid1.update({pose.theta}, header_.stamp, control, success))
                             {
                                 // 组织发布速度消息
                                 geometry_msgs::Twist twist;
-                                twist.angular.z = controll[0];
+                                twist.angular.z = control[0];
                                 tme.velocity = twist;
                             }
                             else
@@ -90,11 +90,11 @@ namespace motion_controller
                 if (_get_pose_now(pose))
                 {
                     // pose.theta从-pi到+pi
-                    if (pid1.update({pose.theta}, header_.stamp, controll, success)) // pid更新成功
+                    if (pid1.update({pose.theta}, header_.stamp, control, success)) // pid更新成功
                     {
                         // 组织发布速度消息
                         geometry_msgs::Twist twist;
-                        twist.angular.z = controll[0];
+                        twist.angular.z = control[0];
                         tme.velocity = twist;
                     }
                     else
@@ -134,11 +134,11 @@ namespace motion_controller
                     {
                         if (_get_pose_now(pose))
                         {
-                            if (pid.update({pose.theta}, header_.stamp, controll, success))
+                            if (pid.update({pose.theta}, header_.stamp, control, success))
                             {
                                 // 组织发布速度消息
                                 geometry_msgs::Twist twist;
-                                twist.angular.z = controll[0];
+                                twist.angular.z = control[0];
                                 tme.velocity = twist;
                             }
                             else
@@ -170,13 +170,13 @@ namespace motion_controller
                 }
                 if (_get_pose_now(pose))
                 {
-                    if (pid2.update({pose.x, pose.y, pose.theta}, header_.stamp, controll, success))
+                    if (pid2.update({pose.x, pose.y, pose.theta}, header_.stamp, control, success))
                     {
                         // 组织发布速度消息
                         geometry_msgs::Twist twist;
-                        twist.linear.x = controll[0];
-                        twist.linear.y = controll[1];
-                        twist.angular.z = controll[2];
+                        twist.linear.x = control[0];
+                        twist.linear.y = control[1];
+                        twist.angular.z = control[2];
                         tme.velocity = twist;
                     }
                     else
@@ -227,7 +227,7 @@ namespace motion_controller
             kd_linear_ = config.kd_linear;
     }
 
-    bool MotionServer::_add_pose_goal(geometry_msgs::Pose2D pose)
+    bool MotionServer::_add_pose_goal(const geometry_msgs::Pose2D &pose)
     {
         geometry_msgs::PoseStamped pose_footprint;
         pose_footprint.header.frame_id = "base_footprint";
@@ -249,7 +249,7 @@ namespace motion_controller
         }
         catch (const std::exception &e)
         {
-            ROS_INFO("Transform error:%s", e.what());
+            ROS_INFO("_add_pose_goal exception:%s", e.what());
             return false;
         }
         header_.stamp = ros::Time::now();
@@ -266,7 +266,7 @@ namespace motion_controller
         }
         catch (const std::exception &e)
         {
-            ROS_INFO("Transform error:%s", e.what());
+            ROS_INFO("_get_pose_now exception:%s", e.what());
             return false;
         }
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)

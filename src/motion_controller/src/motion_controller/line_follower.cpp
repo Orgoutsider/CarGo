@@ -83,14 +83,14 @@ namespace motion_controller
     void LineFollower::follow(double theta, const ros::Time &now)
     {
         bool success;
-        std::vector<double> controll;
+        std::vector<double> control;
         if (has_started)
         {
             // 将theta限制在target_theta_周围，防止不当的error
             theta = (theta > target_theta_ + M_PI)
                         ? theta - M_PI * 2
                         : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
-            if (pid_.update({theta}, now, controll, success))
+            if (pid_.update({theta}, now, control, success))
             {
                 geometry_msgs::Twist twist;
                 if (front_back_)
@@ -105,7 +105,7 @@ namespace motion_controller
                 else
                     twist.linear.y = -linear_velocity_;
                 // 需要增加一个负号来修正update的结果
-                twist.angular.z = -controll[0];
+                twist.angular.z = -control[0];
                 if (startup)
                     cmd_vel_publisher_.publish(twist);
             }

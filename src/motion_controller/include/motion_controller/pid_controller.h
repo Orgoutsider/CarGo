@@ -16,16 +16,16 @@ namespace motion_controller
         std::vector<double> last_error_;
         std::vector<double> integrator_;
         std::vector<double> integrator_max_;
-        std::vector<double> controll_max_;
+        std::vector<double> control_max_;
         ros::Time last_time_;
 
     public:
         PIDController(std::vector<double> &&target,
                       std::vector<double> &&p, std::vector<double> &&i, std::vector<double> &&d,
-                      std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&controll_max);
+                      std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&control_max);
         // 注意调用controll必须等到返回值为true时！
         bool update(std::vector<double> &&current, const ros::Time &now,
-                    std::vector<double> &controll, bool &success);
+                    std::vector<double> &control, bool &success);
     };
 
 } // namespace motion_controller

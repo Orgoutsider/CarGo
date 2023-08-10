@@ -7,40 +7,40 @@ namespace motion_controller
     
     PIDController::PIDController(std::vector<double> &&target,
                                  std::vector<double> &&p, std::vector<double> &&i, std::vector<double> &&d,
-                                 std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&controll_max)
+                                 std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&control_max)
         : target_(target), Kp_(p), Ki_(i), Kd_(d),
-          threshold_(threshold), integrator_max_(integrator_max), controll_max_(controll_max)
+          threshold_(threshold), integrator_max_(integrator_max), control_max_(control_max)
     {
         ROS_ASSERT(target_.size() == Kp_.size());
         ROS_ASSERT(target_.size() == Ki_.size());
         ROS_ASSERT(target_.size() == Kd_.size());
         ROS_ASSERT(target_.size() == threshold_.size());
         ROS_ASSERT(target_.size() == integrator_max_.size());
-        ROS_ASSERT(target_.size() == controll_max_.size());
+        ROS_ASSERT(target_.size() == control_max_.size());
         last_error_.resize(target_.size(), 0);
         integrator_.resize(target_.size(), 0);
     }
 
     bool PIDController::update(std::vector<double> &&current,
-                               const ros::Time &now, std::vector<double> &controll, bool &success)
+                               const ros::Time &now, std::vector<double> &control, bool &success)
     {
         if (current.size() != target_.size())
         {
             ROS_ERROR("invalid size of current!");
             return false;
         }
-        if (!controll.empty())
-            controll.clear();
+        if (!control.empty())
+            control.clear();
         if (last_time_.is_zero())
         {
             // PID第一次被调用，我们还不知道时间差
             // 没有控制信号被应用
             last_time_ = now;
-            // 第一次的controll不能用！
-            controll.resize(target_.size(), 0.0);
+            // 第一次的control不能用！
+            control.resize(target_.size(), 0.0);
             return false;
         }
-        controll.reserve(target_.size());
+        control.reserve(target_.size());
         success = true;
         try
         {
@@ -62,8 +62,8 @@ namespace motion_controller
                 double d_out = Kd_.at(i) * (error - last_error_.at(i)) / delta_t;
                 last_error_.at(i) = error;
                 double out = p_out + i_out + d_out;
-                LIMIT(out, controll_max_.at(i));
-                controll.push_back(out);
+                LIMIT(out, control_max_.at(i));
+                control.push_back(out);
             }
         }
         catch (const std::exception &e)

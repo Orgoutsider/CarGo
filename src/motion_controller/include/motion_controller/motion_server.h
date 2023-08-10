@@ -38,7 +38,7 @@ namespace motion_controller
         void _execute_callback(const motion_controller::MoveGoalConstPtr &goal);
         void _dr_callback(motion_controller::params_PID_srvConfig &config, uint32_t level);
         // 将目标点转换到odom_combined坐标系并存储
-        bool _add_pose_goal(geometry_msgs::Pose2D pose);
+        bool _add_pose_goal(const geometry_msgs::Pose2D &pose);
         // 获取当前位姿，如果获取失败，则不改变pose
         bool _get_pose_now(geometry_msgs::Pose2D &pose);
 
