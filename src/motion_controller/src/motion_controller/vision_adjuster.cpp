@@ -11,7 +11,7 @@ namespace motion_controller
                {ki_eye_angular_}, {kd_eye_angular_},
                {0.03}, {0.05}, {0.4}),
           kp_eye_angular_(1.3), ki_eye_angular_(0.0), kd_eye_angular_(1.3),
-          kp_eye_linear_(0.8), ki_eye_linear_(0.01), kd_eye_linear_(1.05)
+          kp_eye_linear_(1.0), ki_eye_linear_(0.0), kd_eye_linear_(0.55)
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
