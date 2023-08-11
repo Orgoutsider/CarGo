@@ -447,8 +447,10 @@ namespace my_hand_eye
                 ellipse_color_order_[color].center_x = objArray.boxes[color].center.x;
                 ellipse_color_order_[color].color = color;
             }
-            std::sort(ellipse_color_order_ + 1, ellipse_color_order_ + 3, [](EllipseColor e1, EllipseColor e2)
+            std::sort(ellipse_color_order_ + 1, ellipse_color_order_ + 4, [](EllipseColor e1, EllipseColor e2)
                       { return e1.center_x < e2.center_x; });
+            ROS_INFO("Color order: %d%d%d", ellipse_color_order_[1].color,
+                     ellipse_color_order_[2].color, ellipse_color_order_[3].color);
             for (int i = color_red; i <= color_blue; i++)
                 switch (ellipse_color_order_[i].color)
                 {
@@ -973,7 +975,7 @@ namespace my_hand_eye
 
     bool ArmController::put(const Color color)
     {
-        return ps_.go_to_table(false, color, true) &&
+        return ps_.go_to_table(true, color, true) &&
                ps_.put(ellipse_color_map_[color], false) && ps_.reset(true);
     }
 
