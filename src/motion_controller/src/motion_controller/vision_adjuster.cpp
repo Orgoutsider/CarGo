@@ -10,7 +10,7 @@ namespace motion_controller
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
                {0.03}, {0.05}, {0.4}),
-          kp_eye_angular_(1.2), ki_eye_angular_(0.0), kd_eye_angular_(1.3),
+          kp_eye_angular_(1.3), ki_eye_angular_(0.0), kd_eye_angular_(1.3),
           kp_eye_linear_(0.8), ki_eye_linear_(0.01), kd_eye_linear_(1.05)
     {
         ros::NodeHandle nh;
