@@ -337,7 +337,7 @@ namespace my_hand_eye
         z = height;
         x = length * j1.cos();
         y = length * j1.sin() - ARM_P;
-        valid = (0 <= y || expand_y) && z >= 0;
+        valid = (0 <= y || expand_y);
         // ROS_ERROR_STREAM("valid:" << valid << " x:" << x << " y:" << y << " z:" << z << " length:" << length << " height:" << height << " alpha:" << alpha);
         return valid;
     }

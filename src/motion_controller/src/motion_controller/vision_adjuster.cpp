@@ -66,7 +66,7 @@ namespace motion_controller
                 pid_ = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
                                      {ki_eye_linear_, ki_eye_angular_},
                                      {kd_eye_linear_, kd_eye_angular_},
-                                     {0.015, 0.03}, {0.02, 0.05}, {0.2, 0.4});
+                                     {0.02, 0.03}, {0.02, 0.05}, {0.2, 0.4});
             }
             else if (pose.x == msg->not_change)
             {
@@ -126,14 +126,14 @@ namespace motion_controller
                         pid_ = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                              {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                              {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                             {0.015, 0.015, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                                             {0.02, 0.02, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
                         return;
                     }
                     changing_ = direction_x;
                     pid_ = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
                                          {ki_eye_linear_, ki_eye_angular_},
                                          {kd_eye_linear_, kd_eye_angular_},
-                                         {0.015, 0.03}, {0.02, 0.05}, {0.2, 0.4});
+                                         {0.02, 0.03}, {0.02, 0.05}, {0.2, 0.4});
                 }
             }
             break;
@@ -154,7 +154,7 @@ namespace motion_controller
                     pid_ = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                          {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                          {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                         {0.015, 0.015, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                                         {0.02, 0.02, 0.03}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
                 }
             }
             break;

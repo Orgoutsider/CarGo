@@ -126,7 +126,7 @@ namespace my_hand_eye
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
 
-		// 椭圆识别
+		// // 椭圆识别
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
 		// if (arm_controller_.show_detections)
@@ -308,6 +308,7 @@ namespace my_hand_eye
 			valid = arm_controller_.find_ellipse(image_rect, msg, debug_image);
 			if (valid)
 			{
+				pose_publisher_.publish(msg);
 				if (msg.end)
 				{
 					finish_adjusting_ = true;
@@ -334,7 +335,6 @@ namespace my_hand_eye
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
 					ROS_INFO("Finish operating ellipse...");
 				}
-				pose_publisher_.publish(msg);
 			}
 			else
 			{
