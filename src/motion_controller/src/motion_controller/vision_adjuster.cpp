@@ -6,7 +6,7 @@ namespace motion_controller
 {
     VisionAdjuster::VisionAdjuster()
         : listener_(buffer_), target_frame_("odom_combined"),
-          tf2_filter_(eye_subscriber_, buffer_, target_frame_, 10, 0),
+          tf2_filter_(eye_subscriber_, buffer_, target_frame_, 15, 0),
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.3), ki_eye_angular_(0.0), kd_eye_angular_(1.3),
           kp_eye_linear_(1.0), ki_eye_linear_(0.0), kd_eye_linear_(0.55),

@@ -211,7 +211,7 @@ namespace my_hand_eye
 				Pose2DMightEnd msg;
 				msg.end = true;
 				msg.header.frame_id = "base_footprint";
-				msg.header.stamp = ros::Time::now() - ros::Duration(0.1);
+				msg.header.stamp = ros::Time::now() - ros::Duration(0.2);
 				pose_publisher_.publish(msg);
 			}
 			finish_adjusting_ = true;
