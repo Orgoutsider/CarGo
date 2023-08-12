@@ -427,8 +427,8 @@ void turn_on_robot::Control()
 
       // Calculate the three-axis attitude from the IMU with the angular velocity around the three-axis and the three-axis acceleration
       // 通过IMU绕三轴角速度与三轴加速度计算三轴姿态
-      Quaternion_Solution(Mpu6050.angular_velocity.x, Mpu6050.angular_velocity.y, Mpu6050.angular_velocity.z,
-                          Mpu6050.linear_acceleration.x, Mpu6050.linear_acceleration.y, Mpu6050.linear_acceleration.z);
+      // Quaternion_Solution(Mpu6050.angular_velocity.x, Mpu6050.angular_velocity.y, Mpu6050.angular_velocity.z,
+      //                     Mpu6050.linear_acceleration.x, Mpu6050.linear_acceleration.y, Mpu6050.linear_acceleration.z);
 
       Publish_Odom();      // Pub the speedometer topic //发布里程计话题
       // Publish_ImuSensor(); // Pub the IMU topic //发布IMU话题

@@ -49,7 +49,6 @@ namespace my_hand_eye
             abs(pose_target.pose.y) <= tolerance[target].y)
         {
             err_cnt++;
-            pose_target.pose.theta = pose_target.pose.x = pose_target.pose.y = pose_target.not_change;
             if (err_cnt > 1)
             {
                 pose_target.end = true;

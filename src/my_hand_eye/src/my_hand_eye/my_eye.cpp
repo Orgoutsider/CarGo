@@ -309,6 +309,7 @@ namespace my_hand_eye
 			if (valid)
 			{
 				pose_publisher_.publish(msg);
+				ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
 				if (msg.end)
 				{
 					finish_adjusting_ = true;

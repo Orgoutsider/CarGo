@@ -28,7 +28,6 @@ namespace motion_controller
         bool debug_;
         Direction changing_;
         Direction unchanging_;
-        PIDController pid_;
         // // 弯道pid
         // double kp_usb_cam_;
         // double ki_usb_cam_;
@@ -41,6 +40,7 @@ namespace motion_controller
         double kp_eye_linear_;
         double ki_eye_linear_;
         double kd_eye_linear_;
+        PIDController pid_;
         // 机械手摄像头视觉信息订阅
         ros::Subscriber eye_subscriber_;
         ros::Publisher cmd_vel_publisher_;

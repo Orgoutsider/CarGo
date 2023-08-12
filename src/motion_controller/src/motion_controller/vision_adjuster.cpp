@@ -7,11 +7,11 @@ namespace motion_controller
     VisionAdjuster::VisionAdjuster()
         : listener_(buffer_),
           unchanging_(direction_void), changing_(direction_theta),
+          kp_eye_angular_(1.3), ki_eye_angular_(0.0), kd_eye_angular_(1.3),
+          kp_eye_linear_(1.0), ki_eye_linear_(0.0), kd_eye_linear_(0.55),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
-               {0.03}, {0.05}, {0.4}),
-          kp_eye_angular_(1.3), ki_eye_angular_(0.0), kd_eye_angular_(1.3),
-          kp_eye_linear_(1.0), ki_eye_linear_(0.0), kd_eye_linear_(0.55)
+               {0.03}, {0.05}, {0.4})
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
