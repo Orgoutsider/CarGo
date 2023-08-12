@@ -230,14 +230,13 @@ namespace motion_controller
                 ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
             }
         }
-        // else if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
-        //          where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area)
-        // {
-        //     MoveGoal goal;
-        //     goal.pose = feedback->pme.pose;
-        //     ROS_INFO_STREAM("First move... x:" << goal.pose.x << " y:" << goal.pose.y << " theta:" << goal.pose.theta);
-        //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-        // }
+        else if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
+                 where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area)
+        {
+            if (feedback->pme.end)
+                ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+            // 保证车子不再运动
+        }
     }
 
     void MotionController::_arm_done_callback(const actionlib::SimpleClientGoalState &state,
