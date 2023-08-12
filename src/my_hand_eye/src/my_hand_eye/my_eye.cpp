@@ -236,7 +236,7 @@ namespace my_hand_eye
 		{
 			// static int err_cnt = 0;
 			Pose2DMightEnd msg;
-			msg.end = finish_adjusting_;
+			msg.end = false;
 			valid = arm_controller_.find_center(image_rect, msg, debug_image);
 			if (valid)
 			{
@@ -306,7 +306,7 @@ namespace my_hand_eye
 		Pose2DMightEnd msg;
 		if (!finish_adjusting_)
 		{
-			msg.end = finish_adjusting_;
+			msg.end = false;
 			valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
 			if (valid)
 			{
@@ -315,6 +315,9 @@ namespace my_hand_eye
 				{
 					ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
 					finish_adjusting_ = true;
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
 				}
 			}
 			else
