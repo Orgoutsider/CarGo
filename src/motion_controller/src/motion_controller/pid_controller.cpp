@@ -59,7 +59,7 @@ namespace motion_controller
                 LIMIT(integrator_.at(i), integrator_max_.at(i));
                 double i_out = Ki_.at(i) * integrator_.at(i);
                 // D是误差的差值 / 时间差
-                double d_out = Kd_.at(i) * (error - last_error_.at(i)) / delta_t;
+                double d_out = delta_t == 0 ? 0 : Kd_.at(i) * (error - last_error_.at(i)) / delta_t;
                 last_error_.at(i) = error;
                 double out = p_out + i_out + d_out;
                 LIMIT(out, control_max_.at(i));
