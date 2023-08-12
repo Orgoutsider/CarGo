@@ -385,12 +385,9 @@ namespace my_hand_eye
     bool ArmController::get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray,
                                          Pose2DMightEnd &pose)
     {
-        // static geometry_msgs::Pose2D pose_fil;
-        // if (rst)
-        //     pose_fil = geometry_msgs::Pose2D();
         if (objArray.boxes.size() == 4)
         {
-            bool read = true;
+            static bool read = true;
             int cnt = 0;
             double x[5] = {0}, y[5] = {0};
             double x_sum = 0, y_sum = 0;
@@ -955,7 +952,7 @@ namespace my_hand_eye
                 if (valid)
                 {
                     Pose2DMightEnd pose;
-                    if (get_ellipse_pose(objArray, pose))
+                    if (valid = get_ellipse_pose(objArray, pose))
                         ROS_INFO_STREAM("x:" << pose.pose.x << " y:" << pose.pose.y << " theta:" << pose.pose.theta);
                     if (rst)
                         rst = false;
@@ -964,7 +961,7 @@ namespace my_hand_eye
             else
             {
                 double x = 0, y = 0;
-                if (find_with_color(objArray, color, z_parking_area, x, y))
+                if (valid = find_with_color(objArray, color, z_parking_area, x, y))
                 {
                     ROS_INFO_STREAM("x:" << x << " y:" << y);
                 }
