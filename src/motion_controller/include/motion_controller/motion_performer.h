@@ -19,8 +19,11 @@ namespace motion_controller
             level_vision,
             level_service
         };
-        Level level_; // 当前接受的消息优先级，service最高，vision次之
+        double timeout_; // 为防止意外情况，接受消息不活跃1秒后超时退出
+        Level level_;    // 当前接受的消息优先级，service最高，vision次之
         boost::mutex mtx_;
+        ros::Time time_vision_;
+        ros::Time time_service_;
         ros::Publisher publisher_;
         ros::Subscriber subscriber_line_;
         ros::Subscriber subscriber_vision_;
