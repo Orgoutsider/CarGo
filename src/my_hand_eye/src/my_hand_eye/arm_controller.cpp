@@ -1039,6 +1039,7 @@ namespace my_hand_eye
         {
             target_pose.calc(pose, msg);
             msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
         }
         if (valid && show_detections && !cv_image_.image.empty())
         {
@@ -1077,6 +1078,7 @@ namespace my_hand_eye
                 rst = false;
             target_pose.calc(pose.pose, msg);
             msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
         }
         last_finish = msg.end;
         return valid;

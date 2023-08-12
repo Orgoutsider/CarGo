@@ -5,7 +5,8 @@
 namespace motion_controller
 {
     VisionAdjuster::VisionAdjuster()
-        : listener_(buffer_),
+        : listener_(buffer_), target_frame_("odom_combined"),
+          tf2_filter_(eye_subscriber_, buffer_, target_frame_, 10, 0),
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.3), ki_eye_angular_(0.0), kd_eye_angular_(1.3),
           kp_eye_linear_(1.0), ki_eye_linear_(0.0), kd_eye_linear_(0.55),
@@ -15,8 +16,8 @@ namespace motion_controller
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
-        eye_subscriber_ = nh.subscribe<my_hand_eye::Pose2DMightEnd>(
-            "/vision_eye", 3, &VisionAdjuster::_eye_callback, this);
+        eye_subscriber_.subscribe(nh, "/vision_eye", 3);
+        tf2_filter_.registerCallback(boost::bind(&VisionAdjuster::_eye_callback, this, _1));
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_vision", 3);
         timer_ = nh.createTimer(ros::Rate(10), &VisionAdjuster::_timer_callback, this, false, false);
         pnh.param<bool>("debug", debug_, false);
@@ -56,10 +57,9 @@ namespace motion_controller
             _add_pose_goal(*msg);
             return;
         }
-        geometry_msgs::Pose2D pose = msg->pose;
         if (rst)
         {
-            if (pose.theta == msg->not_change)
+            if (msg->pose.theta == msg->not_change)
             {
                 unchanging_ = direction_theta;
                 changing_ = direction_x;
@@ -68,53 +68,38 @@ namespace motion_controller
                                      {kd_eye_linear_, kd_eye_angular_},
                                      {0.005, 0.02}, {0.02, 0.05}, {0.2, 0.4});
             }
-            else if (pose.x == msg->not_change)
+            else if (msg->pose.x == msg->not_change)
             {
                 unchanging_ = direction_x;
             }
-            else if (pose.y == msg->not_change)
+            else if (msg->pose.y == msg->not_change)
             {
                 unchanging_ = direction_y;
             }
             rst = false;
         }
-        switch (unchanging_)
-        {
-        case direction_void:
-            break;
-
-        case direction_theta:
-            pose.theta = 0;
-            break;
-
-        case direction_x:
-            pose.x = 0;
-            break;
-
-        case direction_y:
-            pose.y = 0;
-            break;
-
-        default:
-            break;
-        }
         if (!_add_pose_goal(*msg))
         {
             if (timer_.hasStarted())
                 timer_.stop();
+            return;
         }
         else if (!timer_.hasStarted())
             timer_.start();
+        geometry_msgs::Pose2D pose;
+        ros::Time stamp;
+        if (!_get_pose_now(pose, stamp))
+            return;
         std::vector<double> control;
         bool success;
         switch (changing_)
         {
         case direction_theta:
-            if (pid_.update({pose.theta}, msg->header.stamp, control, success))
+            if (pid_.update({pose.theta}, stamp, control, success))
             {
                 if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << msg->header.stamp.toSec() - ((int)msg->header.stamp.toSec() / 10 * 10));
+                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.angular.z = control[0];
@@ -140,11 +125,11 @@ namespace motion_controller
             break;
 
         case direction_x:
-            if (pid_.update({pose.x, pose.theta}, msg->header.stamp, control, success))
+            if (pid_.update({pose.x, pose.theta}, stamp, control, success))
             {
                 if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << msg->header.stamp.toSec() - ((int)msg->header.stamp.toSec() / 10 * 10));
+                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = control[0];
@@ -162,11 +147,11 @@ namespace motion_controller
             break;
 
         case direction_y:
-            if (pid_.update({pose.x, pose.y, pose.theta}, msg->header.stamp, control, success))
+            if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
             {
                 if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << msg->header.stamp.toSec() - ((int)msg->header.stamp.toSec() / 10 * 10));
+                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = control[0];
@@ -257,10 +242,12 @@ namespace motion_controller
     bool VisionAdjuster::_add_pose_goal(const my_hand_eye::Pose2DMightEnd &pose)
     {
         geometry_msgs::PoseStamped pose_footprint;
-        pose_footprint.header.frame_id = "base_footprint";
-        pose_footprint.header.stamp = ros::Time();
+        pose_footprint.header = pose.header;
         geometry_msgs::Pose p3D;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
+        if (pose.pose.x == pose.not_change && pose.pose.y == pose.not_change &&
+            pose.pose.theta == pose.not_change)
+            pose_footprint.header.stamp = ros::Time();
         p3D.orientation.w = (pose.pose.theta == pose.not_change) ? 1 : cos(pose.pose.theta / 2);
         p3D.orientation.z = (pose.pose.theta == pose.not_change) ? 0 : sin(pose.pose.theta / 2);
         p3D.position.x = (pose.pose.x == pose.not_change) ? 0 : pose.pose.x;
@@ -269,7 +256,7 @@ namespace motion_controller
         try
         {
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
-            pose_goal_ = buffer_.transform(pose_footprint, "odom_combined");
+            buffer_.transform(pose_footprint, pose_goal_, target_frame_);
             pose_goal_.header.stamp = ros::Time();
         }
         catch (const std::exception &e)

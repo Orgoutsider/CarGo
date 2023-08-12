@@ -2,10 +2,11 @@
 #define _VISION_ADJUSTER_H_
 
 #include <ros/ros.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/message_filter.h>
+#include <message_filters/subscriber.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <dynamic_reconfigure/server.h>
 #include <my_hand_eye/Pose2DMightEnd.h>
 #include <motion_controller/params_PID_visionConfig.h>
@@ -42,11 +43,13 @@ namespace motion_controller
         double kd_eye_linear_;
         PIDController pid_;
         // 机械手摄像头视觉信息订阅
-        ros::Subscriber eye_subscriber_;
         ros::Publisher cmd_vel_publisher_;
         ros::Timer timer_;                    // 定时器利用odom信息
-        tf2_ros::Buffer buffer_;              // 创建一个缓冲。
+        std::string target_frame_;            // 目标坐标系
+        tf2_ros::Buffer buffer_;              // 创建一个缓冲
         tf2_ros::TransformListener listener_; // 用刚创建的缓冲Buffer来初始化创建一个TransformListener类的对象用于守听Transform消息。
+        message_filters::Subscriber<my_hand_eye::Pose2DMightEnd> eye_subscriber_;
+        tf2_ros::MessageFilter<my_hand_eye::Pose2DMightEnd> tf2_filter_;
         // 设置在运动中静止的坐标
         geometry_msgs::PoseStamped pose_goal_;
         // 动态参数
