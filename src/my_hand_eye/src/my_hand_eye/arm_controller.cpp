@@ -19,8 +19,8 @@ namespace my_hand_eye
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
-        cargo_x_.reserve(3);
-        cargo_y_.reserve(3);
+        cargo_x_.reserve(5);
+        cargo_y_.reserve(5);
     };
 
     ArmController::ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
@@ -480,6 +480,19 @@ namespace my_hand_eye
         }
         x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
         y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
+    }
+
+    void ArmController::average_pose(geometry_msgs::Pose2D &pose)
+    {
+        if (cargo_x_.empty() || cargo_y_.empty() || cargo_theta_.empty())
+        {
+            pose.x = pose.y = pose.theta = 0;
+            return;
+        }
+        pose.x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
+        pose.y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
+        pose.theta = std::accumulate(std::begin(cargo_theta_), std::end(cargo_theta_), 0.0) /
+                     cargo_theta_.size();
     }
 
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
@@ -970,14 +983,18 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::put(const Color color, geometry_msgs::Pose2D &err)
+    bool ArmController::put(const Color color)
     {
+        geometry_msgs::Pose2D err;
+        average_pose(err);
         return ps_.go_to_table(true, color, true) &&
                ps_.put(ellipse_color_map_[color], false, err) && ps_.reset(true);
     }
 
-    bool ArmController::catch_after_putting(const Color color, geometry_msgs::Pose2D &err)
+    bool ArmController::catch_after_putting(const Color color)
     {
+        geometry_msgs::Pose2D err;
+        average_pose(err);
         return ps_.put(ellipse_color_map_[color], true, err) &&
                ps_.go_to_table(false, color, true) && ps_.reset(true);
     }
@@ -1052,15 +1069,25 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                     sensor_msgs::ImagePtr &debug_image)
+                                     sensor_msgs::ImagePtr &debug_image, bool store)
     {
         static bool last_finish = true;
         static bool rst = false;
+        const int MAX = 5; // 与put对应
         if (!msg.end && last_finish)
         {
-            ps_.reset(true);
+            if (!store)
+            {
+                ps_.reset(true);
+                rst = true;
+            }
+            else
+            {
+                cargo_x_.clear();
+                cargo_y_.clear();
+                cargo_theta_.clear();
+            }
             last_finish = false;
-            rst = true;
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -1074,14 +1101,26 @@ namespace my_hand_eye
                                get_ellipse_pose(objArray, pose);
         if (valid)
         {
-            if (rst)
-                rst = false;
-            target_pose.calc(pose.pose, msg);
-            msg.header = image_rect->header;
-            msg.header.frame_id = "base_footprint";
+            if (store)
+            {
+                if (pose.pose.theta != pose.not_change)
+                {
+                    cargo_x_.push_back(pose.pose.x);
+                    cargo_y_.push_back(pose.pose.y);
+                    cargo_theta_.push_back(pose.pose.theta);
+                }
+            }
+            else
+            {
+                if (rst)
+                    rst = false;
+                target_pose.calc(pose.pose, msg);
+                msg.header = image_rect->header;
+                msg.header.frame_id = "base_footprint";
+            }
         }
-        last_finish = msg.end;
-        return valid;
+        last_finish = store ? cargo_x_.size() >= MAX : msg.end;
+        return store ? last_finish : valid;
     }
 
     bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,

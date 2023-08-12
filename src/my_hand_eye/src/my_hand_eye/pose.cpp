@@ -453,9 +453,9 @@ namespace my_hand_eye
 
     bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err)
     {
-        Action a = action_put[order].now2goal(err);
-        ARM_INFO_XYZ(a);
-        bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
+        // Action a = action_put[order].now2goal(err);
+        // ARM_INFO_XYZ(a);
+        bool valid = go_to_and_wait(action_put[order].x, action_put[order].y, action_put[order].z, cat, true);
         if (!cat && (valid = read_all_position()))
         {
             Position[3] = Position_now[3] - 100; // 略微下降防止碰到块

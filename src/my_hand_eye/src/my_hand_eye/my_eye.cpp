@@ -303,11 +303,11 @@ namespace my_hand_eye
 			ROS_INFO("Start to operate ellipse...");
 		}
 		bool valid = true;
+		Pose2DMightEnd msg;
 		if (!finish_adjusting_)
 		{
-			Pose2DMightEnd msg;
 			msg.end = finish_adjusting_;
-			valid = arm_controller_.find_ellipse(image_rect, msg, debug_image);
+			valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
 			if (valid)
 			{
 				pose_publisher_.publish(msg);
@@ -315,28 +315,6 @@ namespace my_hand_eye
 				{
 					ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
 					finish_adjusting_ = true;
-					finish_ = true;
-					if (!debug_)
-					{
-						arm_controller_.put(which_color(), msg.pose);
-						next_task();
-						arm_controller_.put(which_color(), msg.pose);
-						next_task();
-						arm_controller_.put(which_color(), msg.pose);
-						next_task();
-						if (arm_goal_.route == arm_goal_.route_roughing_area)
-						{
-							arm_controller_.catch_after_putting(which_color(), msg.pose);
-							next_task();
-							arm_controller_.catch_after_putting(which_color(), msg.pose);
-							next_task();
-							arm_controller_.catch_after_putting(which_color(), msg.pose);
-							next_task();
-						}
-					}
-					arm_goal_.route = arm_goal_.route_rest;
-					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					ROS_INFO("Finish operating ellipse...");
 				}
 			}
 			else
@@ -350,6 +328,39 @@ namespace my_hand_eye
 				msg.header.frame_id = "base_footprint";
 				pose_publisher_.publish(msg);
 			}
+		}
+		else if (!debug_)
+		{
+			msg.end = false;
+			if (arm_controller_.find_ellipse(image_rect, msg, debug_image, true))
+			{
+				arm_controller_.put(which_color());
+				next_task();
+				arm_controller_.put(which_color());
+				next_task();
+				arm_controller_.put(which_color());
+				next_task();
+				if (arm_goal_.route == arm_goal_.route_roughing_area)
+				{
+					arm_controller_.catch_after_putting(which_color());
+					next_task();
+					arm_controller_.catch_after_putting(which_color());
+					next_task();
+					arm_controller_.catch_after_putting(which_color());
+					next_task();
+				}
+				finish_ = true;
+				arm_goal_.route = arm_goal_.route_rest;
+				as_.setSucceeded(ArmResult(), "Arm finish tasks");
+				ROS_INFO("Finish operating ellipse...");
+			}
+		}
+		else
+		{
+			finish_ = true;
+			arm_goal_.route = arm_goal_.route_rest;
+			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			ROS_INFO("Finish operating ellipse...");
 		}
 		return valid;
 	}

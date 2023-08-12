@@ -36,6 +36,7 @@ namespace my_hand_eye
         cv_bridge::CvImage cv_image_;
         std::vector<double> cargo_x_;
         std::vector<double> cargo_y_;
+        std::vector<double> cargo_theta_;
         cv::CEllipseDetectorYaed *yaed_;
         bool add_image(const sensor_msgs::ImageConstPtr &image_rect,
                        cv_bridge::CvImagePtr &image); // 添加图片
@@ -56,6 +57,7 @@ namespace my_hand_eye
         bool get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray, Pose2DMightEnd &pose);
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
+        void average_pose(geometry_msgs::Pose2D &pose);                             // 求得记录位置数据的平均值
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
@@ -96,9 +98,9 @@ namespace my_hand_eye
         bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
         // 固定位置放置
-        bool put(const Color color, geometry_msgs::Pose2D &err);
+        bool put(const Color color);
         // 固定位置抓取
-        bool catch_after_putting(const Color color, geometry_msgs::Pose2D &err);
+        bool catch_after_putting(const Color color);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);
@@ -107,7 +109,7 @@ namespace my_hand_eye
                          sensor_msgs::ImagePtr &debug_image);
         // 计算椭圆位置
         bool find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                          sensor_msgs::ImagePtr &debug_image);
+                          sensor_msgs::ImagePtr &debug_image, bool store);
         // 计算停车区位置
         bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                sensor_msgs::ImagePtr &debug_image);

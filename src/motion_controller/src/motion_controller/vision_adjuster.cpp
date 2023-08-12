@@ -9,8 +9,8 @@ namespace motion_controller
           tf2_filter_(eye_subscriber_, buffer_, target_frame_, 15, 0),
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.9), ki_eye_angular_(0.2), kd_eye_angular_(0.0),
-          kp_eye_linear_(1.0), ki_eye_linear_(0.0), kd_eye_linear_(0.3),
-          threshold_angular_(0.015), threshold_linear_(0.008),
+          kp_eye_linear_(1.0), ki_eye_linear_(0.02), kd_eye_linear_(0.3),
+          threshold_angular_(0.015), threshold_linear_x_(0.01), threshold_linear_y_(0.005),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
                {threshold_angular_}, {0.05}, {0.4})
@@ -67,7 +67,7 @@ namespace motion_controller
                 pid_ = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
                                      {ki_eye_linear_, ki_eye_angular_},
                                      {kd_eye_linear_, kd_eye_angular_},
-                                     {threshold_linear_, threshold_angular_}, {0.02, 0.05}, {0.2, 0.4});
+                                     {threshold_linear_x_, threshold_angular_}, {0.02, 0.05}, {0.2, 0.4});
             }
             else if (msg->pose.x == msg->not_change)
             {
@@ -107,20 +107,20 @@ namespace motion_controller
                 cmd_vel_publisher_.publish(tme);
                 if (success)
                 {
-                    if (changing_ == direction_x)
+                    if (unchanging_ == direction_x)
                     {
                         changing_ = direction_y;
                         pid_ = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                              {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                              {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                             {threshold_linear_, threshold_linear_, threshold_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                                             {threshold_linear_x_, threshold_linear_y_, threshold_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
                         return;
                     }
                     changing_ = direction_x;
                     pid_ = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
                                          {ki_eye_linear_, ki_eye_angular_},
                                          {kd_eye_linear_, kd_eye_angular_},
-                                         {threshold_linear_, threshold_angular_}, {0.02, 0.05}, {0.2, 0.4});
+                                         {threshold_linear_x_, threshold_angular_}, {0.02, 0.05}, {0.2, 0.4});
                 }
             }
             break;
@@ -134,15 +134,16 @@ namespace motion_controller
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = control[0];
-                tme.velocity.angular.z = control[1];
+                if (unchanging_ != direction_theta)
+                    tme.velocity.angular.z = control[1];
                 cmd_vel_publisher_.publish(tme);
-                if (success)
+                if (success && unchanging_ != direction_y)
                 {
                     changing_ = direction_y;
                     pid_ = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                          {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                          {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                         {threshold_linear_, threshold_linear_, threshold_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                                         {threshold_linear_x_, threshold_linear_y_, threshold_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
                 }
             }
             break;
@@ -155,9 +156,11 @@ namespace motion_controller
                                          << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
-                tme.velocity.linear.x = control[0];
+                if (unchanging_ != direction_x)
+                    tme.velocity.linear.x = control[0];
                 tme.velocity.linear.y = control[1];
-                tme.velocity.angular.z = control[2];
+                if (unchanging_ != direction_theta)
+                    tme.velocity.angular.z = control[2];
                 cmd_vel_publisher_.publish(tme);
             }
             break;
