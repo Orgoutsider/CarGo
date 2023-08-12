@@ -210,6 +210,8 @@ namespace my_hand_eye
 			{
 				Pose2DMightEnd msg;
 				msg.end = true;
+				msg.header.frame_id = "base_footprint";
+				msg.header.stamp = ros::Time::now() - ros::Duration(0.1);
 				pose_publisher_.publish(msg);
 			}
 			finish_adjusting_ = true;
@@ -343,6 +345,9 @@ namespace my_hand_eye
 				msg.pose.x = msg.not_change;
 				msg.pose.y = msg.not_change;
 				msg.pose.theta = msg.not_change;
+				msg.end = false;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
 				pose_publisher_.publish(msg);
 			}
 		}
