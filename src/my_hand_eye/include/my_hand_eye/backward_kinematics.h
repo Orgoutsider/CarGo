@@ -1,6 +1,7 @@
 #ifndef _BACKWARD_KINEMATICS_H_
 #define _BACKWARD_KINEMATICS_H_
 
+#include <geometry_msgs/Pose2D.h>
 // ARM_P > ARM_A0
 #define ARM_P 14.006
 #define ARM_A0 9.8
@@ -51,6 +52,8 @@ namespace my_hand_eye
         Action front2left();
         // cm转化成m并转换坐标系
         Action arm2footprint();
+        // 补偿与目标位置的误差
+        Action now2goal(const geometry_msgs::Pose2D &err);
     };
 
     class Axis : public Action

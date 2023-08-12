@@ -973,15 +973,15 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::put(const Color color)
+    bool ArmController::put(const Color color, geometry_msgs::Pose2D &err)
     {
         return ps_.go_to_table(true, color, true) &&
-               ps_.put(ellipse_color_map_[color], false) && ps_.reset(true);
+               ps_.put(ellipse_color_map_[color], false, err) && ps_.reset(true);
     }
 
-    bool ArmController::catch_after_putting(const Color color)
+    bool ArmController::catch_after_putting(const Color color, geometry_msgs::Pose2D &err)
     {
-        return ps_.put(ellipse_color_map_[color], true) &&
+        return ps_.put(ellipse_color_map_[color], true, err) &&
                ps_.go_to_table(false, color, true) && ps_.reset(true);
     }
 

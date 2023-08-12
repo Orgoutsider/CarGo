@@ -133,6 +133,14 @@ namespace my_hand_eye
         return Action(0.01 * y, -0.01 * x, z);
     }
 
+    Action Action::now2goal(const geometry_msgs::Pose2D &err)
+    {
+        double c = cos(err.theta);
+        double s = sin(err.theta);
+        return Action(-err.y + x * c - y * s,
+                      err.x + y * c + x * s, z);
+    }
+
     Axis::Axis() : expand_y(false) {}
 
     double Axis::height()

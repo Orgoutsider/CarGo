@@ -316,19 +316,19 @@ namespace my_hand_eye
 					finish_ = true;
 					if (!debug_)
 					{
-						arm_controller_.put(which_color());
+						arm_controller_.put(which_color(), msg.pose);
 						next_task();
-						arm_controller_.put(which_color());
+						arm_controller_.put(which_color(), msg.pose);
 						next_task();
-						arm_controller_.put(which_color());
+						arm_controller_.put(which_color(), msg.pose);
 						next_task();
 						if (arm_goal_.route == arm_goal_.route_roughing_area)
 						{
-							arm_controller_.catch_after_putting(which_color());
+							arm_controller_.catch_after_putting(which_color(), msg.pose);
 							next_task();
-							arm_controller_.catch_after_putting(which_color());
+							arm_controller_.catch_after_putting(which_color(), msg.pose);
 							next_task();
-							arm_controller_.catch_after_putting(which_color());
+							arm_controller_.catch_after_putting(which_color(), msg.pose);
 							next_task();
 						}
 					}

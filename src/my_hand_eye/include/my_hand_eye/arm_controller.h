@@ -96,9 +96,9 @@ namespace my_hand_eye
         bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
         // 固定位置放置
-        bool put(const Color color);
+        bool put(const Color color, geometry_msgs::Pose2D &err);
         // 固定位置抓取
-        bool catch_after_putting(const Color color);
+        bool catch_after_putting(const Color color, geometry_msgs::Pose2D &err);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);
