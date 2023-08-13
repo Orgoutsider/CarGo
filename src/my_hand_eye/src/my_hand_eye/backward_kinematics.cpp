@@ -141,6 +141,23 @@ namespace my_hand_eye
                       err.x + y * c + x * s, z);
     }
 
+    Action Action::operator+=(const Action &t)
+    {
+        x += t.x, y += t.y, z += t.z;
+        return *this;
+    }
+
+    Action Action::operator-=(const Action &t)
+    {
+        x -= t.x, y -= t.y, z -= t.z;
+        return *this;
+    }
+
+    double Action::normxy(const Action &a1, const Action &a2)
+    {
+        return sqrt((a1.x - a2.x) * (a1.x - a2.x) + (a1.y - a2.y) * (a1.y - a2.y));
+    }
+
     Axis::Axis() : expand_y(false) {}
 
     double Axis::height()
@@ -150,7 +167,7 @@ namespace my_hand_eye
 
     double Axis::length()
     {
-        return std::sqrt((y + ARM_P) * (y + ARM_P) + x * x);
+        return normxy(*this, Action(0, -ARM_P, 0));
     }
 
     double Axis::L(double alpha)

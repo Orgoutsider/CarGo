@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
 project(robot_pose_ekf)
 
 # bfl (Bayesian Filtering Library) is a third party package that uses pkg-config

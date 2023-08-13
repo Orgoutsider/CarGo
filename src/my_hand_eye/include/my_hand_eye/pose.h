@@ -99,6 +99,7 @@ namespace my_hand_eye
         bool read_all_position();                                                           // 读所有舵机正确位置
         bool refresh_xyz(bool read = true);                                                 // 更新位置
         ArmPose end_to_base_now();                                                          // 更新位置，并返回旋转矩阵，平移向量
+        Action *get_action_put();                                                           // 获取指定位置放置Action
         cv::Mat transformation_matrix(double z);                                            // 透视变换矩阵（不保证实时性，配合refresh_xyz）
         // 计算物料位置
         bool calculate_cargo_position(double u, double v, double cargo_z,

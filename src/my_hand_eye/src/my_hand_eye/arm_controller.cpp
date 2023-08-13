@@ -983,6 +983,61 @@ namespace my_hand_eye
         return valid;
     }
 
+    bool ArmController::log_z_correction(const sensor_msgs::ImageConstPtr &image_rect,
+                                         std::vector<double> &&e1, std::vector<double> &&e2, std::vector<double> &&e3,
+                                         sensor_msgs::ImagePtr &debug_image)
+    {
+        static bool flag = false;
+        if (flag)
+            return true;
+        double z_p_before = z_parking_area;
+        if (!cargo_x_.empty())
+            cargo_x_.clear();
+        vision_msgs::BoundingBox2DArray objArray;
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
+                     set_ellipse_color_order(objArray);
+        my_hand_eye::Pose2DMightEnd pme;
+        if (valid)
+            valid = get_ellipse_pose(objArray, pme);
+        if (valid && pme.pose.theta != pme.not_change)
+        {
+            my_hand_eye::Pose2DMightEnd err;
+            target_pose.calc(pme.pose, err);
+            Action *ap = ps_.get_action_put();
+            Action ap_target[4];
+            ap_target[1] = ap[1].now2goal(err.pose);
+            ap_target[2] = ap[2].now2goal(err.pose);
+            ap_target[3] = ap[3].now2goal(err.pose);
+            ap_target[1] += Action(e1[0], e1[1], 0);
+            ap_target[2] += Action(e2[0], e2[1], 0);
+            ap_target[3] += Action(e3[0], e3[1], 0);
+            double dist_min = Action::normxy(Action(e1[0], e1[1], 0), Action()) +
+                              Action::normxy(Action(e2[0], e2[1], 0), Action()) +
+                              Action::normxy(Action(e3[0], e3[1], 0), Action());
+            double z_min = z_parking_area;
+            ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist_min);
+            for (z_parking_area = z_p_before + 5; z_parking_area > 0; z_parking_area -= 0.1)
+            {
+                if (get_ellipse_pose(objArray, pme))
+                {
+                    target_pose.calc(pme.pose, err);
+                    Action ap_n[4];
+                    ap_n[1] = ap[1].now2goal(err.pose);
+                    ap_n[2] = ap[2].now2goal(err.pose);
+                    ap_n[3] = ap[3].now2goal(err.pose);
+                    double dist = Action::normxy(ap_n[1], ap_target[1]) +
+                                  Action::normxy(ap_n[2], ap_target[2]) +
+                                  Action::normxy(ap_n[3], ap_target[3]);
+                    z_min = (dist < dist_min) ? z_parking_area : z_p_before;
+                    dist_min = MIN(dist, dist_min);
+                    ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist);
+                }
+            }
+        }
+        flag = true;
+        return valid;
+    }
+
     bool ArmController::put(const Color color)
     {
         geometry_msgs::Pose2D err;

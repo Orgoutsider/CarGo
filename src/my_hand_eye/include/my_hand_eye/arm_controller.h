@@ -57,7 +57,7 @@ namespace my_hand_eye
         bool get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray, Pose2DMightEnd &pose);
         bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
-        void average_pose(geometry_msgs::Pose2D &pose);                             // 求得记录位置数据的平均值
+        void average_pose(geometry_msgs::Pose2D &pose);                          // 求得记录位置数据的平均值
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
@@ -78,6 +78,7 @@ namespace my_hand_eye
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
         bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
                           sensor_msgs::ImagePtr &debug_image, bool center = false);
+        // 校正外参
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
                                        double correct_x, double correct_y, double correct_z, Color color,
                                        sensor_msgs::ImagePtr &debug_image);
@@ -97,6 +98,9 @@ namespace my_hand_eye
         // 椭圆识别，摄像头测试
         bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
+        // 校正z_parking_area，输入数据格式为{x, y}对应123号椭圆
+        bool log_z_correction(const sensor_msgs::ImageConstPtr &image_rect, std::vector<double> &&e1,
+                              std::vector<double> &&e2, std::vector<double> &&e3, sensor_msgs::ImagePtr &debug_image);
         // 固定位置放置
         bool put(const Color color);
         // 固定位置抓取

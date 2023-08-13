@@ -278,7 +278,7 @@ namespace my_hand_eye
             sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
             u8 ID2[] = {2};
             wait_until_static(ID2, 1);
-            if(z < 10)
+            if (z < 10)
             {
                 Position[3] += 100;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
@@ -765,13 +765,11 @@ namespace my_hand_eye
         return a;
     }
 
-    /**************************************************
-     * @brief   将旋转矩阵与平移向量合成为齐次矩阵
-     * @note
-     * @param   Mat& R   3*3旋转矩阵
-     * @param   Mat& T   3*1平移矩阵
-     * @return  Mat      4*4齐次矩阵
-     **************************************************/
+    Action *Pos::get_action_put()
+    {
+        return action_put;
+    }
+
     cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T)
     {
         cv::Mat HomoMtr;
