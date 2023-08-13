@@ -14,8 +14,8 @@ namespace my_hand_eye
           ellipse_roi_(320, 360, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
-          z_parking_area(0.30121),
-          z_ellipse(3.685786667),
+          z_parking_area(1.40121),
+          z_ellipse(4.73369),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
@@ -31,8 +31,8 @@ namespace my_hand_eye
           ellipse_roi_(320, 540, 1280, 360),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
-          z_parking_area(0.30121),
-          z_ellipse(3.685786667),
+          z_parking_area(1.40121),
+          z_ellipse(4.73369),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -987,9 +987,6 @@ namespace my_hand_eye
                                          std::vector<double> &&e1, std::vector<double> &&e2, std::vector<double> &&e3,
                                          sensor_msgs::ImagePtr &debug_image)
     {
-        static bool flag = false;
-        if (flag)
-            return true;
         double z_p_before = z_parking_area;
         if (!cargo_x_.empty())
             cargo_x_.clear();
@@ -1016,7 +1013,7 @@ namespace my_hand_eye
                               Action::normxy(Action(e3[0], e3[1], 0), Action());
             double z_min = z_parking_area;
             ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist_min);
-            for (z_parking_area = z_p_before + 5; z_parking_area > 0; z_parking_area -= 0.1)
+            for (z_parking_area = z_p_before + 5; z_parking_area > z_p_before - 5; z_parking_area -= 0.1)
             {
                 if (get_ellipse_pose(objArray, pme))
                 {
@@ -1028,13 +1025,14 @@ namespace my_hand_eye
                     double dist = Action::normxy(ap_n[1], ap_target[1]) +
                                   Action::normxy(ap_n[2], ap_target[2]) +
                                   Action::normxy(ap_n[3], ap_target[3]);
-                    z_min = (dist < dist_min) ? z_parking_area : z_p_before;
+                    z_min = (dist < dist_min) ? z_parking_area : z_min;
                     dist_min = MIN(dist, dist_min);
                     ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist);
                 }
             }
+            ROS_INFO_STREAM("z_min:" << z_min << " dist_min:" << dist_min);
         }
-        flag = true;
+        z_parking_area = z_p_before;
         return valid;
     }
 
@@ -1156,20 +1154,21 @@ namespace my_hand_eye
                                get_ellipse_pose(objArray, pose);
         if (valid)
         {
+            target_pose.calc(pose.pose, msg);
             if (store)
             {
                 if (pose.pose.theta != pose.not_change)
                 {
-                    cargo_x_.push_back(pose.pose.x);
-                    cargo_y_.push_back(pose.pose.y);
-                    cargo_theta_.push_back(pose.pose.theta);
+                    ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
+                    cargo_x_.push_back(msg.pose.x);
+                    cargo_y_.push_back(msg.pose.y);
+                    cargo_theta_.push_back(msg.pose.theta);
                 }
             }
             else
             {
                 if (rst)
                     rst = false;
-                target_pose.calc(pose.pose, msg);
                 msg.header = image_rect->header;
                 msg.header.frame_id = "base_footprint";
             }

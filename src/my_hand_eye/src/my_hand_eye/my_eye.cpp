@@ -132,6 +132,12 @@ namespace my_hand_eye
 		// if (arm_controller_.show_detections)
 		// 	debug_image_publisher_.publish(debug_image);
 
+		// z校正
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// arm_controller_.log_z_correction(image_rect, {0.15, -0.65}, {0.14, -0.5}, {0, -0.46}, debug_image);
+		// if (arm_controller_.show_detections)
+		// 	debug_image_publisher_.publish(debug_image);
+
 		// 边界线查找
 		// static bool finish = false;
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -304,6 +310,7 @@ namespace my_hand_eye
 		}
 		bool valid = true;
 		Pose2DMightEnd msg;
+		static ros::Time time_stop;
 		if (!finish_adjusting_)
 		{
 			msg.end = false;
@@ -318,6 +325,7 @@ namespace my_hand_eye
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
+					time_stop = ros::Time::now() + ros::Duration(0.1);
 				}
 			}
 			else
@@ -334,6 +342,8 @@ namespace my_hand_eye
 		}
 		else if (!debug_)
 		{
+			if ((image_rect->header.stamp - time_stop).toSec() < 0)
+				return valid;
 			msg.end = false;
 			if (arm_controller_.find_ellipse(image_rect, msg, debug_image, true))
 			{

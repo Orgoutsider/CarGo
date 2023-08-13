@@ -137,8 +137,9 @@ namespace my_hand_eye
     {
         double c = cos(err.theta);
         double s = sin(err.theta);
-        return Action(-err.y + x * c - y * s,
-                      err.x + y * c + x * s, z);
+        // m转化成cm
+        return Action(-err.y * 10 + x * c - y * s,
+                      err.x * 10 + y * c + x * s, z);
     }
 
     Action Action::operator+=(const Action &t)
