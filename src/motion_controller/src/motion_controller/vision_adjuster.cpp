@@ -9,7 +9,7 @@ namespace motion_controller
           tf2_filter_(eye_subscriber_, buffer_, target_frame_, 15, 0),
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.9), ki_eye_angular_(0.2), kd_eye_angular_(0.0),
-          kp_eye_linear_(1.0), ki_eye_linear_(0.04), kd_eye_linear_(0.4),
+          kp_eye_linear_(1.0), ki_eye_linear_(0.07), kd_eye_linear_(0.3),
           threshold_angular_(0.015), threshold_linear_x_(0.01), threshold_linear_y_(0.005),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
