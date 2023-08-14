@@ -124,7 +124,7 @@ namespace my_hand_eye
         int iNs = 16;
         float fMaxCenterDistance = sqrt(float(ellipse_roi_.width * ellipse_roi_.width + ellipse_roi_.height * ellipse_roi_.height)) * fTaoCenters;
 
-        float fThScoreScore = 0.5f;
+        float fThScoreScore = 0.45f;
 
         // Other constant parameters settings.
 
@@ -390,8 +390,8 @@ namespace my_hand_eye
             static bool read = true;
             int cnt = 0;
             double x[5] = {0}, y[5] = {0};
-            double x_sum = 0, y_sum = 0;
-            for (int i = color_red; i <= color_blue; i++)
+            bool flag = false;
+            for (int i = 1; i <= 3; i++)
             {
                 if (!objArray.boxes[ellipse_color_order_[i].color].center.x)
                 {
@@ -409,12 +409,21 @@ namespace my_hand_eye
                 }
                 if (read)
                     read = false;
-                x_sum += x[cnt];
-                y_sum += y[cnt] + (i - 2) * 15;
+                if (i == 2)
+                {
+                    pose.pose.x = x[cnt];
+                    pose.pose.y = y[cnt];
+                    flag = true;
+                }
                 cnt++;
             }
-            pose.pose.x = x_sum / cnt;
-            pose.pose.y = y_sum / cnt;
+            if (cnt == 3)
+            {
+                pose.pose.x = (x[0] + x[1] + x[2]) / 3;
+                pose.pose.y = (y[0] + y[1] + y[2]) / 3;
+            }
+            else if (!flag)
+                return false;
             // 对象相对车体的偏角
             if (cnt == 3)
                 pose.pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
@@ -895,9 +904,11 @@ namespace my_hand_eye
         std::vector<cv::Ellipse> ells;
         resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2)); // 重设大小，可选
         // 第一次预处理
-        Mat sat = saturation(cv_image->image, 100);
+        // Mat sat = saturation(cv_image->image, 100);
         Mat1b srcdst;
-        cvtColor(sat, srcdst, COLOR_BGR2GRAY);
+        cvtColor(cv_image->image, srcdst, COLOR_BGR2GRAY);
+        // imshow("grey", srcdst);
+        // waitKey(10);
         std::vector<cv::Ellipse> ellsYaed;
         yaed_->Detect(srcdst, ellsYaed);
         EllipseArray arr;

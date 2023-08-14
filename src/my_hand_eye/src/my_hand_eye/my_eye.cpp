@@ -126,7 +126,7 @@ namespace my_hand_eye
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
 
-		// // 椭圆识别
+		// 椭圆识别
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
 		// if (arm_controller_.show_detections)
@@ -300,12 +300,12 @@ namespace my_hand_eye
 	bool MyEye::operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
 								sensor_msgs::ImagePtr &debug_image)
 	{
-		// static bool rst = true;
+		static bool rst = true;
 		if (finish_)
 		{
 			finish_adjusting_ = false;
 			finish_ = false;
-			// rst = true;
+			rst = true;
 			ROS_INFO("Start to operate ellipse...");
 		}
 		bool valid = true;
@@ -366,6 +366,12 @@ namespace my_hand_eye
 				arm_goal_.route = arm_goal_.route_rest;
 				as_.setSucceeded(ArmResult(), "Arm finish tasks");
 				ROS_INFO("Finish operating ellipse...");
+			}
+			if (rst)
+			{
+				if (!msg.end)
+					finish_adjusting_ = false;
+				rst = false;
 			}
 		}
 		else
