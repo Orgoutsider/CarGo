@@ -135,8 +135,8 @@ namespace my_hand_eye
 
     Action Action::now2goal(const geometry_msgs::Pose2D &err)
     {
-        double c = cos(err.theta * 0.76);
-        double s = sin(err.theta * 0.76);
+        double c = cos(atan(tan(err.theta) / 1.03));
+        double s = sin(atan(tan(err.theta) / 1.03));
         // m转化成cm
         return Action(-err.y * 10 + x * c - y * s,
                       err.x * 10.3 + y * c + x * s, z);
