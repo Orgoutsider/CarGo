@@ -97,6 +97,7 @@ namespace my_hand_eye
         white_vmin_ = pnh.param<int>("white_vmin", 170);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
+        enlarge_ = pnh.param<double>("enlarge", 1.03);
         tracker_.flag = pnh.param<bool>("flag", false);
         if (!ps_.begin(ft_servo.c_str()))
         {
@@ -1013,9 +1014,9 @@ namespace my_hand_eye
             target_pose.calc(pme.pose, err);
             Action *ap = ps_.get_action_put();
             Action ap_target[4];
-            ap_target[1] = ap[1].now2goal(err.pose);
-            ap_target[2] = ap[2].now2goal(err.pose);
-            ap_target[3] = ap[3].now2goal(err.pose);
+            ap_target[1] = ap[1].now2goal(err.pose, enlarge_);
+            ap_target[2] = ap[2].now2goal(err.pose, enlarge_);
+            ap_target[3] = ap[3].now2goal(err.pose, enlarge_);
             ap_target[1] += Action(e1[0], e1[1], 0);
             ap_target[2] += Action(e2[0], e2[1], 0);
             ap_target[3] += Action(e3[0], e3[1], 0);
@@ -1030,9 +1031,9 @@ namespace my_hand_eye
                 {
                     target_pose.calc(pme.pose, err);
                     Action ap_n[4];
-                    ap_n[1] = ap[1].now2goal(err.pose);
-                    ap_n[2] = ap[2].now2goal(err.pose);
-                    ap_n[3] = ap[3].now2goal(err.pose);
+                    ap_n[1] = ap[1].now2goal(err.pose, enlarge_);
+                    ap_n[2] = ap[2].now2goal(err.pose, enlarge_);
+                    ap_n[3] = ap[3].now2goal(err.pose, enlarge_);
                     double dist = Action::normxy(ap_n[1], ap_target[1]) +
                                   Action::normxy(ap_n[2], ap_target[2]) +
                                   Action::normxy(ap_n[3], ap_target[3]);
@@ -1052,14 +1053,14 @@ namespace my_hand_eye
         geometry_msgs::Pose2D err;
         average_pose(err);
         return ps_.go_to_table(true, color, true) &&
-               ps_.put(ellipse_color_map_[color], false, err) && ps_.reset(true);
+               ps_.put(ellipse_color_map_[color], false, err, enlarge_) && ps_.reset(true);
     }
 
     bool ArmController::catch_after_putting(const Color color)
     {
         geometry_msgs::Pose2D err;
         average_pose(err);
-        return ps_.put(ellipse_color_map_[color], true, err) &&
+        return ps_.put(ellipse_color_map_[color], true, err, enlarge_) &&
                ps_.go_to_table(false, color, true) && ps_.reset(true);
     }
 
@@ -1137,7 +1138,7 @@ namespace my_hand_eye
     {
         static bool last_finish = true;
         static bool rst = false;
-        const int MAX = 5; // 与put对应
+        const int MAX = 7; // 与put对应
         if (!msg.end && last_finish)
         {
             if (!store)

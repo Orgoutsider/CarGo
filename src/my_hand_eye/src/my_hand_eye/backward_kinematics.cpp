@@ -133,13 +133,11 @@ namespace my_hand_eye
         return Action(0.01 * y, -0.01 * x, z);
     }
 
-    Action Action::now2goal(const geometry_msgs::Pose2D &err)
+    Action Action::now2goal(const geometry_msgs::Pose2D &err, double enlarge)
     {
-        double c = cos(atan(tan(err.theta) / 1.03));
-        double s = sin(atan(tan(err.theta) / 1.03));
         // m转化成cm
-        return Action(-err.y * 10 + x * c - y * s,
-                      err.x * 10.3 + y * c + x * s, z);
+        return Action(-err.y * enlarge * 100 + x,
+                      err.x * 100 + y, z);
     }
 
     Action Action::operator+=(const Action &t)

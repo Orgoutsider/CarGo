@@ -20,9 +20,9 @@ namespace my_hand_eye
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
 
-        tolerance[target_ellipse].theta = 0.015;
+        tolerance[target_ellipse].theta = 0.007;
         tolerance[target_ellipse].x = 0.01;
-        tolerance[target_ellipse].y = 0.005;
+        tolerance[target_ellipse].y = 0.01;
     }
 
     void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target)

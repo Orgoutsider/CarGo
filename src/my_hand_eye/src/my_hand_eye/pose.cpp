@@ -451,9 +451,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err)
+    bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err, double enlarge)
     {
-        Action a = action_put[order].now2goal(err);
+        Action a = action_put[order].now2goal(err, enlarge);
         ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()))

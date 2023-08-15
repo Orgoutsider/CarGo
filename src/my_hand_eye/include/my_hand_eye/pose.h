@@ -94,7 +94,7 @@ namespace my_hand_eye
         bool go_to_and_wait(double x, double y, double z, bool cat, bool expand_y = false); // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);                               // 通过中间点到达
         bool go_to_table(bool cat, Color color, bool left);                                 // 运动到转盘
-        bool put(int order, bool cat, geometry_msgs::Pose2D &err);                          // 运动到椭圆放置处，可选择是否抓取
+        bool put(int order, bool cat, geometry_msgs::Pose2D &err, double enlarge);                          // 运动到椭圆放置处，可选择是否抓取
         bool show_voltage();                                                                // 显示电压，需要时警告
         bool read_all_position();                                                           // 读所有舵机正确位置
         bool refresh_xyz(bool read = true);                                                 // 更新位置
