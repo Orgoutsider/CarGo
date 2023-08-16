@@ -127,7 +127,7 @@ namespace my_hand_eye
         int iNs = 16;
         float fMaxCenterDistance = sqrt(float(ellipse_roi_.width * ellipse_roi_.width + ellipse_roi_.height * ellipse_roi_.height)) * fTaoCenters;
 
-        float fThScoreScore = 0.45f;
+        fThScoreScore_ = pnh.param<float>("fThScoreScore", 0.45f);
 
         // Other constant parameters settings.
 
@@ -136,7 +136,8 @@ namespace my_hand_eye
         double dPreProcessingGaussSigma = 1.0;
 
         float fDistanceToEllipseContour = 0.1f; // (Sect. 3.3.1 - Validation)
-        float fMinReliability = 0.45f;          // Const parameters to discard bad ellipses
+        // Const parameters to discard bad ellipses
+        fMinReliability_ = pnh.param<float>("fMinReliability", 0.45f);
         yaed_->SetParameters(szPreProcessingGaussKernelSize,
                              dPreProcessingGaussSigma,
                              fThPos,
@@ -144,8 +145,8 @@ namespace my_hand_eye
                              iThLength,
                              fThObb,
                              fDistanceToEllipseContour,
-                             fThScoreScore,
-                             fMinReliability,
+                             fThScoreScore_,
+                             fMinReliability_,
                              iNs);
     }
 
@@ -501,13 +502,6 @@ namespace my_hand_eye
             pose.x = pose.y = pose.theta = 0;
             return;
         }
-        // 去除一个最大值，一个最小值
-        cargo_x_.erase(std::min_element(cargo_x_.begin(), cargo_x_.end()));
-        cargo_x_.erase(std::max_element(cargo_x_.begin(), cargo_x_.end()));
-        cargo_y_.erase(std::min_element(cargo_y_.begin(), cargo_y_.end()));
-        cargo_y_.erase(std::max_element(cargo_y_.begin(), cargo_y_.end()));
-        cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
-        cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
         pose.x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
         pose.y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
         pose.theta = std::accumulate(std::begin(cargo_theta_), std::end(cargo_theta_), 0.0) /
@@ -1065,10 +1059,16 @@ namespace my_hand_eye
                ps_.put(ellipse_color_map_[color], false, err, Action(enlarge_x_, enlarge_y_, 0)) && ps_.reset(true);
     }
 
-    bool ArmController::catch_after_putting(const Color color)
+    bool ArmController::catch_after_putting(const Color color, bool final)
     {
         geometry_msgs::Pose2D err;
         average_pose(err);
+        if (final)
+        {
+            cargo_x_.clear();
+            cargo_y_.clear();
+            cargo_theta_.clear();
+        }
         return ps_.put(ellipse_color_map_[color], true, err, Action(enlarge_x_, enlarge_y_, 0)) &&
                ps_.go_to_table(false, color, true) && ps_.reset(true);
     }
@@ -1195,6 +1195,24 @@ namespace my_hand_eye
             }
         }
         last_finish = store ? cargo_x_.size() >= MAX : msg.end;
+        if (store && last_finish)
+        {
+            // 去除一个最大值，一个最小值
+            cargo_x_.erase(std::min_element(cargo_x_.begin(), cargo_x_.end()));
+            cargo_x_.erase(std::max_element(cargo_x_.begin(), cargo_x_.end()));
+            cargo_y_.erase(std::min_element(cargo_y_.begin(), cargo_y_.end()));
+            cargo_y_.erase(std::max_element(cargo_y_.begin(), cargo_y_.end()));
+            cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
+            cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
+            geometry_msgs::Pose2D pose;
+            average_pose(pose);
+            cargo_x_.clear();
+            cargo_y_.clear();
+            cargo_theta_.clear();
+            cargo_x_.push_back(pose.x);
+            cargo_y_.push_back(pose.y);
+            cargo_theta_.push_back(pose.theta);
+        }
         return store ? last_finish : valid;
     }
 

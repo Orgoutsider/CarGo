@@ -15,12 +15,14 @@ namespace my_hand_eye
     private:
         double speed_standard_static_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         double speed_standard_motion_; // 速度标准，当速度大于此标准足够多次数时，判定为运动
-        double enlarge_x_;               // x方向的放缩（相对于真实坐标）
-        double enlarge_y_;               // y方向的放缩（相对于真实坐标）
+        double enlarge_x_;             // x方向的放缩（相对于真实坐标）
+        double enlarge_y_;             // y方向的放缩（相对于真实坐标）
         bool emulation_;               // 是否进行仿真
         bool stop_;                    // 用于颜色追踪，物料是否已停
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
         int white_vmin_;               // 用于滤除白色
+        float fThScoreScore_;
+        float fMinReliability_;
         Pos ps_;
         Color current_color_;
         EllipseColor ellipse_color_order_[4]; // 椭圆顺序（从左至右）
@@ -106,7 +108,7 @@ namespace my_hand_eye
         // 固定位置放置
         bool put(const Color color);
         // 固定位置抓取
-        bool catch_after_putting(const Color color);
+        bool catch_after_putting(const Color color, bool final);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);
