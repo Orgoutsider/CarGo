@@ -98,7 +98,7 @@ namespace my_hand_eye
         white_vmin_ = pnh.param<int>("white_vmin", 170);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
-        enlarge_x_ = pnh.param<double>("enlarge_x", 0.99);
+        enlarge_x_ = pnh.param<double>("enlarge_x", 0.986);
         enlarge_y_ = pnh.param<double>("enlarge_y", 0.98);
         tracker_.flag = pnh.param<bool>("flag", false);
         if (!ps_.begin(ft_servo.c_str()))
