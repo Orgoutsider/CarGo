@@ -34,6 +34,8 @@ namespace my_hand_eye
                 if ((abs(ellipses[i]._xc - ellipses[j]._xc) < thr) &&
                     (abs(ellipses[i]._yc - ellipses[j]._yc) < thr) &&
                     (abs(ellipses[i]._a / ellipses[i]._b - ellipses[j]._a / ellipses[j]._b) < 0.7) &&
+                    ((ellipses[i]._a / ellipses[i]._b < 2 && ellipses[j]._a / ellipses[j]._b < 2) ||
+                     Angle::degree(abs(ellipses[i]._rad - ellipses[j]._rad)) < 70) &&
                     !flag_[j])
                 {
                     flag_[now] = j;
