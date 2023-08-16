@@ -20,7 +20,6 @@ namespace my_hand_eye
     private:
         double deg;
         int state; // 目前角度计算是否出错
-        static double degree(double rad);
 
     public:
         const int error = 1;
@@ -29,6 +28,7 @@ namespace my_hand_eye
         static Angle atan2(double v1, double v2); // atan2
         double _get_degree();                     // 获得角度值
         double rad();                             // 转弧度制
+        static double degree(double rad);         // 转角度制
         double cos();
         double sin();
         void _j_degree_convert(int joint);     // 将j1-j4和机械臂的角度互换

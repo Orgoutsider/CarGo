@@ -1,4 +1,5 @@
 #include "my_hand_eye/border.h"
+#include "my_hand_eye/backward_kinematics.h"
 
 namespace my_hand_eye
 {
@@ -87,7 +88,7 @@ namespace my_hand_eye
         for (cv::Vec2f &line : lines)
         {
             double rho = line[0], theta = line[1];
-            double theta_d = theta / CV_PI * 180;
+            double theta_d = Angle::degree(theta);
             if (abs(theta_d - 90) < theta_thr_horizontal_)
             {
                 border[0] += rho;
