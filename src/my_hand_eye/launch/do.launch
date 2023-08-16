@@ -8,9 +8,14 @@
     <arg name="if_detect_QR_code" default="false" />
     <arg name="if_emulation" default="false" />
     <arg name="debug" default="true" />
+    <arg name="respawn" default="false" />
+
+    <arg if="$(arg respawn)" name="bond" value="" />
+    <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
 
     <include file="$(find my_hand_eye)/launch/eye.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
+        <arg name="respawn" value="$(arg respawn)"/>
     </include>
     <include file="$(find my_hand_eye)/launch/include/yolov5.launch" >
         <arg name="debug" value="false" />
@@ -21,7 +26,7 @@
 
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
     <group if="$(arg if_detect_QR_code)">
-        <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen" />
+        <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager) $(arg bond)" respawn="$(arg respawn)"  output="screen" />
     </group>
     <node pkg="my_hand_eye" type="my_hand_eye_do_node" name="$(arg node_namespace)" output="screen">
 
@@ -35,6 +40,8 @@
         <param name="white_vmin" type="int" value="120" />
         <param name="speed_standard_static" type="double" value="0.16" />
         <param name="speed_standard_motion" type="double" value="0.12" />
+        <param name="enlarge_x" type="double" value="0.986" />
+        <param name="enlarge_y" type="double" value="0.98" />
         <param name="flag" type="bool" value="$(arg flag)" />
         <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
         <param name="debug" type="bool" value="$(arg debug)" />

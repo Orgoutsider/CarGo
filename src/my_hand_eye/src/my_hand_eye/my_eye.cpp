@@ -70,38 +70,38 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		// if (!as_.isActive())
-		// 	return;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// bool valid = false;
-		// switch (arm_goal_.route)
-		// {
-		// case arm_goal_.route_rest:
-		// 	return;
+		if (!as_.isActive())
+			return;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		bool valid = false;
+		switch (arm_goal_.route)
+		{
+		case arm_goal_.route_rest:
+			return;
 
-		// case arm_goal_.route_raw_material_area:
-		// 	valid = operate_center(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_raw_material_area:
+			valid = operate_center(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_roughing_area:
-		// 	valid = operate_ellipse(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_roughing_area:
+			valid = operate_ellipse(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_semi_finishing_area:
-		// 	valid = operate_ellipse(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_semi_finishing_area:
+			valid = operate_ellipse(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_parking_area:
-		// 	break;
+		case arm_goal_.route_parking_area:
+			break;
 
-		// case arm_goal_.route_border:
-		// 	break;
+		case arm_goal_.route_border:
+			break;
 
-		// default:
-		// 	return;
-		// }
-		// if (arm_controller_.show_detections)
-		// 	debug_image_publisher_.publish(debug_image);
+		default:
+			return;
+		}
+		if (arm_controller_.show_detections)
+			debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -127,10 +127,10 @@ namespace my_hand_eye
 		// }
 
 		// 椭圆识别
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
-		if (arm_controller_.show_detections)
-			debug_image_publisher_.publish(debug_image);
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
+		// if (arm_controller_.show_detections)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// z校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -300,12 +300,12 @@ namespace my_hand_eye
 	bool MyEye::operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
 								sensor_msgs::ImagePtr &debug_image)
 	{
-		static bool rst = true;
+		// static bool rst = true;
 		if (finish_)
 		{
 			finish_adjusting_ = false;
 			finish_ = false;
-			rst = true;
+			// rst = true;
 			ROS_INFO("Start to operate ellipse...");
 		}
 		bool valid = true;
@@ -338,6 +338,7 @@ namespace my_hand_eye
 				msg.header = image_rect->header;
 				msg.header.frame_id = "base_footprint";
 				pose_publisher_.publish(msg);
+				finish_adjusting_ = false;
 			}
 		}
 		else if (!debug_)
@@ -367,12 +368,13 @@ namespace my_hand_eye
 				as_.setSucceeded(ArmResult(), "Arm finish tasks");
 				ROS_INFO("Finish operating ellipse...");
 			}
-			if (rst)
-			{
-				if (!msg.end)
-					finish_adjusting_ = false;
-				rst = false;
-			}
+			// if (rst)
+			// {
+			// 	if (!msg.end)
+			// 		finish_adjusting_ = false;
+			// 	else
+			// 		rst = false;
+			// }
 		}
 		else
 		{
