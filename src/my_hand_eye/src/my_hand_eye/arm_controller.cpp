@@ -1,5 +1,6 @@
 #include <XmlRpcException.h>
 #include <numeric>
+#include <algorithm>
 #include <yolov5_ros/cargoSrv.h>
 
 #include "my_hand_eye/arm_controller.h"
@@ -97,7 +98,8 @@ namespace my_hand_eye
         white_vmin_ = pnh.param<int>("white_vmin", 170);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
-        enlarge_ = pnh.param<double>("enlarge", 1.03);
+        enlarge_x_ = pnh.param<double>("enlarge_x", 0.99);
+        enlarge_y_ = pnh.param<double>("enlarge_y", 0.98);
         tracker_.flag = pnh.param<bool>("flag", false);
         if (!ps_.begin(ft_servo.c_str()))
         {
@@ -499,6 +501,13 @@ namespace my_hand_eye
             pose.x = pose.y = pose.theta = 0;
             return;
         }
+        // 去除一个最大值，一个最小值
+        cargo_x_.erase(std::min_element(cargo_x_.begin(), cargo_x_.end()));
+        cargo_x_.erase(std::max_element(cargo_x_.begin(), cargo_x_.end()));
+        cargo_y_.erase(std::min_element(cargo_y_.begin(), cargo_y_.end()));
+        cargo_y_.erase(std::max_element(cargo_y_.begin(), cargo_y_.end()));
+        cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
+        cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
         pose.x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
         pose.y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
         pose.theta = std::accumulate(std::begin(cargo_theta_), std::end(cargo_theta_), 0.0) /
@@ -1014,9 +1023,9 @@ namespace my_hand_eye
             target_pose.calc(pme.pose, err);
             Action *ap = ps_.get_action_put();
             Action ap_target[4];
-            ap_target[1] = ap[1].now2goal(err.pose, enlarge_);
-            ap_target[2] = ap[2].now2goal(err.pose, enlarge_);
-            ap_target[3] = ap[3].now2goal(err.pose, enlarge_);
+            ap_target[1] = ap[1].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+            ap_target[2] = ap[2].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+            ap_target[3] = ap[3].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
             ap_target[1] += Action(e1[0], e1[1], 0);
             ap_target[2] += Action(e2[0], e2[1], 0);
             ap_target[3] += Action(e3[0], e3[1], 0);
@@ -1031,9 +1040,9 @@ namespace my_hand_eye
                 {
                     target_pose.calc(pme.pose, err);
                     Action ap_n[4];
-                    ap_n[1] = ap[1].now2goal(err.pose, enlarge_);
-                    ap_n[2] = ap[2].now2goal(err.pose, enlarge_);
-                    ap_n[3] = ap[3].now2goal(err.pose, enlarge_);
+                    ap_n[1] = ap[1].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+                    ap_n[2] = ap[2].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+                    ap_n[3] = ap[3].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
                     double dist = Action::normxy(ap_n[1], ap_target[1]) +
                                   Action::normxy(ap_n[2], ap_target[2]) +
                                   Action::normxy(ap_n[3], ap_target[3]);
@@ -1053,14 +1062,14 @@ namespace my_hand_eye
         geometry_msgs::Pose2D err;
         average_pose(err);
         return ps_.go_to_table(true, color, true) &&
-               ps_.put(ellipse_color_map_[color], false, err, enlarge_) && ps_.reset(true);
+               ps_.put(ellipse_color_map_[color], false, err, Action(enlarge_x_, enlarge_y_, 0)) && ps_.reset(true);
     }
 
     bool ArmController::catch_after_putting(const Color color)
     {
         geometry_msgs::Pose2D err;
         average_pose(err);
-        return ps_.put(ellipse_color_map_[color], true, err, enlarge_) &&
+        return ps_.put(ellipse_color_map_[color], true, err, Action(enlarge_x_, enlarge_y_, 0)) &&
                ps_.go_to_table(false, color, true) && ps_.reset(true);
     }
 

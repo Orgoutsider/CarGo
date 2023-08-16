@@ -1,7 +1,7 @@
 <launch>
   <arg name="camera_frame_id" default="eye" />
   <arg name="nodelet_manager" default="my_hand_eye_manager"/>
-  <arg name="respawn" default="false"/>
+  <arg name="respawn" default="true"/>
 
   <arg if="$(arg respawn)" name="bond" value="" />
   <arg unless="$(arg respawn)" name="bond" value="--no-bond" />

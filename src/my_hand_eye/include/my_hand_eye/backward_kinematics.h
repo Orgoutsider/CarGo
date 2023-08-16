@@ -53,7 +53,7 @@ namespace my_hand_eye
         // cm转化成m并转换坐标系
         Action arm2footprint();
         // 补偿与目标位置的误差
-        Action now2goal(const geometry_msgs::Pose2D &err, double enlarge);
+        Action now2goal(const geometry_msgs::Pose2D &err, Action enlarge);
         Action operator+=(const Action &t); // 重载加法
         Action operator-=(const Action &t); // 重载减法
         static double normxy(const Action &a1, const Action &a2);
