@@ -253,8 +253,8 @@ namespace my_hand_eye
             cv::Mat Dx, Dy;
             cv::hconcat(Y, A.col(1), Dx);
             cv::hconcat(A.col(0), Y, Dy);
-            center.x = cv::determinant(Dx) / D;
-            center.y = cv::determinant(Dy) / D;
+            center.x = cv::determinant(Dx) / D + ell._xc;
+            center.y = cv::determinant(Dy) / D + ell._yc;
         }
         return valid;
     }

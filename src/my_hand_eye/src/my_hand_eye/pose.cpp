@@ -995,6 +995,7 @@ namespace my_hand_eye
             epy.x = point_pixely.at<double>(0, 0);
             epy.y = point_pixely.at<double>(1, 0);
         }
+        return valid;
     }
 
     double Pos::distance(double length_goal, double height_goal, double &k)
