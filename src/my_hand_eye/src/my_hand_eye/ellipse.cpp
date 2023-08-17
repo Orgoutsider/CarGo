@@ -9,7 +9,8 @@ namespace my_hand_eye
         ellipse_.reserve(20);
     };
 
-    bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses, Pos &ps)
+    bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses, Pos &ps,
+                                  cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
     {
         if (ellipses.empty())
         {
@@ -29,7 +30,7 @@ namespace my_hand_eye
             double score_sum = ellipses[i]._score;
             int now = i, cnt = 1;
             cv::Point2d pt_sum;
-            real_center(ellipses[i], ps, i == 0, pt_sum);
+            real_center(ellipses[i], ps, i == 0, pt_sum, roi, cv_image);
             pt_sum *= score_sum;
             for (int j = i + 1; j < ellipses.size(); j++)
             {
@@ -44,7 +45,7 @@ namespace my_hand_eye
                     flag_[now] = j;
                     now = j;
                     cv::Point2d pt;
-                    real_center(ellipses[j], ps, false, pt);
+                    real_center(ellipses[j], ps, false, pt, roi, cv_image);
                     pt_sum += pt * (ellipses[j]._score);
                     score_sum += ellipses[j]._score;
                     cnt++;
@@ -64,7 +65,7 @@ namespace my_hand_eye
             }
         }
         // ROS_INFO_STREAM(ellipse_.size());
-        return true;
+        return generate_bounding_rect(ellipses, cv_image);
     };
 
     bool EllipseArray::generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
@@ -234,10 +235,20 @@ namespace my_hand_eye
         return true;
     };
 
-    bool EllipseArray::real_center(cv::Ellipse &ell, Pos &ps, bool read, cv::Point2d &center)
+    bool EllipseArray::real_center(cv::Ellipse &ell, Pos &ps, bool read, cv::Point2d &center,
+                                   cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
     {
         cv::Point2d epx, epy;
         bool valid = ps.extinction_point(epx, epy, read);
+        epx.x -= roi.x;
+        epx.y -= roi.y;
+        epy.x -= roi.x;
+        epy.y -= roi.y;
+        epx.x *= (cv_image->image.cols / roi.width);
+        epx.y *= (cv_image->image.rows / roi.height);
+        epy.x *= (cv_image->image.cols / roi.width);
+        epy.y *= (cv_image->image.rows / roi.height);
+        ROS_INFO_STREAM("epx:" << epx << " epy:" << epy);
         double c = cos(ell._rad);
         double s = sin(ell._rad);
         double n[2][2] = {{((epx.x - ell._xc) * c + (epx.y - ell._yc) * s) / (ell._a * ell._a),
@@ -255,6 +266,7 @@ namespace my_hand_eye
             cv::hconcat(A.col(0), Y, Dy);
             center.x = cv::determinant(Dx) / D + ell._xc;
             center.y = cv::determinant(Dy) / D + ell._yc;
+            ROS_INFO_STREAM("dx:" << (center.x - ell._xc) << " dy:" << (center.y - ell._yc));
         }
         return valid;
     }

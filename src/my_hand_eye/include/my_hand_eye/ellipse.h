@@ -35,16 +35,18 @@ namespace my_hand_eye
         std::vector<Ellipse> ellipse_;
         std::vector<int> flag_; // 聚类标识
         // 实际中心点
-        bool real_center(cv::Ellipse &ell, Pos &ps, bool read, cv::Point2d &center);
+        bool real_center(cv::Ellipse &ell, Pos &ps, bool read, cv::Point2d &center,
+                         cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
         // 目标区域框选
         double color_hypothesis(double h_val, int lower_bound, int upper_bound);
+        bool generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
+                                    cv_bridge::CvImagePtr &cv_image);
 
     public:
         EllipseArray();
         // 聚类
-        bool clustering(std::vector<cv::Ellipse> &ellipses, Pos &ps);
-        bool generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
-                                    cv_bridge::CvImagePtr &cv_image);
+        bool clustering(std::vector<cv::Ellipse> &ellipses, Pos &ps,
+                        cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
         // 颜色分类
         bool color_classification(cv_bridge::CvImagePtr &cv_image,
                                   int white_vmin);
