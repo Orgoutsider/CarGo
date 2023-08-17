@@ -20,14 +20,15 @@ namespace my_hand_eye
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
 
-        tolerance[target_ellipse].theta = 0.011;
+        tolerance[target_ellipse].theta = 0.009;
         tolerance[target_ellipse].x = 0.009;
         tolerance[target_ellipse].y = 0.01;
     }
 
     void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
     {
-        static int err_cnt = 0;
+        static int err_cnt = 0;  // 防误判
+        static int err_cnt2 = 0; // 防不判
         Action a = Action(pose_arm.x, pose_arm.y, 0).arm2footprint();
         if (pose_arm.theta == pose_target.not_change)
             pose_arm.theta = pose[target].theta;
@@ -54,15 +55,26 @@ namespace my_hand_eye
                 pose_target.end = true;
                 if (target != target_ellipse || err_cnt > 2 + cnt_max)
                     err_cnt = 0;
+                if (err_cnt == 3)
+                    err_cnt2 = 0;
             }
             else
                 pose_target.end = false;
         }
-        else
+        else if (target != target_ellipse || err_cnt <= 2)
         {
             pose_target.end = false;
             if (err_cnt)
                 err_cnt = 0;
+        }
+        else if ((++err_cnt2) > 1)
+            pose_target.end = false;
+        else
+        {
+            if (err_cnt == 3)
+                err_cnt2 = 0;
+            err_cnt++;
+            pose_target.end = true;
         }
     }
 } // namespace my_hand_eye
