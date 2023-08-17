@@ -8,9 +8,9 @@ namespace motion_controller
         : listener_(buffer_), target_frame_("odom_combined"),
           tf2_filter_(eye_subscriber_, buffer_, target_frame_, 15, 0),
           unchanging_(direction_void), changing_(direction_theta),
-          kp_eye_angular_(1.9), ki_eye_angular_(0.4), kd_eye_angular_(0.0),
+          kp_eye_angular_(1.9), ki_eye_angular_(0.3), kd_eye_angular_(0.4),
           kp_eye_linear_(1.0), ki_eye_linear_(0.1), kd_eye_linear_(0.3),
-          threshold_angular_(0.007), threshold_linear_x_(0.01), threshold_linear_y_(0.007),
+          threshold_angular_(0.005), threshold_linear_x_(0.007), threshold_linear_y_(0.008),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
                {threshold_angular_}, {0.05}, {0.4})

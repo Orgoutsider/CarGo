@@ -15,17 +15,17 @@ namespace my_hand_eye
         tolerance[target_center].x = 0.015;
         tolerance[target_center].y = 0.015;
 
-        pose[target_ellipse].theta = Angle(-5.3347).rad();
+        pose[target_ellipse].theta = Angle(-3.9702).rad();
         Action ellipse = Action(0, 19.3, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
 
-        tolerance[target_ellipse].theta = 0.007;
-        tolerance[target_ellipse].x = 0.01;
+        tolerance[target_ellipse].theta = 0.011;
+        tolerance[target_ellipse].x = 0.009;
         tolerance[target_ellipse].y = 0.01;
     }
 
-    void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target)
+    void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
     {
         static int err_cnt = 0;
         Action a = Action(pose_arm.x, pose_arm.y, 0).arm2footprint();
@@ -49,10 +49,10 @@ namespace my_hand_eye
             abs(pose_target.pose.y) <= tolerance[target].y)
         {
             err_cnt++;
-            if (err_cnt > 1)
+            if ((err_cnt > 2 && target != target_ellipse) || err_cnt > 1)
             {
                 pose_target.end = true;
-                if (target != target_ellipse || err_cnt > 2)
+                if (target != target_ellipse || err_cnt > 2 + cnt_max)
                     err_cnt = 0;
             }
             else
