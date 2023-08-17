@@ -923,7 +923,7 @@ namespace my_hand_eye
         yaed_->Detect(srcdst, ellsYaed);
         EllipseArray arr;
         // 聚类、颜色标定
-        if (!arr.clustering(ellsYaed) ||
+        if (!arr.clustering(ellsYaed, ps_) ||
             !arr.generate_bounding_rect(ellsYaed, cv_image) ||
             !arr.color_classification(cv_image, white_vmin_))
             return false;

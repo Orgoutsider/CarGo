@@ -15,7 +15,7 @@ namespace my_hand_eye
         return Angle::atan2(y, x)._get_degree() / 2;
     }
 
-    double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin, cv::Mat &mask_img)
+    double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin)
     {
         cv::Mat mask;
         roi.convertTo(mask, CV_8UC3);
