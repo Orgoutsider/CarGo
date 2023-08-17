@@ -43,7 +43,7 @@
         <param name="enlarge_x" type="double" value="0.986" />
         <param name="enlarge_y" type="double" value="0.98" />
         <param name="fThScoreScore" type="double" value="0.45" />
-        <param name="fMinReliability" type="double" value="0.47" />
+        <param name="fMinReliability" type="double" value="0.4" />
         <param name="flag" type="bool" value="$(arg flag)" />
         <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
         <param name="debug" type="bool" value="$(arg debug)" />

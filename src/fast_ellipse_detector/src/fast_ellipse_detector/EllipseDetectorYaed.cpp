@@ -1665,7 +1665,7 @@ namespace cv
 
 	void CEllipseDetectorYaed::Detect(Mat1b &I, std::vector<Ellipse> &ellipses)
 	{
-		Tic(1); // prepare data structure
+		// Tic(1); // prepare data structure
 
 		// Set the image size
 		_szImg = I.size();
@@ -1762,7 +1762,6 @@ namespace cv
 		// Cluster detections
 		ClusterEllipses(ellipses);
 		// Toc(5);
-		Toc(1);
 	};
 
 	// Ellipse clustering procedure. See Sect [3.3.2] in the paper.

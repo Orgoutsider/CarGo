@@ -1246,9 +1246,9 @@ namespace cv
 		}
 		Canny(c_dx, c_dy, c_dst, low, high);
 		// {
-		//     imshow("gray", src);
-		//     imshow("magnitude", magnitude);
-		//     imshow("canny", c_dst);
+		    // imshow("gray", src);
+		    // imshow("magnitude", magnitude);
+		    // imshow("canny", c_dst);
 		// }
 	};
 

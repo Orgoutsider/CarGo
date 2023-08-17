@@ -909,12 +909,14 @@ namespace my_hand_eye
         resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2)); // 重设大小，可选
         // 第一次预处理
         // Mat sat = saturation(cv_image->image, 100);
-        Mat1b srcdst;
-        cvtColor(cv_image->image, srcdst, COLOR_BGR2GRAY);
-        // imshow("grey", srcdst);
+        Mat hsv;
+        cvtColor(cv_image->image, hsv, COLOR_BGR2HSV_FULL);
+        std::vector<Mat1b> hsvs;
+        split(hsv, hsvs);
+        // imshow("h", hsvs[1]);
         // waitKey(10);
         std::vector<cv::Ellipse> ellsYaed;
-        yaed_->Detect(srcdst, ellsYaed);
+        yaed_->Detect(hsvs[1], ellsYaed);
         EllipseArray arr;
         // 聚类、颜色标定
         if (!arr.clustering(ellsYaed) ||
@@ -1150,10 +1152,12 @@ namespace my_hand_eye
         const int MAX = 7; // 与put对应
         if (!msg.end && last_finish)
         {
+            last_finish = false;
             if (!store)
             {
                 ps_.reset(true);
                 rst = true;
+                return false;
             }
             else
             {
@@ -1161,8 +1165,6 @@ namespace my_hand_eye
                 cargo_y_.clear();
                 cargo_theta_.clear();
             }
-            last_finish = false;
-            return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
