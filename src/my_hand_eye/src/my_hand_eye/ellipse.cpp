@@ -21,7 +21,8 @@ namespace my_hand_eye
             ellipse_.clear();
         const int MAXN = ellipses.size() + 10;
         flag_.resize(MAXN, 0);
-
+        cv::Point2d epx, epy;
+        ps.extinction_point(epx, epy, true);
         // 聚类
         for (int i = 0; i < ellipses.size(); i++)
         {
@@ -30,7 +31,9 @@ namespace my_hand_eye
             double score_sum = ellipses[i]._score;
             int now = i, cnt = 1;
             cv::Point2d pt_sum;
-            real_center(ellipses[i], ps, i == 0, pt_sum, roi, cv_image);
+            // cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy,
+                                //    cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image
+            real_center(ellipses[i], epx, epy, pt_sum, roi, cv_image);
             pt_sum *= score_sum;
             for (int j = i + 1; j < ellipses.size(); j++)
             {
@@ -45,7 +48,7 @@ namespace my_hand_eye
                     flag_[now] = j;
                     now = j;
                     cv::Point2d pt;
-                    real_center(ellipses[j], ps, false, pt, roi, cv_image);
+                    real_center(ellipses[j], epx, epy, pt, roi, cv_image);
                     pt_sum += pt * (ellipses[j]._score);
                     score_sum += ellipses[j]._score;
                     cnt++;
@@ -235,40 +238,32 @@ namespace my_hand_eye
         return true;
     };
 
-    bool EllipseArray::real_center(cv::Ellipse &ell, Pos &ps, bool read, cv::Point2d &center,
-                                   cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
+    void EllipseArray::real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy,
+                                   cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
     {
-        cv::Point2d epx, epy;
-        bool valid = ps.extinction_point(epx, epy, read);
         epx.x -= roi.x;
         epx.y -= roi.y;
         epy.x -= roi.x;
         epy.y -= roi.y;
-        epx.x *= (cv_image->image.cols / roi.width);
-        epx.y *= (cv_image->image.rows / roi.height);
-        epy.x *= (cv_image->image.cols / roi.width);
-        epy.y *= (cv_image->image.rows / roi.height);
-        ROS_INFO_STREAM("epx:" << epx << " epy:" << epy);
+        epx.x *= ((double)cv_image->image.cols / roi.width);
+        epx.y *= ((double)cv_image->image.rows / roi.height);
+        epy.x *= ((double)cv_image->image.cols / roi.width);
+        epy.y *= ((double)cv_image->image.rows / roi.height);
         double c = cos(ell._rad);
         double s = sin(ell._rad);
         double n[2][2] = {{((epx.x - ell._xc) * c + (epx.y - ell._yc) * s) / (ell._a * ell._a),
                            ((epx.x - ell._xc) * s - (epx.y - ell._yc) * c) / (ell._b * ell._b)},
                           {((epy.x - ell._xc) * c + (epy.y - ell._yc) * s) / (ell._a * ell._a),
                            ((epy.x - ell._xc) * s - (epy.y - ell._yc) * c) / (ell._b * ell._b)}};
-        if (valid)
-        {
-            cv::Mat A = (cv::Mat_<double>(2, 2) << c * n[0][0] + s * n[0][1], s * n[0][0] - c * n[0][1],
-                         c * n[1][0] + s * n[1][1], s * n[1][0] - c * n[1][1]);
-            double D = cv::determinant(A);
-            cv::Mat Y = cv::Mat::ones(2, 1, CV_64FC1);
-            cv::Mat Dx, Dy;
-            cv::hconcat(Y, A.col(1), Dx);
-            cv::hconcat(A.col(0), Y, Dy);
-            center.x = cv::determinant(Dx) / D + ell._xc;
-            center.y = cv::determinant(Dy) / D + ell._yc;
-            ROS_INFO_STREAM("dx:" << (center.x - ell._xc) << " dy:" << (center.y - ell._yc));
-        }
-        return valid;
+        cv::Mat A = (cv::Mat_<double>(2, 2) << c * n[0][0] + s * n[0][1], s * n[0][0] - c * n[0][1],
+                     c * n[1][0] + s * n[1][1], s * n[1][0] - c * n[1][1]);
+        double D = cv::determinant(A);
+        cv::Mat Y = cv::Mat::ones(2, 1, CV_64FC1);
+        cv::Mat Dx, Dy;
+        cv::hconcat(Y, A.col(1), Dx);
+        cv::hconcat(A.col(0), Y, Dy);
+        center.x = cv::determinant(Dx) / D + ell._xc;
+        center.y = cv::determinant(Dy) / D + ell._yc;
     }
 
     double EllipseArray::color_hypothesis(double h_val, int lower_bound, int upper_bound)

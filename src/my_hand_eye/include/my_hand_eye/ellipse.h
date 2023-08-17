@@ -35,8 +35,8 @@ namespace my_hand_eye
         std::vector<Ellipse> ellipse_;
         std::vector<int> flag_; // 聚类标识
         // 实际中心点
-        bool real_center(cv::Ellipse &ell, Pos &ps, bool read, cv::Point2d &center,
-                         cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
+        void real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy,
+                         cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
         // 目标区域框选
         double color_hypothesis(double h_val, int lower_bound, int upper_bound);
         bool generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
