@@ -9,7 +9,7 @@ namespace my_hand_eye
         ellipse_.reserve(20);
     };
 
-    bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses)
+    bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses, Pos &ps)
     {
         if (ellipses.empty())
         {
@@ -26,8 +26,11 @@ namespace my_hand_eye
         {
             if (flag_[i])
                 continue;
-            double x_temp = ellipses[i]._xc, y_temp = ellipses[i]._yc, score_sum = ellipses[i]._score;
+            double score_sum = ellipses[i]._score;
             int now = i, cnt = 1;
+            cv::Point2d pt_sum;
+            real_center(ellipses[i], ps, i == 0, pt_sum);
+            pt_sum *= score_sum;
             for (int j = i + 1; j < ellipses.size(); j++)
             {
                 double thr = std::min<float>(ellipses[i]._b, ellipses[j]._b) / 2;
@@ -40,8 +43,9 @@ namespace my_hand_eye
                 {
                     flag_[now] = j;
                     now = j;
-                    x_temp += ellipses[j]._xc * (ellipses[j]._score);
-                    y_temp += ellipses[j]._yc * (ellipses[j]._score);
+                    cv::Point2d pt;
+                    real_center(ellipses[j], ps, false, pt);
+                    pt_sum += pt * (ellipses[j]._score);
                     score_sum += ellipses[j]._score;
                     cnt++;
                 }
@@ -54,7 +58,7 @@ namespace my_hand_eye
             {
                 Ellipse e;
                 // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
-                e.center = cv::Point2d(x_temp / score_sum, y_temp / score_sum);
+                e.center = pt_sum / score_sum;
                 e.score_aver = score_sum / cnt;
                 ellipse_.push_back(e);
             }
@@ -87,8 +91,8 @@ namespace my_hand_eye
                 now = flag_[now];
                 note[now] = true;
                 float area_temp = m_ellipses[now]._a * m_ellipses[now]._b * m_ellipses[now]._score;
-                area_max = std::max(area_max, area_temp);
                 ind_max = (area_max > area_temp) ? ind_max : now;
+                area_max = std::max(area_max, area_temp);
             }
             if (cnt >= 2)
             {
@@ -131,11 +135,10 @@ namespace my_hand_eye
             return false;
         for (Ellipse &e : ellipse_)
         {
-            cv::Mat mask;
             // 保存当前区域色相H的平均值
             double H_Average = -1;
             if (!e.rect_target.empty())
-                H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin, mask);
+                H_Average = hue_value_aver(cv_image->image(e.rect_target), white_vmin);
             // ROS_INFO_STREAM("H_Average:" << H_Average);
             int id = color_red;
             double max_hyp = 0;
@@ -230,6 +233,31 @@ namespace my_hand_eye
         }
         return true;
     };
+
+    bool EllipseArray::real_center(cv::Ellipse &ell, Pos &ps, bool read, cv::Point2d &center)
+    {
+        cv::Point2d epx, epy;
+        bool valid = ps.extinction_point(epx, epy, read);
+        double c = cos(ell._rad);
+        double s = sin(ell._rad);
+        double n[2][2] = {{((epx.x - ell._xc) * c + (epx.y - ell._yc) * s) / (ell._a * ell._a),
+                           ((epx.x - ell._xc) * s - (epx.y - ell._yc) * c) / (ell._b * ell._b)},
+                          {((epy.x - ell._xc) * c + (epy.y - ell._yc) * s) / (ell._a * ell._a),
+                           ((epy.x - ell._xc) * s - (epy.y - ell._yc) * c) / (ell._b * ell._b)}};
+        if (valid)
+        {
+            cv::Mat A = (cv::Mat_<double>(2, 2) << c * n[0][0] + s * n[0][1], s * n[0][0] - c * n[0][1],
+                         c * n[1][0] + s * n[1][1], s * n[1][0] - c * n[1][1]);
+            double D = cv::determinant(A);
+            cv::Mat Y = cv::Mat::ones(2, 1, CV_64FC1);
+            cv::Mat Dx, Dy;
+            cv::hconcat(Y, A.col(1), Dx);
+            cv::hconcat(A.col(0), Y, Dy);
+            center.x = cv::determinant(Dx) / D + ell._xc;
+            center.y = cv::determinant(Dy) / D + ell._yc;
+        }
+        return valid;
+    }
 
     double EllipseArray::color_hypothesis(double h_val, int lower_bound, int upper_bound)
     {

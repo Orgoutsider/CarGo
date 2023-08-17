@@ -975,6 +975,29 @@ namespace my_hand_eye
         return valid;
     }
 
+    bool Pos::extinction_point(cv::Point2d &epx, cv::Point2d &epy, bool read)
+    {
+        bool valid = read ? refresh_xyz() : true;
+        if (valid)
+        {
+            cv::Mat ext_inv = extrinsics_inverse();
+            cv::Mat it = intrinsics();
+            cv::Mat point_tempx = (cv::Mat_<double>(3, 1) << ext_inv.at<double>(0, 0) /
+                                                                 ext_inv.at<double>(2, 0),
+                                   ext_inv.at<double>(1, 0) / ext_inv.at<double>(2, 0), 1); // (X/Z,Y/Z,1)
+            cv::Mat point_pixelx = it * point_tempx;
+            epx.x = point_pixelx.at<double>(0, 0);
+            epx.y = point_pixelx.at<double>(1, 0);
+            cv::Mat point_tempy = (cv::Mat_<double>(3, 1) << ext_inv.at<double>(0, 1) /
+                                                                 ext_inv.at<double>(2, 1),
+                                   ext_inv.at<double>(1, 1) / ext_inv.at<double>(2, 1), 1); // (X/Z,Y/Z,1)
+            cv::Mat point_pixely = it * point_tempy;
+            epy.x = point_pixely.at<double>(0, 0);
+            epy.y = point_pixely.at<double>(1, 0);
+        }
+        return valid;
+    }
+
     double Pos::distance(double length_goal, double height_goal, double &k)
     {
         double length_sub = length() - length_goal;
