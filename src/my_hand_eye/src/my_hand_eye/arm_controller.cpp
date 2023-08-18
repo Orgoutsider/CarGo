@@ -294,14 +294,13 @@ namespace my_hand_eye
             if (center)
             {
                 double center_u = 0, center_v = 0;
-                if (valid = get_center(objArray, center_u, center_v, x, y))
+                if (get_center(objArray, center_u, center_v, x, y))
                 {
                     ROS_INFO_STREAM("x:" << x << " y:" << y);
                     if (show_detections && !cv_image_.image.empty())
                     {
                         draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
-                        debug_image = cv_image_.toImageMsg();
-                    }  
+                    }
                 }
             }
             else if (pose)
@@ -322,6 +321,8 @@ namespace my_hand_eye
             else if (valid = find_with_color(objArray, color, z, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
         }
+        if (show_detections && !cv_image_.image.empty())
+            debug_image = cv_image_.toImageMsg();
         return valid;
     }
 
@@ -529,29 +530,6 @@ namespace my_hand_eye
         pose.y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
         pose.theta = std::accumulate(std::begin(cargo_theta_), std::end(cargo_theta_), 0.0) /
                      cargo_theta_.size();
-    }
-
-    void ArmController::average_pose_once()
-    {
-        if (cargo_x_.size() <= 2 || cargo_y_.size() <= 2 || cargo_theta_.size() <= 2)
-        {
-            return;
-        }
-        // 去除一个最大值，一个最小值
-        cargo_x_.erase(std::min_element(cargo_x_.begin(), cargo_x_.end()));
-        cargo_x_.erase(std::max_element(cargo_x_.begin(), cargo_x_.end()));
-        cargo_y_.erase(std::min_element(cargo_y_.begin(), cargo_y_.end()));
-        cargo_y_.erase(std::max_element(cargo_y_.begin(), cargo_y_.end()));
-        cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
-        cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-        geometry_msgs::Pose2D pose;
-        average_pose(pose);
-        cargo_x_.clear();
-        cargo_y_.clear();
-        cargo_theta_.clear();
-        cargo_x_.push_back(pose.x);
-        cargo_y_.push_back(pose.y);
-        cargo_theta_.push_back(pose.theta);
     }
 
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
@@ -1035,15 +1013,8 @@ namespace my_hand_eye
     {
         geometry_msgs::Pose2D err;
         average_pose(err);
-        if (final)
-        {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            cargo_theta_.clear();
-        }
         return ps_.go_to_table(true, color, true) &&
-               ps_.put(color_map_[color], false, err, Action(enlarge_x_, enlarge_y_, 0), pal) &&
-               ps_.reset(true);
+               ps_.put(color_map_[color], false, err, Action(enlarge_x_, enlarge_y_, 0)) && ps_.reset(true);
     }
 
     bool ArmController::catch_after_putting(const Color color, bool final)
@@ -1097,17 +1068,11 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                   sensor_msgs::ImagePtr &debug_image, bool pose, bool store)
+                                   sensor_msgs::ImagePtr &debug_image, bool pose)
     {
-        if (store && !pose)
-        {
-            ROS_WARN("find_cargo: Both of store and pose must be set to true.");
-            return false;
-        }
         static bool last_finish = true;
         static bool rst = false;
-        const int MAX = 5; // 读取5次求平均位姿
-        if (!msg.end && last_finish && !store)
+        if (!msg.end && last_finish)
         {
             ps_.reset(pose);
             last_finish = false;
@@ -1119,12 +1084,6 @@ namespace my_hand_eye
                 rst = true;
             }
             return false;
-        }
-        else if (msg.end && last_finish && store)
-        {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            cargo_theta_.clear();
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
@@ -1142,38 +1101,22 @@ namespace my_hand_eye
                     rst = false;
             }
             else
-                valid = get_center(objArray, center_u, center_v, pme.pose.x, pme.pose.y, true);
+                get_center(objArray, center_u, center_v, pme.pose.x, pme.pose.y, true);
         }
         if (valid)
         {
-            target_pose.calc(pme.pose, msg, MAX);
-            if (store)
-            {
-                if (pme.pose.theta != pme.not_change)
-                {
-                    ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
-                    cargo_x_.push_back(msg.pose.x);
-                    cargo_y_.push_back(msg.pose.y);
-                    cargo_theta_.push_back(msg.pose.theta);
-                }
-            }
-            else
-            {
-                msg.header = image_rect->header;
-                msg.header.frame_id = "base_footprint";
-            }
+            target_pose.calc(pme.pose, msg);
+            msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
         }
         if (valid && show_detections && !cv_image_.image.empty() && !pose)
         {
             draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
+        }
+        last_finish = msg.end;
+        if (show_detections && !cv_image_.image.empty())
             debug_image = cv_image_.toImageMsg();
-        }
-        last_finish = store ? cargo_x_.size() >= MAX : msg.end;
-        if (store && last_finish)
-        {
-            average_pose_once();
-        }
-        return store ? last_finish : valid;
+        return valid;
     }
 
     bool ArmController::find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
@@ -1181,7 +1124,7 @@ namespace my_hand_eye
     {
         static bool last_finish = true;
         static bool rst = false;
-        const int MAX = 5; // 读取5次求平均位姿
+        const int MAX = 5; // 与put对应
         if (!msg.end && last_finish && !store)
         {
             last_finish = false;
@@ -1198,18 +1141,18 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        Pose2DMightEnd pme;
+        Pose2DMightEnd pose;
         bool valid = rst ? detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
                                set_color_order(objArray) &&
-                               get_pose(objArray, z_parking_area, pme, false)
+                               get_pose(objArray, z_parking_area, pose, false)
                          : detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                               get_pose(objArray, z_parking_area, pme, false);
+                               get_pose(objArray, z_parking_area, pose, false);
         if (valid)
         {
-            target_pose.calc(pme.pose, msg, MAX);
+            target_pose.calc(pose.pose, msg, MAX);
             if (store)
             {
-                if (pme.pose.theta != pme.not_change)
+                if (pose.pose.theta != pose.not_change)
                 {
                     ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
                     cargo_x_.push_back(msg.pose.x);
@@ -1228,7 +1171,21 @@ namespace my_hand_eye
         last_finish = store ? cargo_x_.size() >= MAX : msg.end;
         if (store && last_finish)
         {
-            average_pose_once();
+            // 去除一个最大值，一个最小值
+            cargo_x_.erase(std::min_element(cargo_x_.begin(), cargo_x_.end()));
+            cargo_x_.erase(std::max_element(cargo_x_.begin(), cargo_x_.end()));
+            cargo_y_.erase(std::min_element(cargo_y_.begin(), cargo_y_.end()));
+            cargo_y_.erase(std::max_element(cargo_y_.begin(), cargo_y_.end()));
+            cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
+            cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
+            geometry_msgs::Pose2D pose;
+            average_pose(pose);
+            cargo_x_.clear();
+            cargo_y_.clear();
+            cargo_theta_.clear();
+            cargo_x_.push_back(pose.x);
+            cargo_y_.push_back(pose.y);
+            cargo_theta_.push_back(pose.theta);
         }
         return store ? last_finish : valid;
     }
