@@ -15,8 +15,9 @@ namespace my_hand_eye
           ellipse_roi_(320, 540, 1280, 360),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
-          z_parking_area(1.40121),//palletize
+          z_parking_area(1.40121),
           z_ellipse(4.58369),
+          z_palletize(10.7626),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
@@ -34,6 +35,7 @@ namespace my_hand_eye
           threshold(60), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
+          z_palletize(10.7626),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -267,7 +269,7 @@ namespace my_hand_eye
         }
     }
 
-    bool ArmController::log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color,
+    bool ArmController::log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color, double z, 
                                   sensor_msgs::ImagePtr &debug_image, bool center, bool pose)
     {
         if (pose && center)
@@ -316,7 +318,7 @@ namespace my_hand_eye
                         rst = false;
                 }
             }
-            else if (valid = find_with_color(objArray, color, z_turntable, x, y))
+            else if (valid = find_with_color(objArray, color, z, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
         }
         if (show_detections && !cv_image_.image.empty())

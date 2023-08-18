@@ -19,6 +19,6 @@ int main(int argc, char **argv)
     //     if (h < ARM_MAX_HIGH && h > 0)
     //         controller.find_points_with_height(h, false);
     // }
-    controller.find_points_with_height(controller.z_ellipse, true);
+    controller.find_points_with_height(controller.z_palletize, true);
     return 0;
 }

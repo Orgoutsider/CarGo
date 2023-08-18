@@ -76,11 +76,12 @@ namespace my_hand_eye
         // double proportion_; // 杂色所占的比例
         const double z_turntable;
         const double z_ellipse;
+        const double z_palletize;
         double z_parking_area;
         int threshold;
         bool show_detections;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
-        bool log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color,
+        bool log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color, double z,
                        sensor_msgs::ImagePtr &debug_image, bool center = false, bool pose = false);
         // 校正外参
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
