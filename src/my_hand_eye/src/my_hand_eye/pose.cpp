@@ -92,15 +92,15 @@ namespace my_hand_eye
         }
         else if (name == "put1" || name == "put2" || name == "put3")
         {
-            action_put[name[3] - '0'] = Action((double)action[0], (double)action[1], (double)action[2]);
+            action_put[name.back() - '0'] = Action((double)action[0], (double)action[1], (double)action[2]);
             ROS_INFO_STREAM("Set action " << name);
-            ARM_INFO_XYZ(action_put[name[3] - '0']);
+            ARM_INFO_XYZ(action_put[name.back() - '0']);
         }
         else if (name == "palletize1" || name == "palletize2" || name == "palletize3")
         {
-            action_put[name[3] - '0'] = Action((double)action[0], (double)action[1], (double)action[2]);
+            action_palletize[name.back() - '0'] = Action((double)action[0], (double)action[1], (double)action[2]);
             ROS_INFO_STREAM("Set action " << name);
-            ARM_INFO_XYZ(action_palletize[name[3] - '0']);
+            ARM_INFO_XYZ(action_palletize[name.back() - '0']);
         }
         else
             ROS_ERROR("set_action: Name error!");
@@ -140,7 +140,7 @@ namespace my_hand_eye
     {
         bool valid = refresh_xyz(); // 此时xyz为当前值
         bool flag1 = (this->y) < 0;
-        bool flag2 = (this->z) < 10;
+        bool flag2 = (this->z) < 12;
         this->x = x;
         this->y = y;
         this->z = z; // 此时xyz为目标值
@@ -257,18 +257,18 @@ namespace my_hand_eye
         if (valid)
         {
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            if (z < 10)
+            if (z < 7)
                 Position[3] -= 100; // 防止碰到物料
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             u8 ID1[] = {1, 3, 4};
             wait_until_static(ID1, 3);
-            if (z < 10)
+            if (z < 7)
                 ros::Duration(0.2).sleep();
 
             sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
             u8 ID2[] = {2};
             wait_until_static(ID2, 1);
-            if (z < 10)
+            if (z < 7)
             {
                 Position[3] += 100;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
@@ -336,7 +336,7 @@ namespace my_hand_eye
     {
         const double TIGHTNESS_TABLE = 0.65; // 在转盘进行抓取放置时略微松手
         bool valid = refresh_xyz();
-        bool flag = (this->z < 10);
+        bool flag = (this->z < 7);
         this->x = left ? action_right.x : action_back.x;
         this->y = left ? action_right.y : action_back.y;
         this->z = left ? action_right.z : action_back.z;

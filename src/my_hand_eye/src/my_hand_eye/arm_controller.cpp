@@ -17,7 +17,7 @@ namespace my_hand_eye
           threshold(60), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
-          z_palletize(10.744583),
+          z_palletize(11.1079),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
@@ -35,7 +35,7 @@ namespace my_hand_eye
           threshold(60), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
-          z_palletize(10.744583),
+          z_palletize(10.7079),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -66,6 +66,9 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue put1_action;
         XmlRpc::XmlRpcValue put2_action;
         XmlRpc::XmlRpcValue put3_action;
+        XmlRpc::XmlRpcValue palletize1_action;
+        XmlRpc::XmlRpcValue palletize2_action;
+        XmlRpc::XmlRpcValue palletize3_action;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
@@ -94,6 +97,18 @@ namespace my_hand_eye
         {
             ROS_ERROR("No put3 action specified");
         }
+        if (!pnh.getParam("palletize1_action", palletize1_action))
+        {
+            ROS_ERROR("No palletize1 action specified");
+        }
+        if (!pnh.getParam("palletize2_action", palletize2_action))
+        {
+            ROS_ERROR("No palletize2 action specified");
+        }
+        if (!pnh.getParam("palletize3_action", palletize3_action))
+        {
+            ROS_ERROR("No palletize3 action specified");
+        }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
@@ -115,6 +130,9 @@ namespace my_hand_eye
         ps_.set_action(put1_action, "put1");
         ps_.set_action(put2_action, "put2");
         ps_.set_action(put3_action, "put3");
+        ps_.set_action(palletize1_action, "palletize1");
+        ps_.set_action(palletize2_action, "palletize2");
+        ps_.set_action(palletize3_action, "palletize3");
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
@@ -189,15 +207,15 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::detect_cargo(const sensor_msgs::ImageConstPtr &image_rect,
-                                     vision_msgs::BoundingBox2DArray &detections, sensor_msgs::ImagePtr &debug_image, cv::Rect &roi)
+    bool ArmController::detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
+                                     sensor_msgs::ImagePtr &debug_image, cv::Rect &rect)
     {
         if (cargo_client_.exists())
         {
             ROS_INFO_ONCE("Service is up and available.");
             cv_bridge::CvImagePtr cv_image;
             bool flag = add_image(image_rect, cv_image);
-            cv_image->image = cv_image->image(roi).clone();
+            cv_image->image = cv_image->image(rect).clone();
             yolov5_ros::cargoSrv cargo;
             sensor_msgs::ImagePtr image = cv_image->toImageMsg();
             cargo.request.image = *image;
@@ -251,8 +269,8 @@ namespace my_hand_eye
                     {
                         if (!detections.boxes[color].center.x)
                             continue;
-                        detections.boxes[color].center.x += roi.x;
-                        detections.boxes[color].center.y += roi.y;
+                        detections.boxes[color].center.x += rect.x;
+                        detections.boxes[color].center.y += rect.y;
                     }
                 }
             }
@@ -301,7 +319,7 @@ namespace my_hand_eye
                     {
                         draw_cross(cv_image_.image, cv::Point(center_u, center_v), cv::Scalar(255, 255, 255), 30, 3);
                         debug_image = cv_image_.toImageMsg();
-                    }  
+                    }
                 }
             }
             else if (pose)
@@ -1041,9 +1059,10 @@ namespace my_hand_eye
             cargo_y_.clear();
             cargo_theta_.clear();
         }
-        return ps_.go_to_table(true, color, true) &&
-               ps_.put(color_map_[color], false, err, Action(enlarge_x_, enlarge_y_, 0), pal) &&
-               ps_.reset(true);
+        bool valid = ps_.go_to_table(true, color, true) &&
+                     ps_.put(color_map_[color], false, err, Action(enlarge_x_, enlarge_y_, 0), pal);
+        ps_.reset(true);
+        return valid;
     }
 
     bool ArmController::catch_after_putting(const Color color, bool final)
@@ -1056,8 +1075,10 @@ namespace my_hand_eye
             cargo_y_.clear();
             cargo_theta_.clear();
         }
-        return ps_.put(color_map_[color], true, err, Action(enlarge_x_, enlarge_y_, 0), false) &&
-               ps_.go_to_table(false, color, true) && ps_.reset(true);
+        bool valid = ps_.put(color_map_[color], true, err, Action(enlarge_x_, enlarge_y_, 0), false) &&
+                     ps_.go_to_table(false, color, true);
+        ps_.reset(true);
+        return valid;
     }
 
     bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
