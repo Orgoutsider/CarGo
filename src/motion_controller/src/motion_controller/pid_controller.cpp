@@ -4,7 +4,7 @@
 
 namespace motion_controller
 {
-    
+
     PIDController::PIDController(std::vector<double> &&target,
                                  std::vector<double> &&p, std::vector<double> &&i, std::vector<double> &&d,
                                  std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&control_max)
@@ -31,6 +31,7 @@ namespace motion_controller
         }
         if (!control.empty())
             control.clear();
+        success = true;
         if (last_time_.is_zero())
         {
             // PID第一次被调用，我们还不知道时间差
@@ -38,10 +39,21 @@ namespace motion_controller
             last_time_ = now;
             // 第一次的control不能用！
             control.resize(target_.size(), 0.0);
+            try
+            {
+                for (int i = 0; i < target_.size(); i++)
+                {
+                    if (abs(current.at(i) - target_.at(i)) >= threshold_.at(i) && success)
+                        success = false;
+                }
+            }
+            catch (const std::exception &e)
+            {
+                ROS_ERROR("%s", e.what());
+            }
             return false;
         }
         control.reserve(target_.size());
-        success = true;
         try
         {
             for (int i = 0; i < target_.size(); i++)

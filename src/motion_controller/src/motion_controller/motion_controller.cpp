@@ -397,6 +397,11 @@ namespace motion_controller
             boost::lock_guard<boost::mutex> lk(mtx_);
             dr_route_ = config.where;
         }
+        if (config.loop != loop_)
+        {
+            boost::lock_guard<boost::mutex> lk(mtx_);
+            loop_ = config.loop;
+        }
     }
 
     void MotionController::_move_with_vision()

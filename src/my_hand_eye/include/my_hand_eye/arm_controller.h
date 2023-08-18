@@ -25,8 +25,8 @@ namespace my_hand_eye
         float fMinReliability_;
         Pos ps_;
         Color current_color_;
-        EllipseColor ellipse_color_order_[4]; // 椭圆顺序（从左至右）
-        std::map<Color, int> ellipse_color_map_;
+        EllipseColor color_order_[4]; // 颜色顺序（从左至右）
+        std::map<Color, int> color_map_;
         ColorTracker tracker_;
         Border border_;
         SMS_STS sm_st_;
@@ -58,8 +58,8 @@ namespace my_hand_eye
         bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
                         double &center_x, double &center_y, bool read = true);
         // 处理接收的图片，求相对椭圆位姿
-        bool get_ellipse_pose(vision_msgs::BoundingBox2DArray &objArray, Pose2DMightEnd &pose);
-        bool set_ellipse_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
+        bool get_pose(vision_msgs::BoundingBox2DArray &objArray, Pose2DMightEnd &pose, bool read);
+        bool set_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
         void average_pose(geometry_msgs::Pose2D &pose);                          // 求得记录位置数据的平均值
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
@@ -80,8 +80,8 @@ namespace my_hand_eye
         int threshold;
         bool show_detections;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
-        bool log_position(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
-                          sensor_msgs::ImagePtr &debug_image, bool center = false);
+        bool log_cargo(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
+                       sensor_msgs::ImagePtr &debug_image, bool center = false, bool pose = false);
         // 校正外参
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
                                        double correct_x, double correct_y, double correct_z, Color color,
@@ -112,9 +112,9 @@ namespace my_hand_eye
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);
-        // 计算圆盘中心点位置
-        bool find_center(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                         sensor_msgs::ImagePtr &debug_image);
+        // 计算物料中心点位置或位姿
+        bool find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                        sensor_msgs::ImagePtr &debug_image, bool pose);
         // 计算椭圆位置
         bool find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                           sensor_msgs::ImagePtr &debug_image, bool store);

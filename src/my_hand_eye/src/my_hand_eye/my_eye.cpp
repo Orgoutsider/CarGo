@@ -105,7 +105,7 @@ namespace my_hand_eye
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_position(image_rect, arm_controller_.z_turntable, color_blue, debug_image, false);
+		// arm_controller_.log_cargo(image_rect, arm_controller_.z_turntable, color_blue, debug_image, false);
 		// if (arm_controller_.show_detections)
 		// 	debug_image_publisher_.publish(debug_image);
 
@@ -243,7 +243,7 @@ namespace my_hand_eye
 			// static int err_cnt = 0;
 			Pose2DMightEnd msg;
 			msg.end = false;
-			valid = arm_controller_.find_center(image_rect, msg, debug_image);
+			valid = arm_controller_.find_cargo(image_rect, msg, debug_image, false);
 			if (valid)
 			{
 				if (msg.end)
@@ -312,7 +312,15 @@ namespace my_hand_eye
 		if (!finish_adjusting_)
 		{
 			msg.end = false;
-			valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
+			if (arm_goal_.loop == 0)
+				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
+			else if (arm_goal_.loop == 1)
+				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true);
+			else
+			{
+				ROS_ERROR("Invalid loop!");
+				return false;
+			}
 			if (valid)
 			{
 				pose_publisher_.publish(msg);
@@ -343,32 +351,44 @@ namespace my_hand_eye
 		{
 			if ((image_rect->header.stamp - time_stop).toSec() < 0)
 				return valid;
-			msg.end = true;
-			if (arm_controller_.find_ellipse(image_rect, msg, debug_image, true))
+			if (arm_goal_.loop == 0)
 			{
-				arm_controller_.put(which_color());
-				next_task();
-				arm_controller_.put(which_color());
-				next_task();
-				arm_controller_.put(which_color());
-				next_task();
-				if (arm_goal_.route == arm_goal_.route_roughing_area)
+				msg.end = true;
+				if (arm_controller_.find_ellipse(image_rect, msg, debug_image, true))
 				{
-					arm_controller_.catch_after_putting(which_color(), false);
+					arm_controller_.put(which_color());
 					next_task();
-					arm_controller_.catch_after_putting(which_color(), false);
+					arm_controller_.put(which_color());
 					next_task();
-					arm_controller_.catch_after_putting(which_color(), true);
+					arm_controller_.put(which_color());
 					next_task();
+					if (arm_goal_.route == arm_goal_.route_roughing_area)
+					{
+						arm_controller_.catch_after_putting(which_color(), false);
+						next_task();
+						arm_controller_.catch_after_putting(which_color(), false);
+						next_task();
+						arm_controller_.catch_after_putting(which_color(), true);
+						next_task();
+					}
+					finish_ = true;
+					arm_goal_.route = arm_goal_.route_rest;
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					ROS_INFO("Finish operating ellipse...");
 				}
-				finish_ = true;
-				arm_goal_.route = arm_goal_.route_rest;
-				as_.setSucceeded(ArmResult(), "Arm finish tasks");
-				ROS_INFO("Finish operating ellipse...");
+				else if (!msg.end)
+				{
+					finish_adjusting_ = false;
+				}
 			}
-			else if (!msg.end)
-			{				
-				finish_adjusting_ = false;
+			else if (arm_goal_.loop == 1)
+			{
+				// put
+			}
+			else
+			{
+				ROS_ERROR("Invalid loop!");
+				return false;
 			}
 		}
 		else
