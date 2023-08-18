@@ -92,8 +92,6 @@ namespace my_hand_eye
         bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                               bool &finish, sensor_msgs::ImagePtr &debug_image, bool left, bool hold = false,
                               bool midpoint = false);
-        // bool catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
-        // bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool remember(double &x, double &y, double &z, double &tightness); // 记忆位置
         // 目标检测到物料并目标追踪
         bool track(const sensor_msgs::ImageConstPtr &image_rect, const Color color, bool &first,
