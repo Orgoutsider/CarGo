@@ -230,22 +230,6 @@ namespace my_hand_eye
         return true;
     }
 
-    // bool Pos::do_first_step(double x, double y)
-    // {
-    //     this->x = x;
-    //     this->y = y;
-    //     double deg1 = 0;
-    //     bool valid = first_step(deg1);
-    //     if (valid)
-    //     {
-    //         Position[1] = (s16)std::round(ARM_JOINT1_POS_WHEN_DEG0 + (ARM_JOINT1_POS_WHEN_DEG180 - ARM_JOINT1_POS_WHEN_DEG0) * deg1 / 180);
-    //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-    //         u8 ID[] = {1};
-    //         wait_until_static(ID, 1);
-    //     }
-    //     return valid;
-    // }
-
     bool Pos::reset(bool left)
     {
         bool valid = left

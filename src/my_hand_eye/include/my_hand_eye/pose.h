@@ -89,19 +89,18 @@ namespace my_hand_eye
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default");           // 获取设定动作
         bool check_stamp(const ros::Time &stamp);                                             // 检查图片是否在机械臂重置后读取
         bool go_to(double x, double y, double z, bool cat, bool look, bool expand_y = false); // 运动到指定位置，抓/不抓
-        // bool do_first_step(double x, double y);                        // 两步抓取第一步
-        bool reset(bool left = false);                                                       // 重置位置，可选前侧/左侧
-        bool look_down();                                                                    // 查看左侧车道线
-        bool go_to_and_wait(double x, double y, double z, bool cat, bool expand_y = false);  // 运动到指定位置，运动完成后抓/不抓
-        bool go_to_by_midpoint(double x, double y, double z);                                // 通过中间点到达
-        bool go_to_table(bool cat, Color color, bool left);                                  // 运动到转盘
-        bool put(int order, bool cat, geometry_msgs::Pose2D &err, Action enlarge, bool pal); // 运动到椭圆放置处，可选择是否抓取
-        bool show_voltage();                                                                 // 显示电压，需要时警告
-        bool read_all_position();                                                            // 读所有舵机正确位置
-        bool refresh_xyz(bool read = true);                                                  // 更新位置
-        ArmPose end_to_base_now();                                                           // 更新位置，并返回旋转矩阵，平移向量
-        Action *get_action_put();                                                            // 获取指定位置放置Action
-        cv::Mat transformation_matrix(double z);                                             // 透视变换矩阵（不保证实时性，配合refresh_xyz）
+        bool reset(bool left = false);                                                        // 重置位置，可选前侧/左侧
+        bool look_down();                                                                     // 查看左侧车道线
+        bool go_to_and_wait(double x, double y, double z, bool cat, bool expand_y = false);   // 运动到指定位置，运动完成后抓/不抓
+        bool go_to_by_midpoint(double x, double y, double z);                                 // 通过中间点到达
+        bool go_to_table(bool cat, Color color, bool left);                                   // 运动到转盘
+        bool put(int order, bool cat, geometry_msgs::Pose2D &err, Action enlarge, bool pal);  // 运动到椭圆放置处，可选择是否抓取
+        bool show_voltage();                                                                  // 显示电压，需要时警告
+        bool read_all_position();                                                             // 读所有舵机正确位置
+        bool refresh_xyz(bool read = true);                                                   // 更新位置
+        ArmPose end_to_base_now();                                                            // 更新位置，并返回旋转矩阵，平移向量
+        Action *get_action_put();                                                             // 获取指定位置放置Action
+        cv::Mat transformation_matrix(double z);                                              // 透视变换矩阵（不保证实时性，配合refresh_xyz）
         // 计算物料位置
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y, bool read = true);

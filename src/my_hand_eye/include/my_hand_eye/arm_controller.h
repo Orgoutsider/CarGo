@@ -60,8 +60,8 @@ namespace my_hand_eye
         // 处理接收的图片，求相对椭圆位姿
         bool get_pose(vision_msgs::BoundingBox2DArray &objArray, double z, Pose2DMightEnd &pose, bool read);
         bool set_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
-        void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
-        void average_pose(geometry_msgs::Pose2D &pose);                          // 求得记录位置数据的平均值
+        void average_position(double &x, double &y);                     // 求得记录位置数据的平均值
+        void average_pose(geometry_msgs::Pose2D &pose);                  // 求得记录位置数据的平均值
         // 求平均位姿并存入变长数组
         void average_pose_once();
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
@@ -92,8 +92,6 @@ namespace my_hand_eye
         bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                               bool &finish, sensor_msgs::ImagePtr &debug_image, bool left, bool hold = false,
                               bool midpoint = false);
-        // bool catch_with_2_steps(const sensor_msgs::ImageConstPtr &image_rect, const Color color, double z,
-        // bool &finish, sensor_msgs::ImagePtr &debug_image);
         bool remember(double &x, double &y, double &z, double &tightness); // 记忆位置
         // 目标检测到物料并目标追踪
         bool track(const sensor_msgs::ImageConstPtr &image_rect, const Color color, bool &first,
