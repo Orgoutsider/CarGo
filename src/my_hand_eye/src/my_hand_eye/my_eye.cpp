@@ -105,7 +105,7 @@ namespace my_hand_eye
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_cargo(image_rect, arm_controller_.z_ellipse, color_blue, debug_image, false, true);
+		// arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse, debug_image, false, true);
 		// if (arm_controller_.show_detections)
 		// 	debug_image_publisher_.publish(debug_image);
 

@@ -17,7 +17,7 @@ namespace my_hand_eye
           threshold(60), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
-          z_palletize(10.7626),
+          z_palletize(10.744583),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
@@ -35,7 +35,7 @@ namespace my_hand_eye
           threshold(60), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
-          z_palletize(10.7626),
+          z_palletize(10.744583),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -269,7 +269,7 @@ namespace my_hand_eye
         }
     }
 
-    bool ArmController::log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color, double z, 
+    bool ArmController::log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color, double z,
                                   sensor_msgs::ImagePtr &debug_image, bool center, bool pose)
     {
         if (pose && center)
@@ -281,7 +281,7 @@ namespace my_hand_eye
         if (flag)
         {
             flag = false;
-            ps_.reset(pose);
+            ps_.reset(pose || (z == z_ellipse));
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -449,6 +449,9 @@ namespace my_hand_eye
             }
             else if (!flag)
                 return false;
+            // 防止超出车道
+            if (pose.pose.y > 35.5)
+                pose.pose.y = 35.5;
             // 对象相对车体的偏角
             if (cnt == 3)
                 pose.pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
@@ -1124,7 +1127,12 @@ namespace my_hand_eye
             ps_.reset(pose);
             last_finish = false;
             if (pose)
+            {
+                Action ellipse = Action(0, 20, 0).front2left().arm2footprint();
+                target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
+                target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
                 rst = true;
+            }
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
