@@ -62,6 +62,8 @@ namespace my_hand_eye
         bool set_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
         void average_pose(geometry_msgs::Pose2D &pose);                          // 求得记录位置数据的平均值
+        // 求平均位姿并存入变长数组
+        void average_pose_once();
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
@@ -107,7 +109,7 @@ namespace my_hand_eye
         bool log_z_correction(const sensor_msgs::ImageConstPtr &image_rect, std::vector<double> &&e1,
                               std::vector<double> &&e2, std::vector<double> &&e3, sensor_msgs::ImagePtr &debug_image);
         // 固定位置放置
-        bool put(const Color color);
+        bool put(const Color color, bool pal, bool final);
         // 固定位置抓取
         bool catch_after_putting(const Color color, bool final);
         // 计算边界线位置
@@ -115,7 +117,7 @@ namespace my_hand_eye
                          sensor_msgs::ImagePtr &debug_image);
         // 计算物料中心点位置或位姿
         bool find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                        sensor_msgs::ImagePtr &debug_image, bool pose);
+                        sensor_msgs::ImagePtr &debug_image, bool pose, bool store = false);
         // 计算椭圆位置
         bool find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                           sensor_msgs::ImagePtr &debug_image, bool store);

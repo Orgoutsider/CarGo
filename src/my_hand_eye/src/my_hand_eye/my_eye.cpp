@@ -351,16 +351,19 @@ namespace my_hand_eye
 		{
 			if ((image_rect->header.stamp - time_stop).toSec() < 0)
 				return valid;
-			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
+			if (arm_goal_.loop == 0 || arm_goal_.loop == 1)
 			{
 				msg.end = true;
-				if (arm_controller_.find_ellipse(image_rect, msg, debug_image, true))
+				bool pal = (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area);
+				bool fin = pal ? arm_controller_.find_cargo(image_rect, msg, debug_image, true, true)
+							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true);
+				if (fin)
 				{
-					arm_controller_.put(which_color());
+					arm_controller_.put(which_color(), pal, false);
 					next_task();
-					arm_controller_.put(which_color());
+					arm_controller_.put(which_color(), pal, false);
 					next_task();
-					arm_controller_.put(which_color());
+					arm_controller_.put(which_color(), pal, arm_goal_.route == arm_goal_.route_semi_finishing_area);
 					next_task();
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 					{
@@ -381,27 +384,18 @@ namespace my_hand_eye
 					finish_adjusting_ = false;
 				}
 			}
-			else if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
-			{
-				// put
-			}
 			else
 			{
 				ROS_ERROR("Invalid loop!");
 				return false;
 			}
 		}
-		else if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
+		else
 		{
 			finish_ = true;
 			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
 			ROS_INFO("Finish operating ellipse...");
-		}
-		else
-		{
-			valid = arm_controller_.log_cargo(image_rect, color_green, arm_controller_.z_ellipse, 
-			debug_image, false, false);
 		}
 		return valid;
 	}

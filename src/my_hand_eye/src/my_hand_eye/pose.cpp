@@ -96,6 +96,12 @@ namespace my_hand_eye
             ROS_INFO_STREAM("Set action " << name);
             ARM_INFO_XYZ(action_put[name[3] - '0']);
         }
+        else if (name == "palletize1" || name == "palletize2" || name == "palletize3")
+        {
+            action_put[name[3] - '0'] = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set action " << name);
+            ARM_INFO_XYZ(action_palletize[name[3] - '0']);
+        }
         else
             ROS_ERROR("set_action: Name error!");
     }
@@ -451,12 +457,12 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err, Action enlarge)
+    bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err, Action enlarge, bool pal)
     {
-        Action a = action_put[order].now2goal(err, enlarge);
+        Action a = pal ? action_palletize[order] : action_put[order].now2goal(err, enlarge);
         ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
-        if (!cat && (valid = read_all_position()))
+        if (!cat && (valid = read_all_position()) && !pal)
         {
             Position[3] = Position_now[3] - 100; // 略微下降防止碰到块
             sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
