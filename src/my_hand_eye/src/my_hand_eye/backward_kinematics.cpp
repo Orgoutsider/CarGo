@@ -346,6 +346,14 @@ namespace my_hand_eye
         Angle j4 = Angle(deg4);
         if (!(j1._valid_degree(1) && j2._valid_degree(2) && j3._valid_degree(3) && j4._valid_degree(4)))
         {
+            if (!j1._valid_degree(1))
+                ROS_WARN_STREAM("joint 1 has invalid deg " << j1._get_degree());
+            if (!j2._valid_degree(2))
+                ROS_WARN_STREAM("joint 2 has invalid deg " << j2._get_degree());
+            if (!j3._valid_degree(3))
+                ROS_WARN_STREAM("joint 3 has invalid deg " << j3._get_degree());
+            if (!j4._valid_degree(4))
+                ROS_WARN_STREAM("joint 4 has invalid deg " << j4._get_degree());
             return valid;
         }
         j1._j_degree_convert(1);

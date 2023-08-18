@@ -12,11 +12,11 @@ namespace my_hand_eye
           ps_(&sm_st_, &sc_),
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
-          ellipse_roi_(320, 360, 1280, 720),
+          ellipse_roi_(320, 540, 1280, 360),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
-          z_parking_area(1.40121),
-          z_ellipse(4.73369),
+          z_parking_area(1.40121),//palletize
+          z_ellipse(4.58369),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
@@ -33,7 +33,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(60), catched(false),
           z_parking_area(1.40121),
-          z_ellipse(4.73369),
+          z_ellipse(4.58369),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -267,7 +267,7 @@ namespace my_hand_eye
         }
     }
 
-    bool ArmController::log_cargo(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
+    bool ArmController::log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color,
                                   sensor_msgs::ImagePtr &debug_image, bool center, bool pose)
     {
         if (pose && center)
@@ -279,7 +279,7 @@ namespace my_hand_eye
         if (flag)
         {
             flag = false;
-            ps_.reset();
+            ps_.reset(pose);
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -310,13 +310,13 @@ namespace my_hand_eye
                 if (valid)
                 {
                     Pose2DMightEnd pme;
-                    if (valid = get_pose(objArray, pme, true))
+                    if (valid = get_pose(objArray, z_ellipse, pme, true))
                         ROS_INFO_STREAM("x:" << pme.pose.x << " y:" << pme.pose.y << " theta:" << Angle::degree(pme.pose.theta));
                     if (rst)
                         rst = false;
                 }
             }
-            else if (valid = find_with_color(objArray, color, z, x, y))
+            else if (valid = find_with_color(objArray, color, z_turntable, x, y))
                 ROS_INFO_STREAM("x:" << x << " y:" << y);
         }
         if (show_detections && !cv_image_.image.empty())
@@ -407,7 +407,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::get_pose(vision_msgs::BoundingBox2DArray &objArray,
-                                 Pose2DMightEnd &pose, bool read)
+                                 double z, Pose2DMightEnd &pose, bool read)
     {
         if (objArray.boxes.size() == 4)
         {
@@ -424,7 +424,7 @@ namespace my_hand_eye
                 }
                 if (!ps_.calculate_cargo_position(objArray.boxes[color_order_[i].color].center.x,
                                                   objArray.boxes[color_order_[i].color].center.y,
-                                                  z_parking_area, x[cnt], y[cnt], read))
+                                                  z, x[cnt], y[cnt], read))
                 {
                     ROS_WARN("get_pose: Cannot calculate color %d ellipse's position",
                              color_order_[i].color);
@@ -881,23 +881,6 @@ namespace my_hand_eye
         }
     }
 
-    // double ArmController::distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
-    //                                    double x, double y, double z)
-    // {
-    //     double k = (ARM_P + y) / x;
-    //     double dist_min = 0;
-    //     for (int other_color = color_red; other_color <= color_blue; other_color++)
-    //     {
-    //         if (other_color == color)
-    //             continue;
-    //         double ox = 0, oy = 0;
-    //         bool valid = find_with_color(objArray, other_color, z, ox, oy);
-    //         double dist = valid ? abs(ARM_P + oy - k * ox) / sqrt(1 + k * k) : 0;
-    //         dist_min = dist_min == 0 ? dist : (dist < dist_min ? dist : dist_min);
-    //     }
-    //     return dist_min;
-    // }
-
     bool ArmController::find_points_with_height(double h, bool done)
     {
         if (!plot_client_.exists())
@@ -1000,7 +983,7 @@ namespace my_hand_eye
                 if (valid)
                 {
                     Pose2DMightEnd pme;
-                    if (valid = get_pose(objArray, pme, false))
+                    if (valid = get_pose(objArray, z_parking_area, pme, false))
                         ROS_INFO_STREAM("x:" << pme.pose.x << " y:" << pme.pose.y << " theta:" << Angle::degree(pme.pose.theta));
                     if (rst)
                         rst = false;
@@ -1030,7 +1013,7 @@ namespace my_hand_eye
                      set_color_order(objArray);
         my_hand_eye::Pose2DMightEnd pme;
         if (valid)
-            valid = get_pose(objArray, pme, false);
+            valid = get_pose(objArray, z_parking_area, pme, false);
         if (valid && pme.pose.theta != pme.not_change)
         {
             my_hand_eye::Pose2DMightEnd err;
@@ -1050,7 +1033,7 @@ namespace my_hand_eye
             ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist_min);
             for (z_parking_area = z_p_before + 5; z_parking_area > z_p_before - 5; z_parking_area -= 0.1)
             {
-                if (get_pose(objArray, pme, false))
+                if (get_pose(objArray, z_parking_area, pme, false))
                 {
                     target_pose.calc(pme.pose, err);
                     Action ap_n[4];
@@ -1136,7 +1119,7 @@ namespace my_hand_eye
         static bool rst = false;
         if (!msg.end && last_finish)
         {
-            ps_.reset();
+            ps_.reset(pose);
             last_finish = false;
             if (pose)
                 rst = true;
@@ -1152,8 +1135,8 @@ namespace my_hand_eye
         {
             if (pose)
             {
-                valid = rst ? set_color_order(objArray) && get_pose(objArray, pme, true)
-                            : get_pose(objArray, pme, true);
+                valid = rst ? set_color_order(objArray) && get_pose(objArray, z_ellipse, pme, true)
+                            : get_pose(objArray, z_ellipse, pme, true);
                 if (valid && rst)
                     rst = false;
             }
@@ -1201,9 +1184,9 @@ namespace my_hand_eye
         Pose2DMightEnd pose;
         bool valid = rst ? detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
                                set_color_order(objArray) &&
-                               get_pose(objArray, pose, false)
+                               get_pose(objArray, z_parking_area, pose, false)
                          : detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                               get_pose(objArray, pose, false);
+                               get_pose(objArray, z_parking_area, pose, false);
         if (valid)
         {
             target_pose.calc(pose.pose, msg, MAX);

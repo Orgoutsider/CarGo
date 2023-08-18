@@ -146,7 +146,7 @@ namespace motion_controller
                                      {threshold_linear_x_, threshold_linear_y_, threshold_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
             }
         }
-        if (changing_ == direction_theta)
+        if (changing_ == direction_y)
         {
             if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
             {

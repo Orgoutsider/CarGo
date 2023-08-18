@@ -105,7 +105,7 @@ namespace my_hand_eye
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_cargo(image_rect, arm_controller_.z_turntable, color_blue, debug_image, false);
+		// arm_controller_.log_cargo(image_rect, color_blue, debug_image, false, true);
 		// if (arm_controller_.show_detections)
 		// 	debug_image_publisher_.publish(debug_image);
 
@@ -312,9 +312,9 @@ namespace my_hand_eye
 		if (!finish_adjusting_)
 		{
 			msg.end = false;
-			if (arm_goal_.loop == 0)
+			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
 				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
-			else if (arm_goal_.loop == 1)
+			else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
 				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true);
 			else
 			{
@@ -351,7 +351,7 @@ namespace my_hand_eye
 		{
 			if ((image_rect->header.stamp - time_stop).toSec() < 0)
 				return valid;
-			if (arm_goal_.loop == 0)
+			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
 			{
 				msg.end = true;
 				if (arm_controller_.find_ellipse(image_rect, msg, debug_image, true))
@@ -381,7 +381,7 @@ namespace my_hand_eye
 					finish_adjusting_ = false;
 				}
 			}
-			else if (arm_goal_.loop == 1)
+			else if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
 			{
 				// put
 			}
@@ -391,12 +391,16 @@ namespace my_hand_eye
 				return false;
 			}
 		}
-		else
+		else if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
 		{
 			finish_ = true;
 			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
 			ROS_INFO("Finish operating ellipse...");
+		}
+		else
+		{
+			valid = arm_controller_.log_cargo(image_rect, color_green, debug_image, false, false);
 		}
 		return valid;
 	}

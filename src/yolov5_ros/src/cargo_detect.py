@@ -138,6 +138,7 @@ class Yolov5Detector:
 
         self.gain = 0.1  # 扩张比例
         self.srv = rospy.Service('cargoSrv', cargoSrv, self.callback)
+        rospy.loginfo("yolov5: Service is available.")
 
     def callback(self, req):
         # print(data.header)
@@ -281,11 +282,11 @@ class Yolov5Detector:
                 up_raw[hsv_dict["h"]] + config.h_up <= 255:
             up[hsv_dict["h"]] = up_raw[hsv_dict["h"]] + config.h_up
             self.up[config.color] = up
-            rospy.loginfo('Succeed to modify paramater!')
+            # rospy.loginfo('Succeed to modify paramater!')
 
         if flag:
             self.low[config.color] = low
-            rospy.loginfo('Succeed to modify paramater!')
+            # rospy.loginfo('Succeed to modify paramater!')
 
         return config
 

@@ -26,7 +26,7 @@ namespace motion_controller
     {
         if (current.size() != target_.size())
         {
-            ROS_ERROR("invalid size of current! current size:%ld, target size:%ld", current.size(), target_.size());
+            ROS_WARN("invalid size of current! current size:%ld, target size:%ld", current.size(), target_.size());
             return false;
         }
         if (!control.empty())

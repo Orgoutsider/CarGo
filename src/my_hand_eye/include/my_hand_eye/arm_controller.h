@@ -58,7 +58,7 @@ namespace my_hand_eye
         bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
                         double &center_x, double &center_y, bool read = true);
         // 处理接收的图片，求相对椭圆位姿
-        bool get_pose(vision_msgs::BoundingBox2DArray &objArray, Pose2DMightEnd &pose, bool read);
+        bool get_pose(vision_msgs::BoundingBox2DArray &objArray, double z, Pose2DMightEnd &pose, bool read);
         bool set_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         void average_position(double &x, double &y);                             // 求得记录位置数据的平均值
         void average_pose(geometry_msgs::Pose2D &pose);                          // 求得记录位置数据的平均值
@@ -80,7 +80,7 @@ namespace my_hand_eye
         int threshold;
         bool show_detections;
         void init(ros::NodeHandle &nh, ros::NodeHandle &pnh); // 初始化
-        bool log_cargo(const sensor_msgs::ImageConstPtr &image_rect, double z, Color color,
+        bool log_cargo(const sensor_msgs::ImageConstPtr &image_rect, Color color,
                        sensor_msgs::ImagePtr &debug_image, bool center = false, bool pose = false);
         // 校正外参
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
