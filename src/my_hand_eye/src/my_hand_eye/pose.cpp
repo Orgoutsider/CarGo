@@ -449,7 +449,8 @@ namespace my_hand_eye
 
     bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err, bool pal)
     {
-        Action a = pal ? action_palletize[order] : action_put[order].now2goal(err, enlarge_loop[pal]);
+        Action a = pal ? action_palletize[order].now2goal(err, enlarge_loop[pal])
+                       : action_put[order].now2goal(err, enlarge_loop[pal]);
         ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)

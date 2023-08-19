@@ -21,8 +21,8 @@ namespace my_hand_eye
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
 
-        // tolerance[target_ellipse].theta = 0.009;
-        tolerance[target_ellipse].theta = 0.006;
+        tolerance[target_ellipse].theta = 0.009;
+        // tolerance[target_ellipse].theta = 0.006;
         tolerance[target_ellipse].x = 0.009;
         tolerance[target_ellipse].y = 0.01;
     }

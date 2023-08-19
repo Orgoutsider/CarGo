@@ -93,7 +93,7 @@ namespace motion_controller
                         std::forward<Vec>(p), std::forward<Vec>(i), std::forward<Vec>(d),
                         std::forward<Vec>(thresh), std::forward<Vec>(int_max),
                         std::forward<Vec>(control_max)),
-          int_d_(&last_error_), limiting_freq_(limiting_freq)
+          limiting_freq_(limiting_freq)
     {
         ROS_ASSERT(target_.size() == limiting_freq_.size());
     }
@@ -144,12 +144,12 @@ namespace motion_controller
                 double p_out = Kp_.at(i) * error;
                 double delta_t = (now - last_time_).toSec();
                 // 误差的积分是 当前误差*时间差
-                int_.at(i) = int_.at(i) + error * delta_t;
+                int_.at(i) += error * delta_t;
                 LIMIT(int_.at(i), int_max_.at(i));
                 double i_out = Ki_.at(i) * int_.at(i);
-                double derr = limiting_freq_.at(i) * (error - int_d_->at(i));
+                double derr = limiting_freq_.at(i) * (error - last_error_.at(i));
                 double d_out = Kd_.at(i) * derr;
-                int_d_->at(i) += derr * delta_t;
+                last_error_.at(i) += derr * delta_t;
                 double out = p_out + i_out + d_out;
                 LIMIT(out, control_max_.at(i));
                 control.push_back(out);

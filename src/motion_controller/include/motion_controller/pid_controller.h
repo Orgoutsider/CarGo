@@ -32,7 +32,6 @@ namespace motion_controller
     class PIDControllerWithFilter : public PIDController
     {
     private:
-        Vec *int_d_;
         Vec limiting_freq_;
 
     public:
