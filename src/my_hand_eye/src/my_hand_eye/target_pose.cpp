@@ -52,7 +52,7 @@ namespace my_hand_eye
             abs(pose_target.pose.y) <= tolerance[target].y)
         {
             err_cnt++;
-            if ((err_cnt > 2 && target != target_ellipse) || err_cnt > 1)
+            if ((err_cnt > 1 && target != target_ellipse) || err_cnt > 2)
             {
                 pose_target.end = true;
                 if (target != target_ellipse || err_cnt > 2 + cnt_max)
@@ -69,14 +69,16 @@ namespace my_hand_eye
             if (err_cnt)
                 err_cnt = 0;
         }
-        else if ((++err_cnt2) > 1)
-            pose_target.end = false;
-        else
+        else // cnt > 2 && target == target_ellipse
         {
+            err_cnt++;
             if (err_cnt == 3)
                 err_cnt2 = 0;
-            err_cnt++;
-            pose_target.end = true;
+            err_cnt2++;
+            if (err_cnt2 > 1)
+                pose_target.end = false;
+            else
+                pose_target.end = true;
         }
     }
 } // namespace my_hand_eye
