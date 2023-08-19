@@ -41,10 +41,11 @@ namespace motion_controller
         double kp_eye_linear_;
         double ki_eye_linear_;
         double kd_eye_linear_;
-        double threshold_angular_;
-        double threshold_linear_x_;
-        double threshold_linear_y_;
-        PIDController pid_;
+        double thresh_angular_;
+        double thresh_linear_x_;
+        double thresh_linear_y_;
+        double limiting_freq_;
+        PIDControllerWithFilter pid_;
         // 机械手摄像头视觉信息订阅
         ros::Publisher cmd_vel_publisher_;
         ros::Timer timer_;                    // 定时器利用odom信息

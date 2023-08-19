@@ -10,10 +10,11 @@ namespace motion_controller
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.9), ki_eye_angular_(0.3), kd_eye_angular_(0.4),
           kp_eye_linear_(1.0), ki_eye_linear_(0.1), kd_eye_linear_(0.3),
-          threshold_angular_(0.006), threshold_linear_x_(0.007), threshold_linear_y_(0.008),
+          thresh_angular_(0.006), thresh_linear_x_(0.007), thresh_linear_y_(0.008),
+          limiting_freq_(2.5),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
-               {threshold_angular_}, {0.05}, {0.4})
+               {thresh_angular_}, {0.05}, {0.4}, {limiting_freq_})
     {
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
@@ -41,9 +42,9 @@ namespace motion_controller
                 rst = true;
                 changing_ = direction_theta;
                 unchanging_ = direction_void;
-                pid_ = PIDController({0}, {kp_eye_angular_},
-                                     {ki_eye_angular_}, {kd_eye_angular_},
-                                     {threshold_angular_}, {0.05}, {0.4});
+                pid_ = PIDControllerWithFilter({0}, {kp_eye_angular_},
+                                               {ki_eye_angular_}, {kd_eye_angular_},
+                                               {thresh_angular_}, {0.05}, {0.4}, {limiting_freq_});
                 timer_.stop();
             }
             return;
@@ -64,10 +65,11 @@ namespace motion_controller
             {
                 unchanging_ = direction_theta;
                 changing_ = direction_x;
-                pid_ = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
-                                     {ki_eye_linear_, ki_eye_angular_},
-                                     {kd_eye_linear_, kd_eye_angular_},
-                                     {threshold_linear_x_, threshold_angular_}, {0.02, 0.05}, {0.2, 0.4});
+                pid_ = PIDControllerWithFilter({0, 0}, {kp_eye_linear_, kp_eye_angular_},
+                                               {ki_eye_linear_, ki_eye_angular_},
+                                               {kd_eye_linear_, kd_eye_angular_},
+                                               {thresh_linear_x_, thresh_angular_}, {0.02, 0.05}, {0.2, 0.4},
+                                               {limiting_freq_, limiting_freq_});
             }
             else if (msg->pose.x == msg->not_change)
             {
@@ -110,17 +112,20 @@ namespace motion_controller
                 if (unchanging_ == direction_x)
                 {
                     changing_ = direction_y;
-                    pid_ = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
-                                         {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
-                                         {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                         {threshold_linear_x_, threshold_linear_y_, threshold_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                    pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
+                                                   {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
+                                                   {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
+                                                   {thresh_linear_x_, thresh_linear_y_, thresh_angular_},
+                                                   {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
+                                                   {limiting_freq_, limiting_freq_, limiting_freq_});
                     return;
                 }
                 changing_ = direction_x;
-                pid_ = PIDController({0, 0}, {kp_eye_linear_, kp_eye_angular_},
-                                     {ki_eye_linear_, ki_eye_angular_},
-                                     {kd_eye_linear_, kd_eye_angular_},
-                                     {threshold_linear_x_, threshold_angular_}, {0.02, 0.05}, {0.2, 0.4});
+                pid_ = PIDControllerWithFilter({0, 0}, {kp_eye_linear_, kp_eye_angular_},
+                                               {ki_eye_linear_, ki_eye_angular_},
+                                               {kd_eye_linear_, kd_eye_angular_},
+                                               {thresh_linear_x_, thresh_angular_}, {0.02, 0.05}, {0.2, 0.4},
+                                               {limiting_freq_, limiting_freq_});
             }
         }
         if (changing_ == direction_x)
@@ -140,10 +145,11 @@ namespace motion_controller
             if (success && unchanging_ != direction_y)
             {
                 changing_ = direction_y;
-                pid_ = PIDController({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
-                                     {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
-                                     {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                     {threshold_linear_x_, threshold_linear_y_, threshold_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4});
+                pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
+                                               {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
+                                               {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
+                                               {thresh_linear_x_, thresh_linear_y_, thresh_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
+                                               {limiting_freq_, limiting_freq_, limiting_freq_});
             }
         }
         if (changing_ == direction_y)

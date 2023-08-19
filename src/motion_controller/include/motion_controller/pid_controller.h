@@ -5,29 +5,44 @@
 
 namespace motion_controller
 {
+    typedef std::vector<double> Vec;
+
     class PIDController
     {
-    private:
-        std::vector<double> target_;
-        std::vector<double> Kp_;
-        std::vector<double> Ki_;
-        std::vector<double> Kd_;
-        std::vector<double> threshold_;
-        std::vector<double> last_error_;
-        std::vector<double> integrator_;
-        std::vector<double> integrator_max_;
-        std::vector<double> control_max_;
+    protected:
+        Vec target_;
+        Vec Kp_;
+        Vec Ki_;
+        Vec Kd_;
+        Vec last_error_;
+        Vec thresh_;
+        Vec int_;
+        Vec int_max_;
+        Vec control_max_;
         ros::Time last_time_;
 
     public:
-        PIDController(std::vector<double> &&target,
-                      std::vector<double> &&p, std::vector<double> &&i, std::vector<double> &&d,
-                      std::vector<double> &&threshold, std::vector<double> &&integrator_max, std::vector<double> &&control_max);
-        // 注意调用controll必须等到返回值为true时！
-        bool update(std::vector<double> &&current, const ros::Time &now,
-                    std::vector<double> &control, bool &success);
+        PIDController(Vec &&target, Vec &&p, Vec &&i, Vec &&d,
+                      Vec &&thresh, Vec &&int_max, Vec &&control_max);
+        // 注意调用update必须等到返回值为true时！
+        bool update(Vec &&current, const ros::Time &now,
+                    Vec &control, bool &success);
     };
 
+    class PIDControllerWithFilter : public PIDController
+    {
+    private:
+        Vec *int_d_;
+        Vec limiting_freq_;
+
+    public:
+        PIDControllerWithFilter(Vec &&target,  Vec &&p, Vec &&i, Vec &&d,
+                                Vec &&thresh, Vec &&int_max,
+                                Vec &&control_max, Vec &&limiting_freq);
+        // 注意调用update必须等到返回值为true时！
+        bool update(Vec &&current, const ros::Time &now,
+                    Vec &control, bool &success);
+    };
 } // namespace motion_controller
 
 #endif // !_PID_CONTROLLER_
