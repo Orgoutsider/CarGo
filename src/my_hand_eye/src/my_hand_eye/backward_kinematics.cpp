@@ -318,24 +318,6 @@ namespace my_hand_eye
         return valid;
     }
 
-    // bool Axis::first_step(double &deg1)
-    // {
-    //     if (z < 0)
-    //     {
-    //         ROS_ERROR("z cannot less than 0.");
-    //         return false;
-    //     }
-    //     if (!expand_y && y < 0)
-    //     {
-    //         ROS_ERROR("y cannot less than 0.");
-    //         return false;
-    //     }
-    //     Angle j1 = _calculate_j1();
-    //     j1._j_degree_convert(1);
-    //     deg1 = j1._get_degree();
-    //     return true;
-    // }
-
     bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
                             double &x, double &y, double &z, bool expand_y)
     {

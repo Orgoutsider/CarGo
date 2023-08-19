@@ -40,8 +40,6 @@
         <param name="white_vmin" type="int" value="120" />
         <param name="speed_standard_static" type="double" value="0.16" />
         <param name="speed_standard_motion" type="double" value="0.12" />
-        <param name="enlarge_x" type="double" value="0.988" />
-        <param name="enlarge_y" type="double" value="0.98" />
         <param name="fThScoreScore" type="double" value="0.4" />
         <param name="fMinReliability" type="double" value="0.4" />
         <param name="flag" type="bool" value="$(arg flag)" />

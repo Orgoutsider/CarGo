@@ -15,8 +15,6 @@ namespace my_hand_eye
     private:
         double speed_standard_static_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         double speed_standard_motion_; // 速度标准，当速度大于此标准足够多次数时，判定为运动
-        double enlarge_x_;             // x方向的放缩（相对于真实坐标）
-        double enlarge_y_;             // y方向的放缩（相对于真实坐标）
         bool emulation_;               // 是否进行仿真
         bool stop_;                    // 用于颜色追踪，物料是否已停
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
@@ -103,9 +101,9 @@ namespace my_hand_eye
         // 椭圆识别，摄像头测试
         bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
-        // 校正z_parking_area，输入数据格式为{x, y}对应123号椭圆
-        bool log_z_correction(const sensor_msgs::ImageConstPtr &image_rect, std::vector<double> &&e1,
-                              std::vector<double> &&e2, std::vector<double> &&e3, sensor_msgs::ImagePtr &debug_image);
+        // // 校正z_parking_area，输入数据格式为{x, y}对应123号椭圆
+        // bool log_z_correction(const sensor_msgs::ImageConstPtr &image_rect, std::vector<double> &&e1,
+        //                       std::vector<double> &&e2, std::vector<double> &&e3, sensor_msgs::ImagePtr &debug_image);
         // 固定位置放置
         bool put(const Color color, bool pal, bool final);
         // 固定位置抓取

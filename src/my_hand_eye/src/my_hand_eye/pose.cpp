@@ -102,6 +102,12 @@ namespace my_hand_eye
             ROS_INFO_STREAM("Set action " << name);
             ARM_INFO_XYZ(action_palletize[name.back() - '0']);
         }
+        else if (name == "loop0" || name == "loop1")
+        {
+            enlarge_loop[name.back() - '0'] = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set enlarge " << name);
+            ARM_INFO_XYZ(enlarge_loop[name.back() - '0']);
+        }
         else
             ROS_ERROR("set_action: Name error!");
     }
@@ -441,9 +447,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err, Action enlarge, bool pal)
+    bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err, bool pal)
     {
-        Action a = pal ? action_palletize[order] : action_put[order].now2goal(err, enlarge);
+        Action a = pal ? action_palletize[order] : action_put[order].now2goal(err, enlarge_loop[pal]);
         ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)

@@ -41,7 +41,7 @@ namespace motion_controller
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_vision;
             }
-            else if (msg->end)
+            if (msg->end)
             {
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_line;
@@ -71,7 +71,7 @@ namespace motion_controller
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_service;
             }
-            else if (msg->end)
+            if (msg->end)
             {
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 level_ = level_line;

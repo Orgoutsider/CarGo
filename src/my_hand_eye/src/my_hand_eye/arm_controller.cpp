@@ -17,7 +17,7 @@ namespace my_hand_eye
           threshold(60), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
-          z_palletize(11.1079),
+          z_palletize(11.3079),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
@@ -35,7 +35,7 @@ namespace my_hand_eye
           threshold(60), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
-          z_palletize(10.7079),
+          z_palletize(11.3079),
           z_turntable(12.93052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -69,6 +69,8 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue palletize1_action;
         XmlRpc::XmlRpcValue palletize2_action;
         XmlRpc::XmlRpcValue palletize3_action;
+        XmlRpc::XmlRpcValue loop0_enlarge;
+        XmlRpc::XmlRpcValue loop1_enlarge;
         if (!pnh.getParam("servo", servo_descriptions))
         {
             ROS_ERROR("No speed and acc specified");
@@ -109,14 +111,20 @@ namespace my_hand_eye
         {
             ROS_ERROR("No palletize3 action specified");
         }
+        if (!pnh.getParam("loop0_enlarge", loop0_enlarge))
+        {
+            ROS_ERROR("No loop0 enlarge specified");
+        }
+        if (!pnh.getParam("loop1_enlarge", loop1_enlarge))
+        {
+            ROS_ERROR("No loop1 enlarge specified");
+        }
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
-        enlarge_x_ = pnh.param<double>("enlarge_x", 0.986);
-        enlarge_y_ = pnh.param<double>("enlarge_y", 0.98);
         tracker_.flag = pnh.param<bool>("flag", false);
         if (!ps_.begin(ft_servo.c_str()))
         {
@@ -133,6 +141,8 @@ namespace my_hand_eye
         ps_.set_action(palletize1_action, "palletize1");
         ps_.set_action(palletize2_action, "palletize2");
         ps_.set_action(palletize3_action, "palletize3");
+        ps_.set_action(loop0_enlarge, "loop0");
+        ps_.set_action(loop1_enlarge, "loop1");
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
@@ -996,58 +1006,58 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::log_z_correction(const sensor_msgs::ImageConstPtr &image_rect,
-                                         std::vector<double> &&e1, std::vector<double> &&e2, std::vector<double> &&e3,
-                                         sensor_msgs::ImagePtr &debug_image)
-    {
-        double z_p_before = z_parking_area;
-        if (!cargo_x_.empty())
-            cargo_x_.clear();
-        vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                     set_color_order(objArray);
-        my_hand_eye::Pose2DMightEnd pme;
-        if (valid)
-            valid = get_pose(objArray, z_parking_area, pme, false);
-        if (valid && pme.pose.theta != pme.not_change)
-        {
-            my_hand_eye::Pose2DMightEnd err;
-            target_pose.calc(pme.pose, err);
-            Action *ap = ps_.get_action_put();
-            Action ap_target[4];
-            ap_target[1] = ap[1].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
-            ap_target[2] = ap[2].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
-            ap_target[3] = ap[3].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
-            ap_target[1] += Action(e1[0], e1[1], 0);
-            ap_target[2] += Action(e2[0], e2[1], 0);
-            ap_target[3] += Action(e3[0], e3[1], 0);
-            double dist_min = Action::normxy(Action(e1[0], e1[1], 0), Action()) +
-                              Action::normxy(Action(e2[0], e2[1], 0), Action()) +
-                              Action::normxy(Action(e3[0], e3[1], 0), Action());
-            double z_min = z_parking_area;
-            ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist_min);
-            for (z_parking_area = z_p_before + 5; z_parking_area > z_p_before - 5; z_parking_area -= 0.1)
-            {
-                if (get_pose(objArray, z_parking_area, pme, false))
-                {
-                    target_pose.calc(pme.pose, err);
-                    Action ap_n[4];
-                    ap_n[1] = ap[1].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
-                    ap_n[2] = ap[2].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
-                    ap_n[3] = ap[3].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
-                    double dist = Action::normxy(ap_n[1], ap_target[1]) +
-                                  Action::normxy(ap_n[2], ap_target[2]) +
-                                  Action::normxy(ap_n[3], ap_target[3]);
-                    z_min = (dist < dist_min) ? z_parking_area : z_min;
-                    dist_min = MIN(dist, dist_min);
-                    ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist);
-                }
-            }
-            ROS_INFO_STREAM("z_min:" << z_min << " dist_min:" << dist_min);
-        }
-        z_parking_area = z_p_before;
-        return valid;
-    }
+    // bool ArmController::log_z_correction(const sensor_msgs::ImageConstPtr &image_rect,
+    //                                      std::vector<double> &&e1, std::vector<double> &&e2, std::vector<double> &&e3,
+    //                                      sensor_msgs::ImagePtr &debug_image)
+    // {
+    //     double z_p_before = z_parking_area;
+    //     if (!cargo_x_.empty())
+    //         cargo_x_.clear();
+    //     vision_msgs::BoundingBox2DArray objArray;
+    //     bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
+    //                  set_color_order(objArray);
+    //     my_hand_eye::Pose2DMightEnd pme;
+    //     if (valid)
+    //         valid = get_pose(objArray, z_parking_area, pme, false);
+    //     if (valid && pme.pose.theta != pme.not_change)
+    //     {
+    //         my_hand_eye::Pose2DMightEnd err;
+    //         target_pose.calc(pme.pose, err);
+    //         Action *ap = ps_.get_action_put();
+    //         Action ap_target[4];
+    //         ap_target[1] = ap[1].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+    //         ap_target[2] = ap[2].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+    //         ap_target[3] = ap[3].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+    //         ap_target[1] += Action(e1[0], e1[1], 0);
+    //         ap_target[2] += Action(e2[0], e2[1], 0);
+    //         ap_target[3] += Action(e3[0], e3[1], 0);
+    //         double dist_min = Action::normxy(Action(e1[0], e1[1], 0), Action()) +
+    //                           Action::normxy(Action(e2[0], e2[1], 0), Action()) +
+    //                           Action::normxy(Action(e3[0], e3[1], 0), Action());
+    //         double z_min = z_parking_area;
+    //         ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist_min);
+    //         for (z_parking_area = z_p_before + 5; z_parking_area > z_p_before - 5; z_parking_area -= 0.1)
+    //         {
+    //             if (get_pose(objArray, z_parking_area, pme, false))
+    //             {
+    //                 target_pose.calc(pme.pose, err);
+    //                 Action ap_n[4];
+    //                 ap_n[1] = ap[1].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+    //                 ap_n[2] = ap[2].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+    //                 ap_n[3] = ap[3].now2goal(err.pose, Action(enlarge_x_, enlarge_y_, 0));
+    //                 double dist = Action::normxy(ap_n[1], ap_target[1]) +
+    //                               Action::normxy(ap_n[2], ap_target[2]) +
+    //                               Action::normxy(ap_n[3], ap_target[3]);
+    //                 z_min = (dist < dist_min) ? z_parking_area : z_min;
+    //                 dist_min = MIN(dist, dist_min);
+    //                 ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist);
+    //             }
+    //         }
+    //         ROS_INFO_STREAM("z_min:" << z_min << " dist_min:" << dist_min);
+    //     }
+    //     z_parking_area = z_p_before;
+    //     return valid;
+    // }
 
     bool ArmController::put(const Color color, bool pal, bool final)
     {
@@ -1060,7 +1070,7 @@ namespace my_hand_eye
             cargo_theta_.clear();
         }
         bool valid = ps_.go_to_table(true, color, true) &&
-                     ps_.put(color_map_[color], false, err, Action(enlarge_x_, enlarge_y_, 0), pal);
+                     ps_.put(color_map_[color], false, err, pal);
         ps_.reset(true);
         return valid;
     }
@@ -1075,7 +1085,7 @@ namespace my_hand_eye
             cargo_y_.clear();
             cargo_theta_.clear();
         }
-        bool valid = ps_.put(color_map_[color], true, err, Action(enlarge_x_, enlarge_y_, 0), false) &&
+        bool valid = ps_.put(color_map_[color], true, err, false) &&
                      ps_.go_to_table(false, color, true);
         ps_.reset(true);
         return valid;
