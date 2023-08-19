@@ -30,10 +30,7 @@ namespace my_hand_eye
                 continue;
             double score_sum = ellipses[i]._score;
             int now = i, cnt = 1;
-            cv::Point2d pt_sum;
-            // cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy,
-                                //    cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image
-            real_center(ellipses[i], epx, epy, pt_sum, roi, cv_image);
+            cv::Point2d pt_sum(ellipses[i]._xc, ellipses[i]._yc);
             pt_sum *= score_sum;
             for (int j = i + 1; j < ellipses.size(); j++)
             {
@@ -47,8 +44,7 @@ namespace my_hand_eye
                 {
                     flag_[now] = j;
                     now = j;
-                    cv::Point2d pt;
-                    real_center(ellipses[j], epx, epy, pt, roi, cv_image);
+                    cv::Point2d pt(ellipses[j]._xc, ellipses[j]._yc);
                     pt_sum += pt * (ellipses[j]._score);
                     score_sum += ellipses[j]._score;
                     cnt++;
@@ -62,7 +58,9 @@ namespace my_hand_eye
             {
                 Ellipse e;
                 // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
-                e.center = pt_sum / score_sum;
+                cv::Point2d pt_real;
+                real_center(ellipses[i], epx, epy, pt_sum / score_sum, pt_real, roi, cv_image);
+                e.center = pt_real;
                 e.score_aver = score_sum / cnt;
                 ellipse_.push_back(e);
             }
@@ -175,7 +173,7 @@ namespace my_hand_eye
             // ROS_INFO_STREAM(e.hypothesis << hyp_max[e.color]);
             if ((e.hypothesis + e.score_aver) * 0.5 > hyp_max[e.color])
             {
-                vision_msgs::BoundingBox2D obj = vision_msgs::BoundingBox2D();
+                vision_msgs::BoundingBox2D obj;
                 if (!show_detection)
                 {
                     obj.center.x = e.center.x / cv_image->image.cols * roi.width + roi.x;
@@ -238,7 +236,7 @@ namespace my_hand_eye
         return true;
     };
 
-    void EllipseArray::real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy,
+    void EllipseArray::real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy, cv::Point2d &&ori,
                                    cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
     {
         epx.x -= roi.x;
@@ -251,10 +249,10 @@ namespace my_hand_eye
         epy.y *= ((double)cv_image->image.rows / roi.height);
         double c = cos(ell._rad);
         double s = sin(ell._rad);
-        double n[2][2] = {{((epx.x - ell._xc) * c + (epx.y - ell._yc) * s) / (ell._a * ell._a),
-                           ((epx.x - ell._xc) * s - (epx.y - ell._yc) * c) / (ell._b * ell._b)},
-                          {((epy.x - ell._xc) * c + (epy.y - ell._yc) * s) / (ell._a * ell._a),
-                           ((epy.x - ell._xc) * s - (epy.y - ell._yc) * c) / (ell._b * ell._b)}};
+        double n[2][2] = {{((epx.x - ori.x) * c + (epx.y - ori.y) * s) / (ell._a * ell._a),
+                           ((epx.x - ori.x) * s - (epx.y - ori.y) * c) / (ell._b * ell._b)},
+                          {((epy.x - ori.x) * c + (epy.y - ori.y) * s) / (ell._a * ell._a),
+                           ((epy.x - ori.x) * s - (epy.y - ori.y) * c) / (ell._b * ell._b)}};
         cv::Mat A = (cv::Mat_<double>(2, 2) << c * n[0][0] + s * n[0][1], s * n[0][0] - c * n[0][1],
                      c * n[1][0] + s * n[1][1], s * n[1][0] - c * n[1][1]);
         double D = cv::determinant(A);
@@ -262,8 +260,8 @@ namespace my_hand_eye
         cv::Mat Dx, Dy;
         cv::hconcat(Y, A.col(1), Dx);
         cv::hconcat(A.col(0), Y, Dy);
-        center.x = cv::determinant(Dx) / D + ell._xc;
-        center.y = cv::determinant(Dy) / D + ell._yc;
+        center.x = cv::determinant(Dx) / D + ori.x;
+        center.y = cv::determinant(Dy) / D + ori.y;
     }
 
     double EllipseArray::color_hypothesis(double h_val, int lower_bound, int upper_bound)
