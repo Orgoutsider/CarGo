@@ -474,8 +474,8 @@ namespace my_hand_eye
             // 防止超出车道
             if (pose.pose.x < -35.5)
                 pose.pose.x = -35.5;
-            else if (pose.pose.x > -25.5)
-                pose.pose.x = -25.5;
+            else if (pose.pose.x > -27.5)
+                pose.pose.x = -27.5;
             if (pose.pose.y < -ARM_P - 8)
                 pose.pose.y = -ARM_P - 8;
             else if (pose.pose.y > -ARM_P + 8)

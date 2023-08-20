@@ -10,7 +10,7 @@ namespace motion_controller
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.9), ki_eye_angular_(0.2), kd_eye_angular_(0.4),
           kp_eye_linear_(1.0), ki_eye_linear_(0.12), kd_eye_linear_(0.3),
-          thresh_angular_(0.006), thresh_linear_x_(0.007), thresh_linear_y_(0.008),
+          thresh_angular_(0.007), thresh_linear_x_(0.007), thresh_linear_y_(0.008),
           limiting_freq_(2.5),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
