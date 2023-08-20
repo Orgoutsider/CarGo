@@ -472,8 +472,14 @@ namespace my_hand_eye
             if (!flag)
                 return false;
             // 防止超出车道
-            if (pose.pose.y > 35.5)
-                pose.pose.y = 35.5;
+            if (pose.pose.x < -35.5)
+                pose.pose.x = -35.5;
+            else if (pose.pose.x > -25.5)
+                pose.pose.x = -25.5;
+            if (pose.pose.y < -ARM_P - 8)
+                pose.pose.y = -ARM_P - 8;
+            else if (pose.pose.y > -ARM_P + 8)
+                pose.pose.y = -ARM_P + 8;
             // 对象相对车体的偏角
             if (cnt == 3)
                 pose.pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
@@ -1239,12 +1245,17 @@ namespace my_hand_eye
                         ROS_INFO_STREAM("theta: " << pme.pose.theta);
                         if (cargo_theta_.size() == MAX)
                         {
+                            cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
+                            cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
                             average_theta(target_pose.pose[target_pose.target_ellipse].theta);
                             ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
                             rst = false;
                         }
+                        else
+                            return false;
                     }
-                    return false;
+                    else
+                        return false;
                 }
             }
             else
@@ -1292,6 +1303,7 @@ namespace my_hand_eye
         {
             last_finish = false;
             ps_.reset(true);
+            cargo_theta_.clear();
             rst = true;
             return false;
         }
@@ -1305,11 +1317,32 @@ namespace my_hand_eye
             return false;
         vision_msgs::BoundingBox2DArray objArray;
         Pose2DMightEnd pme;
-        bool valid = rst ? detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
+        bool valid = (rst && cargo_theta_.empty())
+                         ? detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
                                set_color_order(objArray) &&
                                get_pose(objArray, z_parking_area, pme, false)
                          : detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
                                get_pose(objArray, z_parking_area, pme, false);
+        if (rst)
+        {
+            if (valid && pme.pose.theta != pme.not_change)
+            {
+                cargo_theta_.push_back(pme.pose.theta);
+                ROS_INFO_STREAM("theta: " << pme.pose.theta);
+                if (cargo_theta_.size() == MAX)
+                {
+                    cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
+                    cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
+                    average_theta(target_pose.pose[target_pose.target_ellipse].theta);
+                    ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
+                    rst = false;
+                }
+                else
+                    return false;
+            }
+            else
+                return false;
+        }
         if (valid)
         {
             target_pose.calc(pme.pose, msg, MAX);
