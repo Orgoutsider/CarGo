@@ -9,8 +9,7 @@ namespace my_hand_eye
         ellipse_.reserve(20);
     };
 
-    bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses, Pos &ps,
-                                  cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
+    bool EllipseArray::clustering(std::vector<cv::Ellipse> &ellipses, cv_bridge::CvImagePtr &cv_image)
     {
         if (ellipses.empty())
         {
@@ -20,16 +19,17 @@ namespace my_hand_eye
         if (!ellipse_.empty())
             ellipse_.clear();
         const int MAXN = ellipses.size() + 10;
-        flag_.resize(MAXN, 0);
-        cv::Point2d epx, epy;
-        ps.extinction_point(epx, epy, true);
+        bool flag[MAXN] = {false};
+        float ratio = 0.1f;
         // 聚类
         for (int i = 0; i < ellipses.size(); i++)
         {
-            if (flag_[i])
+            if (flag[i])
                 continue;
             double score_sum = ellipses[i]._score;
-            int now = i, cnt = 1;
+            int cnt = 1, ind_max = i;
+            float area_max = ellipses[i]._a * ellipses[i]._b * ellipses[i]._score;
+            flag[i] = true;
             cv::Point2d pt_sum(ellipses[i]._xc, ellipses[i]._yc);
             pt_sum *= score_sum;
             for (int j = i + 1; j < ellipses.size(); j++)
@@ -40,95 +40,105 @@ namespace my_hand_eye
                     (abs(ellipses[i]._a / ellipses[i]._b - ellipses[j]._a / ellipses[j]._b) < 0.7) &&
                     ((ellipses[i]._a / ellipses[i]._b < 2 && ellipses[j]._a / ellipses[j]._b < 2) ||
                      Angle::degree(abs(ellipses[i]._rad - ellipses[j]._rad)) < 70) &&
-                    !flag_[j])
+                    !flag[j])
                 {
-                    flag_[now] = j;
-                    now = j;
+                    flag[j] = true;
                     cv::Point2d pt(ellipses[j]._xc, ellipses[j]._yc);
                     pt_sum += pt * (ellipses[j]._score);
                     score_sum += ellipses[j]._score;
+                    float area_temp = ellipses[j]._a * ellipses[j]._b * ellipses[j]._score;
+                    ind_max = (area_max > area_temp) ? ind_max : j;
+                    area_max = std::max(area_max, area_temp);
                     cnt++;
                 }
-                if (j == ellipses.size() - 1)
-                    flag_[now] = -1;
             }
-            if (i == ellipses.size() - 1)
-                flag_[now] = -1;
             if (cnt >= 2)
             {
                 Ellipse e;
+                cv::Point2d center = pt_sum / score_sum;
                 // 平均数求聚类中心，感觉不太妥当，但是精度感觉还行，追求精度的话可以用 Weiszfeld 算法求中位中心，那个要迭代
-                cv::Point2d pt_real;
-                real_center(ellipses[i], epx, epy, pt_sum / score_sum, pt_real, roi, cv_image);
-                e.center = pt_real;
-                e.score_aver = score_sum / cnt;
-                ellipse_.push_back(e);
-            }
-        }
-        // ROS_INFO_STREAM(ellipse_.size());
-        return generate_bounding_rect(ellipses, cv_image);
-    };
-
-    bool EllipseArray::generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
-                                              cv_bridge::CvImagePtr &cv_image)
-    {
-        if (m_ellipses.empty() || ellipse_.empty())
-            return false;
-        bool note[flag_.size()] = {false};
-        // for (int i = 0; i < m_ellipses.size(); i++)
-        //     ROS_INFO_STREAM(flag_[i]);
-        int num = 0;
-        float ratio = 0.1f;
-        for (int i = 0; i < m_ellipses.size(); i++)
-        {
-            if (note[i])
-                continue;
-            int now = i, cnt = 1, ind_max = i;
-            float area_max = m_ellipses[now]._a * m_ellipses[now]._b * m_ellipses[now]._score;
-            // ROS_INFO_STREAM(now);
-            note[now] = true;
-            while (flag_[now] != -1)
-            {
-                cnt++;
-                now = flag_[now];
-                note[now] = true;
-                float area_temp = m_ellipses[now]._a * m_ellipses[now]._b * m_ellipses[now]._score;
-                ind_max = (area_max > area_temp) ? ind_max : now;
-                area_max = std::max(area_max, area_temp);
-            }
-            if (cnt >= 2)
-            {
-                cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a *
-                                                                               (1 + ratio)),
-                                         cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a *
-                                                                               (1 + ratio)),
-                                         cvCeil(m_ellipses[ind_max]._a) * 2 * (1 + ratio),
-                                         cvCeil(m_ellipses[ind_max]._a) * 2 * (1 + ratio));
+                cv::Rect rect = cv::Rect(cvFloor(ellipses[ind_max]._xc - ellipses[ind_max]._a *
+                                                                             (1 + ratio)),
+                                         cvFloor(ellipses[ind_max]._yc - ellipses[ind_max]._a *
+                                                                             (1 + ratio)),
+                                         cvCeil(ellipses[ind_max]._a) * 2 * (1 + ratio),
+                                         cvCeil(ellipses[ind_max]._a) * 2 * (1 + ratio));
                 rect.x = std::max(rect.x, 0);
                 rect.y = std::max(rect.y, 0);
                 rect.width = std::min(rect.width, cv_image->image.cols - rect.x);
                 rect.height = std::min(rect.height, cv_image->image.rows - rect.y);
-                try
+                if (center.inside(rect))
                 {
-                    if (!ellipse_.at(num).center.inside(rect))
-                        rect.width = rect.height = 0;
-                    ellipse_.at(num).rect_target = rect;
+                    e.center = center;
+                    e.score_aver = score_sum / cnt;
+                    e.rect_target = rect;
+                    ellipse_.push_back(e);
                 }
-                catch (const std::exception &e)
-                {
-                    ROS_ERROR("generate bounding rect error: %s", e.what());
-                    return false;
-                }
-                num++;
             }
         }
-        if (num != ellipse_.size())
-        {
-            ROS_ERROR("Incorrect num! num:%d, ellipse size:%ld", num, ellipse_.size());
-            return false;
-        }
-        return true;
-    }
+        // ROS_INFO_STREAM(ellipse_.size());
+        return (!ellipse_.empty());
+    };
+
+    // bool EllipseArray::generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
+    //                                           cv_bridge::CvImagePtr &cv_image)
+    // {
+    //     if (m_ellipses.empty() || ellipse_.empty())
+    //         return false;
+    //     // for (int i = 0; i < m_ellipses.size(); i++)
+    //     //     ROS_INFO_STREAM(flag_[i]);
+    //     int num = 0;
+    //     float ratio = 0.1f;
+    //     for (int i = 0; i < m_ellipses.size(); i++)
+    //     {
+    //         if (note[i])
+    //             continue;
+    //         int now = i, cnt = 1, ind_max = i;
+    //         float area_max = m_ellipses[now]._a * m_ellipses[now]._b * m_ellipses[now]._score;
+    //         // ROS_INFO_STREAM(now);
+    //         note[now] = true;
+    //         while (flag_[now] != -1)
+    //         {
+    //             cnt++;
+    //             now = flag_[now];
+    //             note[now] = true;
+    //             float area_temp = m_ellipses[now]._a * m_ellipses[now]._b * m_ellipses[now]._score;
+    //             ind_max = (area_max > area_temp) ? ind_max : now;
+    //             area_max = std::max(area_max, area_temp);
+    //         }
+    //         if (cnt >= 2)
+    //         {
+    //             cv::Rect rect = cv::Rect(cvFloor(m_ellipses[ind_max]._xc - m_ellipses[ind_max]._a *
+    //                                                                            (1 + ratio)),
+    //                                      cvFloor(m_ellipses[ind_max]._yc - m_ellipses[ind_max]._a *
+    //                                                                            (1 + ratio)),
+    //                                      cvCeil(m_ellipses[ind_max]._a) * 2 * (1 + ratio),
+    //                                      cvCeil(m_ellipses[ind_max]._a) * 2 * (1 + ratio));
+    //             rect.x = std::max(rect.x, 0);
+    //             rect.y = std::max(rect.y, 0);
+    //             rect.width = std::min(rect.width, cv_image->image.cols - rect.x);
+    //             rect.height = std::min(rect.height, cv_image->image.rows - rect.y);
+    //             try
+    //             {
+    //                 if (!ellipse_.at(num).center.inside(rect))
+    //                     rect.width = rect.height = 0;
+    //                 ellipse_.at(num).rect_target = rect;
+    //             }
+    //             catch (const std::exception &e)
+    //             {
+    //                 ROS_ERROR("generate bounding rect error: %s", e.what());
+    //                 return false;
+    //             }
+    //             num++;
+    //         }
+    //     }
+    //     if (num != ellipse_.size())
+    //     {
+    //         ROS_ERROR("Incorrect num! num:%d, ellipse size:%ld", num, ellipse_.size());
+    //         return false;
+    //     }
+    //     return true;
+    // }
 
     bool EllipseArray::color_classification(cv_bridge::CvImagePtr &cv_image,
                                             int white_vmin)
@@ -160,7 +170,7 @@ namespace my_hand_eye
     }
 
     bool EllipseArray::detection(vision_msgs::BoundingBox2DArray &objArray,
-                                 cv::Rect &roi, cv_bridge::CvImagePtr &cv_image, bool show_detection)
+                                 cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
     {
         if (ellipse_.empty())
             return false;
@@ -170,99 +180,47 @@ namespace my_hand_eye
         double hyp_max[4] = {0};
         for (Ellipse &e : ellipse_)
         {
-            // ROS_INFO_STREAM(e.hypothesis << hyp_max[e.color]);
             if ((e.hypothesis + e.score_aver) * 0.5 > hyp_max[e.color])
             {
                 vision_msgs::BoundingBox2D obj;
-                if (!show_detection)
-                {
-                    obj.center.x = e.center.x / cv_image->image.cols * roi.width + roi.x;
-                    obj.center.y = e.center.y / cv_image->image.rows * roi.height + roi.y;
-                }
-                else
-                {
-                    obj.center.x = e.center.x;
-                    obj.center.y = e.center.y;
-                    obj.size_x = e.rect_target.width;
-                    obj.size_y = e.rect_target.height;
-                }
+                obj.center.x = e.center.x / cv_image->image.cols * roi.width + roi.x;
+                obj.center.y = e.center.y / cv_image->image.rows * roi.height + roi.y;
+                obj.size_x = e.rect_target.width / 6.0 / cv_image->image.cols * roi.width;
+                obj.size_y = e.rect_target.height / 6.0 / cv_image->image.rows * roi.height;
                 objArray.boxes[e.color] = obj;
-                hyp_max[e.color] = e.hypothesis;
-            }
-        }
-        if (show_detection && !cv_image->image.empty())
-        {
-            for (int color = color_red; color <= color_blue; color++)
-            {
-                if (!objArray.boxes[color].center.x)
-                    continue;
-                // 绘制中心十字，用于调试
-                cv::Scalar c;
-                switch (color)
-                {
-                case color_red:
-                    c = cv::Scalar(0, 0, 255);
-                    break;
-
-                case color_green:
-                    c = cv::Scalar(0, 255, 0);
-                    break;
-
-                case color_blue:
-                    c = cv::Scalar(255, 0, 0);
-                    break;
-
-                default:
-                    break;
-                }
-                cv::Point pt1(objArray.boxes[color].center.x - objArray.boxes[color].size_x / 2,
-                              objArray.boxes[color].center.y - objArray.boxes[color].size_y / 2);
-                cv::Point pt2(objArray.boxes[color].center.x + objArray.boxes[color].size_x / 2,
-                              objArray.boxes[color].center.y + objArray.boxes[color].size_y / 2);
-                cv::rectangle(cv_image->image, pt1, pt2, cv::Scalar(0, 0, 0), 1, 4);
-                draw_cross(cv_image->image,
-                           cv::Point2d(objArray.boxes[color].center.x, objArray.boxes[color].center.y),
-                           c, 15, 1);
-                objArray.boxes[color].center.x = objArray.boxes[color].center.x /
-                                                     cv_image->image.cols * roi.width +
-                                                 roi.x;
-                objArray.boxes[color].center.y = objArray.boxes[color].center.y /
-                                                     cv_image->image.rows * roi.height +
-                                                 roi.y;
-                // imshow("srcCopy", cv_image->image); // 用于调试
-                // cv::waitKey(60);
+                hyp_max[e.color] = (e.hypothesis + e.score_aver) * 0.5;
             }
         }
         return true;
     };
 
-    void EllipseArray::real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy, cv::Point2d &&ori,
-                                   cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
-    {
-        epx.x -= roi.x;
-        epx.y -= roi.y;
-        epy.x -= roi.x;
-        epy.y -= roi.y;
-        epx.x *= ((double)cv_image->image.cols / roi.width);
-        epx.y *= ((double)cv_image->image.rows / roi.height);
-        epy.x *= ((double)cv_image->image.cols / roi.width);
-        epy.y *= ((double)cv_image->image.rows / roi.height);
-        double c = cos(ell._rad);
-        double s = sin(ell._rad);
-        double n[2][2] = {{((epx.x - ori.x) * c + (epx.y - ori.y) * s) / (ell._a * ell._a),
-                           ((epx.x - ori.x) * s - (epx.y - ori.y) * c) / (ell._b * ell._b)},
-                          {((epy.x - ori.x) * c + (epy.y - ori.y) * s) / (ell._a * ell._a),
-                           ((epy.x - ori.x) * s - (epy.y - ori.y) * c) / (ell._b * ell._b)}};
-        cv::Mat A = (cv::Mat_<double>(2, 2) << c * n[0][0] + s * n[0][1], s * n[0][0] - c * n[0][1],
-                     c * n[1][0] + s * n[1][1], s * n[1][0] - c * n[1][1]);
-        double D = cv::determinant(A);
-        cv::Mat Y = cv::Mat::ones(2, 1, CV_64FC1);
-        cv::Mat Dx, Dy;
-        cv::hconcat(Y, A.col(1), Dx);
-        cv::hconcat(A.col(0), Y, Dy);
-        center.x = cv::determinant(Dx) / D + ori.x;
-        center.y = cv::determinant(Dy) / D + ori.y;
-    }
+    // void EllipseArray::real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy, cv::Point2d &&ori,
+    //                                cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image)
+    // {
+    //     epx.x -= roi.x;
+    //     epx.y -= roi.y;
+    //     epy.x -= roi.x;
+    //     epy.y -= roi.y;
+    //     epx.x *= ((double)cv_image->image.cols / roi.width);
+    //     epx.y *= ((double)cv_image->image.rows / roi.height);
+    //     epy.x *= ((double)cv_image->image.cols / roi.width);
+    //     epy.y *= ((double)cv_image->image.rows / roi.height);
+    //     double c = cos(ell._rad);
+    //     double s = sin(ell._rad);
+    //     double n[2][2] = {{((epx.x - ori.x) * c + (epx.y - ori.y) * s) / (ell._a * ell._a),
+    //                        ((epx.x - ori.x) * s - (epx.y - ori.y) * c) / (ell._b * ell._b)},
+    //                       {((epy.x - ori.x) * c + (epy.y - ori.y) * s) / (ell._a * ell._a),
+    //                        ((epy.x - ori.x) * s - (epy.y - ori.y) * c) / (ell._b * ell._b)}};
+    //     cv::Mat A = (cv::Mat_<double>(2, 2) << c * n[0][0] + s * n[0][1], s * n[0][0] - c * n[0][1],
+    //                  c * n[1][0] + s * n[1][1], s * n[1][0] - c * n[1][1]);
+    //     double D = cv::determinant(A);
+    //     cv::Mat Y = cv::Mat::ones(2, 1, CV_64FC1);
+    //     cv::Mat Dx, Dy;
+    //     cv::hconcat(Y, A.col(1), Dx);
+    //     cv::hconcat(A.col(0), Y, Dy);
+    //     center.x = cv::determinant(Dx) / D + ori.x;
+    //     center.y = cv::determinant(Dy) / D + ori.y;
+    // }
 
     double EllipseArray::color_hypothesis(double h_val, int lower_bound, int upper_bound)
     {

@@ -33,26 +33,24 @@ namespace my_hand_eye
         int upper_bound_[4];
         int lower_bound_[4];
         std::vector<Ellipse> ellipse_;
-        std::vector<int> flag_; // 聚类标识
         // 实际中心点
-        void real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy, cv::Point2d &&ori, 
-                         cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
-        // 目标区域框选
+        // void real_center(cv::Ellipse &ell, cv::Point2d &epx, cv::Point2d &epy, cv::Point2d &&ori, 
+        //                  cv::Point2d &center, cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
         double color_hypothesis(double h_val, int lower_bound, int upper_bound);
-        bool generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
-                                    cv_bridge::CvImagePtr &cv_image);
+        // 目标区域框选
+        // bool generate_bounding_rect(std::vector<cv::Ellipse> &m_ellipses,
+        //                             cv_bridge::CvImagePtr &cv_image);
 
     public:
         EllipseArray();
         // 聚类
-        bool clustering(std::vector<cv::Ellipse> &ellipses, Pos &ps,
-                        cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
+        bool clustering(std::vector<cv::Ellipse> &ellipses, cv_bridge::CvImagePtr &cv_image);
         // 颜色分类
         bool color_classification(cv_bridge::CvImagePtr &cv_image,
                                   int white_vmin);
         // 找到最多3个椭圆并绘制
         bool detection(vision_msgs::BoundingBox2DArray &objArray,
-                       cv::Rect &roi, cv_bridge::CvImagePtr &cv_image, bool show_detection);
+                       cv::Rect &roi, cv_bridge::CvImagePtr &cv_image);
     };
 
     // 十字光标绘制，用于调试观察

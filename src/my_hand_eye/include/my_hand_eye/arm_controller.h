@@ -59,6 +59,7 @@ namespace my_hand_eye
         bool get_pose(vision_msgs::BoundingBox2DArray &objArray, double z, Pose2DMightEnd &pose, bool read);
         bool set_color_order(vision_msgs::BoundingBox2DArray &objArray); // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         void average_position(double &x, double &y);                     // 求得记录位置数据的平均值
+        void average_theta(double &theta);                               // 求得记录位置数据的平均值
         void average_pose(geometry_msgs::Pose2D &pose);                  // 求得记录位置数据的平均值
         // 求平均位姿并存入变长数组
         void average_pose_once();

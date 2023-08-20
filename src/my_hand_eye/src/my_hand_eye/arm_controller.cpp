@@ -469,12 +469,7 @@ namespace my_hand_eye
                 }
                 cnt++;
             }
-            if (cnt == 3)
-            {
-                pose.pose.x = (x[0] + x[1] + x[2]) / 3;
-                pose.pose.y = (y[0] + y[1] + y[2]) / 3;
-            }
-            else if (!flag)
+            if (!flag)
                 return false;
             // 防止超出车道
             if (pose.pose.y > 35.5)
@@ -546,17 +541,21 @@ namespace my_hand_eye
         y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
     }
 
-    void ArmController::average_pose(geometry_msgs::Pose2D &pose)
+    void ArmController::average_theta(double &theta)
     {
-        if (cargo_x_.empty() || cargo_y_.empty() || cargo_theta_.empty())
+        if (cargo_theta_.empty())
         {
-            pose.x = pose.y = pose.theta = 0;
+            theta = 0;
             return;
         }
-        pose.x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
-        pose.y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
-        pose.theta = std::accumulate(std::begin(cargo_theta_), std::end(cargo_theta_), 0.0) /
-                     cargo_theta_.size();
+        theta = std::accumulate(std::begin(cargo_theta_), std::end(cargo_theta_), 0.0) /
+                cargo_theta_.size();
+    }
+
+    void ArmController::average_pose(geometry_msgs::Pose2D &pose)
+    {
+        average_position(pose.x, pose.y);
+        average_theta(pose.theta);
     }
 
     void ArmController::average_pose_once()
@@ -926,20 +925,81 @@ namespace my_hand_eye
         yaed_->Detect(hsvs[1], ellsYaed);
         EllipseArray arr;
         // 聚类、颜色标定
-        if (!arr.clustering(ellsYaed, ps_, rect, cv_image) ||
+        if (!arr.clustering(ellsYaed, cv_image) ||
             !arr.color_classification(cv_image, white_vmin_))
             return false;
         detections.header = image_rect->header;
-        if (!arr.detection(detections, rect, cv_image, show_detections))
+        if (!arr.detection(detections, rect, cv_image))
             return false;
-        if (show_detections && !cv_image->image.empty())
+        if (!cv_image_.image.empty())
         {
-            Mat3b srcCopy = cv_image->image;
-            yaed_->DrawDetectedEllipses(srcCopy, ellsYaed, 0, 1);
-            // imshow("Yaed", srcCopy);
-            // waitKey(10);
-            debug_image = cv_image->toImageMsg();
+            for (int color = color_red; color <= color_blue; color++)
+            {
+                if (!detections.boxes[color].center.x)
+                {
+                    continue;
+                }
+                Rect rect(detections.boxes[color].center.x - detections.boxes[color].size_x / 2,
+                          detections.boxes[color].center.y - detections.boxes[color].size_y / 2,
+                          detections.boxes[color].size_x, detections.boxes[color].size_y);
+                rect.x = std::max(rect.x, 0);
+                rect.y = std::max(rect.y, 0);
+                rect.width = std::min(rect.width, cv_image_.image.cols - rect.x);
+                rect.height = std::min(rect.height, cv_image_.image.rows - rect.y);
+                if (!rect.empty())
+                {
+                    Mat grey = cv_image_.image(rect).clone();
+                    // imshow("src", grey);
+                    cvtColor(grey, grey, CV_BGR2GRAY);
+                    // imshow("grey", grey);
+                    Mat thr;
+                    cv::threshold(grey, thr, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+                    bitwise_not(thr, thr);
+                    // imshow("threshold", thr);
+                    if (countNonZero(thr))
+                    {
+                        Moments m = moments(thr, true);
+                        detections.boxes[color].center.x = m.m10 / m.m00 + rect.x;
+                        detections.boxes[color].center.y = m.m01 / m.m00 + rect.y;
+                    }
+                }
+                if (show_detections)
+                {
+                    Scalar c;
+                    switch (color)
+                    {
+                    case color_red:
+                        c = Scalar(0, 0, 255);
+                        break;
+
+                    case color_green:
+                        c = Scalar(0, 255, 0);
+                        break;
+
+                    case color_blue:
+                        c = Scalar(255, 0, 0);
+                        break;
+
+                    default:
+                        break;
+                    }
+                    rectangle(cv_image_.image, rect, Scalar(0, 0, 0), 2, 4);
+                    draw_cross(cv_image_.image,
+                               Point2d(detections.boxes[color].center.x, detections.boxes[color].center.y),
+                               c, 30, 2);
+                }
+            }
+            if (show_detections)
+                debug_image = cv_image_.toImageMsg();
         }
+        // if (show_detections && !cv_image->image.empty())
+        // {
+        //     Mat3b srcCopy = cv_image->image;
+        //     yaed_->DrawDetectedEllipses(srcCopy, ellsYaed, 0, 1);
+        //     // imshow("Yaed", srcCopy);
+        //     // waitKey(10);
+        //     debug_image = cv_image->toImageMsg();
+        // }
         // std::vector<double> times = yaed_->GetTimes();
         // std::cout << "--------------------------------" << std::endl;
         // std::cout << "Execution Time: " << std::endl;
@@ -1147,6 +1207,7 @@ namespace my_hand_eye
                 Action ellipse = Action(0, 20, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
+                cargo_theta_.clear();
                 rst = true;
             }
             return false;
@@ -1167,10 +1228,24 @@ namespace my_hand_eye
         {
             if (pose)
             {
-                valid = rst ? set_color_order(objArray) && get_pose(objArray, z_ellipse, pme, true)
-                            : get_pose(objArray, z_ellipse, pme, true);
-                if (valid && rst)
-                    rst = false;
+                valid = (rst && cargo_theta_.empty()) ? set_color_order(objArray) &&
+                                                            get_pose(objArray, z_ellipse, pme, true)
+                                                      : get_pose(objArray, z_ellipse, pme, true);
+                if (rst)
+                {
+                    if (valid && pme.pose.theta != pme.not_change)
+                    {
+                        cargo_theta_.push_back(pme.pose.theta);
+                        ROS_INFO_STREAM("theta: " << pme.pose.theta);
+                        if (cargo_theta_.size() == MAX)
+                        {
+                            average_theta(target_pose.pose[target_pose.target_ellipse].theta);
+                            ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
+                            rst = false;
+                        }
+                    }
+                    return false;
+                }
             }
             else
                 valid = get_center(objArray, center_u, center_v, pme.pose.x, pme.pose.y, true);

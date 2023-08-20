@@ -19,6 +19,7 @@ namespace my_hand_eye
     {
         cv::Mat mask;
         roi.convertTo(mask, CV_8UC3);
+        cv::cvtColor(mask, mask, cv::COLOR_BGR2HSV);
         double x = 0, y = 0;
         int cnt = 0;
         boost::mutex mtx;
