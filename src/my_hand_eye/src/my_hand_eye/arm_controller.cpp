@@ -1167,39 +1167,35 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                    sensor_msgs::ImagePtr &debug_image)
+    bool ArmController::log_border(const sensor_msgs::ImageConstPtr &image_rect,
+                                   sensor_msgs::ImagePtr &debug_image)
     {
-        static bool last_finish = true;
+        // static bool last_finish = true;
+        static bool flag = true;
         double distance = 0, yaw = 0;
-        if (!msg.end && last_finish)
+        if (flag)
         {
-            ps_.look_down();
-            last_finish = false;
+            // ps_.look_down();
+            // last_finish = false;
+            flag = false;
             return false;
         }
+        // if (!ps_.check_stamp(image_rect->header.stamp))
+        //     return false;
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;
         cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
         bool valid = border_.find(cv_image, border, boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
-                                  show_detections);
+                                  show_detections, debug_image);
         border[0] = border[0] + border_roi_.x * cos(border[1]) + border_roi_.y * sin(border[1]);
         if (valid)
             valid = ps_.calculate_border_position(border, z_parking_area, distance, yaw);
-        else
-        {
-            ROS_WARN("Could not find border!");
-        }
-        if (valid && show_detections)
+        if (valid)
         {
             ROS_INFO_STREAM("distance: " << distance << " yaw: " << yaw);
         }
-        // write sth
-        last_finish = msg.end;
-        if (show_detections && !cv_image_.image.empty())
-            debug_image = cv_image->toImageMsg();
         return valid;
     }
 

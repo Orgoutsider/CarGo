@@ -27,7 +27,8 @@ namespace my_hand_eye
         Border();
         // 主函数
         bool find(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
-                  boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD, bool show_detection);
+                  boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD, bool show_detection,
+                  sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye
 

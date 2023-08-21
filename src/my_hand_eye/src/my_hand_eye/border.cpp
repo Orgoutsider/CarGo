@@ -70,12 +70,12 @@ namespace my_hand_eye
 
     bool Border::find(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
                       boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
-                      bool show_detection)
+                      bool show_detection, sensor_msgs::ImagePtr &debug_image)
     {
         int f = 4;
         cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / f);
-        cv::imshow("original", cv_image->image);
-        cv::waitKey(1);
+        // cv::imshow("original", cv_image->image);
+        // cv::waitKey(1);
         cv_image->image = saturation(cv_image->image, 100);                       // 饱和度调整参数，-100 — 100, 正数饱和度增强，负数饱和度减弱
         cv::GaussianBlur(cv_image->image, cv_image->image, cv::Size(3, 3), 0, 0); // 滤波预处理
         std::vector<cv::Vec2f> lines;
@@ -83,7 +83,10 @@ namespace my_hand_eye
         cv::Mat b = cv_image->image.clone();
         border[0] = border[1] = 0;
         if (lines.empty())
+        {
+            ROS_WARN("Could not find border!");
             return false;
+        }
         int cnt = 0;
         for (cv::Vec2f &line : lines)
         {
@@ -108,12 +111,13 @@ namespace my_hand_eye
         }
         border[0] /= cnt;
         border[1] /= cnt;
-        if (show_detection)
+        if (show_detection && !cv_image->image.empty())
         {
-            cv::imshow("Hough", cv_image->image);
+            // cv::imshow("Hough", cv_image->image);
             plot_line(b, border[0], border[1], cv::Scalar(0, 0, 255));
-            cv::waitKey(1);
-            cv::imshow("border", b);
+            // cv::waitKey(1);
+            // cv::imshow("border", b);
+            debug_image = cv_image->toImageMsg();
         }
         // 对之前resize的恢复
         border[0] *= f;
