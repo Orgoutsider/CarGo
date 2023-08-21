@@ -917,8 +917,8 @@ namespace my_hand_eye
         if (calculate_cargo_position(u0, 0, border_z, x1, y1) && calculate_cargo_position(0, v0, border_z, x2, y2, false))
         {
             // ARM_INFO_XYZ(*this);
-            distance = -x2 + (x2 + ARM_P) * (x1 - x2) / (y1 - y2);
-            yaw = atan((x1 - x2) / (y1 - y2));
+            distance = x2 - y2 * (x1 - x2) / (y1 - y2);
+            yaw = -atan((x1 - x2) / (y1 - y2));
             return true;
         }
         else

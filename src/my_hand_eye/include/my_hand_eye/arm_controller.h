@@ -103,16 +103,12 @@ namespace my_hand_eye
         // 椭圆识别，摄像头测试
         bool log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
-        // // 校正z_parking_area，输入数据格式为{x, y}对应123号椭圆
-        // bool log_z_correction(const sensor_msgs::ImageConstPtr &image_rect, std::vector<double> &&e1,
-        //                       std::vector<double> &&e2, std::vector<double> &&e3, sensor_msgs::ImagePtr &debug_image);
         // 固定位置放置
         bool put(const Color color, bool pal, bool final);
         // 固定位置抓取
         bool catch_after_putting(const Color color, bool final);
-        // 计算边界线位置
-        bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                         sensor_msgs::ImagePtr &debug_image);
+        // 输出边界线位置
+        bool log_border(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
         // 计算物料中心点位置或位姿
         bool find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                         sensor_msgs::ImagePtr &debug_image, bool pose, bool store = false);
