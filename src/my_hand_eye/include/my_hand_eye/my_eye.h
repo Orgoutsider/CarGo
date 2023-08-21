@@ -47,6 +47,9 @@ namespace my_hand_eye
         // 椭圆处执行的函数
         bool operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
                              sensor_msgs::ImagePtr &debug_image);
+        // 边界处执行的函数
+        bool operate_border(const sensor_msgs::ImageConstPtr &image_rect,
+                            sensor_msgs::ImagePtr &debug_image);
         // 动态参数回调函数
         void dr_callback(drConfig &config, uint32_t level);
 

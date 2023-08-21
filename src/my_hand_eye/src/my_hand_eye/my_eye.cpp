@@ -70,38 +70,39 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		// if (!as_.isActive())
-		// 	return;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// bool valid = false;
-		// switch (arm_goal_.route)
-		// {
-		// case arm_goal_.route_rest:
-		// 	return;
+		if (!as_.isActive())
+			return;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		bool valid = false;
+		switch (arm_goal_.route)
+		{
+		case arm_goal_.route_rest:
+			return;
 
-		// case arm_goal_.route_raw_material_area:
-		// 	valid = operate_center(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_raw_material_area:
+			valid = operate_center(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_roughing_area:
-		// 	valid = operate_ellipse(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_roughing_area:
+			valid = operate_ellipse(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_semi_finishing_area:
-		// 	valid = operate_ellipse(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_semi_finishing_area:
+			valid = operate_ellipse(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_parking_area:
-		// 	break;
+		case arm_goal_.route_parking_area:
+			break;
 
-		// case arm_goal_.route_border:
-		// 	break;
+		case arm_goal_.route_border:
+			valid = operate_border(image_rect, debug_image);
+			break;
 
-		// default:
-		// 	return;
-		// }
-		// if (arm_controller_.show_detections && debug_image->height)
-		// 	debug_image_publisher_.publish(debug_image);
+		default:
+			return;
+		}
+		if (arm_controller_.show_detections && debug_image->height)
+			debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -139,15 +140,15 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 边界线查找
-		static bool finish = false;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		if (!finish)
-		{
-			double distance, yaw;
-			arm_controller_.log_border(image_rect, debug_image);
-			if (arm_controller_.show_detections && debug_image->height)
-				debug_image_publisher_.publish(debug_image);
-		}
+		// static bool finish = false;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// if (!finish)
+		// {
+		// 	double distance, yaw;
+		// 	arm_controller_.log_border(image_rect, debug_image);
+		// 	if (arm_controller_.show_detections && debug_image->height)
+		// 		debug_image_publisher_.publish(debug_image);
+		// }
 
 		// 停车区查找
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -400,6 +401,57 @@ namespace my_hand_eye
 		return valid;
 	}
 
+	bool MyEye::operate_border(const sensor_msgs::ImageConstPtr &image_rect,
+							   sensor_msgs::ImagePtr &debug_image)
+	{
+		if (finish_)
+		{
+			finish_adjusting_ = false;
+			finish_ = false;
+			ROS_INFO("Start to operate border...");
+		}
+		bool valid = true;
+		Pose2DMightEnd msg;
+		if (!finish_adjusting_)
+		{
+			msg.end = false;
+			valid = arm_controller_.find_border(image_rect, msg, debug_image);
+			if (valid)
+			{
+				pose_publisher_.publish(msg);
+				if (msg.end)
+				{
+					ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
+					finish_adjusting_ = true;
+					finish_ = true;
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+					arm_goal_.route = arm_goal_.route_rest;
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					ROS_INFO("Finish operating border...");
+				}
+			}
+			else
+			{
+				// 发送此数据表示车辆即刻停止，重新寻找定位物体
+				msg.pose.x = msg.not_change;
+				msg.pose.y = msg.not_change;
+				msg.pose.theta = msg.not_change;
+				msg.end = false;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
+				pose_publisher_.publish(msg);
+				finish_adjusting_ = false;
+			}
+		}
+		else
+		{
+			ROS_ERROR("operate_border: Invalid status!");
+		}
+		return valid;
+	}
+
 	void MyEye::dr_callback(drConfig &config, uint32_t level)
 	{
 		if (arm_controller_.z_parking_area != config.z_parking_area)
@@ -412,12 +464,16 @@ namespace my_hand_eye
 			a = Action(config.target_x, config.target_y, 0).front2left().arm2footprint();
 		else
 			a = Action(config.target_x, config.target_y, 0).arm2footprint();
-		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x != a.x)
+		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x != a.x &&
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x != Pose2DMightEnd::not_change)
 			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].x = a.x;
-		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y != a.y)
+		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y != a.y &&
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y != Pose2DMightEnd::not_change)
 			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].y = a.y;
 		if (arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta !=
-			Angle(config.target_theta_deg).rad())
+				Angle(config.target_theta_deg).rad() &&
+			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta !=
+				Pose2DMightEnd::not_change)
 			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta =
 				Angle(config.target_theta_deg).rad();
 	}

@@ -89,6 +89,7 @@ namespace my_hand_eye
         bool log_extrinsics_correction(const sensor_msgs::ImageConstPtr &image_rect,
                                        double correct_x, double correct_y, double correct_z, Color color,
                                        sensor_msgs::ImagePtr &debug_image);
+        // 直接抓取
         bool catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                               bool &finish, sensor_msgs::ImagePtr &debug_image, bool left, bool hold = false,
                               bool midpoint = false);
@@ -115,6 +116,9 @@ namespace my_hand_eye
         // 计算椭圆位置
         bool find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                           sensor_msgs::ImagePtr &debug_image, bool store);
+        // 计算边界线位置
+        bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                         sensor_msgs::ImagePtr &debug_image);
         // 计算停车区位置
         bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                sensor_msgs::ImagePtr &debug_image);

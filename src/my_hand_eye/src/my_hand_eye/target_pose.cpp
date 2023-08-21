@@ -25,6 +25,15 @@ namespace my_hand_eye
         // tolerance[target_ellipse].theta = 0.006;
         tolerance[target_ellipse].x = 0.009;
         tolerance[target_ellipse].y = 0.01;
+
+        Action border = Action(0, 17.144016667, 0).front2left().arm2footprint();
+        pose[target_border].theta = Angle(-6.982521667).rad();
+        pose[target_border].x = Pose2DMightEnd::not_change;
+        pose[target_border].y = border.y;
+
+        tolerance[target_border].theta = 0.007;
+        tolerance[target_border].x = Pose2DMightEnd::not_change;
+        tolerance[target_border].y = 0.01;
     }
 
     void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)

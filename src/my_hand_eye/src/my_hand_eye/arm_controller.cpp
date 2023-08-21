@@ -1170,12 +1170,10 @@ namespace my_hand_eye
     bool ArmController::log_border(const sensor_msgs::ImageConstPtr &image_rect,
                                    sensor_msgs::ImagePtr &debug_image)
     {
-        // static bool last_finish = true;
         static bool flag = true;
         double distance = 0, yaw = 0;
         if (flag)
         {
-            // last_finish = false;
             ps_.reset(true);
             ps_.look_down();
             flag = false;
@@ -1188,9 +1186,9 @@ namespace my_hand_eye
             return false;
         cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
-        bool valid = border_.find(cv_image, border, boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
-                                  show_detections, debug_image);
-        border[0] = border[0] + border_roi_.x * cos(border[1]) + border_roi_.y * sin(border[1]);
+        bool valid = border_.detect(cv_image, border, border_roi_,
+                                    boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
+                                    show_detections, debug_image);
         if (valid)
             valid = ps_.calculate_border_position(border, z_parking_area, distance, yaw);
         if (valid)
@@ -1365,6 +1363,36 @@ namespace my_hand_eye
             average_pose_once();
         }
         return store ? last_finish : valid;
+    }
+
+    bool ArmController::find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
+                                    sensor_msgs::ImagePtr &debug_image)
+    {
+        static bool last_finish = true;
+        if (!msg.end && last_finish)
+        {
+            ps_.reset(true);
+            ps_.look_down();
+            return false;
+        }
+        if (!ps_.check_stamp(image_rect->header.stamp))
+            return false;
+        cv_bridge::CvImagePtr cv_image;
+        if (!add_image(image_rect, cv_image))
+            return false;
+        cv_image->image = cv_image->image(border_roi_).clone();
+        cv::Vec2f border;
+        geometry_msgs::Pose2D p;
+        bool valid = border_.detect(cv_image, border, border_roi_,
+                                    boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
+                                    show_detections, debug_image);
+        if (valid)
+            valid = ps_.calculate_border_position(border, z_parking_area, p.x, p.theta);
+        if (valid)
+        {
+            target_pose.calc(p, msg);
+        }
+        return valid;
     }
 
     bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,

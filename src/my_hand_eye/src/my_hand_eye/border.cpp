@@ -68,9 +68,9 @@ namespace my_hand_eye
         return temp;
     }
 
-    bool Border::find(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
-                      boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
-                      bool show_detection, sensor_msgs::ImagePtr &debug_image)
+    bool Border::detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect,
+                        boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
+                        bool show_detection, sensor_msgs::ImagePtr &debug_image)
     {
         int f = 4;
         cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / f);
@@ -126,6 +126,7 @@ namespace my_hand_eye
         border[1] /= cnt;
         // 对之前resize的恢复
         border[0] *= f;
+        border[0] = border[0] + rect.x * cos(border[1]) + rect.y * sin(border[1]);
         return true;
     }
 

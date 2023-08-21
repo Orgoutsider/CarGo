@@ -23,12 +23,13 @@ namespace my_hand_eye
     private:
         float theta_thr_horizontal_;
         void plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color, double width = 1);
+
     public:
         Border();
         // 主函数
-        bool find(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
-                  boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD, bool show_detection,
-                  sensor_msgs::ImagePtr &debug_image);
+        bool detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect,
+                    boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
+                    bool show_detection, sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye
 

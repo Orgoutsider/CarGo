@@ -242,6 +242,10 @@ namespace motion_controller
     void MotionController::_arm_done_callback(const actionlib::SimpleClientGoalState &state,
                                               const my_hand_eye::ArmResultConstPtr &result)
     {
+        if (where_is_car(follower_.debug, follower_.startup) == route_border)
+        {
+            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+        }
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());
         else
