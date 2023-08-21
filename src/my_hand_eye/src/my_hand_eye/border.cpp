@@ -109,8 +109,6 @@ namespace my_hand_eye
                 plot_line(cv_image->image, rho, theta, cv::Scalar(0, 255, 0));
             }
         }
-        border[0] /= cnt;
-        border[1] /= cnt;
         if (show_detection && !cv_image->image.empty())
         {
             // cv::imshow("Hough", cv_image->image);
@@ -119,6 +117,13 @@ namespace my_hand_eye
             // cv::imshow("border", b);
             debug_image = cv_image->toImageMsg();
         }
+        if (!cnt)
+        {
+            ROS_WARN("Could not find border!");
+            return false;
+        }
+        border[0] /= cnt;
+        border[1] /= cnt;
         // 对之前resize的恢复
         border[0] *= f;
         return true;

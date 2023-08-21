@@ -70,38 +70,38 @@ namespace my_hand_eye
 
 	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		if (!as_.isActive())
-			return;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		bool valid = false;
-		switch (arm_goal_.route)
-		{
-		case arm_goal_.route_rest:
-			return;
+		// if (!as_.isActive())
+		// 	return;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// bool valid = false;
+		// switch (arm_goal_.route)
+		// {
+		// case arm_goal_.route_rest:
+		// 	return;
 
-		case arm_goal_.route_raw_material_area:
-			valid = operate_center(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_raw_material_area:
+		// 	valid = operate_center(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_roughing_area:
-			valid = operate_ellipse(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_roughing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_semi_finishing_area:
-			valid = operate_ellipse(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_semi_finishing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_parking_area:
-			break;
+		// case arm_goal_.route_parking_area:
+		// 	break;
 
-		case arm_goal_.route_border:
-			break;
+		// case arm_goal_.route_border:
+		// 	break;
 
-		default:
-			return;
-		}
-		if (arm_controller_.show_detections && debug_image->height)
-			debug_image_publisher_.publish(debug_image);
+		// default:
+		// 	return;
+		// }
+		// if (arm_controller_.show_detections && debug_image->height)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -139,15 +139,15 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 边界线查找
-		// static bool finish = false;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double distance, yaw;
-		// 	arm_controller_.find_border(image_rect, distance, yaw, finish, debug_image);
-		// 	if (arm_controller_.show_detections)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
+		static bool finish = false;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		if (!finish)
+		{
+			double distance, yaw;
+			arm_controller_.log_border(image_rect, debug_image);
+			if (arm_controller_.show_detections && debug_image->height)
+				debug_image_publisher_.publish(debug_image);
+		}
 
 		// 停车区查找
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());

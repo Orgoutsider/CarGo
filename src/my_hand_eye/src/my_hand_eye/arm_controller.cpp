@@ -1175,13 +1175,14 @@ namespace my_hand_eye
         double distance = 0, yaw = 0;
         if (flag)
         {
-            // ps_.look_down();
             // last_finish = false;
+            ps_.reset(true);
+            ps_.look_down();
             flag = false;
             return false;
         }
-        // if (!ps_.check_stamp(image_rect->header.stamp))
-        //     return false;
+        if (!ps_.check_stamp(image_rect->header.stamp))
+            return false;
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;
@@ -1194,7 +1195,7 @@ namespace my_hand_eye
             valid = ps_.calculate_border_position(border, z_parking_area, distance, yaw);
         if (valid)
         {
-            ROS_INFO_STREAM("distance: " << distance << " yaw: " << yaw);
+            ROS_INFO_STREAM("distance: " << distance << " yaw: " << Angle::degree(yaw));
         }
         return valid;
     }
