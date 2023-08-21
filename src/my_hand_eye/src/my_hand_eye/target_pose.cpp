@@ -32,12 +32,12 @@ namespace my_hand_eye
         static int err_cnt = 0;  // 防误判
         static int err_cnt2 = 0; // 防不判
         Action a = Action(pose_arm.x, pose_arm.y, 0).arm2footprint();
-        if (pose_arm.theta == pose_target.not_change)
-            pose_arm.theta = pose[target].theta;
-        if (pose_arm.x == pose_target.not_change)
-            pose_arm.x = pose[target].x;
-        if (pose_arm.y == pose_target.not_change)
-            pose_arm.y = pose[target].y;
+        // if (pose_arm.theta == pose_target.not_change)
+        //     pose_arm.theta = pose[target].theta;
+        // if (pose_arm.x == pose_target.not_change)
+        //     a.y = pose[target].y;
+        // if (pose_arm.y == pose_target.not_change)
+        //     a.x = pose[target].x;
         pose_target.pose.theta = (pose[target].theta == pose_target.not_change)
                                      ? pose_target.not_change
                                      : (pose_arm.theta - pose[target].theta);

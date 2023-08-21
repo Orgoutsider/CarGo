@@ -100,7 +100,7 @@ namespace my_hand_eye
 		default:
 			return;
 		}
-		if (arm_controller_.show_detections)
+		if (arm_controller_.show_detections && debug_image->height)
 			debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置

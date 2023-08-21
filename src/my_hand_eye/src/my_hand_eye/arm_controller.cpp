@@ -334,15 +334,10 @@ namespace my_hand_eye
             }
             else if (pose)
             {
-                if (rst)
+                geometry_msgs::Pose2D p;
+                if (valid = get_pose(objArray, z_ellipse, p, rst))
                 {
-                    valid = set_color_order(objArray);
-                }
-                if (valid)
-                {
-                    Pose2DMightEnd pme;
-                    if (valid = get_pose(objArray, z_ellipse, pme, true))
-                        ROS_INFO_STREAM("x:" << pme.pose.x << " y:" << pme.pose.y << " theta:" << Angle::degree(pme.pose.theta));
+                    ROS_INFO_STREAM("x:" << p.x << " y:" << p.y << " theta:" << Angle::degree(p.theta));
                     if (rst)
                         rst = false;
                 }
@@ -436,13 +431,20 @@ namespace my_hand_eye
     }
 
     bool ArmController::get_pose(vision_msgs::BoundingBox2DArray &objArray,
-                                 double z, Pose2DMightEnd &pose, bool read)
+                                 double z, geometry_msgs::Pose2D &pose, bool rst)
     {
         if (objArray.boxes.size() == 4)
         {
+            static geometry_msgs::Pose2D last_pose;
+            if (rst)
+            {
+                if (!set_color_order(objArray))
+                    return false;
+            }
             int cnt = 0;
             double x[5] = {0}, y[5] = {0};
             bool flag = false;
+            bool read = rst;
             for (int i = 1; i <= 3; i++)
             {
                 if (!objArray.boxes[color_order_[i].color].center.x)
@@ -463,8 +465,8 @@ namespace my_hand_eye
                     read = false;
                 if (i == 2)
                 {
-                    pose.pose.x = x[cnt];
-                    pose.pose.y = y[cnt];
+                    pose.x = x[cnt];
+                    pose.y = y[cnt];
                     flag = true;
                 }
                 cnt++;
@@ -472,24 +474,37 @@ namespace my_hand_eye
             if (!flag)
                 return false;
             // 防止超出车道
-            if (pose.pose.x < -35.5)
-                pose.pose.x = -35.5;
-            else if (pose.pose.x > -27.5)
-                pose.pose.x = -27.5;
-            if (pose.pose.y < -ARM_P - 8)
-                pose.pose.y = -ARM_P - 8;
-            else if (pose.pose.y > -ARM_P + 8)
-                pose.pose.y = -ARM_P + 8;
+            if (pose.x < -35.5)
+                pose.x = -35.5;
+            else if (pose.x > -27.5)
+                pose.x = -27.5;
+            if (pose.y < -ARM_P - 8)
+                pose.y = -ARM_P - 8;
+            else if (pose.y > -ARM_P + 8)
+                pose.y = -ARM_P + 8;
             // 对象相对车体的偏角
             if (cnt == 3)
-                pose.pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
-                                    atan((x[1] - x[2]) / (y[1] - y[2])) +
-                                    atan((x[2] - x[0]) / (y[2] - y[0]))) /
-                                  3;
+                pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
+                               atan((x[1] - x[2]) / (y[1] - y[2])) +
+                               atan((x[2] - x[0]) / (y[2] - y[0]))) /
+                             3;
             else if (cnt == 2)
-                pose.pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
+                pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
+            else if (!rst)
+                pose.theta = last_pose.theta;
             else
-                pose.pose.theta = pose.not_change;
+                return false;
+            if (!rst)
+            {
+                if (abs(last_pose.x - pose.x) > 3)
+                    pose.x = last_pose.x + cv::sgn(pose.x - last_pose.x);
+                if (abs(last_pose.y - pose.y) > 3)
+                    pose.y = last_pose.y + cv::sgn(pose.y - last_pose.y);
+                if (Angle::degree(last_pose.theta - pose.theta) > 10)
+                    pose.theta = last_pose.theta + Angle(3).rad() *
+                                                       cv::sgn(pose.theta - last_pose.theta);
+            }
+            last_pose = pose;
             return true;
         }
         return false;
@@ -1047,15 +1062,10 @@ namespace my_hand_eye
         {
             if (pose)
             {
-                if (rst)
+                geometry_msgs::Pose2D p;
+                if (valid = get_pose(objArray, z_parking_area, p, rst))
                 {
-                    valid = set_color_order(objArray);
-                }
-                if (valid)
-                {
-                    Pose2DMightEnd pme;
-                    if (valid = get_pose(objArray, z_parking_area, pme, false))
-                        ROS_INFO_STREAM("x:" << pme.pose.x << " y:" << pme.pose.y << " theta:" << Angle::degree(pme.pose.theta));
+                    ROS_INFO_STREAM("x:" << p.x << " y:" << p.y << " theta:" << Angle::degree(p.theta));
                     if (rst)
                         rst = false;
                 }
@@ -1227,22 +1237,20 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        Pose2DMightEnd pme;
+        geometry_msgs::Pose2D p;
         double center_u, center_v;
         bool valid = detect_cargo(image_rect, objArray, debug_image, default_roi_);
         if (valid)
         {
             if (pose)
             {
-                valid = (rst && cargo_theta_.empty()) ? set_color_order(objArray) &&
-                                                            get_pose(objArray, z_ellipse, pme, true)
-                                                      : get_pose(objArray, z_ellipse, pme, true);
+                valid = get_pose(objArray, z_ellipse, p, (rst && cargo_theta_.empty()));
                 if (rst)
                 {
-                    if (valid && pme.pose.theta != pme.not_change)
+                    if (valid)
                     {
-                        cargo_theta_.push_back(pme.pose.theta);
-                        ROS_INFO_STREAM("theta: " << pme.pose.theta);
+                        cargo_theta_.push_back(p.theta);
+                        ROS_INFO_STREAM("theta: " << p.theta);
                         if (cargo_theta_.size() == MAX)
                         {
                             cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
@@ -1259,20 +1267,17 @@ namespace my_hand_eye
                 }
             }
             else
-                valid = get_center(objArray, center_u, center_v, pme.pose.x, pme.pose.y, true);
+                valid = get_center(objArray, center_u, center_v, p.x, p.y, true);
         }
         if (valid)
         {
-            target_pose.calc(pme.pose, msg, MAX);
+            target_pose.calc(p, msg, MAX);
             if (store)
             {
-                if (pme.pose.theta != pme.not_change)
-                {
-                    ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
-                    cargo_x_.push_back(msg.pose.x);
-                    cargo_y_.push_back(msg.pose.y);
-                    cargo_theta_.push_back(msg.pose.theta);
-                }
+                ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
+                cargo_x_.push_back(msg.pose.x);
+                cargo_y_.push_back(msg.pose.y);
+                cargo_theta_.push_back(msg.pose.theta);
             }
             else
             {
@@ -1316,19 +1321,15 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        Pose2DMightEnd pme;
-        bool valid = (rst && cargo_theta_.empty())
-                         ? detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                               set_color_order(objArray) &&
-                               get_pose(objArray, z_parking_area, pme, false)
-                         : detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                               get_pose(objArray, z_parking_area, pme, false);
+        geometry_msgs::Pose2D p;
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
+                     get_pose(objArray, z_parking_area, p, (rst && cargo_theta_.empty()));
         if (rst)
         {
-            if (valid && pme.pose.theta != pme.not_change)
+            if (valid)
             {
-                cargo_theta_.push_back(pme.pose.theta);
-                ROS_INFO_STREAM("theta: " << pme.pose.theta);
+                cargo_theta_.push_back(p.theta);
+                ROS_INFO_STREAM("theta: " << p.theta);
                 if (cargo_theta_.size() == MAX)
                 {
                     cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
@@ -1345,16 +1346,13 @@ namespace my_hand_eye
         }
         if (valid)
         {
-            target_pose.calc(pme.pose, msg, MAX);
+            target_pose.calc(p, msg, MAX);
             if (store)
             {
-                if (pme.pose.theta != pme.not_change)
-                {
-                    ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
-                    cargo_x_.push_back(msg.pose.x);
-                    cargo_y_.push_back(msg.pose.y);
-                    cargo_theta_.push_back(msg.pose.theta);
-                }
+                ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
+                cargo_x_.push_back(msg.pose.x);
+                cargo_y_.push_back(msg.pose.y);
+                cargo_theta_.push_back(msg.pose.theta);
             }
             else
             {
