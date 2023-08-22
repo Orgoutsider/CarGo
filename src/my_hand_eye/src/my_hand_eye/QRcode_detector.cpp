@@ -23,13 +23,20 @@ namespace my_hand_eye
 
 	void QRcodeDetector::Callback(const std_msgs::StringConstPtr &info)
 	{
-		NODELET_INFO_STREAM("info: " << info->data);
-		cv::Mat resImg(cv::Size(1920, 1080), CV_8UC3, cv::Scalar(100, 80, 60));
-		int ii = 0;
 		my_hand_eye::ArrayofTaskArrays arr;
 		arr.loop.reserve(2);
 		std::string str = info->data;
-		char num[7] = {'\0'};
+		if (str.size() != 7)
+		{
+			NODELET_WARN("String has invalid size %ld.", str.size());
+			return;
+		}
+		cv::Mat resImg(cv::Size(1920, 1080), CV_8UC3, cv::Scalar(100, 80, 60));
+		std::string num;
+		my_hand_eye::TaskArray tarr;
+		uint8_t task;
+		bool note[4] = {false};
+		int ii = 0;
 		for (size_t i = 0; i < str.size(); i++)
 		{
 			if (i != 3) // 不显示 +
@@ -38,21 +45,33 @@ namespace my_hand_eye
 				if (!flag_)
 					putText(resImg, txt_temp, cv::Point(ptx_info[ii] + txt_Xoffset, pty_info[ii] + txt_Yoffset),
 							cv::FONT_HERSHEY_PLAIN, txt_size, cv::Scalar::all(255), txt_thick, cv::FILLED, false);
-				num[ii++] = str[i];
+				if (str[i] < '1' || str[i] > '3')
+				{
+					NODELET_WARN("String has invalid characters %c.", str[i]);
+					return;
+				}
+				task = str[i] - '0';
+				if (note[task])
+				{
+					NODELET_WARN("String has duplicate characters %c.", str[i]);
+					return;
+				}
+				note[task] = true;
+				tarr.task[i % 3] = task;
+				ii++;
 			}
-		}
-		ii = 0;
-		for (int i = 0; i < 2; i++)
-		{
-			my_hand_eye::TaskArray tarr;
-			uint8_t task;
-			for (int j = 0; j < 3; j++)
+			else
 			{
-				task = num[ii++] - '0';
-				tarr.task[j] = task;
+				if (str[i] != '+')
+				{
+					NODELET_WARN("String miss the '+'");
+					return;
+				}
+				arr.loop.push_back(tarr);
+				memset(note, 0, sizeof(note));
 			}
-			arr.loop.push_back(tarr);
 		}
+		arr.loop.push_back(tarr);
 		// NODELET_INFO("Succeeded to detect QR Code!");
 		QR_code_publisher_.publish(arr);
 		if (flag_)
