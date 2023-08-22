@@ -278,7 +278,7 @@ namespace motion_controller
             }
             else
             {
-                // 
+                //
             }
         }
         if (state.toString() == "SUCCEEDED")
@@ -391,7 +391,8 @@ namespace motion_controller
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 follower_.startup = config.startup;
             }
-            if (dr_route_ == route_rest && !follower_.startup && follower_.has_started)
+            if ((dr_route_ == route_rest || dr_route_ == route_QR_code_board) &&
+                !follower_.startup && follower_.has_started)
             {
                 follower_.start(false);
             }

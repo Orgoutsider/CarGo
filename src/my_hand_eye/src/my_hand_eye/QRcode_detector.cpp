@@ -13,7 +13,7 @@ namespace my_hand_eye
 	{
 		nh_ = getNodeHandle();
 		pnh_ = getPrivateNodeHandle();
-
+		QR_code_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10, &QRcodeDetector::Callback, this);
 		QR_code_publisher_ =
 			nh_.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10,
 														  boost::bind(&QRcodeDetector::connectCallback, this),
@@ -23,6 +23,7 @@ namespace my_hand_eye
 
 	void QRcodeDetector::Callback(const std_msgs::StringConstPtr &info)
 	{
+		NODELET_INFO_STREAM("info: " << info->data);
 		cv::Mat resImg(cv::Size(1920, 1080), CV_8UC3, cv::Scalar(100, 80, 60));
 		int ii = 0;
 		my_hand_eye::ArrayofTaskArrays arr;
@@ -64,14 +65,7 @@ namespace my_hand_eye
 		flag_ = true;
 	}
 
-	void QRcodeDetector::connectCallback()
-	{
-		if (!QR_code_subscriber_ && QR_code_publisher_.getNumSubscribers() > 0)
-		{
-			NODELET_INFO("Connecting to barcode topic.");
-			QR_code_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10, &QRcodeDetector::Callback, this);
-		}
-	}
+	void QRcodeDetector::connectCallback() {}
 
 	void QRcodeDetector::disconnectCallback()
 	{

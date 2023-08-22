@@ -1,5 +1,5 @@
 <launch>
-    <arg name="camera_frame_id" default="eye" />
+    <arg name="camera_frame_id" default="front_camera" />
     <arg name="nodelet_manager" default="my_hand_eye_manager"/>
     <arg name="respawn" default="true"/>
   
@@ -20,5 +20,5 @@
         <arg name="camera" value="$(arg camera_frame_id)"/>
         <arg name="manager" value="$(arg nodelet_manager)"/>
         <arg name="respawn" value="$(arg respawn)"/>
-      </include>
+    </include>
 </launch>
