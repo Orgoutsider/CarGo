@@ -60,7 +60,7 @@ namespace my_hand_eye
 
 	void ArmServer::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
 	{
-		if (arm_goal_.route = arm_goal_.route_QR_code_board)
+		if (arm_goal_.route == arm_goal_.route_QR_code_board)
 		{
 			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
@@ -86,7 +86,7 @@ namespace my_hand_eye
 			return;
 
 		case arm_goal_.route_QR_code_board:
-			ROS_WARN("When using QR code. Please set given_QR_code to true");
+			ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
 			return;
 
 		case arm_goal_.route_raw_material_area:
