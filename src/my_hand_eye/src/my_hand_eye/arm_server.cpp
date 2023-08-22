@@ -64,6 +64,7 @@ namespace my_hand_eye
 		{
 			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			arm_controller_.ready_to_catch();
 		}
 		tasks_ = *task;
 		ROS_INFO_STREAM(

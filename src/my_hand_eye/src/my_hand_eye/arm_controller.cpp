@@ -1198,6 +1198,11 @@ namespace my_hand_eye
         return valid;
     }
 
+    void ArmController::ready_to_catch()
+    {
+        ps_.reset();
+    }
+
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                    sensor_msgs::ImagePtr &debug_image, bool pose, bool store)
     {

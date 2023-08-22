@@ -34,6 +34,11 @@
             <arg name="manager" value="$(arg nodelet_manager)" />
             <arg name="respawn" value="$(arg respawn)" />
         </include>
+
+        <include file="$(find my_hand_eye)/launch/front_camera.launch">
+            <arg name="nodelet_manager" value="$(arg nodelet_manager)" />
+            <arg name="respawn" value="$(arg respawn)" />
+        </include>
     </group>
     <node pkg="my_hand_eye" type="my_hand_eye_do_node" name="$(arg node_namespace)" output="screen">
 
