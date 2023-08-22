@@ -1,14 +1,18 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="node_namespace" default="my_hand_eye_do_node" />
-    <arg name="respawn" default="true"/>
-    <arg name="camera_name" default="/eye" />
     <arg name="ft_servo" default="ft_servo" />
-    <arg name="flag" default="false" />
     <arg name="show_detections" default="true" />
+    <arg name="camera_name" default="/eye" />
+    <arg name="nodelet_manager" default="my_hand_eye_manager" />
+    <arg name="flag" default="false" />
     <arg name="if_detect_QR_code" default="true" />
+    <arg name="debug" default="true" />
+    <arg name="respawn" default="false" />
     <arg name="if_emulation" default="true" />
+
+    <arg if="$(arg respawn)" name="bond" value="" />
+    <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
 
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
 
@@ -23,7 +27,7 @@
         <arg name="respawn" value="$(arg respawn)"/>
     </include>
 
-    <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector my_hand_eye_manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector my_hand_eye_manager $(arg bond)" output="screen"/>
 
     <node pkg="my_hand_eye" type="my_hand_eye_do_node" name="$(arg node_namespace)" output="screen">
         <!-- <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen"> -->
@@ -35,11 +39,14 @@
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
         <param name="if_detect_QR_code" type="bool" value="$(arg if_detect_QR_code)" />
-        <param name="flag" type="bool" value="$(arg flag)" />
-        <param name="white_vmin" type="int" value="160" />
+        <param name="white_vmin" type="int" value="120" />
         <param name="speed_standard_static" type="double" value="0.16" />
         <param name="speed_standard_motion" type="double" value="0.12" />
+        <param name="fThScoreScore" type="double" value="0.4" />
+        <param name="fMinReliability" type="double" value="0.4" />
+        <param name="flag" type="bool" value="$(arg flag)" />
         <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
+        <param name="debug" type="bool" value="$(arg debug)" />
     </node>
 
 </launch>
