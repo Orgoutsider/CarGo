@@ -31,6 +31,7 @@ namespace my_hand_eye
 		as_.registerGoalCallback(boost::bind(&ArmServer::goal_callback, this));
 		as_.registerPreemptCallback(boost::bind(&ArmServer::preempt_callback, this));
 		as_.start();
+		arm_goal_.route = arm_goal_.route_rest;
 	}
 
 	void ArmServer::next_task()
@@ -60,8 +61,10 @@ namespace my_hand_eye
 
 	void ArmServer::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
 	{
-		if (arm_goal_.route = arm_goal_.route_QR_code_board)
+		if (arm_goal_.route == arm_goal_.route_QR_code_board)
 		{
+			if (!as_.isActive())
+				return;
 			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
 			arm_controller_.ready_to_catch();
@@ -72,6 +75,7 @@ namespace my_hand_eye
 						 << unsigned(tasks_.loop[1].task[0]) << unsigned(tasks_.loop[1].task[1]) << unsigned(tasks_.loop[1].task[2]));
 		camera_image_subscriber_ =
 			it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
+		task_subscriber_.shutdown();
 	}
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
@@ -86,7 +90,7 @@ namespace my_hand_eye
 			return;
 
 		case arm_goal_.route_QR_code_board:
-			ROS_WARN("When using QR code. Please set given_QR_code to true");
+			ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
 			return;
 
 		case arm_goal_.route_raw_material_area:
