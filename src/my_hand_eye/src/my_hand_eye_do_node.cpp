@@ -4,10 +4,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "my_hand_eye_do_node");
 
-    ros::NodeHandle nh;
-    ros::NodeHandle pnh("~");
-
-    my_hand_eye::ArmServer server(nh, pnh);
+    my_hand_eye::ArmServer server;
 
     ros::spin();
 }

@@ -80,11 +80,18 @@ namespace my_hand_eye
 		cv::setWindowProperty("resImg", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
 		cv::resize(resImg, resImg, cv::Size(480, 640));
 		imshow("resImg", resImg);
-		cv::waitKey(100);
+		cv::waitKey(500);
 		flag_ = true;
 	}
 
-	void QRcodeDetector::connectCallback() {}
+	void QRcodeDetector::connectCallback()
+	{
+		if (!QR_code_subscriber_ && QR_code_publisher_.getNumSubscribers() > 0)
+		{
+			NODELET_INFO("Connecting to barcode topic.");
+			QR_code_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10, &QRcodeDetector::Callback, this);
+		}
+	}
 
 	void QRcodeDetector::disconnectCallback()
 	{

@@ -2,31 +2,31 @@
 
 namespace my_hand_eye
 {
-	ArmServer::ArmServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-		: arm_controller_(nh, pnh),
-		  as_(nh, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0)
+	ArmServer::ArmServer()
+		: pnh_("~"), arm_controller_(nh_, pnh_),
+		  as_(nh_, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
-			new image_transport::ImageTransport(nh));
-		pnh.param<std::string>("transport_hint", transport_hint_, "raw");
-		pnh.param<bool>("show_detections", arm_controller_.show_detections, false);
-		pnh.param<bool>("debug", debug_, false);
+			new image_transport::ImageTransport(nh_));
+		pnh_.param<std::string>("transport_hint", transport_hint_, "raw");
+		pnh_.param<bool>("show_detections", arm_controller_.show_detections, false);
+		pnh_.param<bool>("debug", debug_, false);
 		if (debug_)
 			dr_server_.setCallback(boost::bind(&ArmServer::dr_callback, this, _1, _2));
 		else
 			ROS_INFO("my_hand_eye_do_node: don't modify paramater");
-		bool given_QR_code = pnh.param<bool>("given_QR_code", true);
+		bool given_QR_code = pnh_.param<bool>("given_QR_code", true);
 		if (given_QR_code)
-			task_subscriber_ = nh.subscribe<my_hand_eye::ArrayofTaskArrays>(
+			task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
 				"/task", 10, &ArmServer::task_callback, this);
 		else
 			camera_image_subscriber_ =
 				it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
-		pose_publisher_ = nh.advertise<Pose2DMightEnd>("/vision_eye", 3);
+		pose_publisher_ = nh_.advertise<Pose2DMightEnd>("/vision_eye", 3);
 		if (arm_controller_.show_detections)
 		{
 			ROS_INFO("show debug image...");
-			debug_image_publisher_ = nh.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
+			debug_image_publisher_ = nh_.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
 		}
 		as_.registerGoalCallback(boost::bind(&ArmServer::goal_callback, this));
 		as_.registerPreemptCallback(boost::bind(&ArmServer::preempt_callback, this));
@@ -184,6 +184,9 @@ namespace my_hand_eye
 			break;
 
 		case arm_goal_.route_QR_code_board:
+			if (!task_subscriber_)
+				task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
+					"/task", 10, &ArmServer::task_callback, this);
 			break;
 
 		case arm_goal_.route_raw_material_area:
