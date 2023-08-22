@@ -140,15 +140,10 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 边界线查找
-		// static bool finish = false;
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// if (!finish)
-		// {
-		// 	double distance, yaw;
-		// 	arm_controller_.log_border(image_rect, debug_image);
-		// 	if (arm_controller_.show_detections && debug_image->height)
-		// 		debug_image_publisher_.publish(debug_image);
-		// }
+		// arm_controller_.log_border(image_rect, debug_image);
+		// if (arm_controller_.show_detections && debug_image->height)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// 停车区查找
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());

@@ -10,25 +10,26 @@ namespace my_hand_eye
     class BorderMethod
     {
     public:
+        void plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color, double width = 1);
+        double color_judge(cv::Vec2f &line, cv::Mat &thre_img);
         // 颜色增强函数
         cv::Mat saturation(cv::Mat &src, int percent);
         // 自适应阈值化查找车道边界
-        void LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
+        cv::Mat LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
         // 颜色inrange查找车道边界
-        void LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
+        cv::Mat LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
     };
 
     class Border : public BorderMethod
     {
     private:
         float theta_thr_horizontal_;
-        void plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color, double width = 1);
 
     public:
         Border();
         // 主函数
         bool detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect,
-                    boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
+                    boost::function<cv::Mat(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
                     bool show_detection, sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye
