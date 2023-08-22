@@ -5,7 +5,7 @@ namespace my_hand_eye
 {
     Border::Border() : theta_thr_horizontal_(16) {}
 
-    void Border::plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color, double width)
+    void BorderMethod::plot_line(cv::Mat &mat, double rho, double theta, cv::Scalar color, double width)
     {
         cv::Point pt1, pt2;
         double a = cos(theta), b = sin(theta);
@@ -15,6 +15,28 @@ namespace my_hand_eye
         pt2.x = cvRound(x0 - 1000 * (-b));
         pt2.y = cvRound(y0 - 1000 * (a));
         cv::line(mat, pt1, pt2, color, width, cv::LINE_AA);
+    }
+
+    double BorderMethod::color_judge(cv::Vec2f &line, cv::Mat &thre_img)
+    {
+        if (thre_img.empty())
+            return 0;
+        double rho = line[0], theta = line[1];
+        double rho_grey = rho + 3, rho_yellow = rho - 3;
+        cv::Mat line_grey = cv::Mat::zeros(thre_img.size(), CV_8UC1);
+        cv::Mat line_yellow = line_grey.clone();
+        plot_line(line_grey, rho_grey, theta, cv::Scalar(255), 3);
+        plot_line(line_yellow, rho_yellow, theta, cv::Scalar(255), 3);
+        // cv::imshow("line_grey", line_grey);
+        // cv::imshow("line_yellow", line_yellow);
+        // cv::waitKey(10);
+        cv::Mat mask_grey, mask_yellow;
+        cv::bitwise_and(line_grey, thre_img, mask_grey);
+        cv::subtract(line_yellow, thre_img, mask_yellow, cv::noArray(), CV_8UC1);
+        // cv::imshow("mask_grey", mask_grey);
+        // cv::imshow("mask_yellow", mask_yellow);
+        return 0.5 * ((cv::countNonZero(mask_grey) + 1.0) / (cv::countNonZero(line_grey) + 1.0) +
+                      (cv::countNonZero(mask_yellow) + 1.0) / (cv::countNonZero(line_yellow) + 1.0));
     }
 
     cv::Mat BorderMethod::saturation(cv::Mat &src, int percent)
@@ -69,18 +91,17 @@ namespace my_hand_eye
     }
 
     bool Border::detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect,
-                        boost::function<void(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
+                        boost::function<cv::Mat(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
                         bool show_detection, sensor_msgs::ImagePtr &debug_image)
     {
-        int f = 4;
+        int f = 2;
         cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / f);
         // cv::imshow("original", cv_image->image);
         // cv::waitKey(1);
         cv_image->image = saturation(cv_image->image, 100);                       // 饱和度调整参数，-100 — 100, 正数饱和度增强，负数饱和度减弱
-        cv::GaussianBlur(cv_image->image, cv_image->image, cv::Size(3, 3), 0, 0); // 滤波预处理
+        cv::GaussianBlur(cv_image->image, cv_image->image, cv::Size(5, 5), 0, 0); // 滤波预处理
         std::vector<cv::Vec2f> lines;
-        LBD(cv_image->image, lines);
-        cv::Mat b = cv_image->image.clone();
+        cv::Mat thre_img = LBD(cv_image->image, lines);
         border[0] = border[1] = 0;
         if (lines.empty())
         {
@@ -92,30 +113,22 @@ namespace my_hand_eye
         {
             double rho = line[0], theta = line[1];
             double theta_d = Angle::degree(theta);
-            if (abs(theta_d - 90) < theta_thr_horizontal_)
+            if (abs(theta_d - 90) < theta_thr_horizontal_ && color_judge(line, thre_img) > 0.5)
             {
                 border[0] += rho;
                 border[1] += theta;
                 cnt++;
                 if (show_detection)
                 {
-                    // 绘制蓝色
-                    plot_line(cv_image->image, rho, theta, cv::Scalar(255, 0, 0));
+                    // 绘制红色
+                    plot_line(cv_image->image, rho, theta, cv::Scalar(0, 0, 255), 1);
                 }
             }
             else if (show_detection)
             {
-                // 排除的直线绘制绿色
-                plot_line(cv_image->image, rho, theta, cv::Scalar(0, 255, 0));
+                // 排除的直线绘制黑色
+                plot_line(cv_image->image, rho, theta, cv::Scalar(0, 0, 0), 1);
             }
-        }
-        if (show_detection && !cv_image->image.empty())
-        {
-            // cv::imshow("Hough", cv_image->image);
-            plot_line(b, border[0], border[1], cv::Scalar(0, 0, 255));
-            // cv::waitKey(1);
-            // cv::imshow("border", b);
-            debug_image = cv_image->toImageMsg();
         }
         if (!cnt)
         {
@@ -124,51 +137,67 @@ namespace my_hand_eye
         }
         border[0] /= cnt;
         border[1] /= cnt;
+        if (show_detection && !cv_image->image.empty())
+        {
+            // cv::imshow("Hough", cv_image->image);
+            // 白色
+            plot_line(cv_image->image, border[0], border[1], cv::Scalar(255, 255, 255), 2);
+            // cv::waitKey(1);
+            // cv::imshow("border", b);
+            debug_image = cv_image->toImageMsg();
+        }
         // 对之前resize的恢复
         border[0] *= f;
         border[0] = border[0] + rect.x * cos(border[1]) + rect.y * sin(border[1]);
         return true;
     }
 
-    void BorderMethod::LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
+    cv::Mat BorderMethod::LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
     {
         using namespace cv;
         Mat gray;
         cvtColor(enhanced, gray, COLOR_BGR2GRAY);
         imshow("Gray", gray);
-        Mat ThreImg;
+        Mat ThreImg, edgeImg;
         adaptiveThreshold(gray, ThreImg, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 3, -1);
         Mat element = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
         morphologyEx(ThreImg, ThreImg, MORPH_CLOSE, element, Point(-1, -1), 3);
         imshow("Thresh", ThreImg);
 
-        Canny(enhanced, ThreImg, 50, 200, 3);
+        Canny(ThreImg, edgeImg, 50, 200, 3);
         imshow("edge", ThreImg);
 
         // Mat LineImg;
         // cvtColor(ThreImg, LineImg, COLOR_GRAY2BGR);
-        HoughLines(ThreImg, lines, 1, CV_PI / 180, threshold, 0, 0);
+        HoughLines(edgeImg, lines, 1, CV_PI / 180, threshold, 0, 0);
+        return ThreImg;
     }
 
-    void BorderMethod::LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
+    cv::Mat BorderMethod::LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
     {
         using namespace cv;
         Mat HSVImg;
-        cvtColor(enhanced, HSVImg, COLOR_BGR2HSV);
-        imshow("HSVImg", HSVImg);
+        cvtColor(enhanced, HSVImg, COLOR_BGR2HSV_FULL);
+        // imshow("HSVImg", HSVImg);
 
-        Scalar Boundary_low = Scalar(78, 0, 0);
-        Scalar Boundary_high = Scalar(179, 255, 255);
+        // Scalar Boundary_low = Scalar(78, 0, 0);
+        // Scalar Boundary_high = Scalar(179, 255, 255);
+        std::vector<Mat> HSV;
+        split(HSVImg, HSV);
         Mat RangeImg;
-        inRange(HSVImg, Boundary_low, Boundary_high, RangeImg);
-        imshow("RangeImg", RangeImg);
+        cv::threshold(HSV[0], RangeImg, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+        // imshow("RangeImg", RangeImg);
+        // inRange(HSVImg, Boundary_low, Boundary_high, RangeImg);
+        Mat element = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
+        morphologyEx(RangeImg, RangeImg, MORPH_CLOSE, element, Point(-1, -1), 3);
 
         Mat edgeImg;
         Canny(RangeImg, edgeImg, 50, 200, 3);
-        imshow("edge", edgeImg);
+        // imshow("edge", edgeImg);
 
         // Mat LineImg;
         // cvtColor(edgeImg, LineImg, COLOR_GRAY2BGR);
         HoughLines(edgeImg, lines, 1, CV_PI / 180, threshold, 0, 0);
+        return RangeImg;
     }
 } // namespace my_hand_eye

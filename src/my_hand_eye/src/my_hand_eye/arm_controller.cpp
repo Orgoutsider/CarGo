@@ -14,7 +14,7 @@ namespace my_hand_eye
           border_roi_(320, 0, 1280, 1080),
           ellipse_roi_(320, 540, 1280, 360),
           yaed_(new cv::CEllipseDetectorYaed()),
-          threshold(60), catched(false),
+          threshold(50), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
           z_palletize(11.3079),
@@ -32,7 +32,7 @@ namespace my_hand_eye
           border_roi_(320, 0, 1280, 1080),
           ellipse_roi_(320, 540, 1280, 360),
           yaed_(new cv::CEllipseDetectorYaed()),
-          threshold(60), catched(false),
+          threshold(50), catched(false),
           z_parking_area(1.40121),
           z_ellipse(4.58369),
           z_palletize(11.3079),
@@ -1174,7 +1174,7 @@ namespace my_hand_eye
         double distance = 0, yaw = 0;
         if (flag)
         {
-            ps_.reset(true);
+            // ps_.reset(true);
             ps_.look_down();
             flag = false;
             return false;
@@ -1371,8 +1371,9 @@ namespace my_hand_eye
         static bool last_finish = true;
         if (!msg.end && last_finish)
         {
-            ps_.reset(true);
+            // ps_.reset(true);
             ps_.look_down();
+            last_finish = false;
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -1391,7 +1392,10 @@ namespace my_hand_eye
         if (valid)
         {
             target_pose.calc(p, msg);
+            msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
         }
+        last_finish = msg.end;
         return valid;
     }
 
