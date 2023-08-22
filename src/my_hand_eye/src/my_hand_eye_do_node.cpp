@@ -1,4 +1,4 @@
-#include "my_hand_eye/my_eye.h"
+#include "my_hand_eye/arm_server.h"
 
 int main(int argc, char **argv)
 {
@@ -7,7 +7,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
-    my_hand_eye::MyEye my_eye(nh, pnh);
+    my_hand_eye::ArmServer server(nh, pnh);
 
     ros::spin();
 }

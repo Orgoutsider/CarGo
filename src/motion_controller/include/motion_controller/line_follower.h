@@ -1,6 +1,10 @@
 #ifndef _LINE_FOLLOWER_H_
 #define _LINE_FOLLOWER_H_
 
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+
 #include "motion_controller/field_guide.h"
 #include "motion_controller/pid_controller.h"
 
@@ -19,6 +23,7 @@ namespace motion_controller
         ros::Publisher cmd_vel_publisher_; // 底盘速度话题发布
         ros::Publisher theta_publisher_;   // 调试时使用，观察theta变化
         PIDController pid_;
+        boost::mutex mtx_;
 
     public:
         LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);

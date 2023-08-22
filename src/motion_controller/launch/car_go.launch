@@ -7,8 +7,8 @@
         <arg name="show_detections" value="true" />
         <arg name="camera_name" value="/eye" />
         <arg name="nodelet_manager" value="my_hand_eye_manager" />
-        <arg name="if_detect_QR_code" value="false" />
-        <arg name="if_emulation" value="true" />
+        <arg name="given_QR_code" value="false" />
+        <arg name="emulation" value="true" />
     </include>
 
     <!-- 开启机器人底层相关节点  -->

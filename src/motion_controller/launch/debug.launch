@@ -18,8 +18,8 @@
         <arg name="camera_name" value="/eye" />
         <arg name="nodelet_manager" value="my_hand_eye_manager" />
         <arg name="flag" value="false" />
-        <arg name="if_detect_QR_code" value="false" />
-        <arg name="if_emulation" value="false" />
+        <arg name="given_QR_code" value="false" />
+        <arg name="emulation" value="false" />
         <arg name="debug" value="true" />
     </include>
     <!-- 开启视觉pid节点 -->

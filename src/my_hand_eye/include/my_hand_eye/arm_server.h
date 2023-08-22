@@ -1,5 +1,5 @@
-#ifndef _MY_EYE_H_
-#define _MY_EYE_H_
+#ifndef _ARM_SERVER_H_
+#define _ARM_SERVER_H_
 
 #include <actionlib/server/simple_action_server.h>
 #include <dynamic_reconfigure/server.h>
@@ -13,7 +13,7 @@ namespace my_hand_eye
 {
     typedef actionlib::SimpleActionServer<my_hand_eye::ArmAction> Server;
 
-    class MyEye
+    class ArmServer
     {
     private:
         bool debug_;
@@ -54,9 +54,9 @@ namespace my_hand_eye
         void dr_callback(drConfig &config, uint32_t level);
 
     public:
-        MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh);
+        ArmServer(ros::NodeHandle &nh, ros::NodeHandle &pnh);
     };
 
 } // namespace my_hand_eye
 
-#endif // !_MY_EYE_H_
+#endif // !_ARM_SERVER_H_

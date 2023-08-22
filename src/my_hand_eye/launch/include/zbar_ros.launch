@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-    <arg name="camera" default="eye"/>
+    <arg name="camera" default="front_camera"/>
 
     <arg name="manager" default="my_hand_eye_manager"/>
     <!-- Must be globally qualified -->

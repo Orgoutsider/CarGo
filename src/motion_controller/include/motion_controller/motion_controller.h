@@ -1,9 +1,6 @@
 #ifndef _MOTION_CONTROLLER_H_
 #define _MOTION_CONTROLLER_H_
 
-#include <boost/thread/lock_guard.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/TransformStamped.h>

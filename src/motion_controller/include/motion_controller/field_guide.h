@@ -25,10 +25,11 @@ namespace motion_controller
         bool left_;                  // 移动方向，是否逆时针（左转）
         int loop_;                   // 当前为第几轮
         double length_car_;          // 车长
+        double width_car_;           // 车宽
         double width_road_;          // 路宽
         double length_parking_area_; // 停车区长宽
-        double y_road_up_up_;        // 从停车区上侧挡板到上路上沿
-        double x_QR_code_board_;     // 二维码板
+        double x_road_up_up_;        // 从停车区上侧挡板到上路上沿
+        double y_QR_code_board_;     // 二维码板
         double y_parking_area_;      // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
         FieldGuide();
         int where_is_car(bool debug, bool startup = false) const;
@@ -36,7 +37,7 @@ namespace motion_controller
         void doing();
         // 当前任务已完成，接下一任务，更新loop_
         void finished();
-        bool arrived() const;
+        bool arrived(bool debug, bool startup = false) const;
         // 下一路段没有任务，可以直接转弯
         bool can_turn() const;
         // 位于任务点所在道路，距离下一任务点的距离

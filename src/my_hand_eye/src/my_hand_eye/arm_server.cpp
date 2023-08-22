@@ -1,8 +1,8 @@
-#include <my_hand_eye/my_eye.h>
+#include "my_hand_eye/arm_server.h"
 
 namespace my_hand_eye
 {
-	MyEye::MyEye(ros::NodeHandle &nh, ros::NodeHandle &pnh)
+	ArmServer::ArmServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 		: arm_controller_(nh, pnh),
 		  as_(nh, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0)
 	{
@@ -12,34 +12,34 @@ namespace my_hand_eye
 		pnh.param<bool>("show_detections", arm_controller_.show_detections, false);
 		pnh.param<bool>("debug", debug_, false);
 		if (debug_)
-			dr_server_.setCallback(boost::bind(&MyEye::dr_callback, this, _1, _2));
+			dr_server_.setCallback(boost::bind(&ArmServer::dr_callback, this, _1, _2));
 		else
 			ROS_INFO("my_hand_eye_do_node: don't modify paramater");
-		bool if_detect_QR_code = pnh.param<bool>("if_detect_QR_code", true);
-		if (if_detect_QR_code)
+		bool given_QR_code = pnh.param<bool>("given_QR_code", true);
+		if (given_QR_code)
 			task_subscriber_ = nh.subscribe<my_hand_eye::ArrayofTaskArrays>(
-				"/task", 10, &MyEye::task_callback, this);
+				"/task", 10, &ArmServer::task_callback, this);
 		else
 			camera_image_subscriber_ =
-				it_->subscribe<MyEye>("image_rect", 1, &MyEye::image_callback, this, image_transport::TransportHints(transport_hint_));
+				it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
 		pose_publisher_ = nh.advertise<Pose2DMightEnd>("/vision_eye", 3);
 		if (arm_controller_.show_detections)
 		{
 			ROS_INFO("show debug image...");
 			debug_image_publisher_ = nh.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
 		}
-		as_.registerGoalCallback(boost::bind(&MyEye::goal_callback, this));
-		as_.registerPreemptCallback(boost::bind(&MyEye::preempt_callback, this));
+		as_.registerGoalCallback(boost::bind(&ArmServer::goal_callback, this));
+		as_.registerPreemptCallback(boost::bind(&ArmServer::preempt_callback, this));
 		as_.start();
 	}
 
-	void MyEye::next_task()
+	void ArmServer::next_task()
 	{
 		if ((++task_idx_) >= 3)
 			task_idx_ = 0;
 	}
 
-	Color MyEye::which_color(bool next) const
+	Color ArmServer::which_color(bool next) const
 	{
 		switch (tasks_.loop[arm_goal_.loop].task[(task_idx_ + next) >= 3 ? 0 : (task_idx_ + next)])
 		{
@@ -58,17 +58,22 @@ namespace my_hand_eye
 		}
 	}
 
-	void MyEye::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
+	void ArmServer::task_callback(const my_hand_eye::ArrayofTaskArraysConstPtr &task)
 	{
+		if (arm_goal_.route = arm_goal_.route_QR_code_board)
+		{
+			arm_goal_.route = arm_goal_.route_rest;
+			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+		}
 		tasks_ = *task;
 		ROS_INFO_STREAM(
 			"Get tasks:" << unsigned(tasks_.loop[0].task[0]) << unsigned(tasks_.loop[0].task[1]) << unsigned(tasks_.loop[0].task[2]) << "+"
 						 << unsigned(tasks_.loop[1].task[0]) << unsigned(tasks_.loop[1].task[1]) << unsigned(tasks_.loop[1].task[2]));
 		camera_image_subscriber_ =
-			it_->subscribe<MyEye>("image_rect", 1, &MyEye::image_callback, this, image_transport::TransportHints(transport_hint_));
+			it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
 	}
 
-	void MyEye::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
+	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
 		if (!as_.isActive())
 			return;
@@ -77,6 +82,10 @@ namespace my_hand_eye
 		switch (arm_goal_.route)
 		{
 		case arm_goal_.route_rest:
+			return;
+
+		case arm_goal_.route_QR_code_board:
+			ROS_WARN("When using QR code. Please set given_QR_code to true");
 			return;
 
 		case arm_goal_.route_raw_material_area:
@@ -153,7 +162,7 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 	}
 
-	void MyEye::goal_callback()
+	void ArmServer::goal_callback()
 	{
 		// if (as_.isPreemptRequested() || !ros::ok())
 		// {
@@ -167,6 +176,9 @@ namespace my_hand_eye
 		{
 		case arm_goal_.route_border:
 			arm_controller_.target_pose.target = arm_controller_.target_pose.target_border;
+			break;
+
+		case arm_goal_.route_QR_code_board:
 			break;
 
 		case arm_goal_.route_raw_material_area:
@@ -190,7 +202,7 @@ namespace my_hand_eye
 		}
 	}
 
-	void MyEye::preempt_callback()
+	void ArmServer::preempt_callback()
 	{
 		ROS_ERROR("Arm Preempt Requested!");
 		// 不正常现象，需要停止所有与底盘相关的联系，避免后续受到影响
@@ -198,7 +210,7 @@ namespace my_hand_eye
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 	}
 
-	void MyEye::cancel_all()
+	void ArmServer::cancel_all()
 	{
 		if (!finish_adjusting_)
 		{
@@ -224,8 +236,8 @@ namespace my_hand_eye
 			arm_goal_.route = arm_goal_.route_rest;
 	}
 
-	bool MyEye::operate_center(const sensor_msgs::ImageConstPtr &image_rect,
-							   sensor_msgs::ImagePtr &debug_image)
+	bool ArmServer::operate_center(const sensor_msgs::ImageConstPtr &image_rect,
+								   sensor_msgs::ImagePtr &debug_image)
 	{
 		if (finish_)
 		{
@@ -293,8 +305,8 @@ namespace my_hand_eye
 		return valid;
 	}
 
-	bool MyEye::operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
-								sensor_msgs::ImagePtr &debug_image)
+	bool ArmServer::operate_ellipse(const sensor_msgs::ImageConstPtr &image_rect,
+									sensor_msgs::ImagePtr &debug_image)
 	{
 		if (finish_)
 		{
@@ -396,8 +408,8 @@ namespace my_hand_eye
 		return valid;
 	}
 
-	bool MyEye::operate_border(const sensor_msgs::ImageConstPtr &image_rect,
-							   sensor_msgs::ImagePtr &debug_image)
+	bool ArmServer::operate_border(const sensor_msgs::ImageConstPtr &image_rect,
+								   sensor_msgs::ImagePtr &debug_image)
 	{
 		if (finish_)
 		{
@@ -447,7 +459,7 @@ namespace my_hand_eye
 		return valid;
 	}
 
-	void MyEye::dr_callback(drConfig &config, uint32_t level)
+	void ArmServer::dr_callback(drConfig &config, uint32_t level)
 	{
 		if (arm_controller_.z_parking_area != config.z_parking_area)
 			arm_controller_.z_parking_area = config.z_parking_area;

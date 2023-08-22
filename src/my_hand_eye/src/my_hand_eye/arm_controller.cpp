@@ -53,7 +53,7 @@ namespace my_hand_eye
 
     void ArmController::init(ros::NodeHandle &nh, ros::NodeHandle &pnh)
     {
-        emulation_ = pnh.param<bool>("if_emulation", false);
+        emulation_ = pnh.param<bool>("emulation", false);
         if (emulation_)
         {
             plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
