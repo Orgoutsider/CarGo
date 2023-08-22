@@ -57,7 +57,7 @@ namespace my_hand_eye
 					return;
 				}
 				note[task] = true;
-				tarr.task[i % 3] = task;
+				tarr.task[ii % 3] = task;
 				ii++;
 			}
 			else
