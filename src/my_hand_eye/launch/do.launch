@@ -5,8 +5,8 @@
     <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="flag" default="false" />
-    <arg name="if_detect_QR_code" default="false" />
-    <arg name="if_emulation" default="false" />
+    <arg name="given_QR_code" default="false" />
+    <arg name="emulation" default="false" />
     <arg name="debug" default="true" />
     <arg name="respawn" default="false" />
 
@@ -14,19 +14,31 @@
     <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
 
     <include file="$(find my_hand_eye)/launch/eye.launch">
-        <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
-        <arg name="respawn" value="$(arg respawn)"/>
+        <arg name="nodelet_manager" value="$(arg nodelet_manager)" />
+        <arg name="respawn" value="$(arg respawn)" />
     </include>
-    <include file="$(find my_hand_eye)/launch/include/yolov5.launch" >
+    <include file="$(find my_hand_eye)/launch/include/yolov5.launch">
         <arg name="debug" value="false" />
     </include>
 
     <!-- Set parameters -->
     <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
 
-    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
-    <group if="$(arg if_detect_QR_code)">
-        <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager) $(arg bond)" respawn="$(arg respawn)"  output="screen" />
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen" />
+    <group if="$(arg given_QR_code)">
+        <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node"
+            args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager) $(arg bond)"
+            respawn="$(arg respawn)" output="screen" />
+
+        <include file="$(find my_hand_eye)/launch/include/zbar_ros.launch">
+            <arg name="manager" value="$(arg nodelet_manager)" />
+            <arg name="respawn" value="$(arg respawn)" />
+        </include>
+
+        <include file="$(find my_hand_eye)/launch/front_camera.launch">
+            <arg name="nodelet_manager" value="$(arg nodelet_manager)" />
+            <arg name="respawn" value="$(arg respawn)" />
+        </include>
     </group>
     <node pkg="my_hand_eye" type="my_hand_eye_do_node" name="$(arg node_namespace)" output="screen">
 
@@ -36,14 +48,14 @@
         <param name="transport_hint" type="string" value="raw" />
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
-        <param name="if_detect_QR_code" type="bool" value="$(arg if_detect_QR_code)" />
+        <param name="given_QR_code" type="bool" value="$(arg given_QR_code)" />
         <param name="white_vmin" type="int" value="120" />
         <param name="speed_standard_static" type="double" value="0.16" />
         <param name="speed_standard_motion" type="double" value="0.12" />
         <param name="fThScoreScore" type="double" value="0.4" />
         <param name="fMinReliability" type="double" value="0.4" />
         <param name="flag" type="bool" value="$(arg flag)" />
-        <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
+        <param name="emulation" type="bool" value="$(arg emulation)" />
         <param name="debug" type="bool" value="$(arg debug)" />
     </node>
 </launch>

@@ -53,7 +53,7 @@ namespace my_hand_eye
 
     void ArmController::init(ros::NodeHandle &nh, ros::NodeHandle &pnh)
     {
-        emulation_ = pnh.param<bool>("if_emulation", false);
+        emulation_ = pnh.param<bool>("emulation", false);
         if (emulation_)
         {
             plot_client_ = nh.serviceClient<my_hand_eye::Plot>("height_plot");
@@ -1196,6 +1196,11 @@ namespace my_hand_eye
             ROS_INFO_STREAM("distance: " << distance << " yaw: " << Angle::degree(yaw));
         }
         return valid;
+    }
+
+    void ArmController::ready_to_catch()
+    {
+        ps_.reset();
     }
 
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,

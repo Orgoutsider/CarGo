@@ -6,10 +6,10 @@
     <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="flag" default="false" />
-    <arg name="if_detect_QR_code" default="true" />
+    <arg name="given_QR_code" default="true" />
     <arg name="debug" default="true" />
     <arg name="respawn" default="false" />
-    <arg name="if_emulation" default="true" />
+    <arg name="emulation" default="true" />
 
     <arg if="$(arg respawn)" name="bond" value="" />
     <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
@@ -38,14 +38,14 @@
         <param name="transport_hint" type="string" value="raw" />
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
-        <param name="if_detect_QR_code" type="bool" value="$(arg if_detect_QR_code)" />
+        <param name="given_QR_code" type="bool" value="$(arg given_QR_code)" />
         <param name="white_vmin" type="int" value="120" />
         <param name="speed_standard_static" type="double" value="0.16" />
         <param name="speed_standard_motion" type="double" value="0.12" />
         <param name="fThScoreScore" type="double" value="0.4" />
         <param name="fMinReliability" type="double" value="0.4" />
         <param name="flag" type="bool" value="$(arg flag)" />
-        <param name="if_emulation" type="bool" value="$(arg if_emulation)" />
+        <param name="emulation" type="bool" value="$(arg emulation)" />
         <param name="debug" type="bool" value="$(arg debug)" />
     </node>
 

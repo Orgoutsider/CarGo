@@ -116,13 +116,11 @@ namespace motion_controller
                     if (!follower_.has_started)
                     {
                         set_position(0, 0, 0);
-                        boost::lock_guard<boost::mutex> lk(mtx_);
                         follower_.start(true, theta_);
                     }
                     if (get_position())
                     {
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_);
-                        boost::lock_guard<boost::mutex> lk(mtx_);
                         follower_.follow(theta_, event.current_real);
                     }
                     return;
@@ -131,6 +129,11 @@ namespace motion_controller
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                if (goal.route == route_QR_code_board && !follower_.has_started)
+                {
+                    set_position(-(x_road_up_up_ + width_road_ / 2 - length_car_ / 2), width_car_ / 2, 0);
+                    follower_.start(true, theta_);
+                }
                 flag = false;
             }
             else if (!follower_.startup && !flag)
@@ -140,6 +143,22 @@ namespace motion_controller
             else if (dr_route_ == route_raw_material_area && follower_.startup && !flag)
             {
                 _move_with_vision();
+            }
+            else if (dr_route_ == route_QR_code_board && follower_.startup && !flag)
+            {
+                if (get_position())
+                {
+                    if (arrived(follower_.debug, follower_.startup) && follower_.has_started && ac_arm_.getState().toString() != "SUCCEEDED")
+                    {
+                        ROS_INFO("Shut down by timer.");
+                        follower_.start(false, theta_);
+                    }
+                    if (follower_.has_started)
+                    {
+                        ROS_INFO_STREAM("x:" << x_ << " y:" << y_);
+                        follower_.follow(theta_, event.current_real);
+                    }
+                }
             }
         }
         else if (get_position())
@@ -152,7 +171,7 @@ namespace motion_controller
             //         follower_.start(false);
             //     finish_turning_ = false;
             // }
-            if (arrived())
+            if (arrived(follower_.debug, follower_.startup))
             {
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
@@ -175,7 +194,8 @@ namespace motion_controller
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
-            (where_is_car(follower_.debug, follower_.startup) != route_raw_material_area))
+            (where_is_car(follower_.debug, follower_.startup) != route_raw_material_area) &&
+            where_is_car(follower_.debug, follower_.startup != route_QR_code_board))
             timer_.stop();
         // if (where_is_car() == route_raw_material_area && loop_ == 1)
         //     _U_turn();
@@ -246,10 +266,33 @@ namespace motion_controller
         {
             ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
         }
+        else if (where_is_car(follower_.debug, follower_.startup) == route_QR_code_board)
+        {
+            if (follower_.debug)
+            {
+                if (follower_.has_started)
+                {
+                    follower_.start(false, theta_);
+                    ROS_INFO("Shut down by done cb.");
+                }
+            }
+            else
+            {
+                // 
+            }
+        }
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());
         else
             ROS_ERROR_STREAM("*** Arm finished: " << state.toString());
+        if (!follower_.debug)
+        {
+            // follower_.start(true);
+            if (!timer_.hasStarted())
+                timer_.start();
+            boost::lock_guard<boost::mutex> lk(mtx_);
+            finished();
+        }
 
         // if (where_is_car() == route_raw_material_area || where_is_car() == route_roughing_area)
         //     follower_.start(true);
@@ -276,15 +319,6 @@ namespace motion_controller
         //         ROS_INFO_STREAM("Finish! x: " << x_ << " y: " << y_);
         //     return;
         // }
-
-        if (!follower_.debug)
-        {
-            boost::lock_guard<boost::mutex> lk(mtx_);
-            finished();
-            // follower_.start(true);
-            if (!timer_.hasStarted())
-                timer_.start();
-        }
     }
 
     void MotionController::_move_active_callback(){};
@@ -350,12 +384,7 @@ namespace motion_controller
 
     void MotionController::_dr_callback(routeConfig &config, uint32_t level)
     {
-        // boost::lock_guard对象构造时，自动调用mtx.lock()进行上锁
-        // boost::lock_guard对象析构时，自动调用mtx.unlock()释放锁
-        {
-            boost::lock_guard<boost::mutex> lk(mtx_);
-            follower_.dr(config);
-        }
+        follower_.dr(config);
         if (follower_.startup != config.startup)
         {
             {
@@ -364,7 +393,6 @@ namespace motion_controller
             }
             if (dr_route_ == route_rest && !follower_.startup && follower_.has_started)
             {
-                boost::lock_guard<boost::mutex> lk(mtx_);
                 follower_.start(false);
             }
             if (!follower_.startup)
@@ -507,19 +535,19 @@ namespace motion_controller
     bool MotionController::go(Go::Request &req, Go::Response &res)
     {
         ac_move_.waitForServer();
-        if (!set_position(length_car_ / 2, length_car_ / 2, 0))
+        if (!set_position(-length_car_ / 2, width_car_ / 2, 0))
         {
             ROS_ERROR("Failed to initialize position!");
             return false;
         }
         // 横向移动出停止区
         motion_controller::MoveGoal goal1;
-        goal1.pose.y = y_road_up_up_ + width_road_ / 2 - length_car_ / 2;
+        goal1.pose.x = -(x_road_up_up_ + width_road_ / 2 - length_car_ / 2);
         ac_move_.sendGoalAndWait(goal1, ros::Duration(10), ros::Duration(0.1));
         // 直接前进到二维码板
-        motion_controller::MoveGoal goal2;
-        goal2.pose.x = x_QR_code_board_ - length_car_ / 2;
-        ac_move_.sendGoalAndWait(goal2, ros::Duration(17), ros::Duration(0.1));
+        // motion_controller::MoveGoal goal2;
+        // goal2.pose.x = x_QR_code_board_ - length_car_ / 2;
+        // ac_move_.sendGoalAndWait(goal2, ros::Duration(17), ros::Duration(0.1));
         timer_.start();
         return true;
     }

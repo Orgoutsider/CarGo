@@ -15,10 +15,10 @@ namespace motion_controller
         dr_route_(route_rest),
         doing_(false), where_(0), left_(true),
         x_(0), y_(0), theta_(0), loop_(0),
-        length_car_(0.296), width_road_(0.45), length_field_(2),
-        x_QR_code_board_(0.8), x_raw_material_area_(1.59),
+        length_car_(0.28), width_car_(0.26), width_road_(0.45), length_field_(2),
+        y_QR_code_board_(0.8), x_raw_material_area_(1.59),
         y_roughing_area_(1.15), x_semi_finishing_area_(1.2),
-        length_parking_area_(0.3), y_road_up_up_(0.078), y_parking_area_(0.7) {}
+        length_parking_area_(0.3), x_road_up_up_(0.078), y_parking_area_(0.7) {}
 
   int FieldGuide::where_is_car(bool debug, bool startup) const
   {
@@ -48,26 +48,26 @@ namespace motion_controller
       ROS_WARN("route_ is out of range!");
   }
 
-  bool FieldGuide::arrived() const
+  bool FieldGuide::arrived(bool debug, bool startup) const
   {
     if (doing_)
       return false;
-    switch (where_is_car(false))
+    switch (where_is_car(debug, startup))
     {
     case route_QR_code_board:
-      return x_ > x_QR_code_board_ - 0.1 && y_ < y_road_up_up_ + width_road_ - length_car_ / 2;
+      return y_ > y_QR_code_board_ - 0.02 && x_ > -(x_road_up_up_ + width_road_ - length_car_ / 2);
 
     case route_raw_material_area:
-      return abs(x_ - x_raw_material_area_) < 0.1 && y_ < y_road_up_up_ + width_road_ - length_car_ / 2;
+      return abs(x_ - x_raw_material_area_) < 0.02 && y_ < x_road_up_up_ + width_road_ - length_car_ / 2;
 
     case route_roughing_area:
-      return y_ > y_roughing_area_ - 0.1 && x_ > length_field_ - width_road_ + length_car_ / 2;
+      return y_ > y_roughing_area_ - 0.02 && x_ > length_field_ - width_road_ + length_car_ / 2;
 
     case route_semi_finishing_area:
-      return x_ < x_semi_finishing_area_ + 0.1 && y_ > y_road_up_up_ + length_field_ - width_road_ + length_car_ / 2;
+      return x_ < x_semi_finishing_area_ + 0.02 && y_ > x_road_up_up_ + length_field_ - width_road_ + length_car_ / 2;
 
     case route_parking_area:
-      return y_ < y_parking_area_ + 0.1 && x_ < width_road_ - length_car_ / 2;
+      return y_ < y_parking_area_ + 0.02 && x_ < width_road_ - length_car_ / 2;
 
     default:
       ROS_ERROR("where_is_car returns invalid value!");
@@ -77,7 +77,7 @@ namespace motion_controller
 
   bool FieldGuide::can_turn() const
   {
-    return (loop_ == 1 && y_ > y_road_up_up_ + width_road_ && where_is_car(false) == route_raw_material_area);
+    return (loop_ == 1 && y_ > x_road_up_up_ + width_road_ && where_is_car(false) == route_raw_material_area);
   }
 
   double FieldGuide::length_route() const
@@ -85,7 +85,7 @@ namespace motion_controller
     switch (where_is_car(false))
     {
     case route_QR_code_board:
-      return abs(x_QR_code_board_ - x_);
+      return abs(y_QR_code_board_ - x_);
 
     case route_raw_material_area:
       return abs(x_raw_material_area_ - x_);
@@ -108,9 +108,9 @@ namespace motion_controller
   double FieldGuide::length_corner() const
   {
     int n = 0;
-    if (y_ < y_road_up_up_ + width_road_ - length_car_ / 2) // 上
+    if (y_ < x_road_up_up_ + width_road_ - length_car_ / 2) // 上
       n += 1;
-    else if (y_ > y_road_up_up_ + length_field_ - width_road_ + length_car_ / 2) // 下
+    else if (y_ > x_road_up_up_ + length_field_ - width_road_ + length_car_ / 2) // 下
       n += 2;
     if (x_ < width_road_ - length_car_ / 2) // 右
       n += 5;
@@ -120,7 +120,7 @@ namespace motion_controller
     {
     case 6:
       if (left_)
-        return y_ - (y_road_up_up_ + width_road_ / 2);
+        return y_ - (x_road_up_up_ + width_road_ / 2);
       else
         return x_ - width_road_ / 2;
 
@@ -128,11 +128,11 @@ namespace motion_controller
       if (left_)
         return (length_field_ - width_road_ / 2) - x_;
       else
-        return y_ - (y_road_up_up_ + width_road_ / 2);
+        return y_ - (x_road_up_up_ + width_road_ / 2);
 
     case 12:
       if (left_)
-        return (y_road_up_up_ + length_field_ - width_road_ / 2) - y_;
+        return (x_road_up_up_ + length_field_ - width_road_ / 2) - y_;
       else
         return (length_field_ - width_road_ / 2) - x_;
 
@@ -140,7 +140,7 @@ namespace motion_controller
       if (left_)
         return x_ - width_road_ / 2;
       else
-        return (y_road_up_up_ + length_field_ - width_road_ / 2) - y_;
+        return (x_road_up_up_ + length_field_ - width_road_ / 2) - y_;
 
     default:
       ROS_WARN("Car is not in the corner. Do not use length_corner.");
@@ -151,9 +151,9 @@ namespace motion_controller
   double FieldGuide::angle_corner() const
   {
     int n = 0;
-    if (y_ < y_road_up_up_ + width_road_) // 上
+    if (y_ < x_road_up_up_ + width_road_) // 上
       n += 1;
-    else if (y_ > y_road_up_up_ + length_field_ - width_road_) // 下
+    else if (y_ > x_road_up_up_ + length_field_ - width_road_) // 下
       n += 2;
     if (x_ < width_road_) // 右
       n += 5;
