@@ -7,20 +7,16 @@
         <arg name="show_detections" value="true" />
         <arg name="camera_name" value="/eye" />
         <arg name="nodelet_manager" value="my_hand_eye_manager" />
-        <arg name="given_QR_code" value="false" />
-        <arg name="emulation" value="true" />
+        <arg name="flag" value="false" />
+        <arg name="given_QR_code" value="true" />
+        <arg name="emulation" value="false" />
+        <arg name="debug" value="false" />
     </include>
 
     <!-- 开启机器人底层相关节点  -->
     <include file="$(find turn_on_wheeltec_robot)/launch/turn_on_wheeltec_robot.launch" />
     <!-- 开启执行节点  -->
     <include file="$(find motion_controller)/launch/nodes/performer.launch" />
-    <!-- 开启摄像头 -->
-    <include file="$(find turn_on_wheeltec_robot)/launch/wheeltec_camera.launch" />
-    <!-- 循线节点 -->
-    <include file="$(find motion_controller)/launch/nodes/follower.launch">
-        <arg name="debug" value="false" />
-    </include>
     <!-- 运动控制节点 -->
     <include file="$(find motion_controller)/launch/nodes/controller.launch">
         <arg name="debug" value="false" />

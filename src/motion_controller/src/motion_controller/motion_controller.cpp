@@ -23,83 +23,83 @@ namespace motion_controller
         }
     }
 
-    bool MotionController::_turn()
-    {
-        ac_move_.waitForServer();
-        // 矫正pid结束位置与转弯位置的8cm误差
-        motion_controller::MoveGoal goal1;
-        goal1.pose.x = 0.08;
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(8), ros::Duration(0.1));
-        motion_controller::MoveGoal goal2;
-        if (get_position())
-        {
-            goal2.pose.theta = angle_corner();
-            if (goal2.pose.theta == 0)
-            {
-                // 未到达弯道，重启弯道订阅者
-                return false;
-            }
-        }
-        else
-            goal2.pose.theta = left_ ? M_PI / 2 : -M_PI / 2;
-        // 转弯后前进一段距离
-        goal2.pose.y = left_ ? 0.1 : -0.1;
-        ac_move_.sendGoalAndWait(goal2, ros::Duration(13), ros::Duration(0.1));
-        boost::lock_guard<boost::mutex> lk(mtx_);
-        // 转弯后定时器将订阅关闭
-        finish_turning_ = true;
-        return true;
-    }
+    // bool MotionController::_turn()
+    // {
+    //     ac_move_.waitForServer();
+    //     // 矫正pid结束位置与转弯位置的8cm误差
+    //     motion_controller::MoveGoal goal1;
+    //     goal1.pose.x = 0.08;
+    //     ac_move_.sendGoalAndWait(goal1, ros::Duration(8), ros::Duration(0.1));
+    //     motion_controller::MoveGoal goal2;
+    //     if (get_position())
+    //     {
+    //         goal2.pose.theta = angle_corner();
+    //         if (goal2.pose.theta == 0)
+    //         {
+    //             // 未到达弯道，重启弯道订阅者
+    //             return false;
+    //         }
+    //     }
+    //     else
+    //         goal2.pose.theta = left_ ? M_PI / 2 : -M_PI / 2;
+    //     // 转弯后前进一段距离
+    //     goal2.pose.y = left_ ? 0.1 : -0.1;
+    //     ac_move_.sendGoalAndWait(goal2, ros::Duration(13), ros::Duration(0.1));
+    //     boost::lock_guard<boost::mutex> lk(mtx_);
+    //     // 转弯后定时器将订阅关闭
+    //     finish_turning_ = true;
+    //     return true;
+    // }
 
-    void MotionController::_U_turn()
-    {
-        ac_move_.waitForServer();
-        motion_controller::MoveGoal goal;
-        goal.pose.theta = angle_U_turn();
-        if (!goal.pose.theta)
-            goal.pose.theta = M_PI;
-        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-        boost::lock_guard<boost::mutex> lk(mtx_);
-        // 需要改变之后的转弯方向
-        left_ = !left_;
-    }
+    // void MotionController::_U_turn()
+    // {
+    //     ac_move_.waitForServer();
+    //     motion_controller::MoveGoal goal;
+    //     goal.pose.theta = angle_U_turn();
+    //     if (!goal.pose.theta)
+    //         goal.pose.theta = M_PI;
+    //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+    //     boost::lock_guard<boost::mutex> lk(mtx_);
+    //     // 需要改变之后的转弯方向
+    //     left_ = !left_;
+    // }
 
-    bool MotionController::_turn_by_position()
-    {
-        ac_move_.waitForServer();
-        if (get_position())
-        {
-            // 矫正误差
-            motion_controller::MoveGoal goal1;
-            goal1.pose.x = length_corner();
-            if (goal1.pose.x)
-            {
-                ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
-                ROS_WARN("Turn by position ...");
-            }
-            else
-                return false;
-        }
-        motion_controller::MoveGoal goal2;
-        if (get_position())
-        {
-            goal2.pose.theta = angle_corner();
-            if (goal2.pose.theta == 0)
-            {
-                // 未到达弯道，重启弯道订阅者
-                return false;
-            }
-        }
-        else
-            goal2.pose.theta = left_ ? M_PI / 2 : -M_PI / 2;
-        // 转弯后前进一段距离
-        goal2.pose.y = left_ ? 0.1 : -0.1;
-        ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
-        boost::lock_guard<boost::mutex> lk(mtx_);
-        // 转弯后定时器将订阅关闭
-        finish_turning_ = true;
-        return true;
-    }
+    // bool MotionController::_turn_by_position()
+    // {
+    //     ac_move_.waitForServer();
+    //     if (get_position())
+    //     {
+    //         // 矫正误差
+    //         motion_controller::MoveGoal goal1;
+    //         goal1.pose.x = length_corner();
+    //         if (goal1.pose.x)
+    //         {
+    //             ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+    //             ROS_WARN("Turn by position ...");
+    //         }
+    //         else
+    //             return false;
+    //     }
+    //     motion_controller::MoveGoal goal2;
+    //     if (get_position())
+    //     {
+    //         goal2.pose.theta = angle_corner();
+    //         if (goal2.pose.theta == 0)
+    //         {
+    //             // 未到达弯道，重启弯道订阅者
+    //             return false;
+    //         }
+    //     }
+    //     else
+    //         goal2.pose.theta = left_ ? M_PI / 2 : -M_PI / 2;
+    //     // 转弯后前进一段距离
+    //     goal2.pose.y = left_ ? 0.1 : -0.1;
+    //     ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
+    //     boost::lock_guard<boost::mutex> lk(mtx_);
+    //     // 转弯后定时器将订阅关闭
+    //     finish_turning_ = true;
+    //     return true;
+    // }
 
     void MotionController::_timer_callback(const ros::TimerEvent &event)
     {
@@ -131,7 +131,7 @@ namespace motion_controller
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
                 if (goal.route == route_QR_code_board && !follower_.has_started)
                 {
-                    set_position(-(x_road_up_up_ + width_road_ / 2 - length_car_ / 2), width_car_ / 2, 0);
+                    set_position(-(x_road_up_ + width_road_ / 2 - length_car_ / 2), width_car_ / 2, 0);
                     follower_.start(true, theta_);
                 }
                 flag = false;
@@ -140,11 +140,11 @@ namespace motion_controller
             {
                 flag = true; // 等待下一次启动
             }
-            else if (dr_route_ == route_raw_material_area && follower_.startup && !flag)
+            else if (where_is_car(follower_.debug, follower_.startup) == route_raw_material_area && !flag)
             {
                 _move_with_vision();
             }
-            else if (dr_route_ == route_QR_code_board && follower_.startup && !flag)
+            else if (where_is_car(follower_.debug, follower_.startup) == route_QR_code_board && !flag)
             {
                 if (get_position())
                 {
@@ -182,11 +182,34 @@ namespace motion_controller
                     return;
                 }
                 goal.route = where_is_car(follower_.debug, follower_.startup);
+                if (goal.route == route_QR_code_board)
+                {
+                    if (follower_.has_started && ac_arm_.getState().toString() != "SUCCEEDED")
+                    {
+                        follower_.start(false, theta_);
+                    }
+                    return;
+                }
+                else if (goal.route == route_raw_material_area)
+                {
+                    MoveGoal goal;
+                    goal.pose.theta = angle_raw_material_area_;
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                }
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 doing();
+            }
+            else if (where_is_car(follower_.debug, follower_.startup) == route_raw_material_area &&
+                     is_doing())
+            {
+                _move_with_vision();
+            }
+            else if (!is_doing())
+            {
+                follower_.follow(theta_, event.current_real);
             }
         }
     }
@@ -197,8 +220,6 @@ namespace motion_controller
             (where_is_car(follower_.debug, follower_.startup) != route_raw_material_area) &&
             where_is_car(follower_.debug, follower_.startup != route_QR_code_board))
             timer_.stop();
-        // if (where_is_car() == route_raw_material_area && loop_ == 1)
-        //     _U_turn();
     }
 
     void MotionController::_arm_feedback_callback(const my_hand_eye::ArmFeedbackConstPtr &feedback)
@@ -278,21 +299,33 @@ namespace motion_controller
             }
             else
             {
-                //
+                MoveGoal goal;
+                get_position();
+                goal.pose.x = length_from_road();
+                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             }
         }
-        if (state.toString() == "SUCCEEDED")
-            ROS_INFO_STREAM("*** Arm finished: " << state.toString());
-        else
-            ROS_ERROR_STREAM("*** Arm finished: " << state.toString());
+        else if (where_is_car(follower_.debug, follower_.startup) == route_raw_material_area &&
+                 !follower_.debug)
+        {
+            MoveGoal goal;
+            get_position();
+            goal.pose.theta = angle_from_road();
+            ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+        }
         if (!follower_.debug)
         {
-            // follower_.start(true);
+            get_position();
+            // follower_.start(true, theta_);
             if (!timer_.hasStarted())
                 timer_.start();
             boost::lock_guard<boost::mutex> lk(mtx_);
             finished();
         }
+        if (state.toString() == "SUCCEEDED")
+            ROS_INFO_STREAM("*** Arm finished: " << state.toString());
+        else
+            ROS_ERROR_STREAM("*** Arm finished: " << state.toString());
 
         // if (where_is_car() == route_raw_material_area || where_is_car() == route_roughing_area)
         //     follower_.start(true);
@@ -543,13 +576,23 @@ namespace motion_controller
         }
         // 横向移动出停止区
         motion_controller::MoveGoal goal1;
-        goal1.pose.x = -(x_road_up_up_ + width_road_ / 2 - length_car_ / 2);
+        goal1.pose.x = -(x_road_up_ + width_road_ - length_car_ - x_QR_code_board_);
         ac_move_.sendGoalAndWait(goal1, ros::Duration(10), ros::Duration(0.1));
+        // 发送二维码请求
+        ac_arm_.waitForServer();
+        my_hand_eye::ArmGoal goal;
+        goal.loop = loop_;
+        goal.route = where_is_car(follower_.debug, follower_.startup);
+        ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
+                         boost::bind(&MotionController::_arm_active_callback, this),
+                         boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+        get_position();
+        follower_.start(true, theta_);
+        timer_.start();
         // 直接前进到二维码板
         // motion_controller::MoveGoal goal2;
         // goal2.pose.x = x_QR_code_board_ - length_car_ / 2;
         // ac_move_.sendGoalAndWait(goal2, ros::Duration(17), ros::Duration(0.1));
-        timer_.start();
         return true;
     }
 } // namespace motion_controller

@@ -43,12 +43,12 @@ namespace motion_controller
         bool move_active_, arm_active_;           // 传感器是否活动
         bool move_initialized_, arm_initialized_; // 传感器已经初始化
         double timeout_;                          // 最大超时
-        // 转弯，已加锁
-        bool _turn();
-        // 掉头，需要改变之后的转弯方向，已加锁
-        void _U_turn();
-        // 通过全局定位信息转弯，已加锁
-        bool _turn_by_position();
+        // // 转弯，已加锁
+        // bool _turn();
+        // // 掉头，需要改变之后的转弯方向，已加锁
+        // void _U_turn();
+        // // 通过全局定位信息转弯，已加锁
+        // bool _turn_by_position();
         void _timer_callback(const ros::TimerEvent &event);
         void _arm_done_callback(const actionlib::SimpleClientGoalState &state,
                                 const my_hand_eye::ArmResultConstPtr &result);

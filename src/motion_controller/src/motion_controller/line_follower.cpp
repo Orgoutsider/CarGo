@@ -122,6 +122,8 @@ namespace motion_controller
                 theta_publisher_.publish(msg);
             }
         }
+        else
+            ROS_WARN_ONCE("Attempted to use 'follow' when follower has not started");
     }
 
     void LineFollower::veer(bool front_back, bool front_left)
