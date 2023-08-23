@@ -1399,6 +1399,8 @@ namespace my_hand_eye
             target_pose.calc(p, msg);
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";
+            if (msg.end)
+                ps_.reset(true);
         }
         last_finish = msg.end;
         return valid;

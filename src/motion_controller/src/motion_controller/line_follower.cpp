@@ -148,7 +148,7 @@ namespace motion_controller
                 twist.angular.z = -control[0];
                 if (success)
                 {
-                    ROS_INFO("Adjust success");
+                    ROS_INFO("Adjust success!");
                     start(false);
                 }
                 else if (!debug || (debug && startup))

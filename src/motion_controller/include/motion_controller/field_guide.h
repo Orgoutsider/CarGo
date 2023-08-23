@@ -12,13 +12,12 @@ namespace motion_controller
         std::array<int, 14> route_; // 赛道所有场景数组
         bool doing_;                // 是否正在运行机械臂任务
         int where_;                 // route索引
-        double length_field_;       // 场地（车道部分）长宽
+        double length_field_;       // 场地（车道部分）长
+        double width_field_;        // 场地（车道部分）宽
         double y_raw_material_area_;
         double radius_raw_material_area_; // 转盘半径
         double x_roughing_area_;
         double y_semi_finishing_area_;
-        // 位于弯道，到弯道中心线的距离，不位于弯道时返回0.5
-        double length_border_() const;
 
     public:
         int dr_route_; // 调参时面向的场景
@@ -44,6 +43,8 @@ namespace motion_controller
         void finished();
         bool is_doing() const;
         bool arrived(bool debug, bool startup = false) const;
+        // 位于弯道，到弯道中心线的距离，不位于弯道时返回0.5
+        double length_border() const;
         // 偏离道路中心的距离
         double length_from_road() const;
         // 偏离道路中心的角度

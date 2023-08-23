@@ -15,7 +15,7 @@ namespace motion_controller
         dr_route_(route_rest),
         doing_(false), where_(0),
         x_(0), y_(0), theta_(0), loop_(0),
-        length_car_(0.28), width_car_(0.271), width_road_(0.45), length_field_(2),
+        length_car_(0.28), width_car_(0.271), width_road_(0.45), length_field_(2.25), width_field_(2.03),
         y_QR_code_board_(0.8), x_QR_code_board_(0.02),
         y_raw_material_area_(1.6), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
         x_roughing_area_(1.2), y_semi_finishing_area_(1.2),
@@ -57,7 +57,6 @@ namespace motion_controller
 
   bool FieldGuide::arrived(bool debug, bool startup) const
   {
-    ROS_INFO_STREAM(doing_ << " " << -x_ - x_roughing_area_);
     if (doing_)
       return false;
     switch (where_is_car(debug, startup))
@@ -74,13 +73,13 @@ namespace motion_controller
       return -x_ > x_roughing_area_ - 0.1 && y_ > length_field_ - width_road_ + width_car_ / 2;
 
     case route_semi_finishing_area:
-      return y_ < y_semi_finishing_area_ + 0.1 && -x_ > x_road_up_ + length_field_ - width_road_ + width_car_ / 2;
+      return y_ < y_semi_finishing_area_ + 0.1 && -x_ > x_road_up_ + width_field_ - width_road_ + width_car_ / 2;
 
     case route_parking_area:
       return -x_ < x_parking_area_ + 0.1 && y_ < width_road_ - width_car_ / 2;
 
     case route_border:
-      return length_border_() < 0.1;
+      return abs(length_border()) < 0.1;
 
     default:
       ROS_ERROR_ONCE("where_is_car returns invalid value!");
@@ -103,7 +102,7 @@ namespace motion_controller
       return length_field_ - width_road_ / 2 - y_;
 
     case route_semi_finishing_area:
-      return x_road_up_ + length_field_ - width_road_ / 2 - (-x_);
+      return x_road_up_ + width_field_ - width_road_ / 2 - (-x_);
 
     case route_parking_area:
       return width_road_ / 2 - y_;
@@ -156,7 +155,7 @@ namespace motion_controller
       theta = -M_PI / 2 - yaw;
     if (-x_ < x_road_up_ + width_road_) // 上
       n += 1;
-    else if (-x_ > x_road_up_ + length_field_ - width_road_) // 下
+    else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下
       n += 2;
     if (y_ < width_road_) // 右
       n += 5;
@@ -167,15 +166,19 @@ namespace motion_controller
     case 1:
       x = -x_road_up_ - width_road_ / 2 - sign * dist;
       y = y_;
+      break;
     case 2:
-      x = -x_road_up_ - length_field_ + width_road_ / 2 + sign * dist;
+      x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist;
       y = y_;
+      break;
     case 5:
       x = x_;
       y = width_road_ / 2 + sign * dist;
+      break;
     case 10:
       x = x_;
       y = length_field_ - width_road_ / 2 - sign * dist;
+      break;
     case 6:
       if (clockwise_)
       {
@@ -187,6 +190,7 @@ namespace motion_controller
         x = -x_road_up_ - width_road_ / 2 - sign * dist;
         y = y_;
       }
+      break;
     case 11:
       if (!clockwise_)
       {
@@ -198,6 +202,7 @@ namespace motion_controller
         x = -x_road_up_ - width_road_ / 2 - sign * dist;
         y = y_;
       }
+      break;
     case 7:
       if (!clockwise_)
       {
@@ -206,9 +211,10 @@ namespace motion_controller
       }
       else
       {
-        x = -x_road_up_ - length_field_ + width_road_ / 2 + sign * dist;
+        x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist;
         y = y_;
       }
+      break;
     case 12:
       if (clockwise_)
       {
@@ -217,11 +223,12 @@ namespace motion_controller
       }
       else
       {
-        x = -x_road_up_ - length_field_ + width_road_ / 2 + sign * dist;
+        x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist;
         y = y_;
       }
+      break;
     default:
-      ROS_ERROR("moving_x_direction: Car's postion is abnormal");
+      ROS_ERROR("position_in_corner: Car's postion is abnormal, n: %d", n);
       return false;
     }
     ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x, y, theta);
@@ -258,18 +265,18 @@ namespace motion_controller
   //   }
   // }
 
-  double FieldGuide::length_border_() const
+  double FieldGuide::length_border() const
   {
     double len[] = {0.5, 0.5};
     if (-x_ < x_road_up_ + width_road_) // 上
-      len[0] = abs(-x_ - x_road_up_ - width_road_ / 2);
-    else if (-x_ > x_road_up_ + length_field_ - width_road_) // 下
-      len[0] = abs(-x_ - x_road_up_ - length_field_ + width_road_);
+      len[0] = -x_ - x_road_up_ - width_road_ / 2;
+    else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下
+      len[0] = -(-x_ - x_road_up_ - width_field_ + width_road_);
     if (y_ < width_road_) // 右
-      len[1] = abs(y_ - width_road_ / 2);
+      len[1] = y_ - width_road_ / 2;
     else if (y_ > length_field_ - width_road_) // 左
-      len[1] = abs(y_ - length_field_ + width_road_ / 2);
-    return std::max(len[0], len[1]);
+      len[1] = -(y_ - length_field_ + width_road_ / 2);
+    return abs(len[0]) > abs(len[1]) ? len[0] : len[1];
   }
 
   // double FieldGuide::angle_corner() const

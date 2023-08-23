@@ -182,22 +182,30 @@ namespace motion_controller
                     }
                     return;
                 }
-                else if (goal.route == route_raw_material_area)
-                {
-                    MoveGoal goal;
-                    goal.pose.theta = angle_raw_material_area_;
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                }
-                else if (goal.route == route_roughing_area || goal.route == route_semi_finishing_area)
+                if (goal.route == route_roughing_area || goal.route == route_semi_finishing_area)
                 {
                     static ros::Time time = event.current_real;
                     if ((event.current_real - time).toSec() < 5 ||
                         !follower_.stop_and_adjust(theta_, event.current_real))
                         return;
                 }
+                else
+                    follower_.start(false, theta_);
+                if (goal.route == route_raw_material_area)
+                {
+                    MoveGoal goal;
+                    goal.pose.theta = angle_raw_material_area_;
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                }
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                if (goal.route == route_border)
+                {
+                    MoveGoal goal;
+                    goal.pose.y = length_corner();
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                }
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 doing();
             }

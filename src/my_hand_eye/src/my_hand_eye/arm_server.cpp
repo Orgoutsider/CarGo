@@ -438,13 +438,9 @@ namespace my_hand_eye
 				{
 					ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
 					finish_adjusting_ = true;
-					finish_ = true;
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
-					arm_goal_.route = arm_goal_.route_rest;
-					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					ROS_INFO("Finish operating border...");
 				}
 			}
 			else
@@ -462,7 +458,10 @@ namespace my_hand_eye
 		}
 		else
 		{
-			ROS_ERROR("operate_border: Invalid status!");
+			finish_ = true;
+			arm_goal_.route = arm_goal_.route_rest;
+			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			ROS_INFO("Finish operating border...");
 		}
 		return valid;
 	}
