@@ -57,9 +57,7 @@ namespace motion_controller
 
   bool FieldGuide::arrived(bool debug, bool startup) const
   {
-    // ROS_INFO_STREAM(doing_ << abs(y_ - y_raw_material_area_ +
-    //                               (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_))
-    //                        << x_ + x_road_up_ + width_road_ - length_car_ / 2);
+    ROS_INFO_STREAM(doing_ << " " << -x_ - x_roughing_area_);
     if (doing_)
       return false;
     switch (where_is_car(debug, startup))
@@ -146,6 +144,7 @@ namespace motion_controller
   bool FieldGuide::position_in_corner(double dist, double yaw,
                                       double &x, double &y, double &theta, bool outside) const
   {
+    ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
     int n = 0, sign = outside ? 1 : -1;
     if (theta_ > M_PI * 3 / 4 || theta_ <= -M_PI * 3 / 4)
       theta = M_PI - yaw;
@@ -225,6 +224,7 @@ namespace motion_controller
       ROS_ERROR("moving_x_direction: Car's postion is abnormal");
       return false;
     }
+    ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x, y, theta);
     return true;
   }
 
