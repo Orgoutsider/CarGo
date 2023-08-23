@@ -8,7 +8,7 @@ namespace motion_controller
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(3.8), ki_(0.4), kd_(0.3),
-          pid_({0}, {kp_}, {ki_}, {kd_}, {0.02}, {0.1}, {0.5}),
+          pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
           linear_velocity_(0.2), has_started(false),
           startup(false)
     {
@@ -58,7 +58,7 @@ namespace motion_controller
                 else
                     theta = -M_PI / 2;
 
-                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.02}, {0.1}, {0.5});
+                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
                 target_theta_ = theta;
             }
             else
@@ -124,6 +124,43 @@ namespace motion_controller
         }
         else
             ROS_WARN_ONCE("Attempted to use 'follow' when follower has not started");
+    }
+
+    bool LineFollower::stop_and_adjust(double theta, const ros::Time &now)
+    {
+        bool success = false;
+        std::vector<double> control;
+        if (has_started)
+        {
+            // 将theta限制在target_theta_周围，防止不当的error
+            theta = (theta > target_theta_ + M_PI)
+                        ? theta - M_PI * 2
+                        : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
+            bool flag = false;
+            {
+                boost::lock_guard<boost::mutex> lk(mtx_);
+                flag = pid_.update({theta}, now, control, success);
+            }
+            if (flag)
+            {
+                geometry_msgs::Twist twist;
+                // 需要增加一个负号来修正update的结果
+                twist.angular.z = -control[0];
+                if (success)
+                {
+                    ROS_INFO("Adjust success");
+                    start(false);
+                }
+                else if (!debug || (debug && startup))
+                    cmd_vel_publisher_.publish(twist);
+            }
+        }
+        else
+        {
+            ROS_WARN_ONCE("Attempted to use 'stop_and_adjust' when follower has not started");
+            return false;
+        }
+        return success;
     }
 
     void LineFollower::veer(bool front_back, bool front_left)

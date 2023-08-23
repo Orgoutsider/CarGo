@@ -36,6 +36,9 @@ namespace motion_controller
         bool start(bool start, double theta = 0);
         // 使用pid走直线，如果LineFollower尚未启动，则不做处理
         void follow(double theta, const ros::Time &now);
+        // 停止并调整姿态
+        bool stop_and_adjust(double theta, const ros::Time &now);
+        // 改变行驶方向
         void veer(bool front_back, bool front_left);
     };
 

@@ -15,8 +15,10 @@ namespace motion_controller
         double length_field_;       // 场地（车道部分）长宽
         double y_raw_material_area_;
         double radius_raw_material_area_; // 转盘半径
-        double y_roughing_area_;
-        double x_semi_finishing_area_;
+        double x_roughing_area_;
+        double y_semi_finishing_area_;
+        // 位于弯道，到弯道中心线的距离，不位于弯道时返回0.5
+        double length_border_() const;
 
     public:
         int dr_route_; // 调参时面向的场景
@@ -32,7 +34,8 @@ namespace motion_controller
         double y_QR_code_board_;     // 二维码板
         double x_QR_code_board_;     // 为扫描二维码不行驶在路中心，而是距离车道线一定距离
         double angle_raw_material_area_;
-        double y_parking_area_; // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
+        double x_parking_area_; // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
+        bool clockwise_;        // 是否顺时针移动
         FieldGuide();
         int where_is_car(bool debug, bool startup = false) const;
         // 当前任务正在完成，不可接下一任务
@@ -45,12 +48,13 @@ namespace motion_controller
         double length_from_road() const;
         // 偏离道路中心的角度
         double angle_from_road() const;
-        // 下一路段没有任务，可以直接转弯
-        bool can_turn() const;
-        // 位于任务点所在道路，距离下一任务点的距离
-        double length_route() const;
-        // // 位于弯道，到弯道中心线的距离，不位于弯道时返回0
-        // double length_corner() const;
+        // 在转弯处设置的位置，指定是否对外围黄色区域
+        bool position_in_corner(double dist, double yaw,
+                                double &x, double &y, double &theta, bool outside = true) const;
+        // // 下一路段没有任务，可以直接转弯
+        // bool can_turn() const;
+        // // 位于任务点所在道路，距离下一任务点的距离
+        // double length_route() const;
         // // 位于弯道，转弯角度，不位于弯道时返回0
         // double angle_corner() const;
         // // 掉头角度
