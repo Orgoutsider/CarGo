@@ -148,7 +148,7 @@ namespace motion_controller
             {
                 if (get_position())
                 {
-                    if (arrived(follower_.debug, follower_.startup) && follower_.has_started && ac_arm_.getState().toString() != "SUCCEEDED")
+                    if (arrived(follower_.debug, follower_.startup) && follower_.has_started)
                     {
                         ROS_INFO("Shut down by timer.");
                         follower_.start(false, theta_);
@@ -163,14 +163,6 @@ namespace motion_controller
         }
         else if (get_position())
         {
-            // 转弯结束关闭转弯订阅
-            // if (finish_turning_)
-            // {
-            //     boost::lock_guard<boost::mutex> lk(mtx_);
-            //     if (!can_turn())
-            //         follower_.start(false);
-            //     finish_turning_ = false;
-            // }
             if (arrived(follower_.debug, follower_.startup))
             {
                 ac_arm_.waitForServer();
@@ -311,12 +303,15 @@ namespace motion_controller
             MoveGoal goal;
             get_position();
             goal.pose.theta = angle_from_road();
+            goal.pose.x = length_from_road() * cos(-goal.pose.theta);
+            goal.pose.y = -length_from_road() * sin(-goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
         }
         if (!follower_.debug)
         {
             get_position();
-            // follower_.start(true, theta_);
+            if (!follower_.has_started)
+            follower_.start(true, theta_);
             if (!timer_.hasStarted())
                 timer_.start();
             boost::lock_guard<boost::mutex> lk(mtx_);

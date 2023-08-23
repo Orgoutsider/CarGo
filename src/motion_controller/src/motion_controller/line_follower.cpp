@@ -112,7 +112,7 @@ namespace motion_controller
                     twist.linear.y = -linear_velocity_;
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -control[0];
-                if (startup)
+                if (!debug || (debug && startup))
                     cmd_vel_publisher_.publish(twist);
             }
             if (debug)

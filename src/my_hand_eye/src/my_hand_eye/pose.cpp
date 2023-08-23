@@ -282,7 +282,7 @@ namespace my_hand_eye
                 wait_until_static(ID, 1);
             }
             if (!cat)
-                ros::Duration(0.5).sleep(); // 等待一段时间放稳
+                ros::Duration(0.7).sleep(); // 等待一段时间放稳
             sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             u8 ID3[] = {5};
             wait_until_static(ID3, 1);
@@ -713,7 +713,7 @@ namespace my_hand_eye
     cv::Mat Pos::T_cam_to_end()
     {
         // return (cv::Mat_<double>(3, 1) << -0.07835864392309588, 0.031208171, 1.825703402136746);
-        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.268791829, 1.625703402136746);
+        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.268791829, 0.825703402136746);
     }
 
     cv::Mat Pos::R_end_to_base()

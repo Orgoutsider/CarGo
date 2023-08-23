@@ -16,7 +16,7 @@ namespace motion_controller
         doing_(false), where_(0),
         x_(0), y_(0), theta_(0), loop_(0),
         length_car_(0.28), width_car_(0.271), width_road_(0.45), length_field_(2),
-        y_QR_code_board_(0.8), x_QR_code_board_(0.04),
+        y_QR_code_board_(0.8), x_QR_code_board_(0.02),
         y_raw_material_area_(1.6), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
         y_roughing_area_(1.15), x_semi_finishing_area_(1.2),
         length_parking_area_(0.3), x_road_up_(0.08), y_parking_area_(0.7) {}
@@ -56,29 +56,32 @@ namespace motion_controller
 
   bool FieldGuide::arrived(bool debug, bool startup) const
   {
+    // ROS_INFO_STREAM(doing_ << abs(y_ - y_raw_material_area_ +
+    //                               (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_))
+    //                        << x_ + x_road_up_ + width_road_ - length_car_ / 2);
     if (doing_)
       return false;
     switch (where_is_car(debug, startup))
     {
     case route_QR_code_board:
-      return y_ > y_QR_code_board_ - 0.01 && x_ > -(x_road_up_ + width_road_ - length_car_ / 2);
+      return y_ > y_QR_code_board_ - 0.1 && x_ > -(x_road_up_ + width_road_ - length_car_ / 2);
 
     case route_raw_material_area:
       return abs(y_ - y_raw_material_area_ +
-                 (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_)) < 0.01 &&
-             y_ < x_road_up_ + width_road_ - length_car_ / 2;
+                 (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_)) < 0.1 &&
+             x_ > -(x_road_up_ + width_road_ - length_car_ / 2);
 
     case route_roughing_area:
-      return y_ > y_roughing_area_ - 0.01 && x_ > length_field_ - width_road_ + length_car_ / 2;
+      return y_ > y_roughing_area_ - 0.1 && x_ > length_field_ - width_road_ + length_car_ / 2;
 
     case route_semi_finishing_area:
-      return x_ < x_semi_finishing_area_ + 0.01 && y_ > x_road_up_ + length_field_ - width_road_ + length_car_ / 2;
+      return x_ < x_semi_finishing_area_ + 0.1 && y_ > x_road_up_ + length_field_ - width_road_ + length_car_ / 2;
 
     case route_parking_area:
-      return y_ < y_parking_area_ + 0.01 && x_ < width_road_ - length_car_ / 2;
+      return y_ < y_parking_area_ + 0.1 && x_ < width_road_ - length_car_ / 2;
 
     default:
-      ROS_ERROR("where_is_car returns invalid value!");
+      ROS_ERROR_ONCE("where_is_car returns invalid value!");
       return false;
     }
   }
@@ -89,16 +92,16 @@ namespace motion_controller
     switch (where_is_car(false))
     {
     case route_QR_code_board:
-      return x_road_up_ + width_road_ / 2 - (-x_);
+      return -(x_road_up_ + width_road_ / 2 - (-x_));
 
     case route_raw_material_area:
-      return x_road_up_ + width_road_ / 2 - (-x_);
+      return -(x_road_up_ + width_road_ / 2 - (-x_));
 
     case route_roughing_area:
       return length_field_ - width_road_ / 2 - y_;
 
     case route_semi_finishing_area:
-      return -(x_road_up_ + length_field_ - width_road_ / 2 - (-x_));
+      return x_road_up_ + length_field_ - width_road_ / 2 - (-x_);
 
     case route_parking_area:
       return width_road_ / 2 - y_;
