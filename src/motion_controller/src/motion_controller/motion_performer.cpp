@@ -6,15 +6,15 @@ namespace motion_controller
     {
         ros::NodeHandle nh;
         publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 5);
-        subscriber_line_ = nh.subscribe<geometry_msgs::Twist>("/cmd_vel_line", 3, &MotionPerformer::_line_callback, this);
+        subscriber_line_ = nh.subscribe<TwistMightEnd>("/cmd_vel_line", 3, &MotionPerformer::_line_callback, this);
         subscriber_vision_ = nh.subscribe<TwistMightEnd>("/cmd_vel_vision", 3, &MotionPerformer::_vision_callback, this);
         subscriber_service_ = nh.subscribe<TwistMightEnd>("/cmd_vel_srv", 3, &MotionPerformer::_service_callback, this);
     }
 
-    void MotionPerformer::_line_callback(const geometry_msgs::TwistConstPtr &msg)
+    void MotionPerformer::_line_callback(const TwistMightEndConstPtr &msg)
     {
-        if (level_line >= level_)
-            publisher_.publish<geometry_msgs::Twist>(*msg);
+        if (level_line >= level_ || msg->end)
+            publisher_.publish<geometry_msgs::Twist>(msg->velocity);
         else if ((level_ == level_vision && ((ros::Time::now() - time_vision_).toSec() < timeout_ ||
                                              time_vision_.is_zero())) ||
                  (level_ == level_service && ((ros::Time::now() - time_service_).toSec() < timeout_ ||
@@ -25,6 +25,7 @@ namespace motion_controller
         else
         {
             ROS_WARN("Timeout! Level update.");
+            publisher_.publish<geometry_msgs::Twist>(msg->velocity);
             boost::lock_guard<boost::mutex> lk(mtx_);
             level_ = level_line;
         }
@@ -32,7 +33,7 @@ namespace motion_controller
 
     void MotionPerformer::_vision_callback(const TwistMightEndConstPtr &msg)
     {
-        if (level_vision >= level_)
+        if (level_vision >= level_ || msg->end)
         {
             if (level_vision > level_)
             {
@@ -55,14 +56,16 @@ namespace motion_controller
         else
         {
             ROS_WARN("Timeout! Level update.");
+            publisher_.publish<geometry_msgs::Twist>(msg->velocity);
             boost::lock_guard<boost::mutex> lk(mtx_);
             level_ = level_vision;
+            time_vision_ = ros::Time::now();
         }
     }
 
     void MotionPerformer::_service_callback(const TwistMightEndConstPtr &msg)
     {
-        if (level_service >= level_)
+        if (level_service >= level_ || msg->end)
         {
             if (level_service > level_)
             {

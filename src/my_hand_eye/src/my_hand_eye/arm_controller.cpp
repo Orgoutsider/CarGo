@@ -1330,7 +1330,7 @@ namespace my_hand_eye
             {
                 cargo_theta_.push_back(p.theta);
                 ROS_INFO_STREAM("theta: " << p.theta);
-                if (cargo_theta_.size() == MAX)
+                if (cargo_theta_.size() >= MAX)
                 {
                     cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
                     cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));

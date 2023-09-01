@@ -5,7 +5,6 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include <ros/ros.h>
-#include <geometry_msgs/Twist.h>
 #include <motion_controller/TwistMightEnd.h>
 
 namespace motion_controller
@@ -29,7 +28,7 @@ namespace motion_controller
         ros::Subscriber subscriber_vision_;
         ros::Subscriber subscriber_service_;
         // 不同优先级消息的回调函数
-        void _line_callback(const geometry_msgs::TwistConstPtr &msg);
+        void _line_callback(const TwistMightEndConstPtr &msg);
         void _vision_callback(const TwistMightEndConstPtr &msg);
         void _service_callback(const TwistMightEndConstPtr &msg);
 

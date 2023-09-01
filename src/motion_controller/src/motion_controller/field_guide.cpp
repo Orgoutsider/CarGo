@@ -43,6 +43,10 @@ namespace motion_controller
   {
     if (where_ + 1 < route_.size())
     {
+      if (loop_ == 0 && !clockwise_ && where_is_car(false) == route_semi_finishing_area)
+        clockwise_ = true;
+      else if (loop_ == 1 && clockwise_ && where_is_car(false) == route_raw_material_area)
+        clockwise_ = false;
       if (loop_ == 0 && where_is_car(false) == route_semi_finishing_area)
         loop_++;
       where_++;
@@ -64,7 +68,7 @@ namespace motion_controller
     switch (where_is_car(debug, startup))
     {
     case route_QR_code_board:
-      return y_ > y_QR_code_board_ - 0.1 && -x_ < x_road_up_ + width_road_ - length_car_ / 2;
+      return abs(length_route()) < 0.1 && -x_ < x_road_up_ + width_road_ - length_car_ / 2;
 
     case route_raw_material_area:
       return abs(y_ - y_raw_material_area_ +
@@ -72,13 +76,13 @@ namespace motion_controller
              -x_ < x_road_up_ + width_road_ - length_car_ / 2;
 
     case route_roughing_area:
-      return -x_ > x_roughing_area_ - 0.1 && y_ > length_field_ - width_road_ + width_car_ / 2;
+      return abs(length_route()) < 0.1 && y_ > length_field_ - width_road_ + width_car_ / 2;
 
     case route_semi_finishing_area:
-      return y_ < y_semi_finishing_area_ + 0.1 && -x_ > x_road_up_ + width_field_ - width_road_ + width_car_ / 2;
+      return abs(length_route()) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_ + width_car_ / 2;
 
     case route_parking_area:
-      return -x_ < x_parking_area_ + 0.1 && y_ < width_road_ - width_car_ / 2;
+      return abs(length_route()) < 0.1 && y_ < width_road_ - width_car_ / 2;
 
     case route_border:
       return abs(length_border()) < 0.1;
@@ -242,30 +246,30 @@ namespace motion_controller
   //   return (loop_ == 1 && y_ > x_road_up_ + width_road_ && where_is_car(false) == route_raw_material_area);
   // }
 
-  // double FieldGuide::length_route() const
-  // {
-  //   switch (where_is_car(false))
-  //   {
-  //   case route_QR_code_board:
-  //     return abs(y_QR_code_board_ - x_);
+  double FieldGuide::length_route() const
+  {
+    switch (where_is_car(false))
+    {
+    case route_QR_code_board:
+      return y_QR_code_board_ - y_;
 
-  //   case route_raw_material_area:
-  //     return abs(y_raw_material_area_ - x_);
+    case route_raw_material_area:
+      return y_raw_material_area_ - y_;
 
-  //   case route_roughing_area:
-  //     return abs(x_roughing_area_ - y_);
+    case route_roughing_area:
+      return x_roughing_area_ - (-x_);
 
-  //   case route_semi_finishing_area:
-  //     return abs(y_semi_finishing_area_ - x_);
+    case route_semi_finishing_area:
+      return -(y_semi_finishing_area_ - y_);
 
-  //   case route_parking_area:
-  //     return abs(x_parking_area_ - y_);
+    case route_parking_area:
+      return -(x_parking_area_ - (-x_));
 
-  //   default:
-  //     ROS_ERROR("where_is_car returns invalid value!");
-  //     return 0.5;
-  //   }
-  // }
+    default:
+      ROS_ERROR("where_is_car returns invalid value!");
+      return 0.5;
+    }
+  }
 
   double FieldGuide::length_border() const
   {
@@ -273,7 +277,7 @@ namespace motion_controller
     if (-x_ < x_road_up_ + width_road_) // 上
       len0 = -x_ - x_road_up_ - width_road_ / 2;
     else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下
-      len0 = -(-x_ - x_road_up_ - width_field_ + width_road_);
+      len0 = -(-x_ - x_road_up_ - width_field_ + width_road_ / 2);
     if (y_ < width_road_) // 右
       len1 = y_ - width_road_ / 2;
     else if (y_ > length_field_ - width_road_) // 左

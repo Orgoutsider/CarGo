@@ -179,6 +179,9 @@ namespace motion_controller
                     if (follower_.has_started && ac_arm_.getState().toString() != "SUCCEEDED")
                     {
                         follower_.start(false, theta_);
+                        MoveGoal goal;
+                        goal.pose.y = length_route();
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                     return;
                 }
@@ -205,11 +208,20 @@ namespace motion_controller
                     {
                         MoveGoal goal;
                         goal.pose.theta = angle_corner();
+                        int sign =
+                            where_is_car(follower_.debug, follower_.startup, -1) == route_roughing_area
+                                ? -1
+                                : 1;
+                        goal.pose.x = sign * length_border();
+                        ROS_INFO_STREAM("x of pose: " << goal.pose.x);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
-                    MoveGoal goal;
-                    goal.pose.y = length_border();
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    else
+                    {
+                        MoveGoal goal;
+                        goal.pose.y = length_border();
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    }
                 }
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 doing();
@@ -332,19 +344,22 @@ namespace motion_controller
             goal.pose.y = -length_from_road() * sin(-goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
         }
-        else if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
-                 where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area && !follower_.debug)
+        else if ((where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
+                  where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area) &&
+                 !follower_.debug)
         {
             MoveGoal goal;
             get_position();
             goal.pose.y = length_from_road();
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            if (where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area && loop_ == 0)
+             follower_.veer(true, true);
         }
         else if (where_is_car(follower_.debug, follower_.startup) == route_border && !follower_.debug)
         {
             if (where_is_car(follower_.debug, follower_.startup, 1) == route_roughing_area)
                 follower_.veer(true, false);
-            else if (where_is_car(follower_.debug, follower_.startup, 1) == route_semi_finishing_area && loop_ == 0)
+            else if (where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area)
                 follower_.veer(true, true);
         }
         if (!follower_.debug)

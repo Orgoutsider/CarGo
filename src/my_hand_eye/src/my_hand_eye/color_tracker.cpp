@@ -433,8 +433,10 @@ namespace my_hand_eye
 
     bool ColorTracker::no_obstacles()
     {
-        double theta = atan2(last_pt_.y - center_y_, last_pt_.x - center_x_);
-        theta = (theta > CV_PI / 2.0) ? theta - 2 * CV_PI : theta;
+        double theta = atan2(last_pt_.y - center_y_, last_pt_.x - center_x_); // -pi~pi
+        theta = (theta > CV_PI / 2.0) ? theta - 2 * CV_PI : theta;            // 限制在-pi/2周围
+        if (abs(theta + CV_PI / 2) > CV_PI / 2.0)
+            return false; // 放弃太远的物料
         if (left_color)
         {
             double t = theta - 2.0 / 3 * CV_PI;

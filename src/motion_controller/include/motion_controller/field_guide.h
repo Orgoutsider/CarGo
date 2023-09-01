@@ -43,6 +43,8 @@ namespace motion_controller
         void finished();
         bool is_doing() const;
         bool arrived(bool debug, bool startup = false) const;
+        // 位于任务点所在道路，距离下一任务点的距离，正号表示沿逆时针
+        double length_route() const;
         // 位于弯道，到弯道中心线的距离，不位于弯道时返回0.5，正号表示沿y轴正向
         double length_border() const;
         // 偏离道路中心的距离
@@ -56,8 +58,6 @@ namespace motion_controller
         double angle_corner() const;
         // // 下一路段没有任务，可以直接转弯
         // bool can_turn() const;
-        // // 位于任务点所在道路，距离下一任务点的距离
-        // double length_route() const;
         // // 掉头角度
         // double angle_U_turn() const;
     };

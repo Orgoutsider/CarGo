@@ -1,5 +1,5 @@
 #include <std_msgs/Float64.h>
-#include <geometry_msgs/Twist.h>
+#include <motion_controller/TwistMightEnd.h>
 
 #include "motion_controller/line_follower.h"
 
@@ -13,7 +13,7 @@ namespace motion_controller
           startup(false)
     {
         pnh.param<bool>("debug", debug, false);
-        cmd_vel_publisher_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel_line", 3);
+        cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);
         if (debug)
         {
             theta_publisher_ = nh.advertise<std_msgs::Float64>("theta", 5);
@@ -67,9 +67,11 @@ namespace motion_controller
                 return false;
             }
         }
-        else if (has_started)
+        else if (has_started) // stop
         {
-            cmd_vel_publisher_.publish(geometry_msgs::Twist());
+            TwistMightEnd tme;
+            tme.end = true;
+            cmd_vel_publisher_.publish(tme);
             boost::lock_guard<boost::mutex> lk(mtx_);
             has_started = false;
         }
@@ -112,8 +114,11 @@ namespace motion_controller
                     twist.linear.y = -linear_velocity_;
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -control[0];
+                TwistMightEnd tme;
+                tme.velocity = twist;
+                tme.end = false;
                 if (!debug || (debug && startup))
-                    cmd_vel_publisher_.publish(twist);
+                    cmd_vel_publisher_.publish(tme);
             }
             if (debug)
             {
@@ -160,13 +165,16 @@ namespace motion_controller
                 geometry_msgs::Twist twist;
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -control[0];
+                TwistMightEnd tme;
+                tme.velocity = twist;
+                tme.end = false;
                 if (success)
                 {
                     ROS_INFO("Adjust success!");
                     start(false);
                 }
                 else if (!debug || (debug && startup))
-                    cmd_vel_publisher_.publish(twist);
+                    cmd_vel_publisher_.publish(tme);
             }
         }
         else

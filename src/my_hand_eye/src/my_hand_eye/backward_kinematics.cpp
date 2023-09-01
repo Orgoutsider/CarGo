@@ -269,13 +269,23 @@ namespace my_hand_eye
 
     bool Axis::_modify_alpha(double &alpha, bool look)
     {
-        const int ALPHA_MAX = 110; // alpha上限，超过此值无法抓取
+        // const int ALPHA_MAX = 110; // alpha上限，超过此值无法抓取
+        const int ALPHA_MAX = 115; // alpha上限，超过此值无法抓取
         bool valid = false;
         while (alpha >= 0 && alpha <= ALPHA_MAX && !valid)
         {
             valid = _j123_length_and_height_is_valid(alpha);
             if (!valid)
                 alpha = look ? alpha - 1 : alpha + 1;
+        }
+        if (!valid && !look)
+        {
+            // 当invalid输出alpha用
+            do
+            {
+                alpha++;
+            }
+            while (alpha <= 180 && !_j123_length_and_height_is_valid(alpha));           
         }
         return valid;
     }
@@ -312,7 +322,7 @@ namespace my_hand_eye
             deg4 = j4._get_degree();
         }
         else
-            ROS_WARN("alpha invalid!");
+            ROS_WARN("Invalid alpha: %lf", alpha);
         _modify_xy();
         // ROS_ERROR_STREAM("valid:" << valid << " deg1:" << deg1 << " deg2:" << deg2 << " deg3:" << deg3 << " deg4:" << deg4);
         return valid;
