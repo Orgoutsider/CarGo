@@ -1163,7 +1163,8 @@ namespace my_hand_eye
         }
         bool valid = ps_.put(color_map_[color], true, err, false) &&
                      ps_.go_to_table(false, color, true);
-        ps_.reset(true);
+        if (!final)
+            ps_.reset(true);
         return valid;
     }
 

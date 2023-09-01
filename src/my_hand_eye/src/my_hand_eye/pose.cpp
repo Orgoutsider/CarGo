@@ -265,7 +265,7 @@ namespace my_hand_eye
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
             if (z < 7)
             {
-                Position[3] -= 170; // 防止碰到物料
+                Position[3] -= 220; // 防止碰到物料
             }
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             u8 ID1[] = {1, 3, 4};
@@ -278,7 +278,7 @@ namespace my_hand_eye
             wait_until_static(ID2, 1);
             if (z < 7)
             {
-                Position[3] += 170;
+                Position[3] += 220;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
                 u8 ID[] = {3};
                 wait_until_static(ID, 1);
@@ -459,7 +459,7 @@ namespace my_hand_eye
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
         {
-            Position[3] = Position_now[3] - 170; // 略微下降防止碰到块
+            Position[3] = Position_now[3] - 220; // 略微下降防止碰到块
             sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
             u8 ID[] = {3};
             wait_until_static(ID, 1);
@@ -918,7 +918,8 @@ namespace my_hand_eye
         double u0 = border[0] / cos(border[1]);
         double v0 = border[0] / sin(border[1]);
         double x1, y1, x2, y2;
-        if (calculate_cargo_position(u0, 0, border_z, x1, y1) && calculate_cargo_position(0, v0, border_z, x2, y2, false))
+        if (calculate_cargo_position(u0, 0, border_z, x1, y1, true) &&
+            calculate_cargo_position(0, v0, border_z, x2, y2, false))
         {
             // ARM_INFO_XYZ(*this);
             distance = x2 - y2 * (x1 - x2) / (y1 - y2);

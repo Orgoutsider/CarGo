@@ -6,8 +6,8 @@ namespace my_hand_eye
     TargetPose::TargetPose() : target(target_center)
     {
         pose[target_center].theta = Pose2DMightEnd::not_change;
-        Action center = Action(0, 32.5, 0).arm2footprint();
-        // Action center = Action(0, 33, 0).arm2footprint();
+        // Action center = Action(0, 32.5, 0).arm2footprint();
+        Action center = Action(0, 33, 0).arm2footprint();
         pose[target_center].x = center.x;
         pose[target_center].y = center.y;
 
