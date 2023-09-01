@@ -184,9 +184,7 @@ namespace motion_controller
                 }
                 if (goal.route == route_roughing_area || goal.route == route_semi_finishing_area)
                 {
-                    static ros::Time time = event.current_real;
-                    if ((event.current_real - time).toSec() < 5 ||
-                        !follower_.stop_and_adjust(theta_, event.current_real))
+                    if (!follower_.stop_and_adjust(theta_, event.current_real))
                         return;
                 }
                 else

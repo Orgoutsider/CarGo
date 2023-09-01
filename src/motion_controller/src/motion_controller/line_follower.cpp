@@ -130,8 +130,22 @@ namespace motion_controller
     {
         bool success = false;
         std::vector<double> control;
+        static bool rst = true;
         if (has_started)
         {
+            ROS_INFO_STREAM("Adjusting ... theta: " << theta);
+            static ros::Time time;
+            if (rst)
+            {
+                time = now;
+                rst = false;
+            }
+            if ((now - time).toSec() >= 5)
+            {
+                ROS_WARN("Adjust timeout!");
+                start(false);
+                return true;
+            }
             // 将theta限制在target_theta_周围，防止不当的error
             theta = (theta > target_theta_ + M_PI)
                         ? theta - M_PI * 2

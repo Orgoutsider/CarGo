@@ -264,7 +264,9 @@ namespace my_hand_eye
         {
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
             if (z < 7)
-                Position[3] -= 100; // 防止碰到物料
+            {
+                Position[3] -= 170; // 防止碰到物料
+            }
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             u8 ID1[] = {1, 3, 4};
             wait_until_static(ID1, 3);
@@ -276,13 +278,15 @@ namespace my_hand_eye
             wait_until_static(ID2, 1);
             if (z < 7)
             {
-                Position[3] += 100;
+                Position[3] += 170;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
                 u8 ID[] = {3};
                 wait_until_static(ID, 1);
             }
             if (!cat)
                 ros::Duration(0.7).sleep(); // 等待一段时间放稳
+            else
+                ros::Duration(0.1).sleep();
             sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             u8 ID3[] = {5};
             wait_until_static(ID3, 1);
@@ -455,7 +459,7 @@ namespace my_hand_eye
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
         {
-            Position[3] = Position_now[3] - 100; // 略微下降防止碰到块
+            Position[3] = Position_now[3] - 170; // 略微下降防止碰到块
             sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
             u8 ID[] = {3};
             wait_until_static(ID, 1);
@@ -712,8 +716,8 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_cam_to_end()
     {
-        // return (cv::Mat_<double>(3, 1) << -0.07835864392309588, 0.031208171, 1.825703402136746);
-        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.268791829, 0.825703402136746);
+        // return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.368791829, 0.825703402136746);
+        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.568791829, 0.825703402136746);
     }
 
     cv::Mat Pos::R_end_to_base()

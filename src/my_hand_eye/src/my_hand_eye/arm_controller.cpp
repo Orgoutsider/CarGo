@@ -18,7 +18,7 @@ namespace my_hand_eye
           z_parking_area(1.40121),
           z_ellipse(4.58369),
           z_palletize(11.3079),
-          z_turntable(13.83052) // 比赛转盘
+          z_turntable(13.33052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
         cargo_x_.reserve(5);
@@ -36,7 +36,7 @@ namespace my_hand_eye
           z_parking_area(1.40121),
           z_ellipse(4.58369),
           z_palletize(11.3079),
-          z_turntable(13.83052) // 比赛转盘
+          z_turntable(13.33052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
