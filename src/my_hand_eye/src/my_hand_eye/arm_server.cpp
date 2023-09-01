@@ -390,12 +390,12 @@ namespace my_hand_eye
 						arm_controller_.catch_after_putting(which_color(), true);
 						next_task();
 					}
-					finish_ = true;
-					arm_goal_.route = arm_goal_.route_rest;
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					ROS_INFO("Finish operating ellipse...");
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 						arm_controller_.ready(true);
+					finish_ = true;
+					arm_goal_.route = arm_goal_.route_rest;
+					ROS_INFO("Finish operating ellipse...");
 				}
 				else if (!msg.end)
 				{
