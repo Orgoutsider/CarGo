@@ -203,7 +203,7 @@ namespace motion_controller
                 if (goal.route == route_border)
                 {
                     MoveGoal goal;
-                    goal.pose.y = length_corner();
+                    goal.pose.y = length_border();
                     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 }
                 boost::lock_guard<boost::mutex> lk(mtx_);

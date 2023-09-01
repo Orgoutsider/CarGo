@@ -43,7 +43,7 @@ namespace motion_controller
         void finished();
         bool is_doing() const;
         bool arrived(bool debug, bool startup = false) const;
-        // 位于弯道，到弯道中心线的距离，不位于弯道时返回0.5
+        // 位于弯道，到弯道中心线的距离，不位于弯道时返回0.5，正号表示沿y轴正向
         double length_border() const;
         // 偏离道路中心的距离
         double length_from_road() const;

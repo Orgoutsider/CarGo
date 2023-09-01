@@ -267,16 +267,16 @@ namespace motion_controller
 
   double FieldGuide::length_border() const
   {
-    double len[] = {0.5, 0.5};
+    double len0 = 0.5, len1 = 0.5;
     if (-x_ < x_road_up_ + width_road_) // 上
-      len[0] = -x_ - x_road_up_ - width_road_ / 2;
+      len0 = -x_ - x_road_up_ - width_road_ / 2;
     else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下
-      len[0] = -(-x_ - x_road_up_ - width_field_ + width_road_);
+      len0 = -(-x_ - x_road_up_ - width_field_ + width_road_);
     if (y_ < width_road_) // 右
-      len[1] = y_ - width_road_ / 2;
+      len1 = y_ - width_road_ / 2;
     else if (y_ > length_field_ - width_road_) // 左
-      len[1] = -(y_ - length_field_ + width_road_ / 2);
-    return abs(len[0]) > abs(len[1]) ? len[0] : len[1];
+      len1 = -(y_ - length_field_ + width_road_ / 2);
+    return abs(len0) > abs(len1) ? len0 : len1;
   }
 
   // double FieldGuide::angle_corner() const
