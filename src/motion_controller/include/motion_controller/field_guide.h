@@ -36,7 +36,7 @@ namespace motion_controller
         double x_parking_area_; // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
         bool clockwise_;        // 是否顺时针移动
         FieldGuide();
-        int where_is_car(bool debug, bool startup = false) const;
+        int where_is_car(bool debug, bool startup = false, int offset = 0) const;
         // 当前任务正在完成，不可接下一任务
         void doing();
         // 当前任务已完成，接下一任务，更新loop_
@@ -52,12 +52,12 @@ namespace motion_controller
         // 在转弯处设置的位置，指定是否对外围黄色区域
         bool position_in_corner(double dist, double yaw,
                                 double &x, double &y, double &theta, bool outside = true) const;
+        // 转弯角度
+        double angle_corner() const;
         // // 下一路段没有任务，可以直接转弯
         // bool can_turn() const;
         // // 位于任务点所在道路，距离下一任务点的距离
         // double length_route() const;
-        // // 位于弯道，转弯角度，不位于弯道时返回0
-        // double angle_corner() const;
         // // 掉头角度
         // double angle_U_turn() const;
     };

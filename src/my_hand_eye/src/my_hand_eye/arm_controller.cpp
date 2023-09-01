@@ -1198,9 +1198,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    void ArmController::ready_to_catch()
+    void ArmController::ready(bool left)
     {
-        ps_.reset();
+        ps_.reset(left);
     }
 
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
@@ -1399,8 +1399,6 @@ namespace my_hand_eye
             target_pose.calc(p, msg);
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";
-            if (msg.end)
-                ps_.reset(true);
         }
         last_finish = msg.end;
         return valid;

@@ -200,6 +200,13 @@ namespace motion_controller
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
                 if (goal.route == route_border)
                 {
+                    if (where_is_car(follower_.debug, follower_.startup, -1) == route_roughing_area ||
+                        where_is_car(follower_.debug, follower_.startup, -1) == route_semi_finishing_area)
+                    {
+                        MoveGoal goal;
+                        goal.pose.theta = angle_corner();
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    }
                     MoveGoal goal;
                     goal.pose.y = length_border();
                     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
@@ -289,20 +296,15 @@ namespace motion_controller
             double theta, x, y;
             if (position_in_corner(feedback->pme.pose.y, feedback->pme.pose.theta,
                                    x, y, theta, !(y_ < width_road_)))
-                set_position(x, y, theta);
+                set_position(x, y, theta); // 进一步可以引入时间提高精确度
+            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
         }
     }
 
     void MotionController::_arm_done_callback(const actionlib::SimpleClientGoalState &state,
                                               const my_hand_eye::ArmResultConstPtr &result)
     {
-        bool flag = false;
-        if (where_is_car(follower_.debug, follower_.startup) == route_border)
-        {
-            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
-            flag = true;
-        }
-        else if (where_is_car(follower_.debug, follower_.startup) == route_QR_code_board)
+        if (where_is_car(follower_.debug, follower_.startup) == route_QR_code_board)
         {
             if (follower_.debug)
             {
@@ -335,8 +337,15 @@ namespace motion_controller
         {
             MoveGoal goal;
             get_position();
-            goal.pose.x = length_from_road();
+            goal.pose.y = length_from_road();
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+        }
+        else if (where_is_car(follower_.debug, follower_.startup) == route_border && !follower_.debug)
+        {
+            if (where_is_car(follower_.debug, follower_.startup, 1) == route_roughing_area)
+                follower_.veer(true, false);
+            else if (where_is_car(follower_.debug, follower_.startup, 1) == route_semi_finishing_area && loop_ == 0)
+                follower_.veer(true, true);
         }
         if (!follower_.debug)
         {
@@ -345,14 +354,8 @@ namespace motion_controller
                 follower_.start(true, theta_);
             if (!timer_.hasStarted())
                 timer_.start();
-            {
-                boost::lock_guard<boost::mutex> lk(mtx_);
-                finished();
-            }
-            if (flag && where_is_car(follower_.debug, follower_.startup) == route_roughing_area)
-            {
-                follower_.veer(true, false);
-            }
+            boost::lock_guard<boost::mutex> lk(mtx_);
+            finished();
         }
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());

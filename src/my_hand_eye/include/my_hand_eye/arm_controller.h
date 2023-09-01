@@ -111,7 +111,7 @@ namespace my_hand_eye
         // 输出边界线位置
         bool log_border(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
         // 扫描二维码后准备抓取
-        void ready_to_catch();
+        void ready(bool left);
         // 计算物料中心点位置或位姿
         bool find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                         sensor_msgs::ImagePtr &debug_image, bool pose, bool store = false);

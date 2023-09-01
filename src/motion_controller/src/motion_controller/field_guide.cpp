@@ -22,10 +22,12 @@ namespace motion_controller
         length_parking_area_(0.3), x_road_up_(0.08), x_parking_area_(0.7),
         clockwise_(false) {}
 
-  int FieldGuide::where_is_car(bool debug, bool startup) const
+  int FieldGuide::where_is_car(bool debug, bool startup, int offset) const
   {
     if (!debug)
-      return route_[where_];
+      return route_[(where_ + offset >= route_.size())
+                        ? (route_.size() - 1)
+                        : ((where_ + offset < 0) ? 0 : (where_ + offset))];
     else if (startup)
       return dr_route_;
     else
@@ -279,48 +281,18 @@ namespace motion_controller
     return abs(len0) > abs(len1) ? len0 : len1;
   }
 
-  // double FieldGuide::angle_corner() const
-  // {
-  //   int n = 0;
-  //   if (y_ < x_road_up_ + width_road_) // 上
-  //     n += 1;
-  //   else if (y_ > x_road_up_ + length_field_ - width_road_) // 下
-  //     n += 2;
-  //   if (x_ < width_road_) // 右
-  //     n += 5;
-  //   else if (x_ > length_field_ - width_road_) // 左
-  //     n += 10;
-  //   switch (n)
-  //   {
-  //   case 6:
-  //     if (left_)
-  //       return -theta_;
-  //     else
-  //       return -(theta_ - M_PI / 2);
-
-  //   case 11:
-  //     if (left_)
-  //       return M_PI / 2 - theta_;
-  //     else
-  //       return -(M_PI + theta_);
-
-  //   case 12:
-  //     if (left_)
-  //       return M_PI - theta_;
-  //     else
-  //       return -(M_PI / 2 + theta_);
-
-  //   case 7:
-  //     if (left_)
-  //       return -theta_ - M_PI / 2;
-  //     else
-  //       return -theta_;
-
-  //   default:
-  //     ROS_WARN("Car is not in the corner. Do not use angle_corner.");
-  //     return 0;
-  //   }
-  // }
+  double FieldGuide::angle_corner() const
+  {
+    if (where_is_car(false, false, -1) == route_roughing_area)
+      return M_PI / 2 - theta_;
+    else if (where_is_car(false, false, -1) == route_semi_finishing_area)
+      return -theta_;
+    else
+    {
+      ROS_WARN("Attempted to use 'angle_corner' in route %d.", where_is_car(false, false, -1));
+      return 0;
+    }
+  }
 
   // double FieldGuide::angle_U_turn() const
   // {

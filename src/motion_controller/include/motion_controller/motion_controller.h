@@ -30,7 +30,6 @@ namespace motion_controller
         boost::mutex mtx_;
         tf2_ros::Buffer buffer_;
         tf2_ros::TransformListener listener_;
-        // ros::Publisher vision_publisher;            // 视觉信息发布者
         ros::Timer timer_;                           // 全局定位定时器
         LineFollower follower_;                      // 走直线
         MoveClient ac_move_;                         // 移动服务客户端

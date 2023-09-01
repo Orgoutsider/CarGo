@@ -67,7 +67,7 @@ namespace my_hand_eye
 				return;
 			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			arm_controller_.ready_to_catch();
+			arm_controller_.ready(false);
 		}
 		tasks_ = *task;
 		ROS_INFO_STREAM(
@@ -461,6 +461,7 @@ namespace my_hand_eye
 			finish_ = true;
 			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			arm_controller_.ready(true);
 			ROS_INFO("Finish operating border...");
 		}
 		return valid;
