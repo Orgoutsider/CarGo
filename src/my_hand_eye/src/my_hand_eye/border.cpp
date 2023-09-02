@@ -106,9 +106,10 @@ namespace my_hand_eye
         border[0] = border[1] = 0;
         if (lines.empty())
         {
+            int grey = -1;
             if (!thre_img.empty())
             {
-                int grey = cv::countNonZero(thre_img);
+                grey = cv::countNonZero(thre_img);
                 if (grey > 0.8)
                 {
                     detected = detected_grey;
@@ -120,7 +121,7 @@ namespace my_hand_eye
                     return true;
                 }
             }
-            ROS_WARN("Could not find border!");
+            ROS_WARN("Could not find border! grey: %d", grey);
             return false;
         }
         int cnt = 0;
@@ -147,7 +148,22 @@ namespace my_hand_eye
         }
         if (!cnt)
         {
-            ROS_WARN("Could not find border!");
+            int grey = -1;
+            if (!thre_img.empty())
+            {
+                grey = cv::countNonZero(thre_img);
+                if (grey > 0.8)
+                {
+                    detected = detected_grey;
+                    return true;
+                }   
+                else if (grey < 0.2)
+                {
+                    detected = detected_yellow;
+                    return true;
+                }
+            }
+            ROS_WARN("Could not find border! grey: %d", grey);
             return false;
         }
         border[0] /= cnt;

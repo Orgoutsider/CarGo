@@ -76,7 +76,8 @@ namespace motion_controller
                    (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_)) < 0.1 &&
                -x_ < x_road_up_ + width_road_ - length_car_ / 2;
       else if (loop_ == 1)
-        return abs(length_border()) < 0.1;
+        return abs(length_border()) < 0.1 &&
+               -x_ < x_road_up_ + width_road_ - length_car_ / 2;
       else
         ROS_ERROR("Invalid loop!");
       return false;

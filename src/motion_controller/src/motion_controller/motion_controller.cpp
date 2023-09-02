@@ -127,7 +127,7 @@ namespace motion_controller
                 }
                 goal.route = where_is_car(follower_.debug, follower_.startup);
                 goal.left_ready = !(where_is_car(follower_.debug, follower_.startup, 1) == route_raw_material_area ||
-                                  where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area);
+                                    where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area);
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
@@ -177,7 +177,7 @@ namespace motion_controller
                 }
                 goal.route = where_is_car(follower_.debug, follower_.startup);
                 goal.left_ready = !(where_is_car(follower_.debug, follower_.startup, 1) == route_raw_material_area ||
-                                  where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area);
+                                    where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area);
                 if (goal.route == route_QR_code_board)
                 {
                     if (follower_.has_started && ac_arm_.getState().toString() != "SUCCEEDED")
@@ -202,7 +202,7 @@ namespace motion_controller
                     {
                         MoveGoal goal;
                         goal.pose.theta = angle_raw_material_area_;
-                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));  
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                     else if (loop_ == 1)
                     {
@@ -232,9 +232,10 @@ namespace motion_controller
                         MoveGoal goal;
                         goal.pose.theta = angle_corner();
                         int sign =
-                            where_is_car(follower_.debug, follower_.startup, -1) == route_roughing_area
-                                ? -1
-                                : 1;
+                            (where_is_car(follower_.debug, follower_.startup, -1) == route_semi_finishing_area &&
+                             loop_ == 0)
+                                ? 1
+                                : -1;
                         goal.pose.x = sign * length_border();
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                         if (where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area)
