@@ -90,7 +90,8 @@ namespace my_hand_eye
         return temp;
     }
 
-    bool Border::detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect,
+    bool Border::detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, 
+                        cv::Rect &rect, Detected &detected,
                         boost::function<cv::Mat(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
                         bool show_detection, sensor_msgs::ImagePtr &debug_image)
     {
@@ -105,6 +106,20 @@ namespace my_hand_eye
         border[0] = border[1] = 0;
         if (lines.empty())
         {
+            if (!thre_img.empty())
+            {
+                int grey = cv::countNonZero(thre_img);
+                if (grey > 0.8)
+                {
+                    detected = detected_grey;
+                    return true;
+                }   
+                else if (grey < 0.2)
+                {
+                    detected = detected_yellow;
+                    return true;
+                }
+            }
             ROS_WARN("Could not find border!");
             return false;
         }
@@ -149,6 +164,7 @@ namespace my_hand_eye
         // 对之前resize的恢复
         border[0] *= f;
         border[0] = border[0] + rect.x * cos(border[1]) + rect.y * sin(border[1]);
+        detected = detected_both;
         return true;
     }
 

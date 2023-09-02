@@ -71,9 +71,15 @@ namespace motion_controller
       return abs(length_route()) < 0.1 && -x_ < x_road_up_ + width_road_ - length_car_ / 2;
 
     case route_raw_material_area:
-      return abs(y_ - y_raw_material_area_ +
-                 (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_)) < 0.1 &&
-             -x_ < x_road_up_ + width_road_ - length_car_ / 2;
+      if (loop_ == 0)
+        return abs(length_route() -
+                   (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_)) < 0.1 &&
+               -x_ < x_road_up_ + width_road_ - length_car_ / 2;
+      else if (loop_ == 1)
+        return abs(length_border()) < 0.1;
+      else
+        ROS_ERROR("Invalid loop!");
+      return false;
 
     case route_roughing_area:
       return abs(length_route()) < 0.1 && y_ > length_field_ - width_road_ + width_car_ / 2;

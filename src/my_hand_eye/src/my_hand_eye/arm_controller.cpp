@@ -1187,11 +1187,24 @@ namespace my_hand_eye
             return false;
         cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
-        bool valid = border_.detect(cv_image, border, border_roi_,
+        Border::Detected detected;
+        bool valid = border_.detect(cv_image, border, border_roi_, detected,
                                     boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
                                     show_detections, debug_image);
         if (valid)
+        {
+            if (detected == Border::detected_grey)
+            {
+                ROS_INFO("Grey color detected.");
+                return valid;
+            }
+            else if (detected = Border::detected_yellow)
+            {
+                ROS_INFO("Yellow color detected.");
+                return valid;
+            }
             valid = ps_.calculate_border_position(border, z_parking_area, distance, yaw);
+        }
         if (valid)
         {
             ROS_INFO_STREAM("distance: " << distance << " yaw: " << Angle::degree(yaw));
@@ -1390,16 +1403,33 @@ namespace my_hand_eye
         cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
         geometry_msgs::Pose2D p;
-        bool valid = border_.detect(cv_image, border, border_roi_,
+        Border::Detected detected;
+        bool valid = border_.detect(cv_image, border, border_roi_, detected,
                                     boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
                                     show_detections, debug_image);
         if (valid)
+        {
+            msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
+            if (detected == Border::detected_grey)
+            {
+                msg.pose.x = msg.not_change;
+                msg.pose.y = 0.02;
+                msg.pose.theta = 0;
+                return valid;
+            }
+            else if (detected = Border::detected_yellow)
+            {
+                msg.pose.x = msg.not_change;
+                msg.pose.y = -0.02;
+                msg.pose.theta = 0;
+                return valid;
+            }
             valid = ps_.calculate_border_position(border, z_parking_area, p.x, p.theta);
+        }
         if (valid)
         {
             target_pose.calc(p, msg);
-            msg.header = image_rect->header;
-            msg.header.frame_id = "base_footprint";
         }
         last_finish = msg.end;
         return valid;

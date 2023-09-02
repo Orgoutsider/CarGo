@@ -27,8 +27,14 @@ namespace my_hand_eye
 
     public:
         Border();
+        enum Detected
+        {
+            detected_yellow,
+            detected_grey,
+            detected_both
+        };
         // 主函数
-        bool detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect,
+        bool detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect, Detected &detected,
                     boost::function<cv::Mat(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
                     bool show_detection, sensor_msgs::ImagePtr &debug_image);
     };
