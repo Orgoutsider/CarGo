@@ -24,6 +24,10 @@ namespace my_hand_eye
     {
     private:
         float theta_thr_horizontal_;
+        // 聚类
+        bool cluster_lines(cv::Vec2f lines_sel[], int cnt,
+                           cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
+                           bool show_detection);
 
     public:
         Border();

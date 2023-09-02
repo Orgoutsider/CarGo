@@ -90,7 +90,93 @@ namespace my_hand_eye
         return temp;
     }
 
-    bool Border::detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, 
+    bool Border::cluster_lines(cv::Vec2f lines_sel[], int cnt,
+                               cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
+                               bool show_detection)
+    {
+        border[0] = border[1] = 0;
+        if (!cnt)
+            return false;
+        float sum = lines_sel[0][0];
+        int size = 1;
+        bool flag = true; // 有新线加入
+        int note[cnt] = {0};
+        note[0] = 1;
+        const float var_thr = 0.005 * cv_image->image.rows * cv_image->image.rows;
+        while (flag && ros::ok())
+        {
+            flag = false;
+            for (int i = 1; i < cnt; i++)
+            {
+                if (note[i])
+                    continue;
+                sum += lines_sel[i][0];
+                size++;
+                float aver = sum / size;
+                // 计算方差
+                float dist_max = (lines_sel[i][0] - aver) *
+                                 (lines_sel[i][0] - aver),
+                      var = 0;
+                int ind_max = i;
+                for (int j = 0; j < cnt; j++)
+                {
+                    if (note[j] != 1)
+                        continue;
+                    double dist = (lines_sel[j][0] - aver) * (lines_sel[j][0] - aver);
+                    if (dist > dist_max) // 找距离中心最远点
+                    {
+                        dist_max = dist;
+                        ind_max = j;
+                    }
+                    var += dist;
+                }
+                var /= size;
+                if (var < var_thr)
+                {
+                    note[i] = 1;
+                    flag = true;
+                    break;
+                }
+                else if (ind_max != i)
+                {
+                    note[i] = 1;
+                    note[ind_max] = 2;
+                    flag = true;
+                    size--;
+                    sum -= lines_sel[ind_max][0];
+                    break;
+                }
+                else
+                {
+                    size--;
+                    sum -= lines_sel[i][0];
+                }
+            }
+        }
+        for (int i = 0; i < cnt; i++)
+        {
+            if (note[i] != 1)
+            {
+                if (show_detection && !cv_image->image.empty())
+                {
+                    // 排除的直线绘制黑色
+                    plot_line(cv_image->image, lines_sel[i][0], lines_sel[i][1], cv::Scalar(0, 0, 0), 1);
+                }
+                continue;
+            }
+            border += lines_sel[i];
+            if (show_detection && !cv_image->image.empty())
+            {
+                // 绘制红色
+                plot_line(cv_image->image, lines_sel[i][0], lines_sel[i][1], cv::Scalar(0, 0, 255), 1);
+            }
+        }
+        if (size)
+            border /= size;
+        return size >= 3;
+    }
+
+    bool Border::detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
                         cv::Rect &rect, Detected &detected,
                         boost::function<cv::Mat(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
                         bool show_detection, sensor_msgs::ImagePtr &debug_image)
@@ -102,8 +188,9 @@ namespace my_hand_eye
         cv_image->image = saturation(cv_image->image, 100);                       // 饱和度调整参数，-100 — 100, 正数饱和度增强，负数饱和度减弱
         cv::GaussianBlur(cv_image->image, cv_image->image, cv::Size(5, 5), 0, 0); // 滤波预处理
         std::vector<cv::Vec2f> lines;
+        const int MAXN = lines.size() + 5;
+        cv::Vec2f lines_sel[MAXN];
         cv::Mat thre_img = LBD(cv_image->image, lines);
-        border[0] = border[1] = 0;
         if (lines.empty())
         {
             int grey = -1;
@@ -114,7 +201,7 @@ namespace my_hand_eye
                 {
                     detected = detected_grey;
                     return true;
-                }   
+                }
                 else if (grey < 0.2)
                 {
                     detected = detected_yellow;
@@ -131,14 +218,7 @@ namespace my_hand_eye
             double theta_d = Angle::degree(theta);
             if (abs(theta_d - 90) < theta_thr_horizontal_ && color_judge(line, thre_img) > 0.5)
             {
-                border[0] += rho;
-                border[1] += theta;
-                cnt++;
-                if (show_detection)
-                {
-                    // 绘制红色
-                    plot_line(cv_image->image, rho, theta, cv::Scalar(0, 0, 255), 1);
-                }
+                lines_sel[cnt++] = line;
             }
             else if (show_detection)
             {
@@ -146,7 +226,7 @@ namespace my_hand_eye
                 plot_line(cv_image->image, rho, theta, cv::Scalar(0, 0, 0), 1);
             }
         }
-        if (!cnt)
+        if (!cluster_lines(lines_sel, cnt, cv_image, border, show_detection))
         {
             int grey = -1;
             if (!thre_img.empty())
@@ -156,7 +236,7 @@ namespace my_hand_eye
                 {
                     detected = detected_grey;
                     return true;
-                }   
+                }
                 else if (grey < 0.2)
                 {
                     detected = detected_yellow;
@@ -166,8 +246,6 @@ namespace my_hand_eye
             ROS_WARN("Could not find border! grey: %d", grey);
             return false;
         }
-        border[0] /= cnt;
-        border[1] /= cnt;
         if (show_detection && !cv_image->image.empty())
         {
             // cv::imshow("Hough", cv_image->image);
