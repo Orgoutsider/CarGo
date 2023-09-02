@@ -65,9 +65,9 @@ namespace my_hand_eye
 		{
 			if (!as_.isActive())
 				return;
-			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			arm_controller_.ready(false);
+			arm_controller_.ready(arm_goal_.left_ready);
+			arm_goal_.route = arm_goal_.route_rest;
 		}
 		tasks_ = *task;
 		ROS_INFO_STREAM(
@@ -392,7 +392,7 @@ namespace my_hand_eye
 					}
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
-						arm_controller_.ready(true);
+						arm_controller_.ready(arm_goal_.left_ready);
 					finish_ = true;
 					arm_goal_.route = arm_goal_.route_rest;
 					ROS_INFO("Finish operating ellipse...");
@@ -461,9 +461,9 @@ namespace my_hand_eye
 		else
 		{
 			finish_ = true;
-			arm_goal_.route = arm_goal_.route_rest;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			arm_controller_.ready(true);
+			arm_controller_.ready(arm_goal_.left_ready);
+			arm_goal_.route = arm_goal_.route_rest;
 			ROS_INFO("Finish operating border...");
 		}
 		return valid;

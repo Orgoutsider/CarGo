@@ -12,10 +12,7 @@ namespace motion_controller
         std::array<int, 14> route_; // 赛道所有场景数组
         bool doing_;                // 是否正在运行机械臂任务
         int where_;                 // route索引
-        double length_field_;       // 场地（车道部分）长
-        double width_field_;        // 场地（车道部分）宽
         double y_raw_material_area_;
-        double radius_raw_material_area_; // 转盘半径
         double x_roughing_area_;
         double y_semi_finishing_area_;
 
@@ -28,11 +25,14 @@ namespace motion_controller
         double length_car_;          // 车长
         double width_car_;           // 车宽
         double width_road_;          // 路宽
+        double length_field_;       // 场地（车道部分）长
+        double width_field_;        // 场地（车道部分）宽
         double length_parking_area_; // 停车区长宽
         double x_road_up_;           // 从停车区上侧挡板到上路上沿
         double y_QR_code_board_;     // 二维码板
         double x_QR_code_board_;     // 为扫描二维码不行驶在路中心，而是距离车道线一定距离
-        double angle_raw_material_area_;
+        double angle_raw_material_area_;  // 位于原料区旋转的角度
+        double radius_raw_material_area_; // 转盘半径
         double x_parking_area_; // 机械臂开始运动识别停车区的坐标，和停车区有一段距离
         bool clockwise_;        // 是否顺时针移动
         FieldGuide();
