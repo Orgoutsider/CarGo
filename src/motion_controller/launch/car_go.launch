@@ -4,7 +4,7 @@
     <include file="$(find my_hand_eye)/launch/do.launch">
         <arg name="node_namespace" value="my_hand_eye_do_node" />
         <arg name="ft_servo" value="ft_servo" />
-        <arg name="show_detections" value="true" />
+        <arg name="show_detections" value="false" />
         <arg name="camera_name" value="/eye" />
         <arg name="nodelet_manager" value="my_hand_eye_manager" />
         <arg name="flag" value="false" />

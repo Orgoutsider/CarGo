@@ -202,12 +202,15 @@ namespace motion_controller
                     {
                         MoveGoal goal;
                         goal.pose.theta = angle_raw_material_area_;
+                        get_position();
+                        goal.pose.y = length_route() - (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                     else if (loop_ == 1)
                     {
                         MoveGoal goal1;
                         goal1.pose.x = length_border();
+                        ROS_INFO_STREAM("Move " << goal1.pose.x);
                         ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                         get_position();
                         MoveGoal goal2;
@@ -230,26 +233,30 @@ namespace motion_controller
                         where_is_car(follower_.debug, follower_.startup, -1) == route_semi_finishing_area)
                     {
                         MoveGoal goal;
+                        get_position();
                         goal.pose.theta = angle_corner();
                         int sign =
                             (where_is_car(follower_.debug, follower_.startup, -1) == route_semi_finishing_area &&
-                             loop_ == 0)
+                             where_is_car(follower_.debug, follower_.startup, 1) == route_raw_material_area)
                                 ? 1
                                 : -1;
                         goal.pose.x = sign * length_border();
+                        ROS_INFO_STREAM("Move " << goal.pose.x * sign);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                         if (where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area)
                         {
-                            get_position();
                             MoveGoal goal;
-                            goal.pose.x = -(x_road_up_ + width_field_ - width_road_ - length_car_ / 2 - (-x_));
+                            goal.pose.x = -(x_road_up_ + width_field_ - width_road_ -
+                                            length_car_ / 2 - (-x_));
                             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                         }
                     }
                     else
                     {
                         MoveGoal goal;
+                        get_position();
                         goal.pose.y = length_border();
+                        ROS_INFO_STREAM("Move " << goal.pose.y);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                 }
@@ -339,7 +346,6 @@ namespace motion_controller
             if (position_in_corner(feedback->pme.pose.y, feedback->pme.pose.theta,
                                    x, y, theta, !(y_ < width_road_)))
                 set_position(x, y, theta); // 进一步可以引入时间提高精确度
-            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
         }
     }
 
@@ -374,7 +380,13 @@ namespace motion_controller
             goal.pose.y = -length_from_road() * sin(-goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             if (loop_ == 1)
+            {
+                get_position();
+                MoveGoal goal;
+                goal.pose.y = length_border();
+                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 follower_.veer(false, true);
+            }
         }
         else if ((where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
                   where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area) &&
@@ -389,6 +401,7 @@ namespace motion_controller
         }
         else if (where_is_car(follower_.debug, follower_.startup) == route_border && !follower_.debug)
         {
+            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
             if (where_is_car(follower_.debug, follower_.startup, 1) == route_roughing_area)
                 follower_.veer(true, false);
             else if (where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area)
@@ -484,10 +497,10 @@ namespace motion_controller
             geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",
                                                                           "base_footprint", ros::Time(0));
             boost::lock_guard<boost::mutex> lk(mtx_);
-            delta_x_ = x - tfs.transform.translation.x;
-            delta_y_ = y - tfs.transform.translation.y;
             // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
             delta_theta_ = theta_ - atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
+            delta_x_ = x_ - tfs.transform.translation.x * cos(delta_theta_) + tfs.transform.translation.y * sin(delta_theta_);
+            delta_y_ = y_ - tfs.transform.translation.y * cos(delta_theta_) - tfs.transform.translation.x * sin(delta_theta_);
         }
         catch (const std::exception &e)
         {
@@ -634,8 +647,10 @@ namespace motion_controller
             geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",
                                                                           "base_footprint", ros::Time(0));
             boost::lock_guard<boost::mutex> lk(mtx_);
-            x_ = delta_x_ + tfs.transform.translation.x;
-            y_ = delta_y_ + tfs.transform.translation.y;
+            x_ = delta_x_ + tfs.transform.translation.x * cos(delta_theta_) -
+                 tfs.transform.translation.y * sin(delta_theta_);
+            y_ = delta_y_ + tfs.transform.translation.y * cos(delta_theta_) +
+                 tfs.transform.translation.x * sin(delta_theta_);
             theta_ = delta_theta_ + atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
             // 将theta_限定在(-pi,pi]之间
             theta_ = (theta_ <= -M_PI) ? theta_ + M_PI : (theta_ > M_PI ? theta_ - M_PI : theta_);

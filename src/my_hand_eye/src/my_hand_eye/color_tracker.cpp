@@ -435,7 +435,7 @@ namespace my_hand_eye
     {
         double theta = atan2(last_pt_.y - center_y_, last_pt_.x - center_x_); // -pi~pi
         theta = (theta > CV_PI / 2.0) ? theta - 2 * CV_PI : theta;            // 限制在-pi/2周围
-        if (abs(theta + CV_PI / 2) > CV_PI / 2.0)
+        if (abs(theta + CV_PI / 2) > CV_PI * 0.4)
             return false; // 放弃太远的物料
         if (left_color)
         {

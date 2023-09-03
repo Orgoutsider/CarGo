@@ -1188,8 +1188,7 @@ namespace my_hand_eye
         cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
         Border::Detected detected;
-        bool valid = border_.detect(cv_image, border, border_roi_, detected,
-                                    boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
+        bool valid = border_.detect(cv_image, border, border_roi_, detected, threshold,
                                     show_detections, debug_image);
         if (valid)
         {
@@ -1198,7 +1197,7 @@ namespace my_hand_eye
                 ROS_INFO("Grey color detected.");
                 return valid;
             }
-            else if (detected = Border::detected_yellow)
+            else if (detected == Border::detected_yellow)
             {
                 ROS_INFO("Yellow color detected.");
                 return valid;
@@ -1395,6 +1394,11 @@ namespace my_hand_eye
             last_finish = false;
             return false;
         }
+        else if (msg.end)
+        {
+            last_finish = msg.end;
+            return true;
+        }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         cv_bridge::CvImagePtr cv_image;
@@ -1404,8 +1408,7 @@ namespace my_hand_eye
         cv::Vec2f border;
         geometry_msgs::Pose2D p;
         Border::Detected detected;
-        bool valid = border_.detect(cv_image, border, border_roi_, detected,
-                                    boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
+        bool valid = border_.detect(cv_image, border, border_roi_, detected, threshold,
                                     show_detections, debug_image);
         if (valid)
         {
@@ -1418,7 +1421,7 @@ namespace my_hand_eye
                 msg.pose.theta = 0;
                 return valid;
             }
-            else if (detected = Border::detected_yellow)
+            else if (detected == Border::detected_yellow)
             {
                 msg.pose.x = msg.not_change;
                 msg.pose.y = -0.02;

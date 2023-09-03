@@ -421,11 +421,13 @@ namespace my_hand_eye
 	bool ArmServer::operate_border(const sensor_msgs::ImageConstPtr &image_rect,
 								   sensor_msgs::ImagePtr &debug_image)
 	{
+		static ros::Time err_time;
 		if (finish_)
 		{
 			finish_adjusting_ = false;
 			finish_ = false;
 			ROS_INFO("Start to operate border...");
+			err_time = ros::Time::now();
 		}
 		bool valid = true;
 		Pose2DMightEnd msg;
@@ -436,35 +438,54 @@ namespace my_hand_eye
 			if (valid)
 			{
 				pose_publisher_.publish(msg);
+				err_time = ros::Time::now();
 				if (msg.end)
 				{
 					ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
 					finish_adjusting_ = true;
+					finish_ = true;
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
+					ros::Duration(0.1).sleep();
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					arm_controller_.ready(arm_goal_.left_ready);
+					arm_goal_.route = arm_goal_.route_rest;
+					ROS_INFO("Finish operating border...");
 				}
 			}
 			else
 			{
-				// 发送此数据表示车辆即刻停止，重新寻找定位物体
-				msg.pose.x = msg.not_change;
-				msg.pose.y = msg.not_change;
-				msg.pose.theta = msg.not_change;
-				msg.end = false;
-				msg.header = image_rect->header;
-				msg.header.frame_id = "base_footprint";
-				pose_publisher_.publish(msg);
-				finish_adjusting_ = false;
+				if ((ros::Time::now() - err_time).toSec() >= 5) // 连续5s
+				{
+					msg.pose.x = msg.not_change;
+					msg.pose.y = msg.not_change;
+					msg.pose.theta = msg.not_change;
+					msg.end = true;
+					msg.header = image_rect->header;
+					msg.header.frame_id = "base_footprint";
+					arm_controller_.find_border(image_rect, msg, debug_image);
+					pose_publisher_.publish(msg);
+					finish_adjusting_ = true;
+					finish_ = true;
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					arm_controller_.ready(arm_goal_.left_ready);
+					arm_goal_.route = arm_goal_.route_rest;
+					ROS_WARN("Failed to operate border.");
+				}
+				else
+				{
+					// 发送此数据表示车辆即刻停止，重新寻找定位物体
+					msg.pose.x = msg.not_change;
+					msg.pose.y = msg.not_change;
+					msg.pose.theta = msg.not_change;
+					msg.end = false;
+					msg.header = image_rect->header;
+					msg.header.frame_id = "base_footprint";
+					pose_publisher_.publish(msg);
+					finish_adjusting_ = false;
+				}
 			}
-		}
-		else
-		{
-			finish_ = true;
-			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			arm_controller_.ready(arm_goal_.left_ready);
-			arm_goal_.route = arm_goal_.route_rest;
-			ROS_INFO("Finish operating border...");
 		}
 		return valid;
 	}

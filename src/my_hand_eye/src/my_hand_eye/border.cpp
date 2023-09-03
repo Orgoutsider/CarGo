@@ -90,7 +90,7 @@ namespace my_hand_eye
         return temp;
     }
 
-    bool Border::cluster_lines(cv::Vec2f lines_sel[], int cnt,
+    bool Border::cluster_lines(cv::Vec2f lines_sel[], const int cnt,
                                cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
                                bool show_detection)
     {
@@ -114,15 +114,14 @@ namespace my_hand_eye
                 size++;
                 float aver = sum / size;
                 // 计算方差
-                float dist_max = (lines_sel[i][0] - aver) *
-                                 (lines_sel[i][0] - aver),
-                      var = 0;
+                float dist_max = (lines_sel[i][0] - aver) * (lines_sel[i][0] - aver),
+                      var = dist_max;
                 int ind_max = i;
                 for (int j = 0; j < cnt; j++)
                 {
                     if (note[j] != 1)
                         continue;
-                    double dist = (lines_sel[j][0] - aver) * (lines_sel[j][0] - aver);
+                    float dist = (lines_sel[j][0] - aver) * (lines_sel[j][0] - aver);
                     if (dist > dist_max) // 找距离中心最远点
                     {
                         dist_max = dist;
@@ -139,12 +138,29 @@ namespace my_hand_eye
                 }
                 else if (ind_max != i)
                 {
-                    note[i] = 1;
+                    // 去掉距离中心最远点再次尝试
                     note[ind_max] = 2;
-                    flag = true;
                     size--;
                     sum -= lines_sel[ind_max][0];
-                    break;
+                    float aver = sum / size;
+                    // 计算方差
+                    float var = (lines_sel[i][0] - aver) * (lines_sel[i][0] - aver);
+                    for (int j = 0; j < cnt; j++)
+                    {
+                        if (note[j] != 1)
+                            continue;
+                        float dist = (lines_sel[j][0] - aver) * (lines_sel[j][0] - aver);
+                        var += dist;
+                    }
+                    if (var < var_thr)
+                    {
+                        flag = true;
+                        note[i] = 1;
+                        break;
+                    }
+                    note[ind_max] = 1;
+                    sum += lines_sel[ind_max][0];
+                    sum -= lines_sel[i][0];
                 }
                 else
                 {
@@ -177,38 +193,59 @@ namespace my_hand_eye
     }
 
     bool Border::detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
-                        cv::Rect &rect, Detected &detected,
-                        boost::function<cv::Mat(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
+                        cv::Rect &rect, Detected &detected, int threshold,
                         bool show_detection, sensor_msgs::ImagePtr &debug_image)
     {
         int f = 2;
         cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / f);
-        // cv::imshow("original", cv_image->image);
-        // cv::waitKey(1);
+        // 使用原图区分两种颜色
+        static bool flag = true;
+        static cv::Mat ori;
+        cv::Mat ori_now;
+        ori_now = cv_image->image.clone();
         cv_image->image = saturation(cv_image->image, 100);                       // 饱和度调整参数，-100 — 100, 正数饱和度增强，负数饱和度减弱
         cv::GaussianBlur(cv_image->image, cv_image->image, cv::Size(5, 5), 0, 0); // 滤波预处理
         std::vector<cv::Vec2f> lines;
+        cv::Mat thre_img = LBD_color_func(cv_image->image, threshold);
+        cv::Mat edgeImg;
+        cv::Canny(thre_img, edgeImg, 50, 200, 3);
+        cv::HoughLines(edgeImg, lines, 1, CV_PI / 180, threshold, 0, 0);
         const int MAXN = lines.size() + 5;
         cv::Vec2f lines_sel[MAXN];
-        cv::Mat thre_img = LBD(cv_image->image, lines);
+        // cv::cvtColor(ori, ori, cv::COLOR_BGR2HSV);
+        // cv::Scalar Boundary_low = cv::Scalar(78, 0, 0);
+        // cv::Scalar Boundary_high = cv::Scalar(179, 255, 255);
+        // cv::inRange(ori, Boundary_low, Boundary_high, ori);
+        // cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
+        // cv::morphologyEx(ori, ori, cv::MORPH_CLOSE, element, cv::Point(-1, -1), 3);
+        // cv::imshow("thr", ori);
+        // cv::waitKey(10);
         if (lines.empty())
         {
-            int grey = -1;
-            if (!thre_img.empty())
+            double grey = -1;
+            if (!ori.empty() && !ori_now.empty())
             {
-                grey = cv::countNonZero(thre_img);
-                if (grey > 0.8)
+                cv::hconcat(ori_now, ori, ori_now);
+                // cv::imshow("ori", ori_now);
+                ori_now = saturation(ori_now, 100);
+                ori_now = LBD_color_func(ori_now, threshold);
+                // cv::imshow("ori", ori_now);
+                // cv::waitKey(10);
+                grey = cv::countNonZero(
+                           ori_now(cv::Range(0, ori.rows), cv::Range(0, ori.cols))) /
+                       (ori.rows * ori.cols * 1.0);
+                if (grey > 0.5)
                 {
                     detected = detected_grey;
                     return true;
                 }
-                else if (grey < 0.2)
+                else if (grey < 0.3)
                 {
                     detected = detected_yellow;
                     return true;
                 }
             }
-            ROS_WARN("Could not find border! grey: %d", grey);
+            ROS_WARN("Could not find border! grey: %f", grey);
             return false;
         }
         int cnt = 0;
@@ -220,7 +257,7 @@ namespace my_hand_eye
             {
                 lines_sel[cnt++] = line;
             }
-            else if (show_detection)
+            else if (show_detection && !cv_image->image.empty())
             {
                 // 排除的直线绘制黑色
                 plot_line(cv_image->image, rho, theta, cv::Scalar(0, 0, 0), 1);
@@ -228,31 +265,42 @@ namespace my_hand_eye
         }
         if (!cluster_lines(lines_sel, cnt, cv_image, border, show_detection))
         {
-            int grey = -1;
-            if (!thre_img.empty())
+            if (show_detection && !cv_image->image.empty())
             {
-                grey = cv::countNonZero(thre_img);
-                if (grey > 0.8)
+                debug_image = cv_image->toImageMsg();
+            }
+            double grey = -1;
+            if (!ori.empty() && !ori_now.empty())
+            {
+                cv::hconcat(ori_now, ori, ori_now);
+                // cv::imshow("ori", ori_now);
+                ori_now = saturation(ori_now, 100);
+                ori_now = LBD_color_func(ori_now, threshold);
+                // cv::imshow("thr", ori_now);
+                // cv::waitKey(10);
+                grey = cv::countNonZero(
+                           ori_now(cv::Range(0, ori.rows), cv::Range(0, ori.cols))) /
+                       (ori.rows * ori.cols * 1.0);
+                if (grey > 0.5)
                 {
                     detected = detected_grey;
                     return true;
                 }
-                else if (grey < 0.2)
+                else if (grey < 0.3)
                 {
                     detected = detected_yellow;
                     return true;
                 }
             }
-            ROS_WARN("Could not find border! grey: %d", grey);
+            ROS_WARN("Could not find border! grey: %f", grey);
             return false;
         }
+        ori = ori_now;
         if (show_detection && !cv_image->image.empty())
         {
             // cv::imshow("Hough", cv_image->image);
             // 白色
             plot_line(cv_image->image, border[0], border[1], cv::Scalar(255, 255, 255), 2);
-            // cv::waitKey(1);
-            // cv::imshow("border", b);
             debug_image = cv_image->toImageMsg();
         }
         // 对之前resize的恢复
@@ -262,28 +310,7 @@ namespace my_hand_eye
         return true;
     }
 
-    cv::Mat BorderMethod::LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
-    {
-        using namespace cv;
-        Mat gray;
-        cvtColor(enhanced, gray, COLOR_BGR2GRAY);
-        imshow("Gray", gray);
-        Mat ThreImg, edgeImg;
-        adaptiveThreshold(gray, ThreImg, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 3, -1);
-        Mat element = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
-        morphologyEx(ThreImg, ThreImg, MORPH_CLOSE, element, Point(-1, -1), 3);
-        imshow("Thresh", ThreImg);
-
-        Canny(ThreImg, edgeImg, 50, 200, 3);
-        imshow("edge", ThreImg);
-
-        // Mat LineImg;
-        // cvtColor(ThreImg, LineImg, COLOR_GRAY2BGR);
-        HoughLines(edgeImg, lines, 1, CV_PI / 180, threshold, 0, 0);
-        return ThreImg;
-    }
-
-    cv::Mat BorderMethod::LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold)
+    cv::Mat BorderMethod::LBD_color_func(cv::Mat &enhanced, int threshold)
     {
         using namespace cv;
         Mat HSVImg;
@@ -300,14 +327,6 @@ namespace my_hand_eye
         // inRange(HSVImg, Boundary_low, Boundary_high, RangeImg);
         Mat element = getStructuringElement(MORPH_ELLIPSE, Size(5, 5));
         morphologyEx(RangeImg, RangeImg, MORPH_CLOSE, element, Point(-1, -1), 3);
-
-        Mat edgeImg;
-        Canny(RangeImg, edgeImg, 50, 200, 3);
-        // imshow("edge", edgeImg);
-
-        // Mat LineImg;
-        // cvtColor(edgeImg, LineImg, COLOR_GRAY2BGR);
-        HoughLines(edgeImg, lines, 1, CV_PI / 180, threshold, 0, 0);
         return RangeImg;
     }
 } // namespace my_hand_eye
