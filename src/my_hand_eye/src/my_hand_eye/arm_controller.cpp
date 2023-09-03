@@ -1036,6 +1036,83 @@ namespace my_hand_eye
         return true;
     }
 
+    bool ArmController::detect_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
+                                            geometry_msgs::Pose2D &pose,
+                                            sensor_msgs::ImagePtr &debug_image)
+    {
+        cv_bridge::CvImagePtr cv_image;
+        if (!add_image(image_rect, cv_image))
+            return false;
+        using namespace cv;
+        if (ps_.refresh_xyz())
+        {
+            Mat M = ps_.transformation_matrix(z_parking_area);
+            double ratio = z_parking_area / 80.0 * cv_image->image.rows; // 放大倍数
+            M.rowRange(0, 2) *= ratio;                                   // 放大
+            ratio /= (z_parking_area * 4);                               // 4是图片缩小倍数，用于还原真实坐标
+            M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;   // 平移
+            // ROS_INFO_STREAM(M);
+            warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size());
+            // imshow("src", cv_image->image);
+            // waitKey(100);
+            resize(cv_image->image, cv_image->image, cv_image->image.size() / 2);
+            pyrDown(cv_image->image, cv_image->image,
+                    Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
+            Mat srcgray;
+            srcgray = saturation(cv_image->image, 100);
+            // imshow("saturation", srcgray);
+            // waitKey(1);
+            cvtColor(srcgray, srcgray, COLOR_BGR2GRAY); // 灰度转换
+            // imshow("gray", srcgray);
+            // waitKey(1);
+            Mat srcbinary;
+            cv::threshold(srcgray, srcbinary, 0, 255, THRESH_OTSU | THRESH_BINARY); // 阈值化
+            // imshow("threshold", srcbinary);
+            // waitKey(1);
+            Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
+            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 1); // 闭操作去除噪点
+            // imshow("MORPH_OPEN", srcbinary);
+            // waitKey(1);
+            Mat edges;
+            Canny(srcbinary, edges, 0, 50, 3, false); // 查找边缘
+            // imshow("edges", edges);
+            // waitKey(1);
+            std::vector<std::vector<cv::Point>> contours;
+            std::vector<Vec4i> hierarchy;
+            findContours(edges, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // 只检测最外围的轮廓,只保留拐点的信息
+            if (contours.size())
+            {
+                BestSquare s(contours, ratio);
+                if (s.best.length)
+                {
+                    cv::Point2d center = s.best.center();
+                    // 计算真实世界中坐标
+                    pose.x = (center.x - cv_image->image.cols / 2.0) / ratio;
+                    pose.y = center.y / ratio;
+                    // msg.pose.theta
+                    if (show_detections && !cv_image->image.empty())
+                    {
+                        drawContours(cv_image->image, contours, s.best_id, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
+                        draw_cross(cv_image->image, center, Scalar(255, 255, 255), 30, 2);
+                        debug_image = cv_image->toImageMsg();
+                    }
+                }
+                else
+                {
+                    ROS_WARN("Could not find parking area!");
+                    return false;
+                }
+            }
+            else
+            {
+                ROS_WARN("Could not find parking area!");
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     bool ArmController::log_ellipse(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
                                     sensor_msgs::ImagePtr &debug_image, bool pose)
     {
@@ -1438,7 +1515,6 @@ namespace my_hand_eye
     bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                           sensor_msgs::ImagePtr &debug_image)
     {
-        using namespace cv;
         static bool flag = true;
         if (flag)
         {
@@ -1448,77 +1524,7 @@ namespace my_hand_eye
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
-        cv_bridge::CvImagePtr cv_image;
-        if (!add_image(image_rect, cv_image))
-            return false;
-        if (ps_.refresh_xyz())
-        {
-            Mat M = ps_.transformation_matrix(z_parking_area);
-            double ratio = z_parking_area / 80.0 * cv_image->image.rows; // 放大倍数
-            M.rowRange(0, 2) *= ratio;                                   // 放大
-            ratio /= (z_parking_area * 4);                               // 4是图片缩小倍数，用于还原真实坐标
-            M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;   // 平移
-            // ROS_INFO_STREAM(M);
-            warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size());
-            // imshow("src", cv_image->image);
-            // waitKey(100);
-            resize(cv_image->image, cv_image->image, cv_image->image.size() / 2);
-            pyrDown(cv_image->image, cv_image->image,
-                    Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
-            Mat srcgray;
-            srcgray = saturation(cv_image->image, 100);
-            // imshow("saturation", srcgray);
-            // waitKey(1);
-            cvtColor(srcgray, srcgray, COLOR_BGR2GRAY); // 灰度转换
-            // imshow("gray", srcgray);
-            // waitKey(1);
-            Mat srcbinary;
-            cv::threshold(srcgray, srcbinary, 0, 255, THRESH_OTSU | THRESH_BINARY); // 阈值化
-            // imshow("threshold", srcbinary);
-            // waitKey(1);
-            Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
-            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 1); // 闭操作去除噪点
-            // imshow("MORPH_OPEN", srcbinary);
-            // waitKey(1);
-            Mat edges;
-            Canny(srcbinary, edges, 0, 50, 3, false); // 查找边缘
-            imshow("edges", edges);
-            waitKey(1);
-            std::vector<std::vector<cv::Point>> contours;
-            std::vector<Vec4i> hierarchy;
-            findContours(edges, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // 只检测最外围的轮廓,只保留拐点的信息
-            if (contours.size())
-            {
-                BestSquare s(contours, ratio);
-                if (s.best.length)
-                {
-                    cv::Point2d center = s.best.center();
-                    // 计算真实世界中坐标
-                    msg.pose.x = (center.x - cv_image->image.cols / 2.0) / ratio;
-                    msg.pose.y = center.y / ratio;
-                    // msg.pose.theta
-                    ROS_INFO_STREAM("x:" << msg.pose.x << " y:" << msg.pose.x);
-                    if (show_detections && !cv_image->image.empty())
-                    {
-                        drawContours(cv_image->image, contours, s.best_id, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
-                        draw_cross(cv_image->image, center, Scalar(255, 255, 255), 30, 2);
-                        debug_image = cv_image->toImageMsg();
-                    }
-                }
-                else
-                {
-                    ROS_WARN("Could not find parking area!");
-                    return false;
-                }
-            }
-            else
-            {
-                ROS_WARN("Could not find parking area!");
-                return false;
-            }
-            return true;
-        }
-        else
-            return false;
+
+        return false;
     }
 } // namespace my_hand_eye

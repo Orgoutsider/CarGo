@@ -46,13 +46,18 @@ namespace my_hand_eye
         return fabs(length * length - area) < length * length / 3.0;
     }
 
-    cv::Point2d Square::center()
+    cv::Point2d Square::_center()
     {
         double k0 = (double)(approx_[2].y - approx_[0].y) / (approx_[2].x - approx_[0].x);
         double k1 = (double)(approx_[3].y - approx_[1].y) / (approx_[3].x - approx_[1].x);
         double x_ = (double)(approx_[1].y - approx_[0].y + k0 * approx_[0].x - k1 * approx_[1].x) / (k0 - k1);
         double y_ = (double)(k0 * (x_ - approx_[0].x) + approx_[0].y);
         return cv::Point2d(x_, y_);
+    }
+
+    void Square::get_pose(geometry_msgs::Pose2D &pose)
+    {
+        cv::Point2d center = _center();
     }
 
     BestSquare::BestSquare(std::vector<std::vector<cv::Point>> &contours, double ratio)

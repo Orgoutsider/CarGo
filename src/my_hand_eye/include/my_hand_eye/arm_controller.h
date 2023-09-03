@@ -46,6 +46,9 @@ namespace my_hand_eye
                           sensor_msgs::ImagePtr &debug_image, cv::Rect &rect); // 向物块检测服务器发送请求
         bool detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
                             sensor_msgs::ImagePtr &debug_image, cv::Rect &rect);
+        // 检测停车区位置
+        bool detect_parking_area(const sensor_msgs::ImageConstPtr &image_rect, geometry_msgs::Pose2D &pose,
+                                 sensor_msgs::ImagePtr &debug_image);
         // 处理接收的图片，通过颜色确定位置，注意objArray中的数据对应的是原图
         bool find_with_color(vision_msgs::BoundingBox2DArray &objArray, const Color color,
                              double z, double &x, double &y);
