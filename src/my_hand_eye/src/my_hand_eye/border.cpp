@@ -102,7 +102,7 @@ namespace my_hand_eye
         bool flag = true; // 有新线加入
         int note[cnt] = {0};
         note[0] = 1;
-        const float var_thr = 0.005 * cv_image->image.rows * cv_image->image.rows;
+        const float var_thr = 0.002 * cv_image->image.rows * cv_image->image.rows;
         while (flag && ros::ok())
         {
             flag = false;
@@ -229,12 +229,12 @@ namespace my_hand_eye
                 // cv::imshow("ori", ori_now);
                 ori_now = saturation(ori_now, 100);
                 ori_now = LBD_color_func(ori_now, threshold);
-                // cv::imshow("ori", ori_now);
-                // cv::waitKey(10);
+                cv::imshow("ori", ori_now);
+                cv::waitKey(10);
                 grey = cv::countNonZero(
                            ori_now(cv::Range(0, ori.rows), cv::Range(0, ori.cols))) /
                        (ori.rows * ori.cols * 1.0);
-                if (grey > 0.5)
+                if (grey > 0.4)
                 {
                     detected = detected_grey;
                     return true;
@@ -276,12 +276,12 @@ namespace my_hand_eye
                 // cv::imshow("ori", ori_now);
                 ori_now = saturation(ori_now, 100);
                 ori_now = LBD_color_func(ori_now, threshold);
-                // cv::imshow("thr", ori_now);
-                // cv::waitKey(10);
+                cv::imshow("thr", ori_now);
+                cv::waitKey(10);
                 grey = cv::countNonZero(
                            ori_now(cv::Range(0, ori.rows), cv::Range(0, ori.cols))) /
                        (ori.rows * ori.cols * 1.0);
-                if (grey > 0.5)
+                if (grey > 0.4)
                 {
                     detected = detected_grey;
                     return true;

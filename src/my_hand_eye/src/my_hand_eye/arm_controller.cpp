@@ -490,17 +490,20 @@ namespace my_hand_eye
                              3;
             else if (cnt == 2)
                 pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
-            else if (!rst)
-                pose.theta = last_pose.theta;
             else
                 return false;
+            if (abs(Angle::degree(pose.theta - target_pose.pose[target_pose.target_ellipse].theta)) > 3)
+                pose.theta = cv::sgn(pose.theta -
+                                     target_pose.pose[target_pose.target_ellipse].theta) *
+                                 Angle(3).rad() +
+                             target_pose.pose[target_pose.target_ellipse].theta;
             if (!rst)
             {
                 if (abs(last_pose.x - pose.x) > 3)
                     pose.x = last_pose.x + cv::sgn(pose.x - last_pose.x);
                 if (abs(last_pose.y - pose.y) > 3)
                     pose.y = last_pose.y + cv::sgn(pose.y - last_pose.y);
-                if (Angle::degree(last_pose.theta - pose.theta) > 10)
+                if (Angle::degree(last_pose.theta - pose.theta) > 3)
                     pose.theta = last_pose.theta + Angle(3).rad() *
                                                        cv::sgn(pose.theta - last_pose.theta);
             }
@@ -1416,16 +1419,20 @@ namespace my_hand_eye
             msg.header.frame_id = "base_footprint";
             if (detected == Border::detected_grey)
             {
+                ROS_INFO("Grey color detected.");
                 msg.pose.x = msg.not_change;
-                msg.pose.y = 0.02;
+                msg.pose.y = 0.03;
                 msg.pose.theta = 0;
+                msg.end = false;
                 return valid;
             }
             else if (detected == Border::detected_yellow)
             {
+                ROS_INFO("Yellow color detected.");
                 msg.pose.x = msg.not_change;
-                msg.pose.y = -0.02;
+                msg.pose.y = -0.03;
                 msg.pose.theta = 0;
+                msg.end = false;
                 return valid;
             }
             valid = ps_.calculate_border_position(border, z_parking_area, p.x, p.theta);
