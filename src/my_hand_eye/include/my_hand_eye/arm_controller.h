@@ -114,10 +114,10 @@ namespace my_hand_eye
         void ready(bool left);
         // 计算物料中心点位置或位姿
         bool find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                        sensor_msgs::ImagePtr &debug_image, bool pose, bool store = false);
+                        sensor_msgs::ImagePtr &debug_image, bool pose, double theta, bool store = false);
         // 计算椭圆位置
         bool find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                          sensor_msgs::ImagePtr &debug_image, bool store);
+                          sensor_msgs::ImagePtr &debug_image, bool store, double theta);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);

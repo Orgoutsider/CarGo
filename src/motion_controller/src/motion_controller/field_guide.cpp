@@ -109,7 +109,9 @@ namespace motion_controller
       return -(x_road_up_ + width_road_ / 2 - (-x_));
 
     case route_raw_material_area:
-      return -(x_road_up_ + width_road_ / 2 - (-x_));
+      return (!doing_ && loop_ == 1)
+                 ? length_field_ - width_road_ / 2 - y_
+                 : -(x_road_up_ + width_road_ / 2 - (-x_));
 
     case route_roughing_area:
       return length_field_ - width_road_ / 2 - y_;

@@ -49,6 +49,8 @@ namespace motion_controller
         // // 通过全局定位信息转弯，已加锁
         // bool _turn_by_position();
         void _timer_callback(const ros::TimerEvent &event);
+        // 检查arm ac活跃
+        void _check_arm_active();
         void _arm_done_callback(const actionlib::SimpleClientGoalState &state,
                                 const my_hand_eye::ArmResultConstPtr &result);
         void _arm_active_callback();

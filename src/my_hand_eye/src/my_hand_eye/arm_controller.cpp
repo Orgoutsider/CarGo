@@ -1220,7 +1220,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                   sensor_msgs::ImagePtr &debug_image, bool pose, bool store)
+                                   sensor_msgs::ImagePtr &debug_image, bool pose, double theta, bool store)
     {
         if (store && !pose)
         {
@@ -1271,7 +1271,9 @@ namespace my_hand_eye
                         {
                             cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
                             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-                            average_theta(target_pose.pose[target_pose.target_ellipse].theta);
+                            double aver;
+                            average_theta(aver);
+                            target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
                             ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
                             rst = false;
                         }
@@ -1315,7 +1317,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                     sensor_msgs::ImagePtr &debug_image, bool store)
+                                     sensor_msgs::ImagePtr &debug_image, bool store, double theta)
     {
         static bool last_finish = true;
         static bool rst = false;
@@ -1350,7 +1352,9 @@ namespace my_hand_eye
                 {
                     cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
                     cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-                    average_theta(target_pose.pose[target_pose.target_ellipse].theta);
+                    double aver;
+                    average_theta(aver);
+                    target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
                     ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
                     rst = false;
                 }
@@ -1417,12 +1421,17 @@ namespace my_hand_eye
         {
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";
+            if (abs(Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_border].theta)) > 3)
+                msg.pose.theta = cv::sgn(msg.pose.theta -
+                                         target_pose.pose[target_pose.target_border].theta) *
+                                     Angle(3).rad() +
+                                 target_pose.pose[target_pose.target_border].theta;
             if (detected == Border::detected_grey)
             {
                 ROS_INFO("Grey color detected.");
                 msg.pose.x = msg.not_change;
                 msg.pose.y = 0.03;
-                msg.pose.theta = 0;
+                msg.pose.theta = msg.not_change;
                 msg.end = false;
                 return valid;
             }
@@ -1431,7 +1440,7 @@ namespace my_hand_eye
                 ROS_INFO("Yellow color detected.");
                 msg.pose.x = msg.not_change;
                 msg.pose.y = -0.03;
-                msg.pose.theta = 0;
+                msg.pose.theta = msg.not_change;
                 msg.end = false;
                 return valid;
             }

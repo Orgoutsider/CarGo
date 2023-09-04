@@ -259,7 +259,7 @@ namespace my_hand_eye
 			// static int err_cnt = 0;
 			Pose2DMightEnd msg;
 			msg.end = false;
-			valid = arm_controller_.find_cargo(image_rect, msg, debug_image, false);
+			valid = arm_controller_.find_cargo(image_rect, msg, debug_image, false, arm_goal_.theta);
 			if (valid)
 			{
 				if (msg.end)
@@ -329,9 +329,9 @@ namespace my_hand_eye
 		{
 			msg.end = false;
 			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
-				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
+				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false, arm_goal_.theta);
 			else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
-				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
+				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, arm_goal_.theta, false);
 			else
 			{
 				ROS_ERROR("Invalid loop!");
@@ -371,8 +371,8 @@ namespace my_hand_eye
 			{
 				msg.end = true;
 				bool pal = (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area);
-				bool fin = pal ? arm_controller_.find_cargo(image_rect, msg, debug_image, true, true)
-							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true);
+				bool fin = pal ? arm_controller_.find_cargo(image_rect, msg, debug_image, true, arm_goal_.theta, true)
+							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true, arm_goal_.theta);
 				if (fin)
 				{
 					arm_controller_.put(which_color(), pal, false);
@@ -437,21 +437,30 @@ namespace my_hand_eye
 			valid = arm_controller_.find_border(image_rect, msg, debug_image);
 			if (valid)
 			{
-				pose_publisher_.publish(msg);
 				err_time = ros::Time::now();
-				if (msg.end)
+				if (msg.pose.theta != msg.not_change)
 				{
-					ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
-					finish_adjusting_ = true;
-					finish_ = true;
+					pose_publisher_.publish(msg);
+					if (msg.end)
+					{
+						ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
+						finish_adjusting_ = true;
+						finish_ = true;
+						ArmFeedback feedback;
+						feedback.pme = msg;
+						as_.publishFeedback(feedback);
+						ros::Duration(0.1).sleep();
+						as_.setSucceeded(ArmResult(), "Arm finish tasks");
+						arm_controller_.ready(arm_goal_.left_ready);
+						arm_goal_.route = arm_goal_.route_rest;
+						ROS_INFO("Finish operating border...");
+					}
+				}
+				else
+				{
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
-					ros::Duration(0.1).sleep();
-					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					arm_controller_.ready(arm_goal_.left_ready);
-					arm_goal_.route = arm_goal_.route_rest;
-					ROS_INFO("Finish operating border...");
 				}
 			}
 			else
@@ -482,7 +491,9 @@ namespace my_hand_eye
 					msg.end = false;
 					msg.header = image_rect->header;
 					msg.header.frame_id = "base_footprint";
-					pose_publisher_.publish(msg);
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
 					finish_adjusting_ = false;
 				}
 			}

@@ -229,17 +229,17 @@ namespace my_hand_eye
                 // cv::imshow("ori", ori_now);
                 ori_now = saturation(ori_now, 100);
                 ori_now = LBD_color_func(ori_now, threshold);
-                cv::imshow("ori", ori_now);
-                cv::waitKey(10);
+                // cv::imshow("ori", ori_now);
+                // cv::waitKey(10);
                 grey = cv::countNonZero(
                            ori_now(cv::Range(0, ori.rows), cv::Range(0, ori.cols))) /
                        (ori.rows * ori.cols * 1.0);
-                if (grey > 0.4)
+                if (grey > 0.45)
                 {
                     detected = detected_grey;
                     return true;
                 }
-                else if (grey < 0.3)
+                else if (grey < 0.35)
                 {
                     detected = detected_yellow;
                     return true;
@@ -276,17 +276,17 @@ namespace my_hand_eye
                 // cv::imshow("ori", ori_now);
                 ori_now = saturation(ori_now, 100);
                 ori_now = LBD_color_func(ori_now, threshold);
-                cv::imshow("thr", ori_now);
-                cv::waitKey(10);
+                // cv::imshow("thr", ori_now);
+                // cv::waitKey(10);
                 grey = cv::countNonZero(
                            ori_now(cv::Range(0, ori.rows), cv::Range(0, ori.cols))) /
                        (ori.rows * ori.cols * 1.0);
-                if (grey > 0.4)
+                if (grey > 0.45)
                 {
                     detected = detected_grey;
                     return true;
                 }
-                else if (grey < 0.3)
+                else if (grey < 0.35)
                 {
                     detected = detected_yellow;
                     return true;
