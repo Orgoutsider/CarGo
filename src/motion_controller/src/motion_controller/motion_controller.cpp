@@ -188,6 +188,7 @@ namespace motion_controller
                         MoveGoal goal;
                         get_position();
                         goal.pose.y = length_route();
+                        goal.pose.theta = angle_from_road();
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                     return;
@@ -499,6 +500,23 @@ namespace motion_controller
             else if (where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area)
                 follower_.veer(true, true);
         }
+        else if (where_is_car(follower_.debug, follower_.startup) == route_parking_area)
+        {
+            ac_move_.waitForServer();
+            // 先移动到停车区的下侧
+            get_position();
+            motion_controller::MoveGoal goal1;
+            goal1.pose.theta = angle_from_road();
+            goal1.pose.y = -(y_ - length_parking_area_ / 2);
+            ac_move_.sendGoalAndWait(goal1, ros::Duration(20), ros::Duration(0.1));
+            motion_controller::MoveGoal goal2;
+            get_position();
+            goal2.pose.x = -x_ - length_parking_area_ / 2;
+            ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
+            if (get_position())
+                ROS_INFO_STREAM("Finish! x: " << (-x_ - length_parking_area_ / 2) << " y: " << (y_ - length_parking_area_ / 2));
+            return;
+        }
         if (!follower_.debug)
         {
             get_position();
@@ -514,31 +532,6 @@ namespace motion_controller
         else
             ROS_ERROR_STREAM("*** Arm finished: " << state.toString());
 
-        // if (where_is_car() == route_raw_material_area || where_is_car() == route_roughing_area)
-        //     follower_.start(true);
-        // else if (where_is_car() == route_semi_finishing_area)
-        // {
-        //     if (loop_ == 0)
-        //         _U_turn();
-        //     follower_.start(true);
-        // }
-        // else if (where_is_car() == route_parking_area)
-        // {
-        //     ac_move_.waitForServer();
-        //     // 先移动到停车区的下侧
-        //     get_position();
-        //     motion_controller::MoveGoal goal1;
-        //     goal1.pose.x = y_ - (y_road_up_up_ + length_car_ / 2);
-        //     goal1.pose.theta = M_PI / 2;
-        //     goal1.pose.y = -(x_ - length_car_ / 2);
-        //     ac_move_.sendGoalAndWait(goal1, ros::Duration(20), ros::Duration(0.1));
-        //     motion_controller::MoveGoal goal2;
-        //     goal2.pose.y = -(y_road_up_up_ + length_car_ / 2 - length_parking_area_ / 2);
-        //     ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
-        //     if (get_position())
-        //         ROS_INFO_STREAM("Finish! x: " << x_ << " y: " << y_);
-        //     return;
-        // }
     }
 
     void MotionController::_move_active_callback(){};

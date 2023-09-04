@@ -202,7 +202,8 @@ namespace my_hand_eye
 			break;
 
 		case arm_goal_.route_parking_area:
-			arm_controller_.target_pose.target = arm_controller_.target_pose.target_parking_area;
+			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			// arm_controller_.target_pose.target = arm_controller_.target_pose.target_parking_area;
 			break;
 
 		default:
