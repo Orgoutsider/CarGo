@@ -717,7 +717,7 @@ namespace my_hand_eye
     cv::Mat Pos::T_cam_to_end()
     {
         // return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.368791829, 0.825703402136746);
-        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.568791829, 0.825703402136746);
+        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.568791829, 0.925703402136746);
     }
 
     cv::Mat Pos::R_end_to_base()

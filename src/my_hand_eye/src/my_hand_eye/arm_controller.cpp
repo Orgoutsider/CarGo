@@ -18,7 +18,7 @@ namespace my_hand_eye
           z_parking_area(1.40121),
           z_ellipse(4.58369),
           z_palletize(11.3079),
-          z_turntable(13.33052) // 比赛转盘
+          z_turntable(13.27052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
         cargo_x_.reserve(5);
@@ -36,7 +36,7 @@ namespace my_hand_eye
           z_parking_area(1.40121),
           z_ellipse(4.58369),
           z_palletize(11.3079),
-          z_turntable(13.33052) // 比赛转盘
+          z_turntable(13.27052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
@@ -490,17 +490,20 @@ namespace my_hand_eye
                              3;
             else if (cnt == 2)
                 pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
-            else if (!rst)
-                pose.theta = last_pose.theta;
             else
                 return false;
+            if (abs(Angle::degree(pose.theta - target_pose.pose[target_pose.target_ellipse].theta)) > 3)
+                pose.theta = cv::sgn(pose.theta -
+                                     target_pose.pose[target_pose.target_ellipse].theta) *
+                                 Angle(3).rad() +
+                             target_pose.pose[target_pose.target_ellipse].theta;
             if (!rst)
             {
                 if (abs(last_pose.x - pose.x) > 3)
                     pose.x = last_pose.x + cv::sgn(pose.x - last_pose.x);
                 if (abs(last_pose.y - pose.y) > 3)
                     pose.y = last_pose.y + cv::sgn(pose.y - last_pose.y);
-                if (Angle::degree(last_pose.theta - pose.theta) > 10)
+                if (Angle::degree(last_pose.theta - pose.theta) > 3)
                     pose.theta = last_pose.theta + Angle(3).rad() *
                                                        cv::sgn(pose.theta - last_pose.theta);
             }
@@ -1265,8 +1268,7 @@ namespace my_hand_eye
         cv_image->image = cv_image->image(border_roi_).clone();
         cv::Vec2f border;
         Border::Detected detected;
-        bool valid = border_.detect(cv_image, border, border_roi_, detected,
-                                    boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
+        bool valid = border_.detect(cv_image, border, border_roi_, detected, threshold,
                                     show_detections, debug_image);
         if (valid)
         {
@@ -1275,7 +1277,7 @@ namespace my_hand_eye
                 ROS_INFO("Grey color detected.");
                 return valid;
             }
-            else if (detected = Border::detected_yellow)
+            else if (detected == Border::detected_yellow)
             {
                 ROS_INFO("Yellow color detected.");
                 return valid;
@@ -1295,7 +1297,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                   sensor_msgs::ImagePtr &debug_image, bool pose, bool store)
+                                   sensor_msgs::ImagePtr &debug_image, bool pose, double theta, bool store)
     {
         if (store && !pose)
         {
@@ -1346,7 +1348,9 @@ namespace my_hand_eye
                         {
                             cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
                             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-                            average_theta(target_pose.pose[target_pose.target_ellipse].theta);
+                            double aver;
+                            average_theta(aver);
+                            target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
                             ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
                             rst = false;
                         }
@@ -1390,7 +1394,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                     sensor_msgs::ImagePtr &debug_image, bool store)
+                                     sensor_msgs::ImagePtr &debug_image, bool store, double theta)
     {
         static bool last_finish = true;
         static bool rst = false;
@@ -1425,7 +1429,9 @@ namespace my_hand_eye
                 {
                     cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
                     cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-                    average_theta(target_pose.pose[target_pose.target_ellipse].theta);
+                    double aver;
+                    average_theta(aver);
+                    target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
                     ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
                     rst = false;
                 }
@@ -1472,6 +1478,11 @@ namespace my_hand_eye
             last_finish = false;
             return false;
         }
+        else if (msg.end)
+        {
+            last_finish = msg.end;
+            return true;
+        }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         cv_bridge::CvImagePtr cv_image;
@@ -1481,25 +1492,33 @@ namespace my_hand_eye
         cv::Vec2f border;
         geometry_msgs::Pose2D p;
         Border::Detected detected;
-        bool valid = border_.detect(cv_image, border, border_roi_, detected,
-                                    boost::bind(&ArmController::LBD_color_func, this, _1, _2, threshold),
+        bool valid = border_.detect(cv_image, border, border_roi_, detected, threshold,
                                     show_detections, debug_image);
         if (valid)
         {
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";
+            if (abs(Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_border].theta)) > 3)
+                msg.pose.theta = cv::sgn(msg.pose.theta -
+                                         target_pose.pose[target_pose.target_border].theta) *
+                                     Angle(3).rad() +
+                                 target_pose.pose[target_pose.target_border].theta;
             if (detected == Border::detected_grey)
             {
+                ROS_INFO("Grey color detected.");
                 msg.pose.x = msg.not_change;
-                msg.pose.y = 0.02;
-                msg.pose.theta = 0;
+                msg.pose.y = 0.03;
+                msg.pose.theta = msg.not_change;
+                msg.end = false;
                 return valid;
             }
-            else if (detected = Border::detected_yellow)
+            else if (detected == Border::detected_yellow)
             {
+                ROS_INFO("Yellow color detected.");
                 msg.pose.x = msg.not_change;
-                msg.pose.y = -0.02;
-                msg.pose.theta = 0;
+                msg.pose.y = -0.03;
+                msg.pose.theta = msg.not_change;
+                msg.end = false;
                 return valid;
             }
             valid = ps_.calculate_border_position(border, z_parking_area, p.x, p.theta);

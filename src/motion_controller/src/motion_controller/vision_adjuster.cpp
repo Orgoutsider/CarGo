@@ -8,9 +8,9 @@ namespace motion_controller
         : listener_(buffer_), target_frame_("odom_combined"),
           tf2_filter_(eye_subscriber_, buffer_, target_frame_, 15, 0),
           unchanging_(direction_void), changing_(direction_theta),
-          kp_eye_angular_(1.9), ki_eye_angular_(0.2), kd_eye_angular_(0.4),
+          kp_eye_angular_(1.9), ki_eye_angular_(0.21), kd_eye_angular_(0.4),
           kp_eye_linear_(1.0), ki_eye_linear_(0.12), kd_eye_linear_(0.3),
-          thresh_angular_(0.007), thresh_linear_x_(0.007), thresh_linear_y_(0.008),
+          thresh_angular_(0.009), thresh_linear_x_(0.007), thresh_linear_y_(0.008),
           limiting_freq_(2.5),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
@@ -148,7 +148,7 @@ namespace motion_controller
                 pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                                {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                                {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                               {thresh_linear_x_, thresh_linear_y_, thresh_angular_}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
+                                               {thresh_linear_x_, thresh_linear_y_, 0.003}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
                                                {limiting_freq_, limiting_freq_, limiting_freq_});
             }
         }

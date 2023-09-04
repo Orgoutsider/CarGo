@@ -15,8 +15,8 @@ namespace motion_controller
         dr_route_(route_rest),
         doing_(false), where_(0),
         x_(0), y_(0), theta_(0), loop_(0),
-        length_car_(0.28), width_car_(0.271), width_road_(0.45), length_field_(2.25), width_field_(2.03),
-        y_QR_code_board_(0.8), x_QR_code_board_(0.02),
+        length_car_(0.28), width_car_(0.271), width_road_(0.45), length_field_(2.25), width_field_(2.02),
+        y_QR_code_board_(0.8), x_QR_code_board_(0.03),
         y_raw_material_area_(1.6), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
         x_roughing_area_(1.2), y_semi_finishing_area_(1.2),
         length_parking_area_(0.3), x_road_up_(0.08), x_parking_area_(0.7),
@@ -109,7 +109,9 @@ namespace motion_controller
       return -(x_road_up_ + width_road_ / 2 - (-x_));
 
     case route_raw_material_area:
-      return -(x_road_up_ + width_road_ / 2 - (-x_));
+      return (!doing_ && loop_ == 1)
+                 ? length_field_ - width_road_ / 2 - y_
+                 : -(x_road_up_ + width_road_ / 2 - (-x_));
 
     case route_roughing_area:
       return length_field_ - width_road_ / 2 - y_;
@@ -166,6 +168,7 @@ namespace motion_controller
       theta = -yaw;
     else
       theta = -M_PI / 2 - yaw;
+    theta = (theta + theta_) / 2;
     if (-x_ < x_road_up_ + width_road_) // 上
       n += 1;
     else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下

@@ -14,8 +14,8 @@
     <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
 
     <include file="$(find my_hand_eye)/launch/eye.launch">
-        <arg name="nodelet_manager" value="$(arg nodelet_manager)" />
-        <arg name="respawn" value="$(arg respawn)" />
+        <!-- <arg name="nodelet_manager" value="$(arg nodelet_manager)" /> -->
+        <!-- <arg name="respawn" value="$(arg respawn)" /> -->
     </include>
     <include file="$(find my_hand_eye)/launch/include/yolov5.launch">
         <arg name="debug" value="false" />

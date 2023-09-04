@@ -16,7 +16,7 @@ namespace my_hand_eye
         tolerance[target_center].x = 0.015;
         tolerance[target_center].y = 0.015;
 
-        // pose[target_ellipse].theta = Angle(-5.0951).rad();
+        pose[target_ellipse].theta = Angle(-5.0951).rad();
         // pose[target_ellipse].theta = Angle(-4.8854).rad();
         Action ellipse = Action(0, 19.3, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
@@ -27,8 +27,8 @@ namespace my_hand_eye
         tolerance[target_ellipse].x = 0.009;
         tolerance[target_ellipse].y = 0.01;
 
-        Action border = Action(0, 16.8990405, 0).front2left().arm2footprint();
-        pose[target_border].theta = Angle(-5.747564).rad();
+        Action border = Action(0, 17.7990405, 0).front2left().arm2footprint();
+        pose[target_border].theta = Angle(-5.047564).rad();
         pose[target_border].x = Pose2DMightEnd::not_change;
         pose[target_border].y = border.y;
 

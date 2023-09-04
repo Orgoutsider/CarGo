@@ -80,49 +80,49 @@ namespace my_hand_eye
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		if (!as_.isActive())
-			return;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		bool valid = false;
-		switch (arm_goal_.route)
-		{
-		case arm_goal_.route_rest:
-			return;
+		// if (!as_.isActive())
+		// 	return;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// bool valid = false;
+		// switch (arm_goal_.route)
+		// {
+		// case arm_goal_.route_rest:
+		// 	return;
 
-		case arm_goal_.route_QR_code_board:
-			ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
-			return;
+		// case arm_goal_.route_QR_code_board:
+		// 	ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
+		// 	return;
 
-		case arm_goal_.route_raw_material_area:
-			valid = operate_center(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_raw_material_area:
+		// 	valid = operate_center(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_roughing_area:
-			valid = operate_ellipse(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_roughing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_semi_finishing_area:
-			valid = operate_ellipse(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_semi_finishing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_parking_area:
-			break;
+		// case arm_goal_.route_parking_area:
+		// 	break;
 
-		case arm_goal_.route_border:
-			valid = operate_border(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_border:
+		// 	valid = operate_border(image_rect, debug_image);
+		// 	break;
 
-		default:
-			return;
-		}
-		if (arm_controller_.show_detections && debug_image->height)
-			debug_image_publisher_.publish(debug_image);
+		// default:
+		// 	return;
+		// }
+		// if (arm_controller_.show_detections && debug_image->height)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse, debug_image, false, true);
-		// if (arm_controller_.show_detections)
-		// 	debug_image_publisher_.publish(debug_image);
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse, debug_image, false, true);
+		if (arm_controller_.show_detections && debug_image->height)
+			debug_image_publisher_.publish(debug_image);
 
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -144,7 +144,7 @@ namespace my_hand_eye
 		// 椭圆识别
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
-		// if (arm_controller_.show_detections)
+		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// z校正
@@ -202,7 +202,8 @@ namespace my_hand_eye
 			break;
 
 		case arm_goal_.route_parking_area:
-			arm_controller_.target_pose.target = arm_controller_.target_pose.target_parking_area;
+			as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			// arm_controller_.target_pose.target = arm_controller_.target_pose.target_parking_area;
 			break;
 
 		default:
@@ -259,7 +260,7 @@ namespace my_hand_eye
 			// static int err_cnt = 0;
 			Pose2DMightEnd msg;
 			msg.end = false;
-			valid = arm_controller_.find_cargo(image_rect, msg, debug_image, false);
+			valid = arm_controller_.find_cargo(image_rect, msg, debug_image, false, arm_goal_.theta);
 			if (valid)
 			{
 				if (msg.end)
@@ -329,9 +330,9 @@ namespace my_hand_eye
 		{
 			msg.end = false;
 			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
-				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
+				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false, arm_goal_.theta);
 			else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
-				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
+				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, arm_goal_.theta, false);
 			else
 			{
 				ROS_ERROR("Invalid loop!");
@@ -371,8 +372,8 @@ namespace my_hand_eye
 			{
 				msg.end = true;
 				bool pal = (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area);
-				bool fin = pal ? arm_controller_.find_cargo(image_rect, msg, debug_image, true, true)
-							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true);
+				bool fin = pal ? arm_controller_.find_cargo(image_rect, msg, debug_image, true, arm_goal_.theta, true)
+							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true, arm_goal_.theta);
 				if (fin)
 				{
 					arm_controller_.put(which_color(), pal, false);
@@ -421,11 +422,13 @@ namespace my_hand_eye
 	bool ArmServer::operate_border(const sensor_msgs::ImageConstPtr &image_rect,
 								   sensor_msgs::ImagePtr &debug_image)
 	{
+		static ros::Time err_time;
 		if (finish_)
 		{
 			finish_adjusting_ = false;
 			finish_ = false;
 			ROS_INFO("Start to operate border...");
+			err_time = ros::Time::now();
 		}
 		bool valid = true;
 		Pose2DMightEnd msg;
@@ -435,11 +438,27 @@ namespace my_hand_eye
 			valid = arm_controller_.find_border(image_rect, msg, debug_image);
 			if (valid)
 			{
-				pose_publisher_.publish(msg);
-				if (msg.end)
+				err_time = ros::Time::now();
+				if (msg.pose.theta != msg.not_change)
 				{
-					ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
-					finish_adjusting_ = true;
+					pose_publisher_.publish(msg);
+					if (msg.end)
+					{
+						ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
+						finish_adjusting_ = true;
+						finish_ = true;
+						ArmFeedback feedback;
+						feedback.pme = msg;
+						as_.publishFeedback(feedback);
+						ros::Duration(0.1).sleep();
+						as_.setSucceeded(ArmResult(), "Arm finish tasks");
+						arm_controller_.ready(arm_goal_.left_ready);
+						arm_goal_.route = arm_goal_.route_rest;
+						ROS_INFO("Finish operating border...");
+					}
+				}
+				else
+				{
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
@@ -447,24 +466,38 @@ namespace my_hand_eye
 			}
 			else
 			{
-				// 发送此数据表示车辆即刻停止，重新寻找定位物体
-				msg.pose.x = msg.not_change;
-				msg.pose.y = msg.not_change;
-				msg.pose.theta = msg.not_change;
-				msg.end = false;
-				msg.header = image_rect->header;
-				msg.header.frame_id = "base_footprint";
-				pose_publisher_.publish(msg);
-				finish_adjusting_ = false;
+				if ((ros::Time::now() - err_time).toSec() >= 5) // 连续5s
+				{
+					msg.pose.x = msg.not_change;
+					msg.pose.y = msg.not_change;
+					msg.pose.theta = msg.not_change;
+					msg.end = true;
+					msg.header = image_rect->header;
+					msg.header.frame_id = "base_footprint";
+					arm_controller_.find_border(image_rect, msg, debug_image);
+					pose_publisher_.publish(msg);
+					finish_adjusting_ = true;
+					finish_ = true;
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					arm_controller_.ready(arm_goal_.left_ready);
+					arm_goal_.route = arm_goal_.route_rest;
+					ROS_WARN("Failed to operate border.");
+				}
+				else
+				{
+					// 发送此数据表示车辆即刻停止，重新寻找定位物体
+					msg.pose.x = msg.not_change;
+					msg.pose.y = msg.not_change;
+					msg.pose.theta = msg.not_change;
+					msg.end = false;
+					msg.header = image_rect->header;
+					msg.header.frame_id = "base_footprint";
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+					finish_adjusting_ = false;
+				}
 			}
-		}
-		else
-		{
-			finish_ = true;
-			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			arm_controller_.ready(arm_goal_.left_ready);
-			arm_goal_.route = arm_goal_.route_rest;
-			ROS_INFO("Finish operating border...");
 		}
 		return valid;
 	}

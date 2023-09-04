@@ -14,10 +14,8 @@ namespace my_hand_eye
         double color_judge(cv::Vec2f &line, cv::Mat &thre_img);
         // 颜色增强函数
         cv::Mat saturation(cv::Mat &src, int percent);
-        // 自适应阈值化查找车道边界
-        cv::Mat LBD_thershold_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
         // 颜色inrange查找车道边界
-        cv::Mat LBD_color_func(cv::Mat &enhanced, std::vector<cv::Vec2f> &lines, int threshold);
+        cv::Mat LBD_color_func(cv::Mat &enhanced, int threshold);
     };
 
     class Border : public BorderMethod
@@ -25,7 +23,7 @@ namespace my_hand_eye
     private:
         float theta_thr_horizontal_;
         // 聚类
-        bool cluster_lines(cv::Vec2f lines_sel[], int cnt,
+        bool cluster_lines(cv::Vec2f lines_sel[], const int cnt,
                            cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border,
                            bool show_detection);
 
@@ -39,8 +37,7 @@ namespace my_hand_eye
         };
         // 主函数
         bool detect(cv_bridge::CvImagePtr &cv_image, cv::Vec2f &border, cv::Rect &rect, Detected &detected,
-                    boost::function<cv::Mat(cv::Mat &, std::vector<cv::Vec2f> &)> LBD,
-                    bool show_detection, sensor_msgs::ImagePtr &debug_image);
+                    int threshold, bool show_detection, sensor_msgs::ImagePtr &debug_image);
     };
 } // namespace my_hand_eye
 
