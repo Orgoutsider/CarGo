@@ -19,7 +19,7 @@ namespace my_hand_eye
         if (!ellipse_.empty())
             ellipse_.clear();
         const int MAXN = ellipses.size() + 10;
-        bool flag[MAXN] = {false};
+        bool *flag = new bool[MAXN]{false};
         float ratio = 0.1f;
         // 聚类
         for (int i = 0; i < ellipses.size(); i++)
@@ -76,6 +76,7 @@ namespace my_hand_eye
                 }
             }
         }
+        delete[] flag;
         // ROS_INFO_STREAM(ellipse_.size());
         return (!ellipse_.empty());
     };

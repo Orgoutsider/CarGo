@@ -211,7 +211,7 @@ namespace my_hand_eye
         cv::Canny(thre_img, edgeImg, 50, 200, 3);
         cv::HoughLines(edgeImg, lines, 1, CV_PI / 180, threshold, 0, 0);
         const int MAXN = lines.size() + 5;
-        cv::Vec2f lines_sel[MAXN];
+        cv::Vec2f *lines_sel = new cv::Vec2f[MAXN];
         // cv::cvtColor(ori, ori, cv::COLOR_BGR2HSV);
         // cv::Scalar Boundary_low = cv::Scalar(78, 0, 0);
         // cv::Scalar Boundary_high = cv::Scalar(179, 255, 255);
@@ -307,6 +307,7 @@ namespace my_hand_eye
         border[0] *= f;
         border[0] = border[0] + rect.x * cos(border[1]) + rect.y * sin(border[1]);
         detected = detected_both;
+        delete[] lines_sel;
         return true;
     }
 

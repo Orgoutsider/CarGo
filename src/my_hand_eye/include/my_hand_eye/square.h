@@ -21,13 +21,13 @@ namespace my_hand_eye
         Square();
         Square(std::vector<cv::Point> &contour);
         bool is_square(); // 正方形判断
-        void get_pose(geometry_msgs::Pose2D &pose);
+        // 获取位姿，仅可在is_square()为true时使用
+        bool get_pose(geometry_msgs::Pose2D &pose);
     };
 
     class BestSquare
     {
     public:
-        int best_id;
         Square best;
         // 构造函数中查找最优正方形，如果没有正方形，best.length = 0
         BestSquare(std::vector<std::vector<cv::Point>> &contours, double ratio);

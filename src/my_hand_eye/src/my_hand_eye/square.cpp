@@ -55,9 +55,23 @@ namespace my_hand_eye
         return cv::Point2d(x_, y_);
     }
 
-    void Square::get_pose(geometry_msgs::Pose2D &pose)
+    bool Square::get_pose(geometry_msgs::Pose2D &pose)
     {
+        if (approx_.size() != 4)
+        {
+            ROS_ERROR("Assertion failed: approx_.size() == 4");
+            return false;
+        }
         cv::Point2d center = _center();
+        double sum;
+        for (cv::Point &pt : approx_)
+        {
+            sum += atan2(pt.y - center.y, pt.x - center.x);
+        }
+        pose.theta = sum / approx_.size();
+        pose.x = center.x;
+        pose.y = center.y;
+        return true;
     }
 
     BestSquare::BestSquare(std::vector<std::vector<cv::Point>> &contours, double ratio)
@@ -70,7 +84,7 @@ namespace my_hand_eye
                 fabs(s.length - 30 * ratio) < fabs(best.length - 30 * ratio))
             {
                 best = s;
-                best_id = i;
+                // best_id = i;
             }
         }
     }

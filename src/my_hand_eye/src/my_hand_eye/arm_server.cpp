@@ -119,15 +119,15 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse, debug_image, false, true);
-		if (arm_controller_.show_detections && debug_image->height)
-			debug_image_publisher_.publish(debug_image);
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse, debug_image, false, true);
+		// if (arm_controller_.show_detections && debug_image->height)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_extrinsics_correction(image_rect, -6.18287, 20.3357, arm_controller_.z_turntable, color_blue, debug_image);
-		// if (arm_controller_.show_detections)
+		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
 		//
 		// 直接抓取
@@ -137,7 +137,7 @@ namespace my_hand_eye
 		// {
 		// 	double u, v;
 		// 	arm_controller_.catch_straightly(image_rect, color_red, finish, debug_image, false, false);
-		// 	if (arm_controller_.show_detections)
+		// 	if (arm_controller_.show_detections && debug_image->height)
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
 
@@ -150,7 +150,7 @@ namespace my_hand_eye
 		// z校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_z_correction(image_rect, {0.15, -0.65}, {0.14, -0.5}, {0, -0.46}, debug_image);
-		// if (arm_controller_.show_detections)
+		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 边界线查找
@@ -160,11 +160,10 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 停车区查找
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// double x = 0, y = 0;
-		// arm_controller_.find_parking_area(image_rect, x, y, debug_image);
-		// if (arm_controller_.show_detections)
-		// 	debug_image_publisher_.publish(debug_image);
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		arm_controller_.log_parking_area(image_rect, debug_image);
+		if (arm_controller_.show_detections && debug_image->height)
+			debug_image_publisher_.publish(debug_image);
 	}
 
 	void ArmServer::goal_callback()

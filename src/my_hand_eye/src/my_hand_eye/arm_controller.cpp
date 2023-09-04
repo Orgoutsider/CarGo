@@ -1086,19 +1086,29 @@ namespace my_hand_eye
             if (contours.size())
             {
                 BestSquare s(contours, ratio);
-                if (s.best.length)
+                if (s.best.length && s.best.get_pose(pose))
                 {
-                    cv::Point2d center = s.best.center();
-                    // 计算真实世界中坐标
-                    pose.x = (center.x - cv_image->image.cols / 2.0) / ratio;
-                    pose.y = center.y / ratio;
-                    // msg.pose.theta
                     if (show_detections && !cv_image->image.empty())
                     {
-                        drawContours(cv_image->image, contours, s.best_id, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
-                        draw_cross(cv_image->image, center, Scalar(255, 255, 255), 30, 2);
+                        // 绘制矩形轮廓
+                        RotatedRect rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length), -pose.theta);
+                        // 获取旋转矩形的四个顶点
+                        Point2f *vertices = new Point2f[4];
+                        rect.points(vertices);
+                        // 逐条边绘制
+                        for (int j = 0; j < 4; j++)
+                        {
+                            cv::line(cv_image->image, vertices[j], vertices[(j + 1) % 4],
+                                     cv::Scalar(0, 255, 0));
+                        }
+                        draw_cross(cv_image->image, cv::Point2d(pose.x, pose.y), Scalar(255, 255, 255),
+                                   30, 2);
                         debug_image = cv_image->toImageMsg();
+                        delete[] vertices;
                     }
+                    // 计算真实世界中坐标
+                    pose.x = (pose.x - cv_image->image.cols / 2.0) / ratio;
+                    pose.y = pose.y / ratio;
                 }
                 else
                 {
@@ -1288,6 +1298,25 @@ namespace my_hand_eye
         {
             ROS_INFO_STREAM("distance: " << distance << " yaw: " << Angle::degree(yaw));
         }
+        return valid;
+    }
+
+    bool ArmController::log_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
+                                         sensor_msgs::ImagePtr &debug_image)
+    {
+        static bool flag = true;
+        if (flag)
+        {
+            ps_.reset();
+            flag = false;
+            return false;
+        }
+        if (!ps_.check_stamp(image_rect->header.stamp))
+            return false;
+        geometry_msgs::Pose2D p;
+        bool valid = detect_parking_area(image_rect, p, debug_image);
+        if (valid)
+            ROS_INFO_STREAM("x:" << p.x << " y:" << p.y << " theta:" << Angle::degree(p.theta));
         return valid;
     }
 
