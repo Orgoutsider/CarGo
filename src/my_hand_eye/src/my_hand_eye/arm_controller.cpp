@@ -13,6 +13,7 @@ namespace my_hand_eye
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           ellipse_roi_(320, 540, 1280, 360),
+          parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
           z_parking_area(1.40121),
@@ -31,6 +32,7 @@ namespace my_hand_eye
           default_roi_(480, 0, 960, 1080),
           border_roi_(320, 0, 1280, 1080),
           ellipse_roi_(320, 540, 1280, 360),
+          parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
           z_parking_area(1.40121),
@@ -1041,7 +1043,7 @@ namespace my_hand_eye
 
     bool ArmController::detect_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
                                             geometry_msgs::Pose2D &pose,
-                                            sensor_msgs::ImagePtr &debug_image)
+                                            sensor_msgs::ImagePtr &debug_image, cv::Rect &rect)
     {
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
@@ -1052,13 +1054,14 @@ namespace my_hand_eye
             Mat M = ps_.transformation_matrix(z_parking_area);
             double ratio = z_parking_area / 80.0 * cv_image->image.rows; // 放大倍数
             M.rowRange(0, 2) *= ratio;                                   // 放大
-            ratio /= (z_parking_area * 4);                               // 4是图片缩小倍数，用于还原真实坐标
+            ratio /= (z_parking_area * 2);                               // 2是图片缩小倍数，用于还原真实坐标
             M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;   // 平移
             // ROS_INFO_STREAM(M);
             warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size());
+            cv_image->image = cv_image->image(rect).clone();
             // imshow("src", cv_image->image);
             // waitKey(100);
-            resize(cv_image->image, cv_image->image, cv_image->image.size() / 2);
+            // resize(cv_image->image, cv_image->image, cv_image->image.size() / 2);
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
             Mat srcgray;
@@ -1091,10 +1094,11 @@ namespace my_hand_eye
                     if (show_detections && !cv_image->image.empty())
                     {
                         // 绘制矩形轮廓
-                        RotatedRect rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length), -pose.theta);
+                        RotatedRect rotate_rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length),
+                                         Angle::degree(pose.theta));
                         // 获取旋转矩形的四个顶点
                         Point2f *vertices = new Point2f[4];
-                        rect.points(vertices);
+                        rotate_rect.points(vertices);
                         // 逐条边绘制
                         for (int j = 0; j < 4; j++)
                         {
@@ -1314,7 +1318,7 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         geometry_msgs::Pose2D p;
-        bool valid = detect_parking_area(image_rect, p, debug_image);
+        bool valid = detect_parking_area(image_rect, p, debug_image, parking_area_roi_);
         if (valid)
             ROS_INFO_STREAM("x:" << p.x << " y:" << p.y << " theta:" << Angle::degree(p.theta));
         return valid;

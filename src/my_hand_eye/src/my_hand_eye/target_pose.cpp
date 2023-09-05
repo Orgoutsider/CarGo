@@ -35,6 +35,15 @@ namespace my_hand_eye
         tolerance[target_border].theta = 0.007;
         tolerance[target_border].x = Pose2DMightEnd::not_change;
         tolerance[target_border].y = 0.01;
+
+        Action parking_area = Action(0, 20.5, 0).arm2footprint();
+        pose[target_border].theta = Angle(-7.4891005).rad();
+        pose[target_border].x = parking_area.x;
+        pose[target_border].y = parking_area.y;
+
+        tolerance[target_parking_area].theta = 0.009;
+        tolerance[target_parking_area].x = 0.01;
+        tolerance[target_parking_area].y = 0.01;
     }
 
     void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
