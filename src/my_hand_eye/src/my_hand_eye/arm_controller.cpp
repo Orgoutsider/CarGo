@@ -1095,7 +1095,7 @@ namespace my_hand_eye
                     {
                         // 绘制矩形轮廓
                         RotatedRect rotate_rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length),
-                                         Angle::degree(pose.theta));
+                                                Angle::degree(pose.theta));
                         // 获取旋转矩形的四个顶点
                         Point2f *vertices = new Point2f[4];
                         rotate_rect.points(vertices);
@@ -1567,16 +1567,24 @@ namespace my_hand_eye
     bool ArmController::find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                           sensor_msgs::ImagePtr &debug_image)
     {
-        static bool flag = true;
-        if (flag)
+        static bool last_finish = true;
+        if (!msg.end && last_finish)
         {
-            flag = false;
             ps_.reset();
+            last_finish = false;
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
-
-        return false;
+        geometry_msgs::Pose2D p;
+        bool valid = detect_parking_area(image_rect, p, debug_image, parking_area_roi_);
+        if (valid)
+        {
+            target_pose.calc(p, msg);
+            msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
+        }
+        last_finish = msg.end;
+        return valid;
     }
 } // namespace my_hand_eye

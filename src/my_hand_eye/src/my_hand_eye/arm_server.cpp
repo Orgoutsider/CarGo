@@ -80,43 +80,44 @@ namespace my_hand_eye
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		// if (!as_.isActive())
-		// 	return;
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// bool valid = false;
-		// switch (arm_goal_.route)
-		// {
-		// case arm_goal_.route_rest:
-		// 	return;
+		if (!as_.isActive())
+			return;
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		bool valid = false;
+		switch (arm_goal_.route)
+		{
+		case arm_goal_.route_rest:
+			return;
 
-		// case arm_goal_.route_QR_code_board:
-		// 	ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
-		// 	return;
+		case arm_goal_.route_QR_code_board:
+			ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
+			return;
 
-		// case arm_goal_.route_raw_material_area:
-		// 	valid = operate_center(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_raw_material_area:
+			valid = operate_center(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_roughing_area:
-		// 	valid = operate_ellipse(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_roughing_area:
+			valid = operate_ellipse(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_semi_finishing_area:
-		// 	valid = operate_ellipse(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_semi_finishing_area:
+			valid = operate_ellipse(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_parking_area:
-		// 	break;
+		case arm_goal_.route_parking_area:
+			valid = operate_parking_area(image_rect, debug_image);
+			break;
 
-		// case arm_goal_.route_border:
-		// 	valid = operate_border(image_rect, debug_image);
-		// 	break;
+		case arm_goal_.route_border:
+			valid = operate_border(image_rect, debug_image);
+			break;
 
-		// default:
-		// 	return;
-		// }
-		// if (arm_controller_.show_detections && debug_image->height)
-		// 	debug_image_publisher_.publish(debug_image);
+		default:
+			return;
+		}
+		if (arm_controller_.show_detections && debug_image->height)
+			debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -160,10 +161,10 @@ namespace my_hand_eye
 		// 	debug_image_publisher_.publish(debug_image);
 
 		// 停车区查找
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		arm_controller_.log_parking_area(image_rect, debug_image);
-		if (arm_controller_.show_detections && debug_image->height)
-			debug_image_publisher_.publish(debug_image);
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// arm_controller_.log_parking_area(image_rect, debug_image);
+		// if (arm_controller_.show_detections && debug_image->height)
+		// 	debug_image_publisher_.publish(debug_image);
 	}
 
 	void ArmServer::goal_callback()
@@ -201,8 +202,7 @@ namespace my_hand_eye
 			break;
 
 		case arm_goal_.route_parking_area:
-			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			// arm_controller_.target_pose.target = arm_controller_.target_pose.target_parking_area;
+			arm_controller_.target_pose.target = arm_controller_.target_pose.target_parking_area;
 			break;
 
 		default:
@@ -495,6 +495,42 @@ namespace my_hand_eye
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
 					finish_adjusting_ = false;
+				}
+			}
+		}
+		return valid;
+	}
+
+	bool ArmServer::operate_parking_area(const sensor_msgs::ImageConstPtr &image_rect,
+										 sensor_msgs::ImagePtr &debug_image)
+	{
+		if (finish_)
+		{
+			finish_adjusting_ = false;
+			finish_ = false;
+			ROS_INFO("Start to operate parking area...");
+		}
+		bool valid = true;
+		Pose2DMightEnd msg;
+		if (!finish_adjusting_)
+		{
+			msg.end = false;
+			valid = arm_controller_.find_parking_area(image_rect, msg, debug_image);
+			if (valid)
+			{
+				pose_publisher_.publish(msg);
+				if (msg.end)
+				{
+					ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
+					finish_adjusting_ = true;
+					finish_ = true;
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+					ros::Duration(0.1).sleep();
+					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					arm_goal_.route = arm_goal_.route_rest;
+					ROS_INFO("Finish operating parking area...");
 				}
 			}
 		}
