@@ -1,5 +1,6 @@
 #目标位置，其中theta从-pi到pi
 geometry_msgs/Pose2D pose
+bool precision
 ---
 #最终结果  
 geometry_msgs/Pose2D pose_final

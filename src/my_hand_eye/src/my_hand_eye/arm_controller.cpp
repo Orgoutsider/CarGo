@@ -1580,6 +1580,11 @@ namespace my_hand_eye
         bool valid = detect_parking_area(image_rect, p, debug_image, parking_area_roi_);
         if (valid)
         {
+            if (abs(Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_parking_area].theta)) > 3)
+                msg.pose.theta = cv::sgn(msg.pose.theta -
+                                         target_pose.pose[target_pose.target_parking_area].theta) *
+                                     Angle(3).rad() +
+                                 target_pose.pose[target_pose.target_parking_area].theta;
             target_pose.calc(p, msg);
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";

@@ -1,2 +1,2 @@
-uint8 has_midpoint
+bool has_midpoint
 geometry_msgs/Point point

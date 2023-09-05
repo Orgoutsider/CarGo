@@ -27,7 +27,7 @@ namespace motion_controller
         double width_road_;          // 路宽
         double length_field_;       // 场地（车道部分）长
         double width_field_;        // 场地（车道部分）宽
-        double length_parking_area_; // 停车区长宽
+        double length_from_parking_area_; // 到停车区距离
         double x_road_up_;           // 从停车区上侧挡板到上路上沿
         double y_QR_code_board_;     // 二维码板
         double x_QR_code_board_;     // 为扫描二维码不行驶在路中心，而是距离车道线一定距离

@@ -524,10 +524,13 @@ namespace my_hand_eye
 					ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
 					finish_adjusting_ = true;
 					finish_ = true;
-					ArmFeedback feedback;
-					feedback.pme = msg;
-					as_.publishFeedback(feedback);
-					ros::Duration(0.1).sleep();
+					if (!debug_)
+					{
+						ArmFeedback feedback;
+						feedback.pme = msg;
+						as_.publishFeedback(feedback);
+						ros::Duration(0.1).sleep();
+					}
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
 					arm_goal_.route = arm_goal_.route_rest;
 					ROS_INFO("Finish operating parking area...");

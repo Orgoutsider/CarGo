@@ -121,7 +121,9 @@ namespace motion_controller
         {
             PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_},
                                {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
-                               {0.01, 0.01, 0.02}, {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
+                               {(goal->precision ? 0.007 : 0.01), (goal->precision ? 0.007 : 0.01),
+                                (goal->precision ? 0.005 : 0.02)},
+                               {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
             success = false;
             while (!success)
             {
@@ -205,6 +207,7 @@ namespace motion_controller
         _get_pose_now(pose);
         MoveResult result;
         result.pose_final = pose;
+        ROS_INFO_STREAM("Move x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
         server_.setSucceeded(result, "Move success!");
         ROS_INFO("Move success!");
     }
