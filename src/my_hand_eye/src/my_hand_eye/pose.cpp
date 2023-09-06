@@ -263,22 +263,22 @@ namespace my_hand_eye
         if (valid)
         {
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            if (z < 7)
+            if (z < 7 && cat)
             {
-                Position[3] -= 220; // 防止碰到物料
+                Position[3] -= 270; // 防止碰到物料
             }
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             u8 ID1[] = {1, 3, 4};
             wait_until_static(ID1, 3);
-            if (z < 7)
+            if (z < 7 && cat)
                 ros::Duration(0.2).sleep();
 
             sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
             u8 ID2[] = {2};
             wait_until_static(ID2, 1);
-            if (z < 7)
+            if (z < 7 && cat)
             {
-                Position[3] += 220;
+                Position[3] += 270;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
                 u8 ID[] = {3};
                 wait_until_static(ID, 1);
@@ -459,7 +459,7 @@ namespace my_hand_eye
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
         {
-            Position[3] = Position_now[3] - 220; // 略微下降防止碰到块
+            Position[3] = Position_now[3] - 270; // 略微下降防止碰到块
             sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
             u8 ID[] = {3};
             wait_until_static(ID, 1);

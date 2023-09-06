@@ -212,8 +212,8 @@ namespace my_hand_eye
 
 	void ArmServer::preempt_callback()
 	{
-		ROS_ERROR("Arm Preempt Requested!");
-		// 不正常现象，需要停止所有与底盘相关的联系，避免后续受到影响
+		ROS_WARN("Arm Preempt Requested!");
+		// 需要停止所有与底盘相关的联系，避免后续受到影响
 		cancel_all();
 		as_.setPreempted(ArmResult(), "Got preempted by a new goal");
 	}
@@ -230,6 +230,12 @@ namespace my_hand_eye
 			}
 			else
 			{
+				if (arm_goal_.route == arm_goal_.route_border)
+				{
+					ArmFeedback feedback;
+					feedback.pme.end = true;
+					as_.publishFeedback(feedback);
+				}
 				Pose2DMightEnd msg;
 				msg.end = true;
 				msg.header.frame_id = "base_footprint";
@@ -375,6 +381,10 @@ namespace my_hand_eye
 							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true, arm_goal_.theta);
 				if (fin)
 				{
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					feedback.pme.end = false;
+					as_.publishFeedback(feedback);
 					arm_controller_.put(which_color(), pal, false);
 					next_task();
 					arm_controller_.put(which_color(), pal, false);
@@ -437,23 +447,42 @@ namespace my_hand_eye
 			valid = arm_controller_.find_border(image_rect, msg, debug_image);
 			if (valid)
 			{
-				err_time = ros::Time::now();
 				if (msg.pose.theta != msg.not_change)
 				{
-					pose_publisher_.publish(msg);
-					if (msg.end)
+					if ((ros::Time::now() - err_time).toSec() >= 13) // 超时但找到线
 					{
-						ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
-						finish_adjusting_ = true;
-						finish_ = true;
+						msg.end = true;
+						pose_publisher_.publish(msg);
 						ArmFeedback feedback;
 						feedback.pme = msg;
 						as_.publishFeedback(feedback);
-						ros::Duration(0.1).sleep();
-						as_.setSucceeded(ArmResult(), "Arm finish tasks");
+						// 结束该函数
+						arm_controller_.find_border(image_rect, msg, debug_image);
+						finish_adjusting_ = true;
+						finish_ = true;
+						ros::Duration(0.1).sleep(); // feedback_cb和done_cb错开一段时间
+						as_.setAborted(ArmResult(), "Arm finish tasks");
 						arm_controller_.ready(arm_goal_.left_ready);
 						arm_goal_.route = arm_goal_.route_rest;
-						ROS_INFO("Finish operating border...");
+						ROS_WARN("Failed to operate border.");
+					}
+					else
+					{
+						pose_publisher_.publish(msg);
+						if (msg.end)
+						{
+							ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
+							finish_adjusting_ = true;
+							finish_ = true;
+							ArmFeedback feedback;
+							feedback.pme = msg;
+							as_.publishFeedback(feedback);
+							ros::Duration(0.1).sleep(); // feedback_cb和done_cb错开一段时间
+							as_.setSucceeded(ArmResult(), "Arm finish tasks");
+							arm_controller_.ready(arm_goal_.left_ready);
+							arm_goal_.route = arm_goal_.route_rest;
+							ROS_INFO("Finish operating border...");
+						}
 					}
 				}
 				else
@@ -461,23 +490,29 @@ namespace my_hand_eye
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
+					err_time = image_rect->header.stamp;
 				}
 			}
 			else
 			{
-				if ((ros::Time::now() - err_time).toSec() >= 5) // 连续5s
+				msg.pose.x = msg.not_change;
+				msg.pose.y = msg.not_change;
+				msg.pose.theta = msg.not_change;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
+				if ((ros::Time::now() - err_time).toSec() >= 5) // 超时但没找到线
 				{
-					msg.pose.x = msg.not_change;
-					msg.pose.y = msg.not_change;
-					msg.pose.theta = msg.not_change;
 					msg.end = true;
-					msg.header = image_rect->header;
-					msg.header.frame_id = "base_footprint";
-					arm_controller_.find_border(image_rect, msg, debug_image);
 					pose_publisher_.publish(msg);
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+					// 结束该函数
+					arm_controller_.find_border(image_rect, msg, debug_image);
 					finish_adjusting_ = true;
 					finish_ = true;
-					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					ros::Duration(0.1).sleep(); // feedback_cb和done_cb错开一段时间
+					as_.setAborted(ArmResult(), "Arm finish tasks");
 					arm_controller_.ready(arm_goal_.left_ready);
 					arm_goal_.route = arm_goal_.route_rest;
 					ROS_WARN("Failed to operate border.");
@@ -485,15 +520,8 @@ namespace my_hand_eye
 				else
 				{
 					// 发送此数据表示车辆即刻停止，重新寻找定位物体
-					msg.pose.x = msg.not_change;
-					msg.pose.y = msg.not_change;
-					msg.pose.theta = msg.not_change;
 					msg.end = false;
-					msg.header = image_rect->header;
-					msg.header.frame_id = "base_footprint";
-					ArmFeedback feedback;
-					feedback.pme = msg;
-					as_.publishFeedback(feedback);
+					pose_publisher_.publish(msg);
 					finish_adjusting_ = false;
 				}
 			}
@@ -535,6 +563,18 @@ namespace my_hand_eye
 					arm_goal_.route = arm_goal_.route_rest;
 					ROS_INFO("Finish operating parking area...");
 				}
+			}
+			else
+			{
+				// 发送此数据表示车辆即刻停止，重新寻找定位物体
+				msg.pose.x = msg.not_change;
+				msg.pose.y = msg.not_change;
+				msg.pose.theta = msg.not_change;
+				msg.end = false;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
+				pose_publisher_.publish(msg);
+				finish_adjusting_ = false;
 			}
 		}
 		return valid;

@@ -435,8 +435,14 @@ namespace my_hand_eye
     {
         double theta = atan2(last_pt_.y - center_y_, last_pt_.x - center_x_); // -pi~pi
         theta = (theta > CV_PI / 2.0) ? theta - 2 * CV_PI : theta;            // 限制在-pi/2周围
-        if (abs(theta + CV_PI / 2) > CV_PI * 0.4)
+        static ros::Time stop;
+        if (!stop.is_zero() && (ros::Time::now() - stop).toSec() < 4)
+            return false;
+        if (abs(theta + CV_PI / 2) > (CV_PI * 0.38))
+        {
+            stop = ros::Time::now();
             return false; // 放弃太远的物料
+        }
         if (left_color)
         {
             double t = theta - 2.0 / 3 * CV_PI;
@@ -444,7 +450,10 @@ namespace my_hand_eye
             // ROS_INFO_STREAM("theta " << theta << " " << t);
             // ROS_INFO_STREAM(abs(t + CV_PI / 2) << " " << abs(theta + CV_PI / 2));
             if (abs(t + CV_PI / 2) + CV_PI / 3 < abs(theta + CV_PI / 2))
+            {
+                stop = ros::Time::now();
                 return false;
+            }
         }
         if (right_color)
         {
@@ -452,8 +461,11 @@ namespace my_hand_eye
             t = (t > CV_PI / 2.0) ? t - 2 * CV_PI : t;
             // ROS_INFO_STREAM("theta " << theta << " " << t);
             // ROS_INFO_STREAM(abs(t + CV_PI / 2) << " " << abs(theta + CV_PI / 2));
-            if (abs(t + CV_PI / 2) + CV_PI / 3 < abs(theta + CV_PI / 2))
+            if (abs(t + CV_PI / 2) + CV_PI / 5 < abs(theta + CV_PI / 2))
+            {
+                stop = ros::Time::now();
                 return false;
+            }
         }
         return true;
     }

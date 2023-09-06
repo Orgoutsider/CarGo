@@ -440,13 +440,13 @@ namespace my_hand_eye
             static geometry_msgs::Pose2D last_pose;
             if (rst)
             {
-                if (!set_color_order(objArray))
+                if (!set_color_order(objArray, z))
                     return false;
             }
             int cnt = 0;
             double x[5] = {0}, y[5] = {0};
             bool flag = false;
-            bool read = rst;
+            bool read = !rst;
             for (int i = 1; i <= 3; i++)
             {
                 if (!objArray.boxes[color_order_[i].color].center.x)
@@ -515,10 +515,12 @@ namespace my_hand_eye
         return false;
     }
 
-    bool ArmController::set_color_order(vision_msgs::BoundingBox2DArray &objArray)
+    bool ArmController::set_color_order(vision_msgs::BoundingBox2DArray &objArray, double z)
     {
         if (objArray.boxes.size() == 4)
         {
+            bool read = true;
+            double x;
             for (int color = color_red; color <= color_blue; color++)
             {
                 if (!objArray.boxes[color].center.x)
@@ -526,13 +528,30 @@ namespace my_hand_eye
                     ROS_WARN("set_color_order: Color %d ellipse does not exist.", color);
                     return false;
                 }
-                color_order_[color].center_x = objArray.boxes[color].center.x;
+                if (!ps_.calculate_cargo_position(objArray.boxes[color].center.x,
+                                                  objArray.boxes[color].center.y,
+                                                  z, x, color_order_[color].center_y, read))
+                {
+                    ROS_WARN("set_color_order: Cannot calculate color %d ellipse's position",
+                             color);
+                    continue;
+                }
+                if (read)
+                    read = false;
                 color_order_[color].color = color;
             }
             std::sort(color_order_ + 1, color_order_ + 4, [](EllipseColor e1, EllipseColor e2)
-                      { return e1.center_x < e2.center_x; });
+                      { return e1.center_y < e2.center_y; });
             ROS_INFO("Color order: %d%d%d", color_order_[1].color,
                      color_order_[2].color, color_order_[3].color);
+            ROS_INFO("Color y: %lf %lf %lf", color_order_[1].center_y,
+                     color_order_[2].center_y, color_order_[3].center_y);
+            if (abs(color_order_[2].center_y - color_order_[1].center_y - 15) > 3 ||
+                abs(color_order_[3].center_y - color_order_[2].center_y - 15) > 3)
+            {
+                ROS_WARN("set_color_order: Invalid position!");
+                return false;
+            }
             for (int i = color_red; i <= color_blue; i++)
                 switch (color_order_[i].color)
                 {
@@ -882,7 +901,13 @@ namespace my_hand_eye
             return false;
         else
         {
+            static ros::Time stop;
             ROS_INFO_STREAM("x:" << x << " y:" << y);
+            if (!stop.is_zero() && (ros::Time::now() - stop).toSec() < 4)
+            {
+                finish = false;
+                return false;
+            }
             bool valid = ps_.go_to_and_wait(x, y, z_turntable, true);
             if (valid)
             {
@@ -891,6 +916,7 @@ namespace my_hand_eye
             else
             {
                 finish = false;
+                stop = ros::Time::now();
                 return false;
             }
             can_catch_ = true;
@@ -1422,6 +1448,9 @@ namespace my_hand_eye
         if (store && last_finish)
         {
             average_pose_once();
+            average_pose(msg.pose);
+            msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
         }
         return store ? last_finish : valid;
     }
@@ -1496,6 +1525,9 @@ namespace my_hand_eye
         if (store && last_finish)
         {
             average_pose_once();
+            average_pose(msg.pose);
+            msg.header = image_rect->header;
+            msg.header.frame_id = "base_footprint";
         }
         return store ? last_finish : valid;
     }
@@ -1540,7 +1572,7 @@ namespace my_hand_eye
             {
                 ROS_INFO("Grey color detected.");
                 msg.pose.x = msg.not_change;
-                msg.pose.y = 0.03;
+                msg.pose.y = 0.035;
                 msg.pose.theta = msg.not_change;
                 msg.end = false;
                 return valid;
@@ -1549,7 +1581,7 @@ namespace my_hand_eye
             {
                 ROS_INFO("Yellow color detected.");
                 msg.pose.x = msg.not_change;
-                msg.pose.y = -0.03;
+                msg.pose.y = -0.035;
                 msg.pose.theta = msg.not_change;
                 msg.end = false;
                 return valid;
@@ -1580,11 +1612,10 @@ namespace my_hand_eye
         bool valid = detect_parking_area(image_rect, p, debug_image, parking_area_roi_);
         if (valid)
         {
-            if (abs(Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_parking_area].theta)) > 3)
-                msg.pose.theta = cv::sgn(msg.pose.theta -
-                                         target_pose.pose[target_pose.target_parking_area].theta) *
-                                     Angle(3).rad() +
-                                 target_pose.pose[target_pose.target_parking_area].theta;
+            if (Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_parking_area].theta) > 3)
+                msg.pose.theta = Angle(3).rad();
+            else if (Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_parking_area].theta) < -1)
+                msg.pose.theta = Angle(-1).rad();
             target_pose.calc(p, msg);
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";

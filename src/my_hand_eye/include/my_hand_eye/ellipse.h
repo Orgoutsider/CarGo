@@ -18,7 +18,7 @@ namespace my_hand_eye
     struct EllipseColor
     {
         int color;
-        double center_x;
+        double center_y;
     };
 
     class EllipseArray : public ColorMethod

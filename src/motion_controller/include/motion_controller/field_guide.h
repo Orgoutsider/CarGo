@@ -12,9 +12,6 @@ namespace motion_controller
         std::array<int, 14> route_; // 赛道所有场景数组
         bool doing_;                // 是否正在运行机械臂任务
         int where_;                 // route索引
-        double y_raw_material_area_;
-        double x_roughing_area_;
-        double y_semi_finishing_area_;
 
     public:
         int dr_route_; // 调参时面向的场景
@@ -27,6 +24,11 @@ namespace motion_controller
         double width_road_;          // 路宽
         double length_field_;       // 场地（车道部分）长
         double width_field_;        // 场地（车道部分）宽
+        double y_raw_material_area_;
+        double x_roughing_area_;
+        double y_semi_finishing_area_;
+        double length_from_ellipse_; // 到中心椭圆距离道路方向
+        double width_from_semi_finishing_area_; // 到中心椭圆距离宽度方向
         double length_from_parking_area_; // 到停车区距离
         double x_road_up_;           // 从停车区上侧挡板到上路上沿
         double y_QR_code_board_;     // 二维码板
@@ -56,6 +58,8 @@ namespace motion_controller
                                 double &x, double &y, double &theta, bool outside = true) const;
         // 转弯角度
         double angle_corner() const;
+        // 角度校正
+        double angle_correction(double theta) const; 
         // // 下一路段没有任务，可以直接转弯
         // bool can_turn() const;
         // // 掉头角度

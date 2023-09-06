@@ -6,8 +6,8 @@ namespace my_hand_eye
     TargetPose::TargetPose() : target(target_center)
     {
         pose[target_center].theta = Pose2DMightEnd::not_change;
-        // Action center = Action(0, 32.5, 0).arm2footprint();
-        Action center = Action(0, 33, 0).arm2footprint();
+        Action center = Action(0, 32.5, 0).arm2footprint();
+        // Action center = Action(0, 33, 0).arm2footprint();
         pose[target_center].x = center.x;
         pose[target_center].y = center.y;
 
@@ -28,15 +28,15 @@ namespace my_hand_eye
         tolerance[target_ellipse].y = 0.01;
 
         Action border = Action(0, 17.7990405, 0).front2left().arm2footprint();
-        pose[target_border].theta = Angle(-5.047564).rad();
+        pose[target_border].theta = Angle(-4.997564).rad();
         pose[target_border].x = Pose2DMightEnd::not_change;
         pose[target_border].y = border.y;
 
-        tolerance[target_border].theta = 0.007;
+        tolerance[target_border].theta = 0.009;
         tolerance[target_border].x = Pose2DMightEnd::not_change;
         tolerance[target_border].y = 0.01;
 
-        Action parking_area = Action(-1.2645872, 20.5, 0).arm2footprint();
+        Action parking_area = Action(-1.2645872, 21.5, 0).arm2footprint();
         pose[target_parking_area].theta = Angle(-7.4891005).rad();
         pose[target_parking_area].x = parking_area.x;
         pose[target_parking_area].y = parking_area.y;

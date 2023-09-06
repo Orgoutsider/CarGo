@@ -18,8 +18,9 @@ namespace motion_controller
         length_car_(0.28), width_car_(0.271), width_road_(0.45), length_field_(2.25), width_field_(2.02),
         y_QR_code_board_(0.8), x_QR_code_board_(0.03),
         y_raw_material_area_(1.6), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
-        x_roughing_area_(1.2), y_semi_finishing_area_(1.2),
-        length_from_parking_area_(0.352), x_road_up_(0.08), x_parking_area_(0.55),
+        x_roughing_area_(1.2), y_semi_finishing_area_(1.2), length_from_ellipse_(0.036),
+        width_from_semi_finishing_area_(0.285),
+        length_from_parking_area_(0.374), x_road_up_(0.08), x_parking_area_(0.58),
         clockwise_(false) {}
 
   int FieldGuide::where_is_car(bool debug, bool startup, int offset) const
@@ -128,6 +129,7 @@ namespace motion_controller
 
   double FieldGuide::angle_from_road() const
   {
+    double theta;
     // 需要考虑车所处的方位，考虑车子theta正向
     switch (where_is_car(false))
     {
@@ -147,6 +149,12 @@ namespace motion_controller
     case route_parking_area:
       return -theta_;
 
+    case route_border:
+      theta = angle_correction(theta_);
+      // 所得结果正好是旋转角度但要限制在-pi到pi之间
+      theta = (theta > M_PI) ? theta - 2 * M_PI : (theta <= -M_PI ? theta + 2 * M_PI : theta);
+      return theta;
+
     default:
       ROS_WARN("Attempted to use 'angle_from_road' in route %d.", where_is_car(false));
       return 0;
@@ -158,15 +166,8 @@ namespace motion_controller
   {
     ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
     int n = 0, sign = outside ? 1 : -1;
-    if (theta_ > M_PI * 3 / 4 || theta_ <= -M_PI * 3 / 4)
-      theta = M_PI - yaw;
-    else if (theta_ > M_PI / 4)
-      theta = M_PI / 2 - yaw;
-    else if (theta_ > -M_PI / 4)
-      theta = -yaw;
-    else
-      theta = -M_PI / 2 - yaw;
-    theta = (theta + theta_) / 2;
+    yaw = angle_correction(yaw);
+    theta = (yaw + theta_) / 2;
     if (-x_ < x_road_up_ + width_road_) // 上
       n += 1;
     else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下
@@ -178,30 +179,30 @@ namespace motion_controller
     switch (n)
     {
     case 1:
-      x = -x_road_up_ - width_road_ / 2 - sign * dist;
+      x = -x_road_up_ - width_road_ / 2 - sign * dist * cos(yaw);
       y = y_;
       break;
     case 2:
-      x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist;
+      x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist * cos(yaw);
       y = y_;
       break;
     case 5:
       x = x_;
-      y = width_road_ / 2 + sign * dist;
+      y = width_road_ / 2 + sign * dist * cos(yaw);
       break;
     case 10:
       x = x_;
-      y = length_field_ - width_road_ / 2 - sign * dist;
+      y = length_field_ - width_road_ / 2 - sign * dist * cos(yaw);
       break;
     case 6:
       if (clockwise_)
       {
         x = x_;
-        y = width_road_ / 2 + sign * dist;
+        y = width_road_ / 2 + sign * dist * cos(yaw);
       }
       else
       {
-        x = -x_road_up_ - width_road_ / 2 - sign * dist;
+        x = -x_road_up_ - width_road_ / 2 - sign * dist * cos(yaw);
         y = y_;
       }
       break;
@@ -209,11 +210,11 @@ namespace motion_controller
       if (!clockwise_)
       {
         x = x_;
-        y = length_field_ - width_road_ / 2 - sign * dist;
+        y = length_field_ - width_road_ / 2 - sign * dist * cos(yaw);
       }
       else
       {
-        x = -x_road_up_ - width_road_ / 2 - sign * dist;
+        x = -x_road_up_ - width_road_ / 2 - sign * dist * cos(yaw);
         y = y_;
       }
       break;
@@ -221,11 +222,11 @@ namespace motion_controller
       if (!clockwise_)
       {
         x = x_;
-        y = width_road_ / 2 + sign * dist;
+        y = width_road_ / 2 + sign * dist * cos(yaw);
       }
       else
       {
-        x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist;
+        x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist * cos(yaw);
         y = y_;
       }
       break;
@@ -233,11 +234,11 @@ namespace motion_controller
       if (clockwise_)
       {
         x = x_;
-        y = length_field_ - width_road_ / 2 - sign * dist;
+        y = length_field_ - width_road_ / 2 - sign * dist * cos(yaw);
       }
       else
       {
-        x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist;
+        x = -x_road_up_ - width_field_ + width_road_ / 2 + sign * dist * cos(yaw);
         y = y_;
       }
       break;
@@ -306,14 +307,16 @@ namespace motion_controller
     }
   }
 
-  // double FieldGuide::angle_U_turn() const
-  // {
-  //   if ((where_is_car(false) == route_semi_finishing_area && loop_ == 0) ||
-  //       (where_is_car(false) == route_raw_material_area && loop_ == 1))
-  //   {
-  //     return -theta_;
-  //   }
-  //   ROS_WARN("Cannot use angle_U_turn here!");
-  //   return 0;
-  // }
+  double FieldGuide::angle_correction(double theta) const
+  {
+    if (theta_ > M_PI * 3 / 4 || theta_ <= -M_PI * 3 / 4)
+      theta = M_PI - theta;
+    else if (theta_ > M_PI / 4)
+      theta = M_PI / 2 - theta;
+    else if (theta_ > -M_PI / 4)
+      theta = -theta;
+    else
+      theta = -M_PI / 2 - theta;
+    return theta;
+  }
 } // namespace motion_controller
