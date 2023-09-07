@@ -15,6 +15,7 @@ namespace my_hand_eye
 			dr_server_.setCallback(boost::bind(&ArmServer::dr_callback, this, _1, _2));
 		else
 			ROS_INFO("my_hand_eye_do_node: don't modify paramater");
+		arm_controller_.target_pose.debug = debug_;
 		bool given_QR_code = pnh_.param<bool>("given_QR_code", true);
 		if (given_QR_code)
 			task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
