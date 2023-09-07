@@ -451,10 +451,10 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::put(int order, bool cat, geometry_msgs::Pose2D &err, bool pal)
+    bool Pos::put(int order, bool cat, double err_x, double err_y, bool pal)
     {
-        Action a = pal ? action_palletize[order].now2goal(err, enlarge_loop[pal])
-                       : action_put[order].now2goal(err, enlarge_loop[pal]);
+        Action a = pal ? action_palletize[order].now2goal(err_x, err_y, enlarge_loop[pal])
+                       : action_put[order].now2goal(err_x, err_y, enlarge_loop[pal]);
         ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
@@ -766,10 +766,10 @@ namespace my_hand_eye
         return a;
     }
 
-    Action *Pos::get_action_put()
-    {
-        return action_put;
-    }
+    // Action *Pos::get_action_put()
+    // {
+    //     return action_put;
+    // }
 
     cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T)
     {

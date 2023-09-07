@@ -133,11 +133,11 @@ namespace my_hand_eye
         return Action(0.01 * y, -0.01 * x, z);
     }
 
-    Action Action::now2goal(const geometry_msgs::Pose2D &err, Action enlarge)
+    Action Action::now2goal(double err_x, double err_y, Action enlarge)
     {
         // m转化成cm
-        return Action(-err.y * enlarge.y * 100 + x,
-                      err.x * enlarge.x * 100 + y, z);
+        return Action(-err_y * enlarge.y * 100 + x,
+                      err_x * enlarge.x * 100 + y, z);
     }
 
     Action Action::operator+=(const Action &t)
@@ -284,8 +284,7 @@ namespace my_hand_eye
             do
             {
                 alpha++;
-            }
-            while (alpha <= 180 && !_j123_length_and_height_is_valid(alpha));           
+            } while (alpha <= 180 && !_j123_length_and_height_is_valid(alpha));
         }
         return valid;
     }

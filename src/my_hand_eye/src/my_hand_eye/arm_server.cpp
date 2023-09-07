@@ -453,16 +453,14 @@ namespace my_hand_eye
 					{
 						msg.end = true;
 						pose_publisher_.publish(msg);
-						ArmFeedback feedback;
-						feedback.pme = msg;
-						as_.publishFeedback(feedback);
+						ArmResult result;
+						result.pme = msg;
+						as_.setAborted(result, "Arm finish tasks");
 						// 结束该函数
 						arm_controller_.find_border(image_rect, msg, debug_image);
+						arm_controller_.ready(arm_goal_.left_ready);
 						finish_adjusting_ = true;
 						finish_ = true;
-						ros::Duration(0.1).sleep(); // feedback_cb和done_cb错开一段时间
-						as_.setAborted(ArmResult(), "Arm finish tasks");
-						arm_controller_.ready(arm_goal_.left_ready);
 						arm_goal_.route = arm_goal_.route_rest;
 						ROS_WARN("Failed to operate border.");
 					}
@@ -474,11 +472,9 @@ namespace my_hand_eye
 							ROS_INFO("y:%lf theta:%lf", msg.pose.y, msg.pose.theta);
 							finish_adjusting_ = true;
 							finish_ = true;
-							ArmFeedback feedback;
-							feedback.pme = msg;
-							as_.publishFeedback(feedback);
-							ros::Duration(0.1).sleep(); // feedback_cb和done_cb错开一段时间
-							as_.setSucceeded(ArmResult(), "Arm finish tasks");
+							ArmResult result;
+							result.pme = msg;
+							as_.setSucceeded(result, "Arm finish tasks");
 							arm_controller_.ready(arm_goal_.left_ready);
 							arm_goal_.route = arm_goal_.route_rest;
 							ROS_INFO("Finish operating border...");
@@ -504,17 +500,15 @@ namespace my_hand_eye
 				{
 					msg.end = true;
 					pose_publisher_.publish(msg);
-					ArmFeedback feedback;
-					feedback.pme = msg;
-					as_.publishFeedback(feedback);
+					ArmResult result;
+					result.pme = msg;
+					as_.setAborted(ArmResult(), "Arm finish tasks");
+					arm_goal_.route = arm_goal_.route_rest;
 					// 结束该函数
 					arm_controller_.find_border(image_rect, msg, debug_image);
+					arm_controller_.ready(arm_goal_.left_ready);
 					finish_adjusting_ = true;
 					finish_ = true;
-					ros::Duration(0.1).sleep(); // feedback_cb和done_cb错开一段时间
-					as_.setAborted(ArmResult(), "Arm finish tasks");
-					arm_controller_.ready(arm_goal_.left_ready);
-					arm_goal_.route = arm_goal_.route_rest;
 					ROS_WARN("Failed to operate border.");
 				}
 				else
@@ -552,14 +546,14 @@ namespace my_hand_eye
 					ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
 					finish_adjusting_ = true;
 					finish_ = true;
+					ArmResult result;
 					if (!debug_)
 					{
-						ArmFeedback feedback;
-						feedback.pme = msg;
-						as_.publishFeedback(feedback);
-						ros::Duration(0.1).sleep();
+						result.pme = msg;
 					}
-					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					else
+						result.pme.end = false;
+					as_.setSucceeded(result, "Arm finish tasks");
 					arm_goal_.route = arm_goal_.route_rest;
 					ROS_INFO("Finish operating parking area...");
 				}

@@ -40,6 +40,10 @@ namespace my_hand_eye
         std::vector<double> cargo_x_;
         std::vector<double> cargo_y_;
         std::vector<double> cargo_theta_;
+        std::vector<double> left_x_;
+        std::vector<double> left_y_;
+        std::vector<double> right_x_;
+        std::vector<double> right_y_;
         cv::CEllipseDetectorYaed *yaed_;
         bool add_image(const sensor_msgs::ImageConstPtr &image_rect,
                        cv_bridge::CvImagePtr &image); // 添加图片
@@ -61,14 +65,18 @@ namespace my_hand_eye
                         double &center_x, double &center_y, bool read = true);
         // 处理接收的图片，求相对椭圆位姿
         bool get_pose(vision_msgs::BoundingBox2DArray &objArray,
-                      double z, geometry_msgs::Pose2D &pose, bool rst);
+                      double z, geometry_msgs::Pose2D &pose, bool rst, bool relative = false);
         // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
-        bool set_color_order(vision_msgs::BoundingBox2DArray &objArray, double z); 
-        void average_position(double &x, double &y);                     // 求得记录位置数据的平均值
-        void average_theta(double &theta);                               // 求得记录位置数据的平均值
-        void average_pose(geometry_msgs::Pose2D &pose);                  // 求得记录位置数据的平均值
+        bool set_color_order(vision_msgs::BoundingBox2DArray &objArray, double z);
+        // 处理接收的图片，求左右椭圆相对中心椭圆位置
+        void get_relative_position(double x[3], double y[3]);
+        void average_position(double &x, double &y, int order = 2); // 求得记录位置数据的平均值
+        void average_theta(double &theta);                          // 求得记录位置数据的平均值
+        void average_pose(geometry_msgs::Pose2D &pose);             // 求得记录位置数据的平均值
         // 求平均位姿并存入变长数组
         void average_pose_once();
+        // 求放置误差
+        void error_position(const Color color, double &err_x, double &err_y);
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止

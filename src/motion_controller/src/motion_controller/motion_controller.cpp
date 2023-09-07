@@ -371,9 +371,9 @@ namespace motion_controller
         else if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
                  where_is_car(follower_.debug, follower_.startup) == route_semi_finishing_area)
         {
-            ac_move_.waitForServer();
             if (feedback->pme.end)
             {
+                ac_move_.waitForServer();
                 ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1)); // 保证车子不再运动
             }
             else if (!follower_.debug)
@@ -414,22 +414,7 @@ namespace motion_controller
         }
         else if (where_is_car(follower_.debug, follower_.startup) == route_border)
         {
-            if (feedback->pme.end)
-            {
-                if (!follower_.debug && feedback->pme.pose.y != feedback->pme.not_change &&
-                    feedback->pme.pose.theta != feedback->pme.not_change)
-                {
-                    get_position();
-                    double theta, x, y;
-                    if (position_in_corner(feedback->pme.pose.y, feedback->pme.pose.theta,
-                                           x, y, theta, !(y_ < width_road_)))
-                        set_position(x, y, theta); // 进一步可以引入时间提高精确度
-                }
-                boost::lock_guard<boost::mutex> lk(mtx_);
-                arm_initialized_ = arm_active_ = false;
-                move_initialized_ = move_active_ = false;
-            }
-            else
+            if (!feedback->pme.end)
             {
                 {
                     boost::lock_guard<boost::mutex> lk(mtx_);
@@ -476,21 +461,6 @@ namespace motion_controller
                                       boost::bind(&MotionController::_move_active_callback, this),
                                       boost::bind(&MotionController::_move_feedback_callback, this, _1));
                 }
-            }
-        }
-        else if (where_is_car(follower_.debug, follower_.startup) == route_parking_area)
-        {
-            if (feedback->pme.end)
-            {
-                ac_move_.waitForServer();
-                MoveGoal goal;
-                goal.pose.x = length_from_parking_area_ * cos(feedback->pme.pose.theta) +
-                              feedback->pme.pose.x;
-                goal.pose.y = feedback->pme.pose.y +
-                              length_from_parking_area_ * sin(feedback->pme.pose.theta);
-                goal.pose.theta = feedback->pme.pose.theta;
-                goal.precision = true;
-                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             }
         }
     }
@@ -552,10 +522,39 @@ namespace motion_controller
         {
             // ac_move_.waitForServer();
             // ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+            if (!follower_.debug && result->pme.pose.y != result->pme.not_change &&
+                result->pme.pose.theta != result->pme.not_change &&
+                result->pme.end)
+            {
+                get_position();
+                double theta, x, y;
+                if (position_in_corner(result->pme.pose.y, result->pme.pose.theta,
+                                       x, y, theta, !(y_ < width_road_)))
+                    set_position(x, y, theta); // 进一步可以引入时间提高精确度
+            }
+            boost::lock_guard<boost::mutex> lk(mtx_);
+            arm_initialized_ = arm_active_ = false;
+            move_initialized_ = move_active_ = false;
             if (where_is_car(follower_.debug, follower_.startup, 1) == route_roughing_area)
                 follower_.veer(true, false);
             else if (where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area)
                 follower_.veer(true, true);
+        }
+        else if (where_is_car(follower_.debug, follower_.startup) == route_parking_area)
+        {
+            if (result->pme.end)
+            {
+                ac_move_.waitForServer();
+                MoveGoal goal;
+                goal.pose.x = length_from_parking_area_ * cos(result->pme.pose.theta) +
+                              result->pme.pose.x;
+                goal.pose.y = result->pme.pose.y +
+                              length_from_parking_area_ * sin(result->pme.pose.theta);
+                goal.pose.theta = result->pme.pose.theta;
+                goal.precision = true;
+                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                return;
+            }
         }
         // 利用里程计停车
         // else if (where_is_car(follower_.debug, follower_.startup) == route_parking_area)

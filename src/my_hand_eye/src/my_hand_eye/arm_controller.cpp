@@ -148,8 +148,13 @@ namespace my_hand_eye
         ps_.show_voltage();
 
         cargo_client_ = nh.serviceClient<yolov5_ros::cargoSrv>("cargoSrv");
-        cargo_x_.reserve(3);
-        cargo_y_.reserve(3);
+        cargo_x_.reserve(5);
+        cargo_y_.reserve(5);
+        cargo_theta_.reserve(5);
+        left_x_.reserve(5);
+        left_y_.reserve(5);
+        right_x_.reserve(5);
+        right_y_.reserve(5);
         nh_ = &nh;
         // Parameters Settings (Sect. 4.2)
         int iThLength = 16;
@@ -433,7 +438,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::get_pose(vision_msgs::BoundingBox2DArray &objArray,
-                                 double z, geometry_msgs::Pose2D &pose, bool rst)
+                                 double z, geometry_msgs::Pose2D &pose, bool rst, bool relative)
     {
         if (objArray.boxes.size() == 4)
         {
@@ -491,7 +496,11 @@ namespace my_hand_eye
                                atan((x[2] - x[0]) / (y[2] - y[0]))) /
                              3;
             else if (cnt == 2)
+            {
+                if (relative)
+                    return false;
                 pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
+            }
             else
                 return false;
             if (abs(Angle::degree(pose.theta - target_pose.pose[target_pose.target_ellipse].theta)) > 3)
@@ -499,6 +508,7 @@ namespace my_hand_eye
                                      target_pose.pose[target_pose.target_ellipse].theta) *
                                  Angle(3).rad() +
                              target_pose.pose[target_pose.target_ellipse].theta;
+            get_relative_position(x, y);
             if (!rst)
             {
                 if (abs(last_pose.x - pose.x) > 3)
@@ -575,15 +585,55 @@ namespace my_hand_eye
         return false;
     }
 
-    void ArmController::average_position(double &x, double &y)
+    void ArmController::get_relative_position(double x[3], double y[3])
     {
-        if (cargo_x_.empty() || cargo_y_.empty())
+        Action left = Action(y[0] - y[1], x[0] - x[1], 0).arm2footprint();
+        left_x_.push_back(left.x);
+        left_y_.push_back(left.y);
+        Action right = Action(y[2] - y[1], x[2] - x[1], 0).arm2footprint();
+        right_x_.push_back(right.x);
+        right_y_.push_back(right.y);
+    }
+
+    void ArmController::average_position(double &x, double &y, int order)
+    {
+        switch (order)
         {
+        case 1:
+            if (left_x_.empty() || left_y_.empty())
+            {
+                x = y = 0;
+                return;
+            }
+            x = std::accumulate(std::begin(left_x_), std::end(left_x_), 0.0) / left_x_.size();
+            y = std::accumulate(std::begin(left_y_), std::end(left_y_), 0.0) / left_y_.size();
+            break;
+
+        case 2:
+            if (cargo_x_.empty() || cargo_y_.empty())
+            {
+                x = y = 0;
+                return;
+            }
+            x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
+            y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
+            break;
+
+        case 3:
+            if (right_x_.empty() || right_y_.empty())
+            {
+                x = y = 0;
+                return;
+            }
+            x = std::accumulate(std::begin(right_x_), std::end(right_x_), 0.0) / right_x_.size();
+            y = std::accumulate(std::begin(right_y_), std::end(right_y_), 0.0) / right_y_.size();
+            break;
+
+        default:
+            ROS_ERROR("average_position: Invalid order %d", order);
             x = y = 0;
-            return;
+            break;
         }
-        x = std::accumulate(std::begin(cargo_x_), std::end(cargo_x_), 0.0) / cargo_x_.size();
-        y = std::accumulate(std::begin(cargo_y_), std::end(cargo_y_), 0.0) / cargo_y_.size();
     }
 
     void ArmController::average_theta(double &theta)
@@ -605,7 +655,8 @@ namespace my_hand_eye
 
     void ArmController::average_pose_once()
     {
-        if (cargo_x_.size() <= 2 || cargo_y_.size() <= 2 || cargo_theta_.size() <= 2)
+        if (cargo_x_.size() <= 2 || cargo_y_.size() <= 2 || cargo_theta_.size() <= 2 ||
+            left_x_.size() <= 2 || left_y_.size() <= 2 || right_x_.size() <= 2 || right_y_.size() <= 2)
         {
             return;
         }
@@ -616,6 +667,14 @@ namespace my_hand_eye
         cargo_y_.erase(std::max_element(cargo_y_.begin(), cargo_y_.end()));
         cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
         cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
+        left_x_.erase(std::min_element(left_x_.begin(), left_x_.end()));
+        left_x_.erase(std::max_element(left_x_.begin(), left_x_.end()));
+        left_y_.erase(std::min_element(left_y_.begin(), left_y_.end()));
+        left_y_.erase(std::max_element(left_y_.begin(), left_y_.end()));
+        right_x_.erase(std::min_element(right_x_.begin(), right_x_.end()));
+        right_x_.erase(std::max_element(right_x_.begin(), right_x_.end()));
+        right_y_.erase(std::min_element(right_y_.begin(), right_y_.end()));
+        right_y_.erase(std::max_element(right_y_.begin(), right_y_.end()));
         geometry_msgs::Pose2D pose;
         average_pose(pose);
         cargo_x_.clear();
@@ -624,6 +683,37 @@ namespace my_hand_eye
         cargo_x_.push_back(pose.x);
         cargo_y_.push_back(pose.y);
         cargo_theta_.push_back(pose.theta);
+        left_x_.clear();
+        left_y_.clear();
+        average_position(pose.x, pose.y, 1);
+        left_x_.push_back(pose.x);
+        left_y_.push_back(pose.y);
+        right_x_.clear();
+        right_y_.clear();
+        average_position(pose.x, pose.y, 3);
+        right_x_.push_back(pose.x);
+        right_y_.push_back(pose.y);
+    }
+
+    void ArmController::error_position(const Color color, double &err_x, double &err_y)
+    {
+        geometry_msgs::Pose2D err;
+        average_pose(err);
+        err_x = err.x, err_y = err.y;
+        if (color_map_[color] == 1)
+        {
+            double x, y;
+            average_position(x, y, color_map_[color]);
+            err_x += (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - (-x));
+            err_y -= (-y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+        }
+        else if (color_map_[color] == 3)
+        {
+            double x, y;
+            average_position(x, y, color_map_[color]);
+            err_x -= (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - x);
+            err_y += (y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+        }
     }
 
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
@@ -1257,31 +1347,39 @@ namespace my_hand_eye
 
     bool ArmController::put(const Color color, bool pal, bool final)
     {
-        geometry_msgs::Pose2D err;
-        average_pose(err);
+        double err_x, err_y;
+        error_position(color, err_x, err_y);
         if (final)
         {
             cargo_x_.clear();
             cargo_y_.clear();
             cargo_theta_.clear();
+            left_x_.clear();
+            left_y_.clear();
+            right_x_.clear();
+            right_y_.clear();
         }
         bool valid = ps_.go_to_table(true, color, true) &&
-                     ps_.put(color_map_[color], false, err, pal);
+                     ps_.put(color_map_[color], false, err_x, err_y, pal);
         ps_.reset(true);
         return valid;
     }
 
     bool ArmController::catch_after_putting(const Color color, bool final)
     {
-        geometry_msgs::Pose2D err;
-        average_pose(err);
+        double err_x, err_y;
+        error_position(color, err_x, err_y);
         if (final)
         {
             cargo_x_.clear();
             cargo_y_.clear();
             cargo_theta_.clear();
+            left_x_.clear();
+            left_y_.clear();
+            right_x_.clear();
+            right_y_.clear();
         }
-        bool valid = ps_.put(color_map_[color], true, err, false) &&
+        bool valid = ps_.put(color_map_[color], true, err_x, err_y, false) &&
                      ps_.go_to_table(false, color, true);
         if (!final)
             ps_.reset(true);
@@ -1375,7 +1473,6 @@ namespace my_hand_eye
                 Action ellipse = Action(0, 20, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
-                cargo_theta_.clear();
                 rst = true;
             }
             return false;
@@ -1385,6 +1482,8 @@ namespace my_hand_eye
             cargo_x_.clear();
             cargo_y_.clear();
             cargo_theta_.clear();
+            left_x_.clear();
+            left_y_.clear();
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
@@ -1396,29 +1495,29 @@ namespace my_hand_eye
         {
             if (pose)
             {
-                valid = get_pose(objArray, z_ellipse, p, (rst && cargo_theta_.empty()));
-                if (rst)
-                {
-                    if (valid)
-                    {
-                        cargo_theta_.push_back(p.theta);
-                        ROS_INFO_STREAM("theta: " << p.theta);
-                        if (cargo_theta_.size() == MAX)
-                        {
-                            cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
-                            cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-                            double aver;
-                            average_theta(aver);
-                            target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
-                            ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
-                            rst = false;
-                        }
-                        else
-                            return false;
-                    }
-                    else
-                        return false;
-                }
+                valid = get_pose(objArray, z_ellipse, p, rst, store);
+                // if (rst)
+                // {
+                //     if (valid)
+                //     {
+                //         cargo_theta_.push_back(p.theta);
+                //         ROS_INFO_STREAM("theta: " << p.theta);
+                //         if (cargo_theta_.size() == MAX)
+                //         {
+                //             cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
+                //             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
+                //             double aver;
+                //             average_theta(aver);
+                //             target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
+                //             ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
+                //             rst = false;
+                //         }
+                //         else
+                //             return false;
+                //     }
+                //     else
+                //         return false;
+                // }
             }
             else
                 valid = get_center(objArray, center_u, center_v, p.x, p.y, true);
@@ -1465,7 +1564,6 @@ namespace my_hand_eye
         {
             last_finish = false;
             ps_.reset(true);
-            cargo_theta_.clear();
             rst = true;
             return false;
         }
@@ -1474,35 +1572,39 @@ namespace my_hand_eye
             cargo_x_.clear();
             cargo_y_.clear();
             cargo_theta_.clear();
+            left_x_.clear();
+            left_y_.clear();
+            right_x_.clear();
+            right_y_.clear();
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
         geometry_msgs::Pose2D p;
         bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                     get_pose(objArray, z_parking_area, p, (rst && cargo_theta_.empty()));
-        if (rst)
-        {
-            if (valid)
-            {
-                cargo_theta_.push_back(p.theta);
-                ROS_INFO_STREAM("theta: " << p.theta);
-                if (cargo_theta_.size() >= MAX)
-                {
-                    cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
-                    cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-                    double aver;
-                    average_theta(aver);
-                    target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
-                    ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
-                    rst = false;
-                }
-                else
-                    return false;
-            }
-            else
-                return false;
-        }
+                     get_pose(objArray, z_parking_area, p, rst, store);
+        // if (rst)
+        // {
+        //     if (valid)
+        //     {
+        //         cargo_theta_.push_back(p.theta);
+        //         ROS_INFO_STREAM("theta: " << p.theta);
+        //         if (cargo_theta_.size() >= MAX)
+        //         {
+        //             cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
+        //             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
+        //             double aver;
+        //             average_theta(aver);
+        //             target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
+        //             ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
+        //             rst = false;
+        //         }
+        //         else
+        //             return false;
+        //     }
+        //     else
+        //         return false;
+        // }
         if (valid)
         {
             target_pose.calc(p, msg, MAX);

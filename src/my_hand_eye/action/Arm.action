@@ -11,6 +11,8 @@ uint8 route_border=5
 uint8 route_rest=6
 float64 theta
 ---
+# 结果设置位姿
+my_hand_eye/Pose2DMightEnd pme
 ---
-# 反馈：是否已完成位姿调整以及需要server到达的位姿
+# 反馈：需要server到达的位姿
 my_hand_eye/Pose2DMightEnd pme
