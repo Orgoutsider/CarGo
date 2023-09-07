@@ -440,6 +440,11 @@ namespace my_hand_eye
     bool ArmController::get_pose(vision_msgs::BoundingBox2DArray &objArray,
                                  double z, geometry_msgs::Pose2D &pose, bool rst, bool relative)
     {
+        if (relative && rst)
+        {
+            ROS_ERROR("get_pose: Cannot set both of relative and rst to true");
+            return false;
+        }
         if (objArray.boxes.size() == 4)
         {
             static geometry_msgs::Pose2D last_pose;
@@ -508,7 +513,8 @@ namespace my_hand_eye
                                      target_pose.pose[target_pose.target_ellipse].theta) *
                                  Angle(3).rad() +
                              target_pose.pose[target_pose.target_ellipse].theta;
-            get_relative_position(x, y);
+            if (relative)
+                get_relative_position(x, y);
             if (!rst)
             {
                 if (abs(last_pose.x - pose.x) > 3)
@@ -588,9 +594,13 @@ namespace my_hand_eye
     void ArmController::get_relative_position(double x[3], double y[3])
     {
         Action left = Action(y[0] - y[1], x[0] - x[1], 0).arm2footprint();
+        ROS_INFO("left:");
+        ARM_INFO_XYZ(left);
         left_x_.push_back(left.x);
         left_y_.push_back(left.y);
         Action right = Action(y[2] - y[1], x[2] - x[1], 0).arm2footprint();
+        ROS_INFO("right:");
+        ARM_INFO_XYZ(right);
         right_x_.push_back(right.x);
         right_y_.push_back(right.y);
     }
@@ -602,6 +612,7 @@ namespace my_hand_eye
         case 1:
             if (left_x_.empty() || left_y_.empty())
             {
+                ROS_WARN_STREAM("left x is empty: " << left_x_.empty() << ", y is empty:" << left_y_.empty());
                 x = y = 0;
                 return;
             }
@@ -612,6 +623,7 @@ namespace my_hand_eye
         case 2:
             if (cargo_x_.empty() || cargo_y_.empty())
             {
+                ROS_WARN_STREAM("cargo x is empty: " << cargo_x_.empty() << ", y is empty:" << cargo_y_.empty());
                 x = y = 0;
                 return;
             }
@@ -622,6 +634,7 @@ namespace my_hand_eye
         case 3:
             if (right_x_.empty() || right_y_.empty())
             {
+                ROS_WARN_STREAM("right x is empty: " << right_x_.empty() << ", y is empty:" << right_y_.empty());
                 x = y = 0;
                 return;
             }
@@ -640,6 +653,7 @@ namespace my_hand_eye
     {
         if (cargo_theta_.empty())
         {
+            ROS_WARN("cargo theta is empty!");
             theta = 0;
             return;
         }
@@ -658,6 +672,7 @@ namespace my_hand_eye
         if (cargo_x_.size() <= 2 || cargo_y_.size() <= 2 || cargo_theta_.size() <= 2 ||
             left_x_.size() <= 2 || left_y_.size() <= 2 || right_x_.size() <= 2 || right_y_.size() <= 2)
         {
+            ROS_WARN("Please set all vectors' size > 2");
             return;
         }
         // 去除一个最大值，一个最小值
@@ -683,14 +698,14 @@ namespace my_hand_eye
         cargo_x_.push_back(pose.x);
         cargo_y_.push_back(pose.y);
         cargo_theta_.push_back(pose.theta);
+        average_position(pose.x, pose.y, 1);
         left_x_.clear();
         left_y_.clear();
-        average_position(pose.x, pose.y, 1);
         left_x_.push_back(pose.x);
         left_y_.push_back(pose.y);
+        average_position(pose.x, pose.y, 3);
         right_x_.clear();
         right_y_.clear();
-        average_position(pose.x, pose.y, 3);
         right_x_.push_back(pose.x);
         right_y_.push_back(pose.y);
     }

@@ -407,10 +407,10 @@ namespace my_hand_eye
 					arm_goal_.route = arm_goal_.route_rest;
 					ROS_INFO("Finish operating ellipse...");
 				}
-				else if (!msg.end)
-				{
-					finish_adjusting_ = false;
-				}
+				// else if (!msg.end)
+				// {
+				// 	finish_adjusting_ = false;
+				// }
 			}
 			else
 			{

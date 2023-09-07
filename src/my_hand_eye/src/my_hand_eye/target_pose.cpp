@@ -16,8 +16,8 @@ namespace my_hand_eye
         tolerance[target_center].x = 0.015;
         tolerance[target_center].y = 0.015;
 
-        pose[target_ellipse].theta = Angle(-5.0951).rad();
-        // pose[target_ellipse].theta = Angle(-4.8854).rad();
+        // pose[target_ellipse].theta = Angle(-5.632506667).rad();
+        pose[target_ellipse].theta = Angle(-4.032506667).rad();
         Action ellipse = Action(0, 19.3, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
@@ -49,7 +49,7 @@ namespace my_hand_eye
     void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
     {
         static int err_cnt = 0;  // 防误判
-        static int err_cnt2 = 0; // 防不判
+        // static int err_cnt2 = 0; // 防不判
         Action a = Action(pose_arm.x, pose_arm.y, 0).arm2footprint();
         // if (pose_arm.theta == pose_target.not_change)
         //     pose_arm.theta = pose[target].theta;
@@ -76,8 +76,8 @@ namespace my_hand_eye
                 pose_target.end = true;
                 if (target != target_ellipse || err_cnt > 2 + cnt_max)
                     err_cnt = 0;
-                if (err_cnt == 3)
-                    err_cnt2 = 0;
+                // if (err_cnt == 3)
+                //     err_cnt2 = 0;
             }
             else
                 pose_target.end = false;
@@ -91,13 +91,16 @@ namespace my_hand_eye
         else // cnt > 2 && target == target_ellipse
         {
             err_cnt++;
-            if (err_cnt == 3)
-                err_cnt2 = 0;
-            err_cnt2++;
-            if (err_cnt2 > 1)
-                pose_target.end = false;
-            else
-                pose_target.end = true;
+            if (err_cnt)
+                err_cnt = 0;
+            pose_target.end = true;
+            // if (err_cnt == 3)
+            //     err_cnt2 = 0;
+            // err_cnt2++;
+            // if (err_cnt2 > 1)
+            //     pose_target.end = false;
+            // else
+            //     pose_target.end = true;
         }
     }
 } // namespace my_hand_eye
