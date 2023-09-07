@@ -17,6 +17,7 @@ namespace my_hand_eye
             target_border
         };
         Target target;
+        bool debug;
         std::map<Target, geometry_msgs::Pose2D> pose; // 单位为m
         // 利用目标位姿计算发送的位姿，自动填入not_change
         void calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max = 5);

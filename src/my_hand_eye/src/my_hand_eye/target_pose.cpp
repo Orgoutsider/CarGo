@@ -3,7 +3,7 @@
 
 namespace my_hand_eye
 {
-    TargetPose::TargetPose() : target(target_center)
+    TargetPose::TargetPose() : target(target_center), debug(true)
     {
         pose[target_center].theta = Pose2DMightEnd::not_change;
         Action center = Action(0, 32.5, 0).arm2footprint();
@@ -74,7 +74,7 @@ namespace my_hand_eye
             if (err_cnt > 2)
             {
                 pose_target.end = true;
-                if (target != target_ellipse || err_cnt > 2 + cnt_max)
+                if ((target != target_ellipse || debug) || err_cnt > 2 + cnt_max)
                     err_cnt = 0;
                 if (err_cnt == 3)
                     err_cnt2 = 0;
@@ -82,7 +82,7 @@ namespace my_hand_eye
             else
                 pose_target.end = false;
         }
-        else if (target != target_ellipse || err_cnt <= 2)
+        else if ((target != target_ellipse) || err_cnt <= 2)
         {
             pose_target.end = false;
             if (err_cnt)
