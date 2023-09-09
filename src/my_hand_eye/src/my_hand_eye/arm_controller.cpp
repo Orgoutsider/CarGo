@@ -714,21 +714,31 @@ namespace my_hand_eye
     {
         geometry_msgs::Pose2D err;
         average_pose(err);
-        err_x = err.x, err_y = err.y;
         if (color_map_[color] == 1)
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            err_x += (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - (-x));
-            err_y -= (-y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+            double ex, ey;
+            ex = (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - (-x));
+            ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
         }
         else if (color_map_[color] == 3)
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            err_x -= (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - x);
-            err_y += (y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+            double ex, ey;
+            ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - x);
+            ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
         }
+        err_x = err.x * cos(target_pose.pose[target_pose.target_ellipse].theta) +
+                err.y * sin(target_pose.pose[target_pose.target_ellipse].theta);
+        err_y = -err.x * sin(target_pose.pose[target_pose.target_ellipse].theta) +
+                err.y * cos(target_pose.pose[target_pose.target_ellipse].theta);
+        ROS_INFO("err_x: %lf err_y: %lf all", err_x, err_y);
+        // err_x = 0;
+        // err_y = 0;
     }
 
     bool ArmController::catch_straightly(const sensor_msgs::ImageConstPtr &image_rect, const Color color,
@@ -1147,7 +1157,16 @@ namespace my_hand_eye
                 }
             }
             if (show_detections)
+            {
+                // 复制target_pose
+                Action a = Action(0, 19.3, 0).front2left();
+                double u, v;
+                ps_.calculate_pixel_position(a.x, a.y, z_parking_area, u, v, false);
+                draw_cross(cv_image_.image,
+                           Point2d(u, v),
+                           Scalar(255, 255, 255), 30, 2);
                 debug_image = cv_image_.toImageMsg();
+            }
         }
         // if (show_detections && !cv_image->image.empty())
         // {

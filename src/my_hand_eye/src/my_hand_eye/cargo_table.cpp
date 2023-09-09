@@ -77,7 +77,7 @@ namespace my_hand_eye
         int Position_now = where_last_ * ARM_CARGO_TABLE_POS_WHEN_DEG120;
         double time = abs((Position - Position_now) * 0.025 / (Speed + 0.01)) + Speed / (100.0 * ACC + 0.01);
         time = time > 15.0 ? 15.0 : time;
-        ROS_INFO_STREAM("ID:" << unsigned(ID) << " time:" << time);
+        // ROS_INFO_STREAM("ID:" << unsigned(ID) << " time:" << time);
         return time;
     }
 

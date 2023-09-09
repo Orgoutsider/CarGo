@@ -219,7 +219,7 @@ namespace my_hand_eye
         else
             ROS_ERROR("ID error!");
         time = time > 15.0 ? 15.0 : time;
-        ROS_INFO_STREAM("ID:" << ID << " time:" << time);
+        // ROS_INFO_STREAM("ID:" << ID << " time:" << time);
         return time;
     }
 
@@ -455,7 +455,6 @@ namespace my_hand_eye
     {
         Action a = pal ? action_palletize[order].now2goal(err_x, err_y, enlarge_loop[pal])
                        : action_put[order].now2goal(err_x, err_y, enlarge_loop[pal]);
-        ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
         {
@@ -631,7 +630,7 @@ namespace my_hand_eye
         }
         else
             time_max = 15;
-        ROS_INFO("Done! Wait for %lf seconds", time_max);
+        // ROS_INFO("Done! Wait for %lf seconds", time_max);
         ros::Duration du(time_max); // 以秒为单位
         ros::Time now = ros::Time::now();
         ros::Time time_after_now = now + du;

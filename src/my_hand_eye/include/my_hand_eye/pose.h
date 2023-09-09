@@ -48,6 +48,7 @@ namespace my_hand_eye
         Action action_back;
         Action action_right;
         Action action_down;
+        Action action_ellipse;
         Action action_put[4];
         Action action_palletize[4];
         Action enlarge_loop[2];

@@ -17,7 +17,7 @@ namespace my_hand_eye
         tolerance[target_center].y = 0.015;
 
         // pose[target_ellipse].theta = Angle(-5.632506667).rad();
-        pose[target_ellipse].theta = Angle(-4.032506667).rad();
+        pose[target_ellipse].theta = Angle(-3.39325067).rad();
         Action ellipse = Action(0, 19.3, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
@@ -48,7 +48,7 @@ namespace my_hand_eye
 
     void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
     {
-        static int err_cnt = 0;  // 防误判
+        static int err_cnt = 0; // 防误判
         // static int err_cnt2 = 0; // 防不判
         Action a = Action(pose_arm.x, pose_arm.y, 0).arm2footprint();
         // if (pose_arm.theta == pose_target.not_change)
@@ -91,7 +91,7 @@ namespace my_hand_eye
         else // cnt > 2 && target == target_ellipse
         {
             err_cnt++;
-            if (err_cnt)
+            if (err_cnt > 2 + cnt_max)
                 err_cnt = 0;
             pose_target.end = true;
             // if (err_cnt == 3)
