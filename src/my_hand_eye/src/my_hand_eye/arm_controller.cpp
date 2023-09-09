@@ -244,6 +244,15 @@ namespace my_hand_eye
                 detections = cargo.response.results;
                 if (show_detections && !cv_image->image.empty())
                 {
+                    // 复制target_pose
+                    Action a = Action(0, 20, 0).front2left();
+                    double u, v;
+                    ps_.calculate_pixel_position(a.x, a.y, z_ellipse, u, v, false);
+                    u -= rect.x;
+                    v -= rect.y;
+                    draw_cross(cv_image->image,
+                               cv::Point2d(u, v),
+                               cv::Scalar(255, 255, 0), 30, 2);
                     if (cargo.response.results.boxes.size())
                     {
                         for (int color = color_red; color <= color_blue; color++)
@@ -455,7 +464,7 @@ namespace my_hand_eye
             }
             int cnt = 0;
             double x[5] = {0}, y[5] = {0};
-            bool flag = false;
+            double sum_x = 0, sum_y = 0, sum_x2 = 0, sum_xy = 0;
             bool read = !rst;
             for (int i = 1; i <= 3; i++)
             {
@@ -465,9 +474,18 @@ namespace my_hand_eye
                              color_order_[i].color);
                     continue;
                 }
+                sum_x += objArray.boxes[color_order_[i].color].center.x;
+                sum_y += objArray.boxes[color_order_[i].color].center.y;
+                sum_x2 += objArray.boxes[color_order_[i].color].center.x *
+                          objArray.boxes[color_order_[i].color].center.x;
+                sum_xy += objArray.boxes[color_order_[i].color].center.x *
+                          objArray.boxes[color_order_[i].color].center.y;
+                cnt++;
+                if (!relative && !rst && i != 2)
+                    continue;
                 if (!ps_.calculate_cargo_position(objArray.boxes[color_order_[i].color].center.x,
                                                   objArray.boxes[color_order_[i].color].center.y,
-                                                  z, x[cnt], y[cnt], read))
+                                                  z, x[i], y[i], read))
                 {
                     ROS_WARN("get_pose: Cannot calculate color %d ellipse's position",
                              color_order_[i].color);
@@ -477,13 +495,11 @@ namespace my_hand_eye
                     read = false;
                 if (i == 2)
                 {
-                    pose.x = x[cnt];
-                    pose.y = y[cnt];
-                    flag = true;
+                    pose.x = x[i];
+                    pose.y = y[i];
                 }
-                cnt++;
             }
-            if (!flag)
+            if (!x[2])
                 return false;
             // 防止超出车道
             if (pose.x < -35.5)
@@ -495,19 +511,30 @@ namespace my_hand_eye
             else if (pose.y > -ARM_P + 8)
                 pose.y = -ARM_P + 8;
             // 对象相对车体的偏角
-            if (cnt == 3)
-                pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
-                               atan((x[1] - x[2]) / (y[1] - y[2])) +
-                               atan((x[2] - x[0]) / (y[2] - y[0]))) /
-                             3;
-            else if (cnt == 2)
+            if (cnt >= 2)
             {
-                if (relative)
-                    return false;
-                pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
+                double down = cnt * sum_x2 - sum_x * sum_x;
+                double a = (sum_x2 * sum_y - sum_x * sum_xy) / down;
+                double b = (cnt * sum_xy - sum_x * sum_y) / down;
+                cv::Vec2f line;
+                line[1] = atan(b) + CV_PI / 2;
+                line[0] = abs(a * sin(line[1]));
+                double dist;
+                ps_.calculate_border_position(line, z, dist, pose.theta, false);
             }
-            else
-                return false;
+            // if (cnt == 3)
+            //     pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
+            //                    atan((x[1] - x[2]) / (y[1] - y[2])) +
+            //                    atan((x[2] - x[0]) / (y[2] - y[0]))) /
+            //                  3;
+            // else if (cnt == 2)
+            // {
+            //     if (relative)
+            //         return false;
+            //     pose.theta = -atan((x[0] - x[1]) / (y[0] - y[1]));
+            // }
+            // else
+            //     return false;
             if (abs(Angle::degree(pose.theta - target_pose.pose[target_pose.target_ellipse].theta)) > 3)
                 pose.theta = cv::sgn(pose.theta -
                                      target_pose.pose[target_pose.target_ellipse].theta) *
@@ -591,14 +618,14 @@ namespace my_hand_eye
         return false;
     }
 
-    void ArmController::get_relative_position(double x[3], double y[3])
+    void ArmController::get_relative_position(double x[], double y[])
     {
-        Action left = Action(y[0] - y[1], x[0] - x[1], 0).arm2footprint();
+        Action left = Action(y[1] - y[2], x[1] - x[2], 0).arm2footprint();
         ROS_INFO("left:");
         ARM_INFO_XYZ(left);
         left_x_.push_back(left.x);
         left_y_.push_back(left.y);
-        Action right = Action(y[2] - y[1], x[2] - x[1], 0).arm2footprint();
+        Action right = Action(y[3] - y[2], x[3] - x[2], 0).arm2footprint();
         ROS_INFO("right:");
         ARM_INFO_XYZ(right);
         right_x_.push_back(right.x);
@@ -1125,6 +1152,8 @@ namespace my_hand_eye
                     // imshow("threshold", thr);
                     if (countNonZero(thr))
                     {
+                        Mat element = getStructuringElement(MORPH_CROSS, Size(3, 3));
+                        dilate(thr, thr, element);
                         Moments m = moments(thr, true);
                         detections.boxes[color].center.x = m.m10 / m.m00 + rect.x;
                         detections.boxes[color].center.y = m.m01 / m.m00 + rect.y;
@@ -1266,12 +1295,16 @@ namespace my_hand_eye
                 }
                 else
                 {
+                    if (show_detections && !cv_image->image.empty())
+                        debug_image = cv_image->toImageMsg();
                     ROS_WARN("Could not find parking area!");
                     return false;
                 }
             }
             else
             {
+                if (show_detections && !cv_image->image.empty())
+                    debug_image = cv_image->toImageMsg();
                 ROS_WARN("Could not find parking area!");
                 return false;
             }
@@ -1469,7 +1502,7 @@ namespace my_hand_eye
         static bool flag = true;
         if (flag)
         {
-            ps_.reset();
+            ps_.reset(false);
             flag = false;
             return false;
         }

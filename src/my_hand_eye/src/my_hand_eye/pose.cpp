@@ -912,12 +912,12 @@ namespace my_hand_eye
     }
 
     bool Pos::calculate_border_position(cv::Vec2f &border, double border_z,
-                                        double &distance, double &yaw)
+                                        double &distance, double &yaw, bool read)
     {
         double u0 = border[0] / cos(border[1]);
         double v0 = border[0] / sin(border[1]);
         double x1, y1, x2, y2;
-        if (calculate_cargo_position(u0, 0, border_z, x1, y1, true) &&
+        if (calculate_cargo_position(u0, 0, border_z, x1, y1, read) &&
             calculate_cargo_position(0, v0, border_z, x2, y2, false))
         {
             // ARM_INFO_XYZ(*this);

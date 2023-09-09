@@ -69,7 +69,7 @@ namespace my_hand_eye
         // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         bool set_color_order(vision_msgs::BoundingBox2DArray &objArray, double z);
         // 处理接收的图片，求左右椭圆相对中心椭圆位置
-        void get_relative_position(double x[3], double y[3]);
+        void get_relative_position(double x[], double y[]);
         void average_position(double &x, double &y, int order = 2); // 求得记录位置数据的平均值
         void average_theta(double &theta);                          // 求得记录位置数据的平均值
         void average_pose(geometry_msgs::Pose2D &pose);             // 求得记录位置数据的平均值
