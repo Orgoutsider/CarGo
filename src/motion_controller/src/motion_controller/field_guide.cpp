@@ -127,11 +127,11 @@ namespace motion_controller
     }
   }
 
-  double FieldGuide::angle_from_road() const
+  double FieldGuide::angle_from_road(bool debug, bool startup) const
   {
     double theta;
     // 需要考虑车所处的方位，考虑车子theta正向
-    switch (where_is_car(false))
+    switch (where_is_car(debug, startup))
     {
     case route_QR_code_board:
       return -theta_;

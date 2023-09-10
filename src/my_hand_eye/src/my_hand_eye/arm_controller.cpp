@@ -1614,7 +1614,7 @@ namespace my_hand_eye
         if (store && last_finish)
         {
             average_pose_once();
-            average_pose(msg.pose);
+            // average_pose(msg.pose);
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";
         }
@@ -1694,7 +1694,7 @@ namespace my_hand_eye
         if (store && last_finish)
         {
             average_pose_once();
-            average_pose(msg.pose);
+            // average_pose(msg.pose);
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";
         }

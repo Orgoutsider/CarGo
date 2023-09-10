@@ -354,7 +354,7 @@ namespace my_hand_eye
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
-					time_stop = ros::Time::now() + ros::Duration(0.1);
+					time_stop = ros::Time::now() + ros::Duration(5.1);
 				}
 			}
 			else
@@ -382,10 +382,10 @@ namespace my_hand_eye
 							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true, arm_goal_.theta);
 				if (fin)
 				{
-					ArmFeedback feedback;
-					feedback.pme = msg;
-					feedback.pme.end = false;
-					as_.publishFeedback(feedback);
+					// ArmFeedback feedback;
+					// feedback.pme = msg;
+					// feedback.pme.end = false;
+					// as_.publishFeedback(feedback);
 					arm_controller_.put(which_color(), pal, false);
 					next_task();
 					arm_controller_.put(which_color(), pal, false);

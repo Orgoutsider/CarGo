@@ -43,7 +43,8 @@ namespace motion_controller
         std::vector<double> control;
         if (goal->pose.theta)
         {
-            PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
+            PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_},
+                               {(goal->precision ? 0.005 : 0.02)}, {0.1}, {0.8});
             while (!success)
             {
                 if (server_.isPreemptRequested() || !ros::ok())

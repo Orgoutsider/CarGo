@@ -52,7 +52,7 @@ namespace motion_controller
         // 偏离道路中心的距离
         double length_from_road() const;
         // 偏离道路中心的角度
-        double angle_from_road() const;
+        double angle_from_road(bool debug, bool startup = false) const;
         // 在转弯处设置的位置，指定是否对外围黄色区域
         bool position_in_corner(double dist, double yaw,
                                 double &x, double &y, double &theta, bool outside = true) const;
