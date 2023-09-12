@@ -50,36 +50,36 @@ namespace motion_controller
                 if (server_.isPreemptRequested() || !ros::ok())
                 {
                     ROS_WARN("Move Preempt Requested!");
-                    while (!success && ros::ok())
-                    {
-                        if (_get_pose_now(pose))
-                        {
-                            if (pid1.update({pose.theta}, header_.stamp, control, success))
-                            {
-                                // 组织发布速度消息
-                                geometry_msgs::Twist twist;
-                                twist.angular.z = control[0];
-                                tme.velocity = twist;
-                            }
-                            else
-                            {
-                                // 组织发布速度消息
-                                tme.velocity = geometry_msgs::Twist();
-                            }
-                        }
-                        else
-                        {
-                            // 组织发布速度消息
-                            tme.velocity = geometry_msgs::Twist();
-                        }
-                        tme.end = false;
-                        cmd_vel_publisher_.publish(tme);
-                        feedback.is_paning = false;
-                        feedback.pose_now = pose;
-                        feedback.header = header_;
-                        server_.publishFeedback(feedback);
-                        rate.sleep();
-                    }
+                    // while (!success && ros::ok())
+                    // {
+                    //     if (_get_pose_now(pose))
+                    //     {
+                    //         if (pid1.update({pose.theta}, header_.stamp, control, success))
+                    //         {
+                    //             // 组织发布速度消息
+                    //             geometry_msgs::Twist twist;
+                    //             twist.angular.z = control[0];
+                    //             tme.velocity = twist;
+                    //         }
+                    //         else
+                    //         {
+                    //             // 组织发布速度消息
+                    //             tme.velocity = geometry_msgs::Twist();
+                    //         }
+                    //     }
+                    //     else
+                    //     {
+                    //         // 组织发布速度消息
+                    //         tme.velocity = geometry_msgs::Twist();
+                    //     }
+                    //     tme.end = false;
+                    //     cmd_vel_publisher_.publish(tme);
+                    //     feedback.is_paning = false;
+                    //     feedback.pose_now = pose;
+                    //     feedback.header = header_;
+                    //     server_.publishFeedback(feedback);
+                    //     rate.sleep();
+                    // }
 
                     TwistMightEnd tme;
                     tme.end = true;

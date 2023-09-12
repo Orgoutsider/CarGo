@@ -230,7 +230,8 @@ namespace my_hand_eye
             if (ID[i] == 6 && !cargo_table_.arrived(tolerance))
                 return false;
             else if ((ID[i] != 6) && (!read_position(ID[i]) ||
-                                      abs(Position[ID[i]] - Position_now[ID[i]]) > tolerance))
+                                      abs(Position[ID[i]] - Position_now[ID[i]]) 
+                                      > (ID[i] == 1 ? tolerance / 3.0 : tolerance)))
                 return false;
         }
         return true;

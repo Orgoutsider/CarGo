@@ -10,7 +10,7 @@ namespace motion_controller
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.9), ki_eye_angular_(0.21), kd_eye_angular_(0.4),
           kp_eye_linear_(1.0), ki_eye_linear_(0.12), kd_eye_linear_(0.3),
-          thresh_angular_(0.025), thresh_linear_x_(0.006), thresh_linear_y_(0.005),
+          thresh_angular_(0.025), thresh_linear_x_(0.005), thresh_linear_y_(0.005),
           limiting_freq_(2.5),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
@@ -148,7 +148,7 @@ namespace motion_controller
                 pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                                {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                                {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                               {thresh_linear_x_, thresh_linear_y_, 0.003}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
+                                               {thresh_linear_x_, thresh_linear_y_, 0.005}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
                                                {limiting_freq_, limiting_freq_, limiting_freq_});
             }
         }
@@ -249,6 +249,8 @@ namespace motion_controller
         geometry_msgs::PoseStamped pose_footprint;
         pose_footprint.header = pose.header;
         geometry_msgs::Pose p3D;
+        double z = pose_goal_.pose.orientation.z;
+        double w = pose_goal_.pose.orientation.w;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
         if (pose.pose.x == pose.not_change && pose.pose.y == pose.not_change &&
             pose.pose.theta == pose.not_change)
@@ -263,6 +265,11 @@ namespace motion_controller
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
             buffer_.transform(pose_footprint, pose_goal_, target_frame_);
             pose_goal_.header.stamp = ros::Time();
+            if (unchanging_ == direction_theta)
+            {
+                pose_goal_.pose.orientation.z = z;
+                pose_goal_.pose.orientation.w = w;
+            }
         }
         catch (const std::exception &e)
         {
@@ -285,9 +292,10 @@ namespace motion_controller
             ROS_WARN("_get_pose_now exception:%s", e.what());
             return false;
         }
-        pose.theta = unchanging_ != direction_theta ? atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w) * 2 : 0;
+        pose.theta = atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w);
         pose.x = unchanging_ != direction_x ? pose_footprint.pose.position.x : 0;
         pose.y = unchanging_ != direction_y ? pose_footprint.pose.position.y : 0;
+        // theta 特殊处理
         stamp = pose_footprint.header.stamp;
         return true;
     }

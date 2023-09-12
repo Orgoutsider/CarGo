@@ -17,15 +17,15 @@ namespace my_hand_eye
         tolerance[target_center].y = 0.015;
 
         // pose[target_ellipse].theta = Angle(-5.632506667).rad();
-        pose[target_ellipse].theta = Angle(-4.555804286).rad();
+        pose[target_ellipse].theta = Pose2DMightEnd::not_change;
         Action ellipse = Action(0, 19.3, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
 
-        tolerance[target_ellipse].theta = 0.009;
+        tolerance[target_ellipse].theta = Pose2DMightEnd::not_change;
         // tolerance[target_ellipse].theta = 0.006;
-        tolerance[target_ellipse].x = 0.008;
-        tolerance[target_ellipse].y = 0.008;
+        tolerance[target_ellipse].x = 0.007;
+        tolerance[target_ellipse].y = 0.007;
 
         Action border = Action(0, 17.7990405, 0).front2left().arm2footprint();
         pose[target_border].theta = Angle(-4.997564).rad();

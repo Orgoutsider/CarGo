@@ -128,6 +128,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
         tracker_.flag = pnh.param<bool>("flag", false);
+        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -5.25312)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -203,9 +204,7 @@ namespace my_hand_eye
             ROS_ERROR("No data!");
             return false;
         }
-        cv_image_.encoding = image->encoding;
-        cv_image_.header = image->header;
-        cv_image_.image = image->image.clone();
+        cv_image_ = cv_bridge::CvImage(image->header, image->encoding, image->image.clone());
         return true;
     }
 
@@ -351,7 +350,9 @@ namespace my_hand_eye
             else if (pose)
             {
                 geometry_msgs::Pose2D p;
-                if (valid = get_pose(objArray, z_ellipse, p, rst))
+                cv::Vec2f line;
+                if (valid = get_position(objArray, z_ellipse, p.x, p.y, rst) &&
+                            get_theta(objArray, z_ellipse, p.theta, line))
                 {
                     ROS_INFO_STREAM("x:" << p.x << " y:" << p.y << " theta:" << Angle::degree(p.theta));
                     if (rst)
@@ -446,48 +447,38 @@ namespace my_hand_eye
             return false;
     }
 
-    bool ArmController::get_pose(vision_msgs::BoundingBox2DArray &objArray,
-                                 double z, geometry_msgs::Pose2D &pose, bool rst, bool relative)
+    bool ArmController::get_position(vision_msgs::BoundingBox2DArray &objArray,
+                                     double z, double &ellipse_x, double &ellipse_y, bool rst, bool relative)
     {
         if (relative && rst)
         {
-            ROS_ERROR("get_pose: Cannot set both of relative and rst to true");
+            ROS_ERROR("get_position: Cannot set both of relative and rst to true");
             return false;
         }
         if (objArray.boxes.size() == 4)
         {
-            static geometry_msgs::Pose2D last_pose;
+            static double last_x, last_y;
             if (rst)
             {
                 if (!set_color_order(objArray, z))
                     return false;
             }
-            int cnt = 0;
             double x[5] = {0}, y[5] = {0};
-            double sum_x = 0, sum_y = 0, sum_x2 = 0, sum_xy = 0;
             bool read = !rst;
             for (int i = 1; i <= 3; i++)
             {
+                if (!relative && i != 2)
+                    continue;
                 if (!objArray.boxes[color_order_[i].color].center.x)
                 {
-                    ROS_WARN("get_pose: Color %d ellipse does not exist.",
-                             color_order_[i].color);
-                    continue;
+                    ROS_WARN("get_position: Color %d ellipse does not exist.", color_order_[i].color);
+                    return false;
                 }
-                sum_x += objArray.boxes[color_order_[i].color].center.x;
-                sum_y += objArray.boxes[color_order_[i].color].center.y;
-                sum_x2 += objArray.boxes[color_order_[i].color].center.x *
-                          objArray.boxes[color_order_[i].color].center.x;
-                sum_xy += objArray.boxes[color_order_[i].color].center.x *
-                          objArray.boxes[color_order_[i].color].center.y;
-                cnt++;
-                if (!relative && !rst && i != 2)
-                    continue;
                 if (!ps_.calculate_cargo_position(objArray.boxes[color_order_[i].color].center.x,
                                                   objArray.boxes[color_order_[i].color].center.y,
                                                   z, x[i], y[i], read))
                 {
-                    ROS_WARN("get_pose: Cannot calculate color %d ellipse's position",
+                    ROS_WARN("get_position: Cannot calculate color %d ellipse's position",
                              color_order_[i].color);
                     continue;
                 }
@@ -495,33 +486,19 @@ namespace my_hand_eye
                     read = false;
                 if (i == 2)
                 {
-                    pose.x = x[i];
-                    pose.y = y[i];
+                    ellipse_x = x[i];
+                    ellipse_y = y[i];
                 }
             }
-            if (!x[2])
-                return false;
             // 防止超出车道
-            if (pose.x < -35.5)
-                pose.x = -35.5;
-            else if (pose.x > -27.5)
-                pose.x = -27.5;
-            if (pose.y < -ARM_P - 8)
-                pose.y = -ARM_P - 8;
-            else if (pose.y > -ARM_P + 8)
-                pose.y = -ARM_P + 8;
-            // 对象相对车体的偏角
-            if (cnt >= 2)
-            {
-                double down = cnt * sum_x2 - sum_x * sum_x;
-                double a = (sum_x2 * sum_y - sum_x * sum_xy) / down;
-                double b = (cnt * sum_xy - sum_x * sum_y) / down;
-                cv::Vec2f line;
-                line[1] = atan(b) + CV_PI / 2;
-                line[0] = abs(a * sin(line[1]));
-                double dist;
-                ps_.calculate_border_position(line, z, dist, pose.theta, false);
-            }
+            if (ellipse_x < -35.5)
+                ellipse_x = -35.5;
+            else if (ellipse_x > -27.5)
+                ellipse_x = -27.5;
+            if (ellipse_y < -ARM_P - 8)
+                ellipse_y = -ARM_P - 8;
+            else if (ellipse_y > -ARM_P + 8)
+                ellipse_y = -ARM_P + 8;
             // if (cnt == 3)
             //     pose.theta = -(atan((x[0] - x[1]) / (y[0] - y[1])) +
             //                    atan((x[1] - x[2]) / (y[1] - y[2])) +
@@ -535,27 +512,62 @@ namespace my_hand_eye
             // }
             // else
             //     return false;
-            if (abs(Angle::degree(pose.theta - target_pose.pose[target_pose.target_ellipse].theta)) > 3)
-                pose.theta = cv::sgn(pose.theta -
-                                     target_pose.pose[target_pose.target_ellipse].theta) *
-                                 Angle(3).rad() +
-                             target_pose.pose[target_pose.target_ellipse].theta;
             if (relative)
                 get_relative_position(x, y);
             if (!rst)
             {
-                if (abs(last_pose.x - pose.x) > 3)
-                    pose.x = last_pose.x + cv::sgn(pose.x - last_pose.x);
-                if (abs(last_pose.y - pose.y) > 3)
-                    pose.y = last_pose.y + cv::sgn(pose.y - last_pose.y);
-                if (Angle::degree(last_pose.theta - pose.theta) > 3)
-                    pose.theta = last_pose.theta + Angle(3).rad() *
-                                                       cv::sgn(pose.theta - last_pose.theta);
+                if (abs(last_x - ellipse_x) > 3)
+                    ellipse_x = last_x + cv::sgn(ellipse_x - last_x);
+                if (abs(last_y - ellipse_y) > 3)
+                    ellipse_y = last_y + cv::sgn(ellipse_y - last_y);
             }
-            last_pose = pose;
+            last_x = ellipse_x;
+            last_y = ellipse_y;
             return true;
         }
         return false;
+    }
+
+    bool ArmController::get_theta(vision_msgs::BoundingBox2DArray &objArray,
+                                  double z, double &theta, cv::Vec2f &line)
+    {
+        int cnt = 0;
+        double sum_x = 0, sum_y = 0, sum_x2 = 0, sum_xy = 0;
+        for (int i = 1; i <= 3; i++)
+        {
+            if (!objArray.boxes[color_order_[i].color].center.x)
+            {
+                ROS_WARN("get_theta: Color %d ellipse does not exist.", color_order_[i].color);
+                continue;
+            }
+            cnt++;
+            sum_x += objArray.boxes[color_order_[i].color].center.x;
+            sum_y += objArray.boxes[color_order_[i].color].center.y;
+            sum_x2 += objArray.boxes[color_order_[i].color].center.x *
+                      objArray.boxes[color_order_[i].color].center.x;
+            sum_xy += objArray.boxes[color_order_[i].color].center.x *
+                      objArray.boxes[color_order_[i].color].center.y;
+        }
+        bool valid = true;
+        // 对象相对车体的偏角
+        if (cnt >= 2)
+        {
+            double down = cnt * sum_x2 - sum_x * sum_x;
+            double a = (sum_x2 * sum_y - sum_x * sum_xy) / down;
+            double b = (cnt * sum_xy - sum_x * sum_y) / down;
+            line[1] = atan(b) + CV_PI / 2;
+            line[0] = abs(a * sin(line[1]));
+            double dist;
+            valid = ps_.calculate_border_position(line, z, dist, theta, false);
+        }
+        else
+            return false;
+        if (valid && abs(Angle::degree(theta - target_ellipse_theta_)) > 3)
+            theta = cv::sgn(theta -
+                            target_ellipse_theta_) *
+                        Angle(3).rad() +
+                    target_ellipse_theta_;
+        return valid;
     }
 
     bool ArmController::set_color_order(vision_msgs::BoundingBox2DArray &objArray, double z)
@@ -759,10 +771,10 @@ namespace my_hand_eye
             ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
             ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
         }
-        err_x = err.x * cos(target_pose.pose[target_pose.target_ellipse].theta) +
-                err.y * sin(target_pose.pose[target_pose.target_ellipse].theta);
-        err_y = -err.x * sin(target_pose.pose[target_pose.target_ellipse].theta) +
-                err.y * cos(target_pose.pose[target_pose.target_ellipse].theta);
+        err_x = err.x * cos(target_ellipse_theta_) +
+                err.y * sin(target_ellipse_theta_);
+        err_y = -err.x * sin(target_ellipse_theta_) +
+                err.y * cos(target_ellipse_theta_);
         ROS_INFO("err_x: %lf err_y: %lf all", err_x, err_y);
         // err_x = 0;
         // err_y = 0;
@@ -1121,10 +1133,30 @@ namespace my_hand_eye
         // 聚类、颜色标定
         if (!arr.clustering(ellsYaed, cv_image) ||
             !arr.color_classification(cv_image, white_vmin_))
+        {
+            if (show_detections && !cv_image->image.empty())
+            {
+                Mat3b srcCopy = cv_image->image;
+                yaed_->DrawDetectedEllipses(srcCopy, ellsYaed, 0, 1);
+                // imshow("Yaed", srcCopy);
+                // waitKey(10);
+                debug_image = cv_image->toImageMsg();
+            }
             return false;
+        }
         detections.header = image_rect->header;
         if (!arr.detection(detections, rect, cv_image))
+        {
+            if (show_detections && !cv_image->image.empty())
+            {
+                Mat3b srcCopy = cv_image->image;
+                yaed_->DrawDetectedEllipses(srcCopy, ellsYaed, 0, 1);
+                // imshow("Yaed", srcCopy);
+                // waitKey(10);
+                debug_image = cv_image->toImageMsg();
+            }
             return false;
+        }
         if (!cv_image_.image.empty())
         {
             for (int color = color_red; color <= color_blue; color++)
@@ -1159,7 +1191,7 @@ namespace my_hand_eye
                         detections.boxes[color].center.y = m.m01 / m.m00 + rect.y;
                     }
                 }
-                if (show_detections)
+                if (show_detections && detections.boxes[color].center.x)
                 {
                     Scalar c;
                     switch (color)
@@ -1196,15 +1228,12 @@ namespace my_hand_eye
                            Scalar(255, 255, 255), 30, 2);
                 debug_image = cv_image_.toImageMsg();
             }
+            // Mat3b srcCopy = cv_image->image;
+            // yaed_->DrawDetectedEllipses(srcCopy, ellsYaed, 0, 1);
+            // // imshow("Yaed", srcCopy);
+            // // waitKey(10);
+            // debug_image = cv_image->toImageMsg();
         }
-        // if (show_detections && !cv_image->image.empty())
-        // {
-        //     Mat3b srcCopy = cv_image->image;
-        //     yaed_->DrawDetectedEllipses(srcCopy, ellsYaed, 0, 1);
-        //     // imshow("Yaed", srcCopy);
-        //     // waitKey(10);
-        //     debug_image = cv_image->toImageMsg();
-        // }
         // std::vector<double> times = yaed_->GetTimes();
         // std::cout << "--------------------------------" << std::endl;
         // std::cout << "Execution Time: " << std::endl;
@@ -1340,11 +1369,18 @@ namespace my_hand_eye
             if (pose)
             {
                 geometry_msgs::Pose2D p;
-                if (valid = get_pose(objArray, z_parking_area, p, rst))
+                cv::Vec2f line;
+                if (valid = get_position(objArray, z_parking_area, p.x, p.y, rst, false) &&
+                            get_theta(objArray, z_parking_area, p.theta, line))
                 {
                     ROS_INFO_STREAM("x:" << p.x << " y:" << p.y << " theta:" << Angle::degree(p.theta));
                     if (rst)
                         rst = false;
+                    if (show_detections && !cv_image_.image.empty())
+                    {
+                        plot_line(cv_image_.image, line[0], line[1], cv::Scalar(255, 255, 255));
+                        debug_image = cv_image_.toImageMsg();
+                    }
                 }
             }
             else
@@ -1371,7 +1407,7 @@ namespace my_hand_eye
     //                  set_color_order(objArray);
     //     my_hand_eye::Pose2DMightEnd pme;
     //     if (valid)
-    //         valid = get_pose(objArray, z_parking_area, pme, false);
+    //         valid = get_position(objArray, z_parking_area, pme, false);
     //     if (valid && pme.pose.theta != pme.not_change)
     //     {
     //         my_hand_eye::Pose2DMightEnd err;
@@ -1391,7 +1427,7 @@ namespace my_hand_eye
     //         ROS_INFO_STREAM("z:" << z_parking_area << " dist:" << dist_min);
     //         for (z_parking_area = z_p_before + 5; z_parking_area > z_p_before - 5; z_parking_area -= 0.1)
     //         {
-    //             if (get_pose(objArray, z_parking_area, pme, false))
+    //             if (get_position(objArray, z_parking_area, pme, false))
     //             {
     //                 target_pose.calc(pme.pose, err);
     //                 Action ap_n[4];
@@ -1562,7 +1598,7 @@ namespace my_hand_eye
         {
             if (pose)
             {
-                valid = get_pose(objArray, z_ellipse, p, rst, store);
+                valid = get_position(objArray, z_ellipse, p.x, p.y, rst, store);
                 // if (rst)
                 // {
                 //     if (valid)
@@ -1575,8 +1611,8 @@ namespace my_hand_eye
                 //             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
                 //             double aver;
                 //             average_theta(aver);
-                //             target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
-                //             ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
+                //             target_ellipse_theta_ = aver - theta;
+                //             ROS_INFO_STREAM("Set theta to " << target_ellipse_theta_);
                 //             rst = false;
                 //         }
                 //         else
@@ -1594,15 +1630,27 @@ namespace my_hand_eye
             target_pose.calc(p, msg, MAX);
             if (store)
             {
+                cv::Vec2f line;
+                if (get_theta(objArray, z_parking_area, p.theta, line))
+                {
+                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                    cargo_theta_.push_back(msg.pose.theta);
+                }
+                else
+                    cargo_theta_.push_back(0);
                 ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
                 cargo_x_.push_back(msg.pose.x);
                 cargo_y_.push_back(msg.pose.y);
-                cargo_theta_.push_back(msg.pose.theta);
             }
             else
             {
                 msg.header = image_rect->header;
                 msg.header.frame_id = "base_footprint";
+                cv::Vec2f line;
+                if (pose && msg.end && get_theta(objArray, z_parking_area, p.theta, line))
+                {
+                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                }
             }
         }
         if (valid && show_detections && !cv_image_.image.empty() && !pose)
@@ -1615,8 +1663,8 @@ namespace my_hand_eye
         {
             average_pose_once();
             // average_pose(msg.pose);
-            msg.header = image_rect->header;
-            msg.header.frame_id = "base_footprint";
+            // msg.header = image_rect->header;
+            // msg.header.frame_id = "base_footprint";
         }
         return store ? last_finish : valid;
     }
@@ -1649,7 +1697,7 @@ namespace my_hand_eye
         vision_msgs::BoundingBox2DArray objArray;
         geometry_msgs::Pose2D p;
         bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
-                     get_pose(objArray, z_parking_area, p, rst, store);
+                     get_position(objArray, z_parking_area, p.x, p.y, rst, store);
         // if (rst)
         // {
         //     if (valid)
@@ -1662,8 +1710,8 @@ namespace my_hand_eye
         //             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
         //             double aver;
         //             average_theta(aver);
-        //             target_pose.pose[target_pose.target_ellipse].theta = aver - theta;
-        //             ROS_INFO_STREAM("Set theta to " << target_pose.pose[target_pose.target_ellipse].theta);
+        //             target_ellipse_theta_ = aver - theta;
+        //             ROS_INFO_STREAM("Set theta to " << target_ellipse_theta_);
         //             rst = false;
         //         }
         //         else
@@ -1677,10 +1725,20 @@ namespace my_hand_eye
             target_pose.calc(p, msg, MAX);
             if (store)
             {
-                ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
-                cargo_x_.push_back(msg.pose.x);
-                cargo_y_.push_back(msg.pose.y);
-                cargo_theta_.push_back(msg.pose.theta);
+                if (valid)
+                {
+                    cv::Vec2f line;
+                    if (get_theta(objArray, z_parking_area, p.theta, line))
+                    {
+                        msg.pose.theta = p.theta - target_ellipse_theta_;
+                        cargo_theta_.push_back(msg.pose.theta);
+                    }
+                    else
+                        cargo_theta_.push_back(0);
+                    ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
+                    cargo_x_.push_back(msg.pose.x);
+                    cargo_y_.push_back(msg.pose.y);
+                }
             }
             else
             {
@@ -1688,6 +1746,11 @@ namespace my_hand_eye
                     rst = false;
                 msg.header = image_rect->header;
                 msg.header.frame_id = "base_footprint";
+                cv::Vec2f line;
+                if (msg.end && get_theta(objArray, z_parking_area, p.theta, line))
+                {
+                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                }
             }
         }
         last_finish = store ? cargo_x_.size() >= MAX : msg.end;
@@ -1695,8 +1758,8 @@ namespace my_hand_eye
         {
             average_pose_once();
             // average_pose(msg.pose);
-            msg.header = image_rect->header;
-            msg.header.frame_id = "base_footprint";
+            // msg.header = image_rect->header;
+            // msg.header.frame_id = "base_footprint";
         }
         return store ? last_finish : valid;
     }

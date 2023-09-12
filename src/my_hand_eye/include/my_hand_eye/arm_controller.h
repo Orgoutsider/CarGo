@@ -15,6 +15,7 @@ namespace my_hand_eye
     private:
         double speed_standard_static_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         double speed_standard_motion_; // 速度标准，当速度大于此标准足够多次数时，判定为运动
+        double target_ellipse_theta_;  // 椭圆区域目标角度
         bool emulation_;               // 是否进行仿真
         bool stop_;                    // 用于颜色追踪，物料是否已停
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
@@ -63,9 +64,12 @@ namespace my_hand_eye
         // 处理接收的图片，求3物料重心
         bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
                         double &center_x, double &center_y, bool read = true);
-        // 处理接收的图片，求相对椭圆位姿
-        bool get_pose(vision_msgs::BoundingBox2DArray &objArray,
-                      double z, geometry_msgs::Pose2D &pose, bool rst, bool relative = false);
+        // 处理接收的图片，求相对中心椭圆位置
+        bool get_position(vision_msgs::BoundingBox2DArray &objArray,
+                          double z, double &ellipse_x, double &ellipse_y, bool rst, bool relative = false);
+        // 处理接收的图片，求角度
+        bool get_theta(vision_msgs::BoundingBox2DArray &objArray,
+                       double z, double &theta, cv::Vec2f &line);
         // 处理接收的图片，设置椭圆颜色顺序中心点按从左往右排序
         bool set_color_order(vision_msgs::BoundingBox2DArray &objArray, double z);
         // 处理接收的图片，求左右椭圆相对中心椭圆位置

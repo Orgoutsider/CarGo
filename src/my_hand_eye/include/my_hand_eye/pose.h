@@ -57,7 +57,7 @@ namespace my_hand_eye
         const double cx = 932.106780;
         const double cy = 578.390364;
         double calculate_time(int ID);                    // 为指定舵机计算到达时间
-        bool arrived(u8 ID[], u8 IDN, int tolerance = 4); // 判断所有是否到达指定位置附近
+        bool arrived(u8 ID[], u8 IDN, int tolerance = 3); // 判断所有是否到达指定位置附近
         // 计算各joint运动的position
         bool calculate_position(bool expand_y = false);
         bool read_position(int ID);      // 读指定舵机位置

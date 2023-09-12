@@ -33,7 +33,7 @@ namespace my_hand_eye
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_description); // 获取速度加速度
         void put_next(const Color color);                                       // 移动至下一个位置并记录颜色
         bool is_moving();                                               // 是否运动
-        bool arrived(int tolerance = 4);                                                 // 是否到达下一位置
+        bool arrived(int tolerance = 3);                                                 // 是否到达下一位置
         double calculate_time();                                        // 计算运动时间
         void get_next();                                                // 取下一个位置的物料
         void get_color(const Color color);                                               // 取特定颜色的物料

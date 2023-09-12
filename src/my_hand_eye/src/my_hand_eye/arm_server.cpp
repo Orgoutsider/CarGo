@@ -131,7 +131,7 @@ namespace my_hand_eye
 		// arm_controller_.log_extrinsics_correction(image_rect, -6.18287, 20.3357, arm_controller_.z_turntable, color_blue, debug_image);
 		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
-		
+
 		// 直接抓取
 		// static bool finish = false;
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -354,7 +354,7 @@ namespace my_hand_eye
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
-					time_stop = ros::Time::now() + ros::Duration(5.1);
+					time_stop = ros::Time::now() + ros::Duration(8.1);
 				}
 			}
 			else
@@ -372,8 +372,16 @@ namespace my_hand_eye
 		}
 		else if (!debug_)
 		{
-			if ((image_rect->header.stamp - time_stop).toSec() < 0)
+			if ((image_rect->header.stamp - time_stop).toSec() < 0 && !time_stop.is_zero())
 				return valid;
+			else if (!time_stop.is_zero())
+			{
+				ArmFeedback feedback;
+				feedback.pme = msg;
+				feedback.pme.end = false;
+				as_.publishFeedback(feedback);
+				time_stop = ros::Time();
+			}
 			if (arm_goal_.loop == 0 || arm_goal_.loop == 1)
 			{
 				msg.end = true;
@@ -382,10 +390,6 @@ namespace my_hand_eye
 							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true, arm_goal_.theta);
 				if (fin)
 				{
-					// ArmFeedback feedback;
-					// feedback.pme = msg;
-					// feedback.pme.end = false;
-					// as_.publishFeedback(feedback);
 					arm_controller_.put(which_color(), pal, false);
 					next_task();
 					arm_controller_.put(which_color(), pal, false);

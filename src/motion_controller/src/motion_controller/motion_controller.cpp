@@ -378,43 +378,52 @@ namespace motion_controller
         {
             if (feedback->pme.end)
             {
+                if (feedback->pme.pose.theta != feedback->pme.not_change)
+                {
+                    get_position();
+                    double theta = angle_correction(feedback->pme.pose.theta);
+                    theta = (theta + theta_) / 2;
+                    ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
+                    if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area)
+                    {
+                        set_position(-(x_roughing_area_ + length_from_ellipse_ +
+                                       feedback->pme.pose.x * cos(feedback->pme.pose.theta) +
+                                       feedback->pme.pose.y * sin(feedback->pme.pose.theta)),
+                                     y_, theta_);
+                    }
+                    else if (loop_ == 1)
+                    {
+                        set_position(x_,
+                                     y_semi_finishing_area_ - length_from_ellipse_ -
+                                         feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
+                                         feedback->pme.pose.y * sin(feedback->pme.pose.theta),
+                                     theta_);
+                    }
+                    else if (loop_ == 0)
+                    {
+                        set_position(-(x_road_up_ + width_field_ - width_from_semi_finishing_area_ -
+                                       feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
+                                       feedback->pme.pose.x * sin(feedback->pme.pose.theta)),
+                                     y_semi_finishing_area_ - length_from_ellipse_ -
+                                         feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
+                                         feedback->pme.pose.y * sin(feedback->pme.pose.theta),
+                                     theta_);
+                    }
+                    else
+                        ROS_ERROR("Invalid loop!");
+                    ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
+                }
                 ac_move_.waitForServer();
-                get_position();
-                double theta = angle_correction(feedback->pme.pose.theta);
-                theta = (theta + theta_) / 2;
-                ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
-                if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area)
-                {
-                    set_position(-(x_roughing_area_ + length_from_ellipse_ +
-                                   feedback->pme.pose.x * cos(feedback->pme.pose.theta) +
-                                   feedback->pme.pose.y * sin(feedback->pme.pose.theta)),
-                                 y_, theta);
-                }
-                else if (loop_ == 1)
-                {
-                    set_position(x_,
-                                 y_semi_finishing_area_ - length_from_ellipse_ -
-                                     feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
-                                     feedback->pme.pose.y * sin(feedback->pme.pose.theta),
-                                 theta);
-                }
-                else if (loop_ == 0)
-                {
-                    set_position(-(x_road_up_ + width_field_ - width_from_semi_finishing_area_ -
-                                   feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
-                                   feedback->pme.pose.x * sin(feedback->pme.pose.theta)),
-                                 y_semi_finishing_area_ - length_from_ellipse_ -
-                                     feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
-                                     feedback->pme.pose.y * sin(feedback->pme.pose.theta),
-                                 theta);
-                }
-                else
-                    ROS_ERROR("Invalid loop!");
-                ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                 MoveGoal goal;
+                get_position();
                 goal.pose.theta = angle_from_road(follower_.debug, follower_.startup);
                 goal.precision = true;
-                ac_move_.sendGoalAndWait(goal, ros::Duration(5), ros::Duration(0.1)); // 保证车子不再运动
+                ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+            }
+            else
+            {
+                ac_move_.waitForServer();
+                ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1)); // 保证车子不再运动
             }
         }
         else if (where_is_car(follower_.debug, follower_.startup) == route_border)
