@@ -452,10 +452,11 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::put(int order, bool cat, double err_x, double err_y, bool pal)
+    bool Pos::put(int order, bool cat, double err_x, double err_y, double err_theta, bool pal)
     {
-        Action a = pal ? action_palletize[order].now2goal(err_x, err_y, enlarge_loop[pal])
-                       : action_put[order].now2goal(err_x, err_y, enlarge_loop[pal]);
+        Action a = pal ? action_palletize[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal])
+                       : action_put[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal]);
+        a += pal ? action_palletize[order] : action_put[order];
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
         {

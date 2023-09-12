@@ -749,33 +749,34 @@ namespace my_hand_eye
         right_y_.push_back(pose.y);
     }
 
-    void ArmController::error_position(const Color color, double &err_x, double &err_y)
+    void ArmController::error_position(const Color color, double &err_x, double &err_y, double &err_theta)
     {
         geometry_msgs::Pose2D err;
         average_pose(err);
-        if (color_map_[color] == 1)
-        {
-            double x, y;
-            average_position(x, y, color_map_[color]);
-            double ex, ey;
-            ex = (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - (-x));
-            ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
-            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
-        }
-        else if (color_map_[color] == 3)
-        {
-            double x, y;
-            average_position(x, y, color_map_[color]);
-            double ex, ey;
-            ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - x);
-            ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
-            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
-        }
+        // if (color_map_[color] == 1)
+        // {
+        //     double x, y;
+        //     average_position(x, y, color_map_[color]);
+        //     double ex, ey;
+        //     ex = (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - (-x));
+        //     ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+        //     ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+        // }
+        // else if (color_map_[color] == 3)
+        // {
+        //     double x, y;
+        //     average_position(x, y, color_map_[color]);
+        //     double ex, ey;
+        //     ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - x);
+        //     ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
+        //     ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+        // }
         err_x = err.x * cos(target_ellipse_theta_) +
                 err.y * sin(target_ellipse_theta_);
         err_y = -err.x * sin(target_ellipse_theta_) +
                 err.y * cos(target_ellipse_theta_);
-        ROS_INFO("err_x: %lf err_y: %lf all", err_x, err_y);
+        err_theta = err.theta;
+        ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf", err_x, err_y, err_theta);
         // err_x = 0;
         // err_y = 0;
     }
@@ -1450,8 +1451,8 @@ namespace my_hand_eye
 
     bool ArmController::put(const Color color, bool pal, bool final)
     {
-        double err_x, err_y;
-        error_position(color, err_x, err_y);
+        double err_x, err_y, err_theta;
+        error_position(color, err_x, err_y, err_theta);
         if (final)
         {
             cargo_x_.clear();
@@ -1463,15 +1464,15 @@ namespace my_hand_eye
             right_y_.clear();
         }
         bool valid = ps_.go_to_table(true, color, true) &&
-                     ps_.put(color_map_[color], false, err_x, err_y, pal);
+                     ps_.put(color_map_[color], false, err_x, err_y, err_theta, pal);
         ps_.reset(true);
         return valid;
     }
 
     bool ArmController::catch_after_putting(const Color color, bool final)
     {
-        double err_x, err_y;
-        error_position(color, err_x, err_y);
+        double err_x, err_y, err_theta;
+        error_position(color, err_x, err_y, err_theta);
         if (final)
         {
             cargo_x_.clear();
@@ -1482,7 +1483,7 @@ namespace my_hand_eye
             right_x_.clear();
             right_y_.clear();
         }
-        bool valid = ps_.put(color_map_[color], true, err_x, err_y, false) &&
+        bool valid = ps_.put(color_map_[color], true, err_x, err_y, err_theta, false) &&
                      ps_.go_to_table(false, color, true);
         if (!final)
             ps_.reset(true);

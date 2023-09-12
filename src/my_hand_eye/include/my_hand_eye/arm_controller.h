@@ -80,7 +80,7 @@ namespace my_hand_eye
         // 求平均位姿并存入变长数组
         void average_pose_once();
         // 求放置误差
-        void error_position(const Color color, double &err_x, double &err_y);
+        void error_position(const Color color, double &err_x, double &err_y, double &err_theta);
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止

@@ -52,10 +52,13 @@ namespace my_hand_eye
         // cm转化成m并转换坐标系
         Action arm2footprint();
         // 补偿与目标位置的误差
-        Action now2goal(double err_x, double err_y, Action enlarge);
+        Action now2goal(double err_x, double err_y, double err_theta, Action enlarge);
         Action operator+=(const Action &t); // 重载加法
         Action operator-=(const Action &t); // 重载减法
-        static double normxy(const Action &a1, const Action &a2);
+    protected:
+        double length();
+        double height();
+        // static double normxy(const Action &a1, const Action &a2);
     };
 
     class Axis : public Action
@@ -75,8 +78,6 @@ namespace my_hand_eye
         bool expand_y; // 将y的范围扩展到y < 0
     public:
         Axis();
-        double length();
-        double height();
         // 求逆解，输入机械臂角度变量
         bool backward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, bool look);
         // bool first_step(double &deg1);

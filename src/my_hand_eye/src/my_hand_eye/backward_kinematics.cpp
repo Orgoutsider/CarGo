@@ -133,11 +133,16 @@ namespace my_hand_eye
         return Action(0.01 * y, -0.01 * x, z);
     }
 
-    Action Action::now2goal(double err_x, double err_y, Action enlarge)
+    Action Action::now2goal(double err_x, double err_y, double err_theta, Action enlarge)
     {
         // m转化成cm
-        return Action(-err_y * enlarge.y * 100 + x,
-                      err_x * enlarge.x * 100 + y, z);
+        err_y = err_y * enlarge.y * 100;
+        err_x = err_x * enlarge.x * 100;
+        err_theta = atan(tan(err_theta) * enlarge.y / enlarge.x);
+        double theta = atan((y + ARM_P) / x) + err_theta;
+        double len = length();
+        return Action(-x - (len + err_y) * cos(theta) + err_x * sin(theta),
+                      -y - ARM_P + (len + err_y) * sin(theta) + err_x * cos(theta), z);
     }
 
     Action Action::operator+=(const Action &t)
@@ -152,22 +157,22 @@ namespace my_hand_eye
         return *this;
     }
 
-    double Action::normxy(const Action &a1, const Action &a2)
-    {
-        return sqrt((a1.x - a2.x) * (a1.x - a2.x) + (a1.y - a2.y) * (a1.y - a2.y));
-    }
+    // double Action::normxy(const Action &a1, const Action &a2)
+    // {
+    //     return sqrt((a1.x - a2.x) * (a1.x - a2.x) + (a1.y - a2.y) * (a1.y - a2.y));
+    // }
 
-    Axis::Axis() : expand_y(false) {}
-
-    double Axis::height()
+    double Action::height()
     {
         return z;
     }
 
-    double Axis::length()
+    double Action::length()
     {
-        return normxy(*this, Action(0, -ARM_P, 0));
+        return sqrt(x * x + (y + ARM_P) * (y + ARM_P));
     }
+
+    Axis::Axis() : expand_y(false) {}
 
     double Axis::L(double alpha)
     {
