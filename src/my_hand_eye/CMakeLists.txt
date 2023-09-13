@@ -75,6 +75,7 @@ add_message_files(
 add_service_files(
   FILES
   Plot.srv
+  moveDone.srv
 )
 
 ## Generate actions in the 'action' folder

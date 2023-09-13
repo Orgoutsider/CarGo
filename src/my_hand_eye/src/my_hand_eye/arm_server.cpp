@@ -29,6 +29,7 @@ namespace my_hand_eye
 			ROS_INFO("show debug image...");
 			debug_image_publisher_ = nh_.advertise<sensor_msgs::Image>("/detection_debug_image", 1);
 		}
+		done_server_ = nh_.advertiseService("moveDone", &ArmServer::done_callback, this);
 		as_.registerGoalCallback(boost::bind(&ArmServer::goal_callback, this));
 		as_.registerPreemptCallback(boost::bind(&ArmServer::preempt_callback, this));
 		as_.start();
@@ -331,7 +332,6 @@ namespace my_hand_eye
 		}
 		bool valid = true;
 		Pose2DMightEnd msg;
-		static ros::Time time_stop;
 		if (!finish_adjusting_)
 		{
 			msg.end = false;
@@ -354,7 +354,7 @@ namespace my_hand_eye
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
-					time_stop = ros::Time::now() + ros::Duration(8.1);
+					time_done_ = ros::Time::now() + ros::Duration(8.1);
 				}
 			}
 			else
@@ -372,15 +372,15 @@ namespace my_hand_eye
 		}
 		else if (!debug_)
 		{
-			if ((image_rect->header.stamp - time_stop).toSec() < 0 && !time_stop.is_zero())
+			if ((image_rect->header.stamp - time_done_).toSec() < 0 && !time_done_.is_zero())
 				return valid;
-			else if (!time_stop.is_zero())
+			else if (!time_done_.is_zero())
 			{
-				ArmFeedback feedback;
-				feedback.pme = msg;
-				feedback.pme.end = false;
-				as_.publishFeedback(feedback);
-				time_stop = ros::Time();
+				// ArmFeedback feedback;
+				// feedback.pme = msg;
+				// feedback.pme.end = false;
+				// as_.publishFeedback(feedback);
+				time_done_ = ros::Time();
 			}
 			if (arm_goal_.loop == 0 || arm_goal_.loop == 1)
 			{
@@ -603,5 +603,12 @@ namespace my_hand_eye
 				Pose2DMightEnd::not_change)
 			arm_controller_.target_pose.pose[arm_controller_.target_pose.target].theta =
 				Angle(config.target_theta_deg).rad();
+	}
+
+	bool ArmServer::done_callback(moveDone::Request &req, moveDone::Response &resp)
+	{
+		if (!time_done_.is_zero())
+			time_done_ = ros::Time();
+		return true;
 	}
 } // namespace my_hand_eye

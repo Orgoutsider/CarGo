@@ -6,6 +6,7 @@
 #include <my_hand_eye/ArrayofTaskArrays.h>
 #include <my_hand_eye/ArmAction.h>
 #include <my_hand_eye/drConfig.h>
+#include <my_hand_eye/moveDone.h>
 
 #include "my_hand_eye/arm_controller.h"
 
@@ -22,6 +23,7 @@ namespace my_hand_eye
         int task_idx_;          // 第几种颜色
         ros::NodeHandle nh_;
         ros::NodeHandle pnh_;
+        ros::Time time_done_; // 完成时间
         ArmController arm_controller_;
         ArrayofTaskArrays tasks_;
         std::shared_ptr<image_transport::ImageTransport> it_;
@@ -30,6 +32,7 @@ namespace my_hand_eye
         ros::Publisher debug_image_publisher_;
         ros::Subscriber task_subscriber_;
         ros::Publisher pose_publisher_;
+        ros::ServiceServer done_server_;
         Server as_;
         ArmGoal arm_goal_;
         dynamic_reconfigure::Server<my_hand_eye::drConfig> dr_server_;
@@ -57,6 +60,8 @@ namespace my_hand_eye
                                   sensor_msgs::ImagePtr &debug_image);
         // 动态参数回调函数
         void dr_callback(drConfig &config, uint32_t level);
+        // 底盘运动完毕回调函数
+        bool done_callback(moveDone::Request &req, moveDone::Response &resp);
 
     public:
         ArmServer();

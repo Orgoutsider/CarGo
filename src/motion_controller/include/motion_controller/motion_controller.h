@@ -6,6 +6,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <actionlib/client/simple_action_client.h>
+#include <my_hand_eye/moveDone.h>
 #include <my_hand_eye/ArmAction.h>
 #include <motion_controller/MoveAction.h>
 #include <dynamic_reconfigure/server.h>
@@ -34,7 +35,8 @@ namespace motion_controller
         LineFollower follower_;                      // 走直线
         MoveClient ac_move_;                         // 移动服务客户端
         ArmClient ac_arm_;                           // 机械臂客户端
-        ros::ServiceServer go_client_;               // 一键式客户端
+        ros::ServiceClient client_done_;             // 移动完成客户端
+        ros::ServiceServer server_go_;               // 一键式服务端
         geometry_msgs::Pose2D move_pose_, arm_pose_; // 目标姿态
         ros::Time move_time_, arm_time_;             // 接收时间
         ros::Time move_stamp_, arm_stamp_;           // 感知时间

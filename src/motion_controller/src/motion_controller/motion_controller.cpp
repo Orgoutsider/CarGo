@@ -10,11 +10,12 @@ namespace motion_controller
           move_active_(false), arm_active_(false),
           move_initialized_(false), arm_initialized_(false)
     {
+        client_done_ = nh.serviceClient<my_hand_eye::moveDone>("moveDone");
         timer_ = nh.createTimer(ros::Rate(4), &MotionController::_timer_callback, this, false, false);
         timeout_ = pnh.param("timeout", 1.0);
         if (!follower_.debug)
         {
-            go_client_ = nh.advertiseService("Go", &MotionController::go, this);
+            server_go_ = nh.advertiseService("Go", &MotionController::go, this);
         }
         else
         {
@@ -419,11 +420,12 @@ namespace motion_controller
                 goal.pose.theta = angle_from_road(follower_.debug, follower_.startup);
                 goal.precision = true;
                 ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
-            }
-            else
-            {
-                ac_move_.waitForServer();
-                ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1)); // 保证车子不再运动
+                if (client_done_.exists())
+                {
+                    my_hand_eye::moveDone md;
+                    if (!client_done_.call(md))
+                        ROS_WARN("Failed to call moveDone!");
+                }
             }
         }
         else if (where_is_car(follower_.debug, follower_.startup) == route_border)
