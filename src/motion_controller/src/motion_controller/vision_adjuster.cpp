@@ -10,7 +10,7 @@ namespace motion_controller
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(1.9), ki_eye_angular_(0.21), kd_eye_angular_(0.4),
           kp_eye_linear_(1.0), ki_eye_linear_(0.12), kd_eye_linear_(0.3),
-          thresh_angular_(0.025), thresh_linear_x_(0.005), thresh_linear_y_(0.005),
+          thresh_angular_(0.02), thresh_linear_x_(0.005), thresh_linear_y_(0.005),
           limiting_freq_(2.5),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
@@ -138,8 +138,7 @@ namespace motion_controller
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = control[0];
-                if (unchanging_ != direction_theta)
-                    tme.velocity.angular.z = control[1];
+                tme.velocity.angular.z = control[1];
                 cmd_vel_publisher_.publish(tme);
             }
             if (success && unchanging_ != direction_y)
@@ -164,8 +163,7 @@ namespace motion_controller
                 if (unchanging_ != direction_x)
                     tme.velocity.linear.x = control[0];
                 tme.velocity.linear.y = control[1];
-                if (unchanging_ != direction_theta)
-                    tme.velocity.angular.z = control[2];
+                tme.velocity.angular.z = control[2];
                 cmd_vel_publisher_.publish(tme);
             }
         }

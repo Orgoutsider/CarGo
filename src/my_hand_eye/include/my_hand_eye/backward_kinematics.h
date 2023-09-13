@@ -1,6 +1,8 @@
 #ifndef _BACKWARD_KINEMATICS_H_
 #define _BACKWARD_KINEMATICS_H_
 
+#include <ros/ros.h>
+
 // ARM_P > ARM_A0
 #define ARM_P 14.006
 #define ARM_A0 9.8
@@ -11,6 +13,9 @@
 #define ARM_A5 0.025
 #define ARM_MAX_LEN ((ARM_A0) + (ARM_A2) + (ARM_A3) + sqrt((ARM_A4) * (ARM_A4) + (ARM_A5) * (ARM_A5)))
 #define ARM_MAX_HIGH ((ARM_A1) + (ARM_A2) + (ARM_A3) + sqrt((ARM_A4) * (ARM_A4) + (ARM_A5) * (ARM_A4)))
+#define ARM_INFO_XYZ(action) ROS_INFO_STREAM("[" << (action).x << ", " << (action).y << ", " << (action).z << "]")
+#define ARM_WARN_XYZ(action) ROS_WARN_STREAM("[" << (action).x << ", " << (action).y << ", " << (action).z << "]")
+#define ARM_ERROR_XYZ(action) ROS_ERROR_STREAM("[" << (action).x << ", " << (action).y << ", " << (action).z << "]")
 
 namespace my_hand_eye
 {

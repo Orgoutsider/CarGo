@@ -1,7 +1,5 @@
 #include "my_hand_eye/backward_kinematics.h"
 
-#include <ros/ros.h>
-
 namespace my_hand_eye
 {
     Angle::Angle(double deg) : deg(deg)
@@ -139,10 +137,13 @@ namespace my_hand_eye
         err_y = err_y * enlarge.y * 100;
         err_x = err_x * enlarge.x * 100;
         err_theta = atan(tan(err_theta) * enlarge.y / enlarge.x);
-        double theta = atan((y + ARM_P) / x) + err_theta;
+        double theta = atan((y + ARM_P) / (-x)) + err_theta;
+        ROS_INFO_STREAM("theta: " << theta);
         double len = length();
-        return Action(-x - (len + err_y) * cos(theta) + err_x * sin(theta),
-                      -y - ARM_P + (len + err_y) * sin(theta) + err_x * cos(theta), z);
+        Action err(-x - (len + err_y) * cos(theta) + err_x * sin(theta),
+                   -y - ARM_P + (len + err_y) * sin(theta) + err_x * cos(theta), 0);
+        ARM_INFO_XYZ(err);
+        return err;
     }
 
     Action Action::operator+=(const Action &t)
