@@ -1,6 +1,6 @@
 # 任务点编号
 uint8 loop
-uint8 left_ready
+bool left_ready
 uint8 route
 uint8 route_QR_code_board=0
 uint8 route_raw_material_area=1
@@ -9,7 +9,6 @@ uint8 route_semi_finishing_area=3
 uint8 route_parking_area=4
 uint8 route_border=5
 uint8 route_rest=6
-float64 theta
 ---
 # 结果设置位姿
 my_hand_eye/Pose2DMightEnd pme

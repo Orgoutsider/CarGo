@@ -32,7 +32,7 @@ void feedback_cb(const motion_controller::MoveFeedbackConstPtr &feedback)
 int main(int argc, char *argv[])
 {
     // 传参 theta x y
-    if (argc < 4)
+    if (argc < 5)
         return 1;
     ros::init(argc, argv, "motion_controller_client_node");
     ros::NodeHandle nh;
@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
     goal.pose.theta = atof(argv[1]);
     goal.pose.x = atof(argv[2]);
     goal.pose.y = atof(argv[3]);
+    goal.precision = atoi(argv[4]);
     client.sendGoal(goal, &done_cb, &active_cb, &feedback_cb);
     ros::spin();
     return 0;

@@ -21,9 +21,9 @@ namespace my_hand_eye
         bool finish_adjusting_; // 反馈：是否已完成位姿调整
         bool finish_;           // 是否已完成arm任务
         int task_idx_;          // 第几种颜色
+        double theta_turn_;     // 车体偏转的角度
         ros::NodeHandle nh_;
         ros::NodeHandle pnh_;
-        ros::Time time_done_; // 完成时间
         ArmController arm_controller_;
         ArrayofTaskArrays tasks_;
         std::shared_ptr<image_transport::ImageTransport> it_;

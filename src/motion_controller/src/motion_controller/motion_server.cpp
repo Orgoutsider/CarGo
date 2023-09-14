@@ -7,7 +7,7 @@ namespace motion_controller
     MotionServer::MotionServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
-          kp_angular_(1.6), ki_angular_(0.6), kd_angular_(0),
+          kp_angular_{1.6, 2.5}, ki_angular_{0.6, 0.55}, kd_angular_{0, 1.5},
           kp_linear_(1.6), ki_linear_(0), kd_linear_(0)
     {
         pnh.param<bool>("debug", debug_, false);
@@ -43,7 +43,8 @@ namespace motion_controller
         std::vector<double> control;
         if (goal->pose.theta)
         {
-            PIDController pid1({0}, {kp_angular_}, {ki_angular_}, {kd_angular_},
+            PIDController pid1({0}, {kp_angular_[goal->precision]}, {ki_angular_[goal->precision]},
+                               {kd_angular_[goal->precision]},
                                {(goal->precision ? 0.005 : 0.02)}, {0.1}, {0.8});
             while (!success)
             {
@@ -120,8 +121,9 @@ namespace motion_controller
         // 平移
         if (goal->pose.x || goal->pose.y)
         {
-            PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_},
-                               {ki_linear_, ki_linear_, ki_angular_}, {kd_linear_, kd_linear_, kd_angular_},
+            PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_[goal->precision]},
+                               {ki_linear_, ki_linear_, ki_angular_[goal->precision]},
+                               {kd_linear_, kd_linear_, kd_angular_[goal->precision]},
                                {(goal->precision ? 0.007 : 0.01), (goal->precision ? 0.007 : 0.01),
                                 (goal->precision ? 0.005 : 0.02)},
                                {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
@@ -132,7 +134,9 @@ namespace motion_controller
                 {
                     ROS_INFO("Move Preempt Requested!");
                     _get_pose_now(pose);
-                    PIDController pid({0}, {kp_angular_}, {ki_angular_}, {kd_angular_}, {0.02}, {0.1}, {0.8});
+                    PIDController pid({0}, {kp_angular_[goal->precision]},
+                                      {ki_angular_[goal->precision]},
+                                      {kd_angular_[goal->precision]}, {0.02}, {0.1}, {0.8});
                     while (!success && ros::ok())
                     {
                         if (_get_pose_now(pose))
@@ -217,12 +221,12 @@ namespace motion_controller
     {
         if (!debug_)
             return;
-        if (config.kp_angular != kp_angular_)
-            kp_angular_ = config.kp_angular;
-        if (config.ki_angular != ki_angular_)
-            ki_angular_ = config.ki_angular;
-        if (config.kd_angular != kd_angular_)
-            kd_angular_ = config.kd_angular;
+        if (config.kp_angular != kp_angular_[0])
+            kp_angular_[0] = kp_angular_[1] = config.kp_angular;
+        if (config.ki_angular != ki_angular_[0])
+            ki_angular_[0] = ki_angular_[1] = config.ki_angular;
+        if (config.kd_angular != kd_angular_[0])
+            kd_angular_[0] = kd_angular_[1] = config.kd_angular;
         if (config.kp_linear != kp_linear_)
             kp_linear_ = config.kp_linear;
         if (config.ki_linear != ki_linear_)

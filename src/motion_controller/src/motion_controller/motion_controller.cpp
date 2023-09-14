@@ -139,7 +139,6 @@ namespace motion_controller
                 goal.route = where_is_car(follower_.debug, follower_.startup);
                 goal.left_ready = !(where_is_car(follower_.debug, follower_.startup, 1) == route_raw_material_area ||
                                     where_is_car(follower_.debug, follower_.startup, 1) == route_parking_area);
-                goal.theta = 0;
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
@@ -205,11 +204,7 @@ namespace motion_controller
                     // if (!follower_.stop_and_adjust(theta_, event.current_real))
                     //     return;
                     get_position();
-                    goal.theta = angle_from_road(follower_.debug, follower_.startup);
-                }
-                else
-                {
-                    goal.theta = 0;
+                    // goal.theta = angle_from_road(follower_.debug, follower_.startup);
                 }
                 if (goal.route == route_raw_material_area)
                 {
@@ -423,6 +418,7 @@ namespace motion_controller
                 if (client_done_.exists())
                 {
                     my_hand_eye::moveDone md;
+                    md.request.theta_turn = angle_from_road(follower_.debug, follower_.startup);
                     if (!client_done_.call(md))
                         ROS_WARN("Failed to call moveDone!");
                 }

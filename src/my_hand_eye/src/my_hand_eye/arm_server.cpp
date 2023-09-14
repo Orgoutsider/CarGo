@@ -4,7 +4,7 @@ namespace my_hand_eye
 {
 	ArmServer::ArmServer()
 		: pnh_("~"), arm_controller_(nh_, pnh_),
-		  as_(nh_, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0)
+		  as_(nh_, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0), theta_turn_(0)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh_));
@@ -354,7 +354,7 @@ namespace my_hand_eye
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
-					time_done_ = ros::Time::now() + ros::Duration(8.1);
+					theta_turn_ = 0;
 				}
 			}
 			else
@@ -372,16 +372,8 @@ namespace my_hand_eye
 		}
 		else if (!debug_)
 		{
-			if ((image_rect->header.stamp - time_done_).toSec() < 0 && !time_done_.is_zero())
+			if (!theta_turn_)
 				return valid;
-			else if (!time_done_.is_zero())
-			{
-				// ArmFeedback feedback;
-				// feedback.pme = msg;
-				// feedback.pme.end = false;
-				// as_.publishFeedback(feedback);
-				time_done_ = ros::Time();
-			}
 			if (arm_goal_.loop == 0 || arm_goal_.loop == 1)
 			{
 				msg.end = true;
@@ -607,8 +599,7 @@ namespace my_hand_eye
 
 	bool ArmServer::done_callback(moveDone::Request &req, moveDone::Response &resp)
 	{
-		if (!time_done_.is_zero())
-			time_done_ = ros::Time();
+		theta_turn_ = req.theta_turn;
 		return true;
 	}
 } // namespace my_hand_eye

@@ -20,9 +20,9 @@ namespace motion_controller
     {
     private:
         bool debug_; // 是否进行pid调节
-        double kp_angular_;
-        double ki_angular_;
-        double kd_angular_;
+        double kp_angular_[2];
+        double ki_angular_[2];
+        double kd_angular_[2];
         double kp_linear_;
         double ki_linear_;
         double kd_linear_;
