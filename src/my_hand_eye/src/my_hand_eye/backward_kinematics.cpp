@@ -12,7 +12,7 @@ namespace my_hand_eye
         return Angle(degree(std::atan2(v1, v2)));
     }
 
-    double Angle::_get_degree()
+    double Angle::get_degree()
     {
         return deg;
     };
@@ -117,6 +117,11 @@ namespace my_hand_eye
         return deg < t.deg;
     }
 
+    Angle Angle::now2goal(const Action &enlarge)
+    {
+        return atan2(tan(rad()) * enlarge.y / enlarge.x, 1);
+    }
+
     Action::Action() : x(0), y(0), z(0) {}
 
     Action::Action(double x, double y, double z) : x(x), y(y), z(z) {}
@@ -131,14 +136,14 @@ namespace my_hand_eye
         return Action(0.01 * y, -0.01 * x, z);
     }
 
-    Action Action::now2goal(double err_x, double err_y, double err_theta, Action enlarge)
+    Action Action::now2goal(double err_x, double err_y, double err_theta, const Action &enlarge)
     {
         // m转化成cm
         err_y = err_y * enlarge.y * 100;
         err_x = err_x * enlarge.x * 100;
-        err_theta = atan(tan(err_theta) * enlarge.y / enlarge.x);
+        // err_theta = atan(tan(err_theta) * enlarge.y / enlarge.x);
         double theta = atan((y + ARM_P) / (-x)) + err_theta;
-        ROS_INFO_STREAM("theta: " << theta);
+        // ROS_INFO_STREAM("theta: " << theta);
         double len = length();
         Action err(-x - (len + err_y) * cos(theta) + err_x * sin(theta),
                    -y - ARM_P + (len + err_y) * sin(theta) + err_x * cos(theta), 0);
@@ -203,7 +208,7 @@ namespace my_hand_eye
     Angle Axis::_calculate_j1()
     {
         Angle j1 = Angle::atan2(y + ARM_P, x);
-        if (j1._get_degree() < 0)
+        if (j1.get_degree() < 0)
             j1 = j1 + Angle(360);
         return j1;
     };
@@ -246,7 +251,7 @@ namespace my_hand_eye
         Angle j2 = _calculate_j2(alpha);
         Angle j3 = _calculate_j3(alpha);
         Angle j4 = _calculate_j4(alpha);
-        // ROS_INFO_STREAM("j3:" << j3._get_degree() << "j2:" << j2._get_degree());
+        // ROS_INFO_STREAM("j3:" << j3.get_degree() << "j2:" << j2.get_degree());
         return j1._valid_j(1) && j2._valid_j(2) && j3._valid_j(3) && j4._valid_j(4) && !(_out_of_range());
     }
 
@@ -321,10 +326,10 @@ namespace my_hand_eye
             j2._j_degree_convert(2);
             j3._j_degree_convert(3);
             j4._j_degree_convert(4);
-            deg1 = j1._get_degree();
-            deg2 = j2._get_degree();
-            deg3 = j3._get_degree();
-            deg4 = j4._get_degree();
+            deg1 = j1.get_degree();
+            deg2 = j2.get_degree();
+            deg3 = j3.get_degree();
+            deg4 = j4.get_degree();
         }
         else
             ROS_WARN("Invalid alpha: %lf", alpha);
@@ -344,13 +349,13 @@ namespace my_hand_eye
         if (!(j1._valid_degree(1) && j2._valid_degree(2) && j3._valid_degree(3) && j4._valid_degree(4)))
         {
             if (!j1._valid_degree(1))
-                ROS_WARN_STREAM("joint 1 has invalid deg " << j1._get_degree());
+                ROS_WARN_STREAM("joint 1 has invalid deg " << j1.get_degree());
             if (!j2._valid_degree(2))
-                ROS_WARN_STREAM("joint 2 has invalid deg " << j2._get_degree());
+                ROS_WARN_STREAM("joint 2 has invalid deg " << j2.get_degree());
             if (!j3._valid_degree(3))
-                ROS_WARN_STREAM("joint 3 has invalid deg " << j3._get_degree());
+                ROS_WARN_STREAM("joint 3 has invalid deg " << j3.get_degree());
             if (!j4._valid_degree(4))
-                ROS_WARN_STREAM("joint 4 has invalid deg " << j4._get_degree());
+                ROS_WARN_STREAM("joint 4 has invalid deg " << j4.get_degree());
             return valid;
         }
         j1._j_degree_convert(1);
@@ -361,8 +366,8 @@ namespace my_hand_eye
                         ARM_A4 * (j2 + j3 + j4).sin() + ARM_A5 * (j2 + j3 + j4).cos();
         double height = ARM_A1 + ARM_A2 * j2.cos() + ARM_A3 * (j2 + j3).cos() +
                         ARM_A4 * (j2 + j3 + j4).cos() - ARM_A5 * (j2 + j3 + j4).sin();
-        double alpha = (j2 + j3 + j4)._get_degree();
-        // ROS_ERROR("j2:%lf j3:%lf j4:%lf", j2._get_degree(), j3._get_degree(), j4._get_degree());
+        double alpha = (j2 + j3 + j4).get_degree();
+        // ROS_ERROR("j2:%lf j3:%lf j4:%lf", j2.get_degree(), j3.get_degree(), j4.get_degree());
         z = height;
         x = length * j1.cos();
         y = length * j1.sin() - ARM_P;

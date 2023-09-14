@@ -749,33 +749,35 @@ namespace my_hand_eye
         right_y_.push_back(pose.y);
     }
 
-    void ArmController::error_position(const Color color, double &err_x, double &err_y, double &err_theta)
+    void ArmController::error_position(const Color color, bool pal,
+                                       double &err_x, double &err_y, double &err_theta)
     {
         geometry_msgs::Pose2D err;
         average_pose(err);
-        // if (color_map_[color] == 1)
-        // {
-        //     double x, y;
-        //     average_position(x, y, color_map_[color]);
-        //     double ex, ey;
-        //     ex = (sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - (-x));
-        //     ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
-        //     ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
-        // }
-        // else if (color_map_[color] == 3)
-        // {
-        //     double x, y;
-        //     average_position(x, y, color_map_[color]);
-        //     double ex, ey;
-        //     ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - err.theta) - x);
-        //     ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - err.theta));
-        //     ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
-        // }
+        if (color_map_[color] == 1)
+        {
+            double x, y;
+            average_position(x, y, color_map_[color]);
+            double ex, ey;
+            ex = (sqrt(x * x + y * y) * cos(atan(y / x) - theta_turn) - (-x));
+            ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_turn));
+            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+        }
+        else if (color_map_[color] == 3)
+        {
+            double x, y;
+            average_position(x, y, color_map_[color]);
+            double ex, ey;
+            ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - theta_turn) - x);
+            ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_turn));
+            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+        }
         err_x = err.x * cos(target_ellipse_theta_) +
                 err.y * sin(target_ellipse_theta_);
         err_y = -err.x * sin(target_ellipse_theta_) +
                 err.y * cos(target_ellipse_theta_);
-        err_theta = err.theta;
+        err_theta = Angle(Angle::degree(err.theta)).now2goal(ps_.enlarge_loop[pal]).get_degree() -
+                    theta_turn;
         ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf", err_x, err_y, err_theta);
         // err_x = 0;
         // err_y = 0;
@@ -1452,7 +1454,7 @@ namespace my_hand_eye
     bool ArmController::put(const Color color, bool pal, bool final)
     {
         double err_x, err_y, err_theta;
-        error_position(color, err_x, err_y, err_theta);
+        error_position(color, pal, err_x, err_y, err_theta);
         if (final)
         {
             cargo_x_.clear();
@@ -1472,7 +1474,7 @@ namespace my_hand_eye
     bool ArmController::catch_after_putting(const Color color, bool final)
     {
         double err_x, err_y, err_theta;
-        error_position(color, err_x, err_y, err_theta);
+        error_position(color, false, err_x, err_y, err_theta);
         if (final)
         {
             cargo_x_.clear();
@@ -1558,7 +1560,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                   sensor_msgs::ImagePtr &debug_image, bool pose, double theta, bool store)
+                                   sensor_msgs::ImagePtr &debug_image, bool pose, bool store)
     {
         if (store && !pose)
         {
@@ -1671,7 +1673,7 @@ namespace my_hand_eye
     }
 
     bool ArmController::find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                                     sensor_msgs::ImagePtr &debug_image, bool store, double theta)
+                                     sensor_msgs::ImagePtr &debug_image, bool store)
     {
         static bool last_finish = true;
         static bool rst = false;

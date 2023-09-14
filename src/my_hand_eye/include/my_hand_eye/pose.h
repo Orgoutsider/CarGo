@@ -49,7 +49,6 @@ namespace my_hand_eye
         Action action_ellipse;
         Action action_put[4];
         Action action_palletize[4];
-        Action enlarge_loop[2];
         const double fx = 788.709302;
         const double fy = 940.728627;
         const double cx = 932.106780;
@@ -80,10 +79,10 @@ namespace my_hand_eye
         void get_points(double h, my_hand_eye::PointArray &arr);
 
     public:
-        double tightness;                                                           // 取值0～1，为0时最松，为1时最紧
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
-        // double wait_time_;
-        bool begin(const char *argv); // 打开串口
+        double tightness;                                                           // 取值0～1，为0时最松，为1时最紧
+        Action enlarge_loop[2];                                                     // 从图像坐标到实际坐标的放缩
+        bool begin(const char *argv);                                               // 打开串口
         void ping();
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions);                       // 获取速度加速度
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default");            // 获取设定动作

@@ -4,7 +4,7 @@ namespace my_hand_eye
 {
 	ArmServer::ArmServer()
 		: pnh_("~"), arm_controller_(nh_, pnh_),
-		  as_(nh_, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0), theta_turn_(0)
+		  as_(nh_, "Arm", false), finish_adjusting_(true), finish_(true), task_idx_(0)
 	{
 		it_ = std::shared_ptr<image_transport::ImageTransport>(
 			new image_transport::ImageTransport(nh_));
@@ -267,7 +267,7 @@ namespace my_hand_eye
 			// static int err_cnt = 0;
 			Pose2DMightEnd msg;
 			msg.end = false;
-			valid = arm_controller_.find_cargo(image_rect, msg, debug_image, false, arm_goal_.theta);
+			valid = arm_controller_.find_cargo(image_rect, msg, debug_image, false);
 			if (valid)
 			{
 				if (msg.end)
@@ -336,9 +336,9 @@ namespace my_hand_eye
 		{
 			msg.end = false;
 			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
-				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false, arm_goal_.theta);
+				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
 			else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
-				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, arm_goal_.theta, false);
+				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
 			else
 			{
 				ROS_ERROR("Invalid loop!");
@@ -354,7 +354,7 @@ namespace my_hand_eye
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
-					theta_turn_ = 0;
+					arm_controller_.theta_turn = 0;
 				}
 			}
 			else
@@ -372,14 +372,14 @@ namespace my_hand_eye
 		}
 		else if (!debug_)
 		{
-			if (!theta_turn_)
+			if (!arm_controller_.theta_turn)
 				return valid;
 			if (arm_goal_.loop == 0 || arm_goal_.loop == 1)
 			{
 				msg.end = true;
 				bool pal = (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area);
-				bool fin = pal ? arm_controller_.find_cargo(image_rect, msg, debug_image, true, arm_goal_.theta, true)
-							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true, arm_goal_.theta);
+				bool fin = pal ? arm_controller_.find_cargo(image_rect, msg, debug_image, true, true)
+							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true);
 				if (fin)
 				{
 					arm_controller_.put(which_color(), pal, false);
@@ -599,7 +599,7 @@ namespace my_hand_eye
 
 	bool ArmServer::done_callback(moveDone::Request &req, moveDone::Response &resp)
 	{
-		theta_turn_ = req.theta_turn;
+		arm_controller_.theta_turn = req.theta_turn;
 		return true;
 	}
 } // namespace my_hand_eye

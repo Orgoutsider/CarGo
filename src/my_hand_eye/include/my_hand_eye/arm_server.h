@@ -20,8 +20,7 @@ namespace my_hand_eye
         bool debug_;
         bool finish_adjusting_; // 反馈：是否已完成位姿调整
         bool finish_;           // 是否已完成arm任务
-        int task_idx_;          // 第几种颜色
-        double theta_turn_;     // 车体偏转的角度
+        int task_idx_;          // 第几种颜色    
         ros::NodeHandle nh_;
         ros::NodeHandle pnh_;
         ArmController arm_controller_;

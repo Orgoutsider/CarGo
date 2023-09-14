@@ -19,6 +19,25 @@
 
 namespace my_hand_eye
 {
+    class Action
+    {
+    public:
+        double x, y, z;
+        Action();
+        Action(double x, double y, double z);
+        Action front2left();
+        // cm转化成m并转换坐标系
+        Action arm2footprint();
+        // 补偿与目标位置的误差
+        Action now2goal(double err_x, double err_y, double err_theta, const Action &enlarge);
+        Action operator+=(const Action &t); // 重载加法
+        Action operator-=(const Action &t); // 重载减法
+    protected:
+        double length();
+        double height();
+        // static double normxy(const Action &a1, const Action &a2);
+    };
+    
     class Angle
     {
     private:
@@ -30,7 +49,7 @@ namespace my_hand_eye
         const int normal = 0;
         Angle(double deg);                        // 角度值
         static Angle atan2(double v1, double v2); // atan2
-        double _get_degree();                     // 获得角度值
+        double get_degree();                     // 获得角度值
         double rad();                             // 转弧度制
         static double degree(double rad);         // 转角度制
         double cos();
@@ -45,25 +64,7 @@ namespace my_hand_eye
         Angle operator=(const Angle &t);       // 重载等号
         bool operator>(const Angle &t);        // 重载>
         bool operator<(const Angle &t);        // 重载<
-    };
-
-    class Action
-    {
-    public:
-        double x, y, z;
-        Action();
-        Action(double x, double y, double z);
-        Action front2left();
-        // cm转化成m并转换坐标系
-        Action arm2footprint();
-        // 补偿与目标位置的误差
-        Action now2goal(double err_x, double err_y, double err_theta, Action enlarge);
-        Action operator+=(const Action &t); // 重载加法
-        Action operator-=(const Action &t); // 重载减法
-    protected:
-        double length();
-        double height();
-        // static double normxy(const Action &a1, const Action &a2);
+        Angle now2goal(const Action &enlarge);
     };
 
     class Axis : public Action

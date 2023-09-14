@@ -12,7 +12,7 @@ namespace my_hand_eye
 
     double ColorMethod::hue_value_tan(double y, double x)
     {
-        return Angle::atan2(y, x)._get_degree() / 2;
+        return Angle::atan2(y, x).get_degree() / 2;
     }
 
     double ColorMethod::hue_value_aver(cv::Mat &&roi, int white_vmin)
@@ -54,7 +54,7 @@ namespace my_hand_eye
     {
         Angle a1 = hue_value(h_val1);
         Angle a2 = hue_value(h_val2);
-        double res = abs((a1 - a2)._get_degree());
+        double res = abs((a1 - a2).get_degree());
         if (res > 180)
         {
             res = 360.0 - res;

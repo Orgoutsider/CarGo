@@ -1143,7 +1143,7 @@ namespace my_hand_eye
                             j2._j_degree_convert(2);
                             j3._j_degree_convert(3);
                             j4._j_degree_convert(4);
-                            double alpha = j2._get_degree() + j3._get_degree() + j4._get_degree();
+                            double alpha = j2.get_degree() + j3.get_degree() + j4.get_degree();
                             // ROS_ERROR_STREAM(deg3 << " " << deg4);
                             // ROS_ERROR_STREAM(alpha);
                             if (cvRound(alpha) == -90 && abs(length() - 4.46103) < 0.1 && y < -ARM_P)
@@ -1291,7 +1291,7 @@ namespace my_hand_eye
             j2._j_degree_convert(2);
             j3._j_degree_convert(3);
             j4._j_degree_convert(4);
-            double alpha = (j2 + j3 + j4)._get_degree();
+            double alpha = (j2 + j3 + j4).get_degree();
             ROS_INFO_STREAM("alpha:" << alpha);
             if (!flag)
             {

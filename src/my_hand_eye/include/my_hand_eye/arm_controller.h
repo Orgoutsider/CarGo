@@ -80,7 +80,8 @@ namespace my_hand_eye
         // 求平均位姿并存入变长数组
         void average_pose_once();
         // 求放置误差
-        void error_position(const Color color, double &err_x, double &err_y, double &err_theta);
+        void error_position(const Color color, bool pal,
+                            double &err_x, double &err_y, double &err_theta);
         // double distance_min(vision_msgs::BoundingBox2DArray &objArray, const Color color,
         //                     double x, double y, double z); // 障碍物最短距离
         // 判断物块是否静止
@@ -92,7 +93,7 @@ namespace my_hand_eye
         ~ArmController();
         TargetPose target_pose; // 用于视觉位姿调节
         bool catched;           // 是否已抓取过
-        // double proportion_; // 杂色所占的比例
+        double theta_turn;      // 车体偏转的角度
         const double z_turntable;
         const double z_ellipse;
         const double z_palletize;
@@ -133,10 +134,10 @@ namespace my_hand_eye
         void ready(bool left);
         // 计算物料中心点位置或位姿
         bool find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                        sensor_msgs::ImagePtr &debug_image, bool pose, double theta, bool store = false);
+                        sensor_msgs::ImagePtr &debug_image, bool pose, bool store = false);
         // 计算椭圆位置
         bool find_ellipse(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
-                          sensor_msgs::ImagePtr &debug_image, bool store, double theta);
+                          sensor_msgs::ImagePtr &debug_image, bool store);
         // 计算边界线位置
         bool find_border(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                          sensor_msgs::ImagePtr &debug_image);
