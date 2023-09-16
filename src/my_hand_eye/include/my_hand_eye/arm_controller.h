@@ -60,7 +60,7 @@ namespace my_hand_eye
                              double z, double &x, double &y);
         // 计算物料转动半径
         bool calculate_radius_and_speed(double &u, double &v, double &x, double &y, double &radius, double &speed);
-        bool take_picture(); // 拍照
+        bool take_picture(const cv::Mat &img); // 拍照
         // 处理接收的图片，求3物料重心
         bool get_center(vision_msgs::BoundingBox2DArray &objArray, double &center_u, double &center_v,
                         double &center_x, double &center_y, bool read = true);

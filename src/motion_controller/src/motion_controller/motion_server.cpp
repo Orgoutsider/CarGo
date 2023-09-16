@@ -7,7 +7,7 @@ namespace motion_controller
     MotionServer::MotionServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
-          kp_angular_{1.6, 2.5}, ki_angular_{0.6, 0.55}, kd_angular_{0, 1.5},
+          kp_angular_{1.6, 1.8}, ki_angular_{0.6, 0.6}, kd_angular_{0, 1.1},
           kp_linear_(1.6), ki_linear_(0), kd_linear_(0)
     {
         pnh.param<bool>("debug", debug_, false);

@@ -122,6 +122,11 @@ namespace my_hand_eye
         return atan2(tan(rad()) * enlarge.y / enlarge.x, 1);
     }
 
+    Angle Angle::goal2now(const Action &enlarge)
+    {
+        return atan2(tan(rad()) * enlarge.x / enlarge.y, 1);
+    }
+
     Action::Action() : x(0), y(0), z(0) {}
 
     Action::Action(double x, double y, double z) : x(x), y(y), z(z) {}

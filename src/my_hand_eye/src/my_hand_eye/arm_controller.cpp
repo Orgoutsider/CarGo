@@ -208,18 +208,18 @@ namespace my_hand_eye
         return true;
     }
 
-    bool ArmController::take_picture()
+    bool ArmController::take_picture(const cv::Mat &img)
     {
-        if (cv_image_.image.empty())
+        if (img.empty())
         {
             ROS_WARN("Empty image!");
             return false;
         }
-        char str[50];
+        char str[80];
         static int n = 0;
         // 替换为保存图片的路径
-        snprintf(str, sizeof(str), "/home/fu/apriltag_ws/src/my_hand_eye/img/%d.jpg", ++n);
-        cv::imwrite(str, cv_image_.image);
+        snprintf(str, sizeof(str), "/home/nano/car/car/car_ws/src/my_hand_eye/img/%d.jpg", ++n);
+        cv::imwrite(str, img);
         return true;
     }
 
@@ -632,12 +632,12 @@ namespace my_hand_eye
 
     void ArmController::get_relative_position(double x[], double y[])
     {
-        Action left = Action(y[1] - y[2], x[1] - x[2], 0).arm2footprint();
+        Action left = Action(x[1] - x[2], y[1] - y[2], 0).arm2footprint();
         ROS_INFO("left:");
         ARM_INFO_XYZ(left);
         left_x_.push_back(left.x);
         left_y_.push_back(left.y);
-        Action right = Action(y[3] - y[2], x[3] - x[2], 0).arm2footprint();
+        Action right = Action(x[3] - x[2], y[3] - y[2], 0).arm2footprint();
         ROS_INFO("right:");
         ARM_INFO_XYZ(right);
         right_x_.push_back(right.x);
@@ -758,27 +758,32 @@ namespace my_hand_eye
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            double ex, ey;
-            ex = (sqrt(x * x + y * y) * cos(atan(y / x) - theta_turn) - (-x));
-            ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_turn));
+            double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
+            double ex = (sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - (-x));
+            double ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
+            // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
             ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+            err_x += ex;
+            err_y += ey;
         }
         else if (color_map_[color] == 3)
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            double ex, ey;
-            ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - theta_turn) - x);
-            ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_turn));
+            double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
+            double ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - x);
+            double ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
+            // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
             ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+            err_x += ex;
+            err_y += ey;
         }
         err_x = err.x * cos(target_ellipse_theta_) +
                 err.y * sin(target_ellipse_theta_);
         err_y = -err.x * sin(target_ellipse_theta_) +
                 err.y * cos(target_ellipse_theta_);
-        err_theta = Angle(Angle::degree(err.theta)).now2goal(ps_.enlarge_loop[pal]).get_degree() -
-                    theta_turn;
-        ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf", err_x, err_y, err_theta);
+        err_theta = Angle(Angle::degree(err.theta)).now2goal(ps_.enlarge_loop[pal]).rad();
+        ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf theta_turn:%lf", err_x, err_y, err_theta, theta_turn);
         // err_x = 0;
         // err_y = 0;
     }
@@ -1124,6 +1129,7 @@ namespace my_hand_eye
         resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2)); // 重设大小，可选
         // 第一次预处理
         Mat sat = saturation(cv_image->image, 100);
+        // take_picture(cv_image->image);
         Mat hsv;
         cvtColor(sat, hsv, COLOR_BGR2HSV_FULL);
         std::vector<Mat1b> hsvs;

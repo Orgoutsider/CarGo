@@ -65,6 +65,7 @@ namespace my_hand_eye
         bool operator>(const Angle &t);        // 重载>
         bool operator<(const Angle &t);        // 重载<
         Angle now2goal(const Action &enlarge);
+        Angle goal2now(const Action &enlarge);
     };
 
     class Axis : public Action
