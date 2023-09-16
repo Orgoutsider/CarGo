@@ -105,10 +105,13 @@ namespace my_hand_eye
                                       double &cargo_x, double &cargo_y, bool read = true);
         // 由实际位置计算像素位置
         bool calculate_pixel_position(double cargo_x, double cargo_y, double cargo_z,
-                                      double &u, double &v, bool read);
+                                      double &u, double &v, bool read = true);
         // 计算边界线位置
         bool calculate_border_position(cv::Vec2f &border, double border_z,
                                        double &distance, double &yaw, bool read = true);
+        // 由实际线位置计算像素线位置
+        bool calculate_line_position(double distance, double yaw, double border_z,
+                                     cv::Vec2f &border, bool read = true);
         // 通过记录的位置校正外参
         bool extrinsics_correction(double u, double v,
                                    double correct_x, double correct_y, double correct_z);

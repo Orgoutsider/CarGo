@@ -1537,6 +1537,18 @@ namespace my_hand_eye
         if (valid)
         {
             ROS_INFO_STREAM("distance: " << distance << " yaw: " << Angle::degree(yaw));
+            if (show_detections && !cv_image_.image.empty())
+            {
+                cv::Vec2f border0;
+                valid = ps_.calculate_line_position(target_pose.pose[target_pose.target_border].x,
+                                                    target_pose.pose[target_pose.target_border].theta,
+                                                    z_parking_area, border0, false);
+                plot_line(cv_image_.image, border0[0], border0[1], cv::Scalar(0, 0, 255));
+                // 红线是目标
+                plot_line(cv_image_.image, border[0], border[1], cv::Scalar(255, 255, 255));
+                // 白线是检测
+                debug_image = cv_image_.toImageMsg();
+            }
         }
         return valid;
     }

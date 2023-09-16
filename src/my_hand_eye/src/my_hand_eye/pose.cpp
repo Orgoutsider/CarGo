@@ -230,8 +230,7 @@ namespace my_hand_eye
             if (ID[i] == 6 && !cargo_table_.arrived(tolerance))
                 return false;
             else if ((ID[i] != 6) && (!read_position(ID[i]) ||
-                                      abs(Position[ID[i]] - Position_now[ID[i]]) 
-                                      > (ID[i] == 1 ? tolerance / 3.0 : tolerance)))
+                                      abs(Position[ID[i]] - Position_now[ID[i]]) > (ID[i] == 1 ? tolerance / 3.0 : tolerance)))
                 return false;
         }
         return true;
@@ -925,6 +924,21 @@ namespace my_hand_eye
             // ARM_INFO_XYZ(*this);
             distance = x2 + (-ARM_P - y2) * (x1 - x2) / (y1 - y2);
             yaw = -atan((x1 - x2) / (y1 - y2));
+            return true;
+        }
+        else
+            return false;
+    }
+
+    bool Pos::calculate_line_position(double distance, double yaw, double border_z,
+                                      cv::Vec2f &border, bool read)
+    {
+        double u1, v1, u2, v2;
+        if (calculate_pixel_position(distance, -ARM_P, border_z, u1, v1, read) &&
+            calculate_pixel_position(distance - tan(yaw) * ARM_P, 0, border_z, u2, v2, false))
+        {
+            border[1] = atan((v1 - v2) / (u1 - u2)) + CV_PI / 2;
+            border[0] = abs((u1 / tan(border[1]) + v1) * sin(border[1]));
             return true;
         }
         else
