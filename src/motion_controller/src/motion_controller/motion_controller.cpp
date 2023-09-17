@@ -171,8 +171,17 @@ namespace motion_controller
         }
         else if (get_position())
         {
+            static int err_cnt = 0;
             if (arrived(follower_.debug, follower_.startup))
             {
+                err_cnt++;
+                if (err_cnt < 2)
+                {
+                    follower_.follow(theta_, event.current_real);
+                    return;  
+                }
+                else
+                    err_cnt = 0;
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
                 goal.loop = loop_;
@@ -207,6 +216,7 @@ namespace motion_controller
                     MoveGoal goal;
                     get_position();
                     goal.pose.theta = angle_from_road(follower_.debug, follower_.startup);
+                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
                     goal.precision = true;
                     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 }
@@ -302,6 +312,8 @@ namespace motion_controller
             else if (!is_doing())
             {
                 follower_.follow(theta_, event.current_real);
+                if (err_cnt)
+                    err_cnt = 0;
             }
         }
     }

@@ -1870,7 +1870,7 @@ namespace my_hand_eye
             if (target_pose.calc(p, msg))
             {
                 cargo_x_.push_back(0);
-                cargo_y_.push_back(msg.pose.x);
+                cargo_y_.push_back(msg.pose.y);
                 cargo_theta_.push_back(msg.pose.theta);
                 if (msg.end)
                 {
