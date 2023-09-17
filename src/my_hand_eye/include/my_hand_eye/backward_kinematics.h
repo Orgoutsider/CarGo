@@ -28,6 +28,8 @@ namespace my_hand_eye
         Action front2left();
         // cm转化成m并转换坐标系
         Action arm2footprint();
+        // m转化成cm并转换坐标系
+        Action footprint2arm();
         // 补偿与目标位置的误差
         Action now2goal(double err_x, double err_y, double err_theta, const Action &enlarge);
         Action operator+=(const Action &t); // 重载加法
