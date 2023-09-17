@@ -83,6 +83,8 @@ namespace my_hand_eye
         double tightness;                                                           // 取值0～1，为0时最松，为1时最紧
         Action enlarge_loop[2];                                                     // 从图像坐标到实际坐标的放缩
         bool begin(const char *argv);                                               // 打开串口
+        // 生成齐次矩阵
+        cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T);
         void ping();
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_descriptions);                       // 获取速度加速度
         void set_action(XmlRpc::XmlRpcValue &action, std::string name = "default");            // 获取设定动作
@@ -123,10 +125,8 @@ namespace my_hand_eye
         void end();
     };
 
-    bool generate_valid_position(double deg1, double deg2, double deg3, double deg4,
-                                 double &x, double &y, double &z, bool &look); // 根据舵机角度生成位姿
-    // 生成齐次矩阵
-    cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T);
+    // bool generate_valid_position(double deg1, double deg2, double deg3, double deg4,
+    //                              double &x, double &y, double &z, bool &look); // 根据舵机角度生成位姿
 }
 
 #endif // !_POSE_H_

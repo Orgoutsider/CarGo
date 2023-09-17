@@ -244,9 +244,11 @@ namespace my_hand_eye
                 if (show_detections && !cv_image->image.empty())
                 {
                     // 复制target_pose
-                    Action a = Action(0, 20, 0).front2left();
+                    Action a = Action(target_pose.pose[target_pose.target_center].x,
+                                      target_pose.pose[target_pose.target_center].y, 0)
+                                   .footprint2arm();
                     double u, v;
-                    ps_.calculate_pixel_position(a.x, a.y, z_ellipse, u, v, false);
+                    ps_.calculate_pixel_position(a.x, a.y, z_ellipse, u, v, true);
                     u -= rect.x;
                     v -= rect.y;
                     draw_cross(cv_image->image,
@@ -1229,7 +1231,9 @@ namespace my_hand_eye
             if (show_detections)
             {
                 // 复制target_pose
-                Action a = Action(0, 19.3, 0).front2left();
+                Action a = Action(target_pose.pose[target_pose.target_ellipse].x,
+                                  target_pose.pose[target_pose.target_ellipse].y, 0)
+                               .footprint2arm();
                 double u, v;
                 ps_.calculate_pixel_position(a.x, a.y, z_parking_area, u, v, false);
                 draw_cross(cv_image_.image,
@@ -1322,8 +1326,16 @@ namespace my_hand_eye
                             cv::line(cv_image->image, vertices[j], vertices[(j + 1) % 4],
                                      cv::Scalar(0, 255, 0));
                         }
+                        // 当前绘制白
                         draw_cross(cv_image->image, cv::Point2d(pose.x, pose.y), Scalar(255, 255, 255),
-                                   30, 2);
+                                   30, 1);
+                        Action a = Action(target_pose.pose[target_pose.target_parking_area].x,
+                                          target_pose.pose[target_pose.target_parking_area].y, 0)
+                                       .footprint2arm();
+                        a *= ratio;
+                        // 目标绘制红
+                        draw_cross(cv_image->image, cv::Point2d(a.x, a.y), Scalar(0, 0, 255),
+                                   30, 1);
                         debug_image = cv_image->toImageMsg();
                         delete[] vertices;
                     }
@@ -1541,7 +1553,9 @@ namespace my_hand_eye
             {
                 cv::Vec2f border0;
                 // 复制target_pose
-                Action a = Action(0, 18.087385, 0).front2left();
+                Action a = Action(target_pose.pose[target_pose.target_border].x,
+                                  target_pose.pose[target_pose.target_border].y, 0)
+                               .footprint2arm();
                 valid = ps_.calculate_line_position(a.x,
                                                     target_pose.pose[target_pose.target_border].theta,
                                                     z_parking_area, border0, false);
