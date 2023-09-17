@@ -537,12 +537,12 @@ namespace motion_controller
         }
         else if (where_is_car(follower_.debug, follower_.startup) == route_border && !follower_.debug)
         {
-            // ac_move_.waitForServer();
-            // ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
             if (!follower_.debug && result->pme.pose.y != result->pme.not_change &&
                 result->pme.pose.theta != result->pme.not_change &&
                 result->pme.end)
             {
+                ac_move_.waitForServer();
+                ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
                 get_position();
                 double theta, x, y;
                 if (position_in_corner(result->pme.pose.y, result->pme.pose.theta,
