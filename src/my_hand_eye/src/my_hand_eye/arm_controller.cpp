@@ -717,38 +717,60 @@ namespace my_hand_eye
             return;
         }
         // 去除一个最大值，一个最小值
-        cargo_x_.erase(std::min_element(cargo_x_.begin(), cargo_x_.end()));
-        cargo_x_.erase(std::max_element(cargo_x_.begin(), cargo_x_.end()));
-        cargo_y_.erase(std::min_element(cargo_y_.begin(), cargo_y_.end()));
-        cargo_y_.erase(std::max_element(cargo_y_.begin(), cargo_y_.end()));
-        cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
-        cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-        left_x_.erase(std::min_element(left_x_.begin(), left_x_.end()));
-        left_x_.erase(std::max_element(left_x_.begin(), left_x_.end()));
-        left_y_.erase(std::min_element(left_y_.begin(), left_y_.end()));
-        left_y_.erase(std::max_element(left_y_.begin(), left_y_.end()));
-        right_x_.erase(std::min_element(right_x_.begin(), right_x_.end()));
-        right_x_.erase(std::max_element(right_x_.begin(), right_x_.end()));
-        right_y_.erase(std::min_element(right_y_.begin(), right_y_.end()));
-        right_y_.erase(std::max_element(right_y_.begin(), right_y_.end()));
+        erase_max_min(cargo_x_);
+        erase_max_min(cargo_y_);
+        erase_max_min(cargo_theta_);
+        erase_max_min(left_x_);
+        erase_max_min(left_y_);
+        erase_max_min(right_x_);
+        erase_max_min(right_y_);
         geometry_msgs::Pose2D pose;
         average_pose(pose);
-        cargo_x_.clear();
-        cargo_y_.clear();
-        cargo_theta_.clear();
+        clear(true, true);
         cargo_x_.push_back(pose.x);
         cargo_y_.push_back(pose.y);
         cargo_theta_.push_back(pose.theta);
         average_position(pose.x, pose.y, 1);
-        left_x_.clear();
-        left_y_.clear();
+        clear(false, false, true, false);
         left_x_.push_back(pose.x);
         left_y_.push_back(pose.y);
         average_position(pose.x, pose.y, 3);
-        right_x_.clear();
-        right_y_.clear();
+        clear(false, false, false, true);
         right_x_.push_back(pose.x);
         right_y_.push_back(pose.y);
+    }
+
+    void ArmController::clear(bool clear_mid, bool clear_theta,
+                              bool clear_left, bool clear_right)
+    {
+        if (clear_mid)
+        {
+            cargo_x_.clear();
+            cargo_y_.clear();
+        }
+        if (clear_theta)
+            cargo_theta_.clear();
+        if (clear_left)
+        {
+            left_x_.clear();
+            left_y_.clear();
+        }
+        if (clear_right)
+        {
+            right_x_.clear();
+            right_y_.clear();
+        }
+    }
+
+    void ArmController::erase_max_min(std::vector<double> &vec)
+    {
+        if (vec.size() <= 2)
+        {
+            ROS_WARN("Please set vec's size > 2");
+            return;
+        }
+        vec.erase(std::min_element(vec.begin(), vec.end()));
+        vec.erase(std::max_element(vec.begin(), vec.end()));
     }
 
     void ArmController::error_position(const Color color, bool pal,
@@ -805,8 +827,7 @@ namespace my_hand_eye
         }
         else if (current_color_ != color || cargo_x_.size() >= MAX_SIZE)
         {
-            cargo_x_.clear();
-            cargo_y_.clear();
+            clear(true, false);
             current_color_ = color;
             ps_.reset();
             return false;
@@ -828,8 +849,7 @@ namespace my_hand_eye
                 {
                     double x_aver = 0, y_aver = 0;
                     average_position(x_aver, y_aver);
-                    cargo_x_.clear();
-                    cargo_y_.clear();
+                    clear(true, false);
                     if (midpoint)
                         valid = ps_.go_to_by_midpoint(x_aver, y_aver, z_turntable);
                     else
@@ -875,8 +895,7 @@ namespace my_hand_eye
         {
             if (!cargo_x_.empty() || !cargo_y_.empty())
             {
-                cargo_x_.clear();
-                cargo_y_.clear();
+                clear(true, false);
             }
             cnt_motion = 0;
             motion_before = false;
@@ -886,8 +905,7 @@ namespace my_hand_eye
         {
             if (!cargo_x_.empty() || !cargo_y_.empty())
             {
-                cargo_x_.clear();
-                cargo_y_.clear();
+                clear(true, false);
             }
             cnt_motion = 0;
             motion_before = false;
@@ -911,8 +929,7 @@ namespace my_hand_eye
             }
             else if (!cargo_x_.empty() || !cargo_y_.empty())
             {
-                cargo_x_.clear();
-                cargo_y_.clear();
+                clear(true, false);
             }
             if (speed > speed_standard_motion_ && !motion_before)
             {
@@ -1476,13 +1493,7 @@ namespace my_hand_eye
         error_position(color, pal, err_x, err_y, err_theta);
         if (final)
         {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            cargo_theta_.clear();
-            left_x_.clear();
-            left_y_.clear();
-            right_x_.clear();
-            right_y_.clear();
+            clear(true, true, true, true);
         }
         bool valid = ps_.go_to_table(true, color, true) &&
                      ps_.put(color_map_[color], false, err_x, err_y, err_theta, pal);
@@ -1496,13 +1507,7 @@ namespace my_hand_eye
         error_position(color, false, err_x, err_y, err_theta);
         if (final)
         {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            cargo_theta_.clear();
-            left_x_.clear();
-            left_y_.clear();
-            right_x_.clear();
-            right_y_.clear();
+            clear(true, true, true, true);
         }
         bool valid = ps_.put(color_map_[color], true, err_x, err_y, err_theta, false) &&
                      ps_.go_to_table(false, color, true);
@@ -1618,13 +1623,14 @@ namespace my_hand_eye
             }
             return false;
         }
+        else if (msg.end && !last_finish && !store)
+        {
+            last_finish = msg.end;
+            return true;
+        }
         else if (msg.end && last_finish && store)
         {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            cargo_theta_.clear();
-            left_x_.clear();
-            left_y_.clear();
+            clear(true, true, true, true);
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
@@ -1720,15 +1726,14 @@ namespace my_hand_eye
             rst = true;
             return false;
         }
+        else if (msg.end && !last_finish && !store)
+        {
+            last_finish = msg.end;
+            return true;
+        }
         else if (msg.end && last_finish && store)
         {
-            cargo_x_.clear();
-            cargo_y_.clear();
-            cargo_theta_.clear();
-            left_x_.clear();
-            left_y_.clear();
-            right_x_.clear();
-            right_y_.clear();
+            clear(true, true, true, true);
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
@@ -1811,11 +1816,13 @@ namespace my_hand_eye
             // ps_.reset(true);
             ps_.look_down();
             last_finish = false;
+            clear(true, true);
             return false;
         }
-        else if (msg.end)
+        else if (msg.end && !last_finish)
         {
             last_finish = msg.end;
+            clear(true, true);
             return true;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -1860,7 +1867,22 @@ namespace my_hand_eye
         }
         if (valid)
         {
-            target_pose.calc(p, msg);
+            if (target_pose.calc(p, msg))
+            {
+                cargo_x_.push_back(0);
+                cargo_y_.push_back(msg.pose.x);
+                cargo_theta_.push_back(msg.pose.theta);
+                if (msg.end)
+                {
+                    average_pose(msg.pose);
+                    msg.pose.x = msg.not_change;
+                }
+                clear(true, true);
+            }
+        }
+        else if (!cargo_x_.empty())
+        {
+            clear(true, true);
         }
         last_finish = msg.end;
         return valid;
@@ -1874,10 +1896,14 @@ namespace my_hand_eye
         {
             ps_.reset();
             last_finish = false;
-            cargo_x_.clear();
-            cargo_y_.clear();
-            cargo_theta_.clear();
+            clear(true, true);
             return false;
+        }
+        else if (msg.end && !last_finish)
+        {
+            last_finish = msg.end;
+            clear(true, true);
+            return true;      
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
@@ -1896,15 +1922,11 @@ namespace my_hand_eye
                 cargo_theta_.push_back(msg.pose.theta);
                 if (msg.end)
                     average_pose(msg.pose);
-                cargo_x_.clear();
-                cargo_y_.clear();
-                cargo_theta_.clear();
+                clear(true, true);
             }
             else if (!cargo_x_.empty())
             {
-                cargo_x_.clear();
-                cargo_y_.clear();
-                cargo_theta_.clear();
+                clear(true, true);
             }
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";

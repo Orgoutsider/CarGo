@@ -79,6 +79,11 @@ namespace my_hand_eye
         void average_pose(geometry_msgs::Pose2D &pose);             // 求得记录位置数据的平均值
         // 求平均位姿并存入变长数组
         void average_pose_once();
+        // 清空指定的变长数组
+        void clear(bool clear_mid, bool clear_theta,
+                   bool clear_left = false, bool clear_right = false);
+        // 去除一个最大值，一个最小值
+        void erase_max_min(std::vector<double> &vec);
         // 求放置误差
         void error_position(const Color color, bool pal,
                             double &err_x, double &err_y, double &err_theta);

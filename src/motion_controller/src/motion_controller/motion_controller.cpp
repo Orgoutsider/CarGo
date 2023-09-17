@@ -203,8 +203,12 @@ namespace motion_controller
                 {
                     // if (!follower_.stop_and_adjust(theta_, event.current_real))
                     //     return;
+                    ac_move_.waitForServer();
+                    MoveGoal goal;
                     get_position();
-                    // goal.theta = angle_from_road(follower_.debug, follower_.startup);
+                    goal.pose.theta = angle_from_road(follower_.debug, follower_.startup);
+                    goal.precision = true;
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 }
                 if (goal.route == route_raw_material_area)
                 {
@@ -331,6 +335,18 @@ namespace motion_controller
         }
     }
 
+    void MotionController::_check_arm_pose(const my_hand_eye::Pose2DMightEnd &pme)
+    {
+        boost::lock_guard<boost::mutex> lk(mtx_);
+        arm_pose_ = pme.pose;
+        if (pme.pose.theta == pme.not_change)
+            arm_pose_.theta = 0;
+        if (pme.pose.x == pme.not_change)
+            arm_pose_.x = 0;
+        if (pme.pose.y == pme.not_change)
+            arm_pose_.y = 0;
+    }
+
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
@@ -359,14 +375,8 @@ namespace motion_controller
                 boost::lock_guard<boost::mutex> lk(mtx_);
                 arm_stamp_ = feedback->pme.header.stamp;
                 arm_time_ = ros::Time::now();
-                arm_pose_ = feedback->pme.pose;
-                if (arm_pose_.theta == feedback->pme.not_change)
-                    arm_pose_.theta = 0;
-                if (arm_pose_.x == feedback->pme.not_change)
-                    arm_pose_.x = 0;
-                if (arm_pose_.y == feedback->pme.not_change)
-                    arm_pose_.y = 0;
             }
+            _check_arm_pose(feedback->pme);
             _check_arm_active();
         }
         else if (where_is_car(follower_.debug, follower_.startup) == route_roughing_area ||
@@ -432,14 +442,8 @@ namespace motion_controller
                 {
                     boost::lock_guard<boost::mutex> lk(mtx_);
                     arm_stamp_ = feedback->pme.header.stamp;
-                    arm_pose_ = feedback->pme.pose;
-                    if (arm_pose_.theta == feedback->pme.not_change)
-                        arm_pose_.theta = 0;
-                    if (arm_pose_.x == feedback->pme.not_change)
-                        arm_pose_.x = 0;
-                    if (arm_pose_.y == feedback->pme.not_change)
-                        arm_pose_.y = 0;
                 }
+                _check_arm_pose(feedback->pme);
                 _check_arm_active();
                 // 里程计/视觉分离：对传感器时间差进行比较
                 double diff = 0;
@@ -557,13 +561,14 @@ namespace motion_controller
         {
             if (result->pme.end)
             {
+                _check_arm_pose(result->pme);
                 ac_move_.waitForServer();
                 MoveGoal goal;
-                goal.pose.x = length_from_parking_area_ * cos(result->pme.pose.theta) +
-                              result->pme.pose.x;
-                goal.pose.y = result->pme.pose.y +
-                              length_from_parking_area_ * sin(result->pme.pose.theta);
-                goal.pose.theta = result->pme.pose.theta;
+                goal.pose.x = length_from_parking_area_ * cos(arm_pose_.theta) +
+                              arm_pose_.x;
+                goal.pose.y = arm_pose_.y +
+                              length_from_parking_area_ * sin(arm_pose_.theta);
+                goal.pose.theta = arm_pose_.theta;
                 goal.precision = true;
                 ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 return;

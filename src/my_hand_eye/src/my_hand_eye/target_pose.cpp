@@ -49,6 +49,9 @@ namespace my_hand_eye
     bool TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
     {
         static int err_cnt = 0; // 防误判
+        static Target last_target = target;
+        if (target != last_target)
+            err_cnt = 0;
         // static int err_cnt2 = 0; // 防不判
         Action a = Action(pose_arm.x, pose_arm.y, 0).arm2footprint();
         // if (pose_arm.theta == pose_target.not_change)
