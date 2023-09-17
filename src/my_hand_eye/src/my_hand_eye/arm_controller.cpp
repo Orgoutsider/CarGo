@@ -1540,7 +1540,9 @@ namespace my_hand_eye
             if (show_detections && !cv_image_.image.empty())
             {
                 cv::Vec2f border0;
-                valid = ps_.calculate_line_position(target_pose.pose[target_pose.target_border].x,
+                // 复制target_pose
+                Action a = Action(0, 18.087385, 0).front2left();
+                valid = ps_.calculate_line_position(a.x,
                                                     target_pose.pose[target_pose.target_border].theta,
                                                     z_parking_area, border0, false);
                 plot_line(cv_image_.image, border0[0], border0[1], cv::Scalar(0, 0, 255));

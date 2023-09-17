@@ -27,12 +27,12 @@ namespace my_hand_eye
         tolerance[target_ellipse].x = 0.007;
         tolerance[target_ellipse].y = 0.007;
 
-        Action border = Action(0, 17.7990405, 0).front2left().arm2footprint();
-        pose[target_border].theta = Angle(-4.997564).rad();
+        Action border = Action(0, 18.087385, 0).front2left().arm2footprint();
+        pose[target_border].theta = Angle(-3.954975).rad();
         pose[target_border].x = Pose2DMightEnd::not_change;
         pose[target_border].y = border.y;
 
-        tolerance[target_border].theta = 0.009;
+        tolerance[target_border].theta = 0.015;
         tolerance[target_border].x = Pose2DMightEnd::not_change;
         tolerance[target_border].y = 0.01;
 
