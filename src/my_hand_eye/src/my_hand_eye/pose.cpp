@@ -691,21 +691,21 @@ namespace my_hand_eye
         sm_st_ptr_->end();
     }
 
-    bool generate_valid_position(double deg1, double deg2, double deg3, double deg4, double &x, double &y, double &z, bool &look)
-    {
-        x = y = z = 0;
-        look = deg4 < 90;
-        bool valid = forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
-        Axis ax;
-        ax.x = x;
-        ax.y = y;
-        ax.z = z;
-        if (valid)
-        {
-            valid = ax.test_ok(deg1, deg2, deg3, deg4, look);
-        }
-        return valid;
-    }
+    // bool generate_valid_position(double deg1, double deg2, double deg3, double deg4, double &x, double &y, double &z, bool &look)
+    // {
+    //     x = y = z = 0;
+    //     look = deg4 < 90;
+    //     Axis ax;
+    //     bool valid = ax.forward_kinematics(deg1, deg2, deg3, deg4, x, y, z);
+    //     ax.x = x;
+    //     ax.y = y;
+    //     ax.z = z;
+    //     if (valid)
+    //     {
+    //         valid = ax.test_ok(deg1, deg2, deg3, deg4, look);
+    //     }
+    //     return valid;
+    // }
 
     cv::Mat Pos::R_cam_to_end()
     {
@@ -771,7 +771,7 @@ namespace my_hand_eye
     //     return action_put;
     // }
 
-    cv::Mat R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T)
+    cv::Mat Pos::R_T2homogeneous_matrix(const cv::Mat &R, const cv::Mat &T)
     {
         cv::Mat HomoMtr;
         ROS_ASSERT(R.rows == R.cols);

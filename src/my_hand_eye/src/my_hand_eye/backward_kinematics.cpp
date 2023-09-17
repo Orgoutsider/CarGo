@@ -141,6 +141,11 @@ namespace my_hand_eye
         return Action(0.01 * y, -0.01 * x, z);
     }
 
+    Action Action::footprint2arm()
+    {
+        return Action(-100 * y, 100 * x, z);
+    }
+
     Action Action::now2goal(double err_x, double err_y, double err_theta, const Action &enlarge)
     {
         // m转化成cm
@@ -165,6 +170,18 @@ namespace my_hand_eye
     Action Action::operator-=(const Action &t)
     {
         x -= t.x, y -= t.y, z -= t.z;
+        return *this;
+    }
+
+    Action Action::operator*=(const double &t)
+    {
+        x *= t, y *= t, z *= t;
+        return *this;
+    }
+
+    Action Action::operator/=(const double &t)
+    {
+        x /= t, y /= t, z /= t;
         return *this;
     }
 
@@ -343,8 +360,8 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
-                            double &x, double &y, double &z, bool expand_y)
+    bool Axis::forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
+                                  double &x, double &y, double &z, bool expand_y)
     {
         bool valid = false;
         Angle j1 = Angle(deg1);

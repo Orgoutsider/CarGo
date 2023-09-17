@@ -271,9 +271,9 @@ int main(int argc, char **argv)
   for (int i = 0; i < maxnum; i++)
   {
     Res << "err" << i << ":\n"
-        << my_hand_eye::R_T2homogeneous_matrix(Rend2base[i], tend2base[i]) *
-               my_hand_eye::R_T2homogeneous_matrix(Rcamera2end, tcamera2end) *
-               my_hand_eye::R_T2homogeneous_matrix(Rboard2camera[i], tboard2camera[i])
+        << ps.R_T2homogeneous_matrix(Rend2base[i], tend2base[i]) *
+               ps.R_T2homogeneous_matrix(Rcamera2end, tcamera2end) *
+               ps.R_T2homogeneous_matrix(Rboard2camera[i], tboard2camera[i])
         << std::endl;
   }
   File1.close();

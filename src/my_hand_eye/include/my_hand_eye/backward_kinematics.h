@@ -34,12 +34,14 @@ namespace my_hand_eye
         Action now2goal(double err_x, double err_y, double err_theta, const Action &enlarge);
         Action operator+=(const Action &t); // 重载加法
         Action operator-=(const Action &t); // 重载减法
+        Action operator*=(const double &t); // 重载乘法
+        Action operator/=(const double &t); // 重载除法
     protected:
         double length();
         double height();
         // static double normxy(const Action &a1, const Action &a2);
     };
-    
+
     class Angle
     {
     private:
@@ -51,7 +53,7 @@ namespace my_hand_eye
         const int normal = 0;
         Angle(double deg);                        // 角度值
         static Angle atan2(double v1, double v2); // atan2
-        double get_degree();                     // 获得角度值
+        double get_degree();                      // 获得角度值
         double rad();                             // 转弧度制
         static double degree(double rad);         // 转角度制
         double cos();
@@ -89,12 +91,12 @@ namespace my_hand_eye
         Axis();
         // 求逆解，输入机械臂角度变量
         bool backward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4, bool look);
+        // 求正解，输入角度，输出位置
+        bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
+                                double &x, double &y, double &z, bool expand_y = false);
         // bool first_step(double &deg1);
         bool test_ok(double &deg1, double &deg2, double &deg3, double &deg4, bool look);
     };
-    // 求正解，输入角度，输出位置
-    bool forward_kinematics(double &deg1, double &deg2, double &deg3, double &deg4,
-                            double &x, double &y, double &z, bool expand_y = false);
 }
 
 #endif // !_BACKWARD_KINEMATICS_H_
