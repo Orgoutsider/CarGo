@@ -171,17 +171,8 @@ namespace motion_controller
         }
         else if (get_position())
         {
-            static int err_cnt = 0;
             if (arrived(follower_.debug, follower_.startup))
             {
-                err_cnt++;
-                if (err_cnt < 2)
-                {
-                    follower_.follow(theta_, event.current_real);
-                    return;  
-                }
-                else
-                    err_cnt = 0;
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
                 goal.loop = loop_;
@@ -312,8 +303,6 @@ namespace motion_controller
             else if (!is_doing())
             {
                 follower_.follow(theta_, event.current_real);
-                if (err_cnt)
-                    err_cnt = 0;
             }
         }
     }

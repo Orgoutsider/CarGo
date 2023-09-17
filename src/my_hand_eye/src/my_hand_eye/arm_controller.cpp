@@ -1643,28 +1643,6 @@ namespace my_hand_eye
             if (pose)
             {
                 valid = get_position(objArray, z_ellipse, p.x, p.y, rst, store);
-                // if (rst)
-                // {
-                //     if (valid)
-                //     {
-                //         cargo_theta_.push_back(p.theta);
-                //         ROS_INFO_STREAM("theta: " << p.theta);
-                //         if (cargo_theta_.size() == MAX)
-                //         {
-                //             cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
-                //             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-                //             double aver;
-                //             average_theta(aver);
-                //             target_ellipse_theta_ = aver - theta;
-                //             ROS_INFO_STREAM("Set theta to " << target_ellipse_theta_);
-                //             rst = false;
-                //         }
-                //         else
-                //             return false;
-                //     }
-                //     else
-                //         return false;
-                // }
             }
             else
                 valid = get_center(objArray, center_u, center_v, p.x, p.y, true);
@@ -1688,6 +1666,8 @@ namespace my_hand_eye
             }
             else
             {
+                if (rst)
+                    rst = false;
                 msg.header = image_rect->header;
                 msg.header.frame_id = "base_footprint";
                 cv::Vec2f line;
@@ -1741,28 +1721,6 @@ namespace my_hand_eye
         geometry_msgs::Pose2D p;
         bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
                      get_position(objArray, z_parking_area, p.x, p.y, rst, store);
-        // if (rst)
-        // {
-        //     if (valid)
-        //     {
-        //         cargo_theta_.push_back(p.theta);
-        //         ROS_INFO_STREAM("theta: " << p.theta);
-        //         if (cargo_theta_.size() >= MAX)
-        //         {
-        //             cargo_theta_.erase(std::min_element(cargo_theta_.begin(), cargo_theta_.end()));
-        //             cargo_theta_.erase(std::max_element(cargo_theta_.begin(), cargo_theta_.end()));
-        //             double aver;
-        //             average_theta(aver);
-        //             target_ellipse_theta_ = aver - theta;
-        //             ROS_INFO_STREAM("Set theta to " << target_ellipse_theta_);
-        //             rst = false;
-        //         }
-        //         else
-        //             return false;
-        //     }
-        //     else
-        //         return false;
-        // }
         if (valid)
         {
             target_pose.calc(p, msg, MAX);
@@ -1903,7 +1861,7 @@ namespace my_hand_eye
         {
             last_finish = msg.end;
             clear(true, true);
-            return true;      
+            return true;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
