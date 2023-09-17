@@ -1333,6 +1333,7 @@ namespace my_hand_eye
                                           target_pose.pose[target_pose.target_parking_area].y, 0)
                                        .footprint2arm();
                         a *= ratio;
+                        a.x += cv_image->image.cols / 2.0;
                         // 目标绘制红
                         draw_cross(cv_image->image, cv::Point2d(a.x, a.y), Scalar(0, 0, 255),
                                    30, 1);
@@ -1873,6 +1874,9 @@ namespace my_hand_eye
         {
             ps_.reset();
             last_finish = false;
+            cargo_x_.clear();
+            cargo_y_.clear();
+            cargo_theta_.clear();
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -1884,8 +1888,24 @@ namespace my_hand_eye
             if (Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_parking_area].theta) > 3)
                 msg.pose.theta = Angle(3).rad();
             else if (Angle::degree(msg.pose.theta - target_pose.pose[target_pose.target_parking_area].theta) < -1)
-                msg.pose.theta = Angle(-1).rad();
-            target_pose.calc(p, msg);
+                msg.pose.theta = Angle(-2).rad();
+            if (target_pose.calc(p, msg))
+            {
+                cargo_x_.push_back(msg.pose.x);
+                cargo_y_.push_back(msg.pose.y);
+                cargo_theta_.push_back(msg.pose.theta);
+                if (msg.end)
+                    average_pose(msg.pose);
+                cargo_x_.clear();
+                cargo_y_.clear();
+                cargo_theta_.clear();
+            }
+            else if (!cargo_x_.empty())
+            {
+                cargo_x_.clear();
+                cargo_y_.clear();
+                cargo_theta_.clear();
+            }
             msg.header = image_rect->header;
             msg.header.frame_id = "base_footprint";
         }

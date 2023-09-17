@@ -19,8 +19,8 @@ namespace my_hand_eye
         Target target;
         bool debug;
         std::map<Target, geometry_msgs::Pose2D> pose; // 单位为m
-        // 利用目标位姿计算发送的位姿，自动填入not_change
-        void calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max = 5);
+        // 利用目标位姿计算发送的位姿，自动填入not_change，返回值表示是否小于误差限
+        bool calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max = 5);
 
     private:
         // 允许误差如果对应pose not change则tolerance也为not change

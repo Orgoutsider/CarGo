@@ -36,8 +36,8 @@ namespace my_hand_eye
         tolerance[target_border].x = Pose2DMightEnd::not_change;
         tolerance[target_border].y = 0.01;
 
-        Action parking_area = Action(-1.2645872, 21.5, 0).arm2footprint();
-        pose[target_parking_area].theta = Angle(-7.4891005).rad();
+        Action parking_area = Action(-2.2645872, 21.5, 0).arm2footprint();
+        pose[target_parking_area].theta = Angle(-5.831245652).rad();
         pose[target_parking_area].x = parking_area.x;
         pose[target_parking_area].y = parking_area.y;
 
@@ -46,7 +46,7 @@ namespace my_hand_eye
         tolerance[target_parking_area].y = 0.01;
     }
 
-    void TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
+    bool TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
     {
         static int err_cnt = 0; // 防误判
         // static int err_cnt2 = 0; // 防不判
@@ -81,12 +81,14 @@ namespace my_hand_eye
             }
             else
                 pose_target.end = false;
+            return true;
         }
         else if ((target != target_ellipse) || err_cnt <= 2)
         {
             pose_target.end = false;
             if (err_cnt)
                 err_cnt = 0;
+            return false;
         }
         else // cnt > 2 && target == target_ellipse
         {
@@ -94,6 +96,7 @@ namespace my_hand_eye
             if (err_cnt > 2 + cnt_max)
                 err_cnt = 0;
             pose_target.end = true;
+            return false;
             // if (err_cnt == 3)
             //     err_cnt2 = 0;
             // err_cnt2++;
