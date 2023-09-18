@@ -1,4 +1,6 @@
+#include <tf/tf.h>
 #include "motion_controller/motion_controller.h"
+
 
 namespace motion_controller
 {
@@ -668,8 +670,12 @@ namespace motion_controller
             geometry_msgs::TransformStamped tfs = buffer_.lookupTransform("odom_combined",
                                                                           "base_footprint", ros::Time(0));
             boost::lock_guard<boost::mutex> lk(mtx_);
-            // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
-            delta_theta_ = theta_ - atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
+            double yaw;
+            tf::Quaternion quat;
+            tf::quaternionMsgToTF(tfs.transform.rotation, quat);
+            double roll, pitch;
+            tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+            delta_theta_ = theta_ - yaw;
             delta_x_ = x_ - tfs.transform.translation.x * cos(delta_theta_) + tfs.transform.translation.y * sin(delta_theta_);
             delta_y_ = y_ - tfs.transform.translation.y * cos(delta_theta_) - tfs.transform.translation.x * sin(delta_theta_);
         }
@@ -826,7 +832,12 @@ namespace motion_controller
                  tfs.transform.translation.y * sin(delta_theta_);
             y_ = delta_y_ + tfs.transform.translation.y * cos(delta_theta_) +
                  tfs.transform.translation.x * sin(delta_theta_);
-            theta_ = delta_theta_ + atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
+            tf::Quaternion quat;
+            tf::quaternionMsgToTF(tfs.transform.rotation, quat);
+            double roll, pitch, yaw;
+            tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+            theta_ = delta_theta_ + yaw;
+            // theta_ = delta_theta_ + atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
             // 将theta_限定在(-pi,pi]之间
             theta_ = (theta_ <= -M_PI) ? theta_ + M_PI : (theta_ > M_PI ? theta_ - M_PI : theta_);
         }

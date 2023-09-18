@@ -1,4 +1,0 @@
-[submodule "python_orocos_kdl/pybind11"]
-    path = python_orocos_kdl/pybind11
-    url = https://github.com/pybind/pybind11.git
-    branch = stable

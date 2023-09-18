@@ -31,7 +31,6 @@ from math import pi
 
 def quat_to_angle(quat):
     rot = PyKDL.Rotation.Quaternion(quat.x, quat.y, quat.z, quat.w)
-    return rot.GetRPY()[2]
 
 def normalize_angle(angle):
     res = angle
@@ -71,7 +70,7 @@ class CalibrateAngular():
         dyn_client = dynamic_reconfigure.client.Client("calibrate_angular", timeout=60)
 
         # The base frame is usually base_link or base_footprint
-        self.base_frame = rospy.get_param('~base_frame', '/base_link')
+        self.base_frame = rospy.get_param('~base_frame', '/base_footprint')
 
         # The odom frame is usually just /odom
         self.odom_frame = rospy.get_param('~odom_frame', '/odom')

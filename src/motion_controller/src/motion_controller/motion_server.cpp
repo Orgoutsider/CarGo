@@ -1,4 +1,5 @@
 #include <motion_controller/TwistMightEnd.h>
+#include <tf/tf.h>
 
 #include "motion_controller/motion_server.h"
 
@@ -279,7 +280,11 @@ namespace motion_controller
         }
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
         // ROS_INFO_STREAM(pose_footprint.pose.orientation.z << " " << pose_footprint.pose.orientation.w);
-        pose.theta = atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w) * 2;
+        // pose.theta = atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w) * 2;
+        tf::Quaternion quat;
+        tf::quaternionMsgToTF(pose_footprint.pose.orientation, quat);
+        double roll, pitch;
+        tf::Matrix3x3(quat).getRPY(roll, pitch, pose.theta);
         pose.x = pose_footprint.pose.position.x;
         pose.y = pose_footprint.pose.position.y;
         header_ = pose_footprint.header;
