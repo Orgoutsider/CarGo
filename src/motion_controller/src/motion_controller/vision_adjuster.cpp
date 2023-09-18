@@ -47,6 +47,7 @@ namespace motion_controller
                                                {ki_eye_angular_}, {kd_eye_angular_},
                                                {thresh_angular_}, {0.05}, {0.4}, {limiting_freq_});
                 timer_.stop();
+                pose_goal_.pose.orientation = geometry_msgs::Quaternion();
             }
             return;
         }
@@ -259,10 +260,15 @@ namespace motion_controller
         geometry_msgs::PoseStamped pose_footprint;
         pose_footprint.header = pose.header;
         geometry_msgs::Pose p3D;
+        geometry_msgs::Quaternion q;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
         if (pose.pose.x == pose.not_change && pose.pose.y == pose.not_change &&
             pose.pose.theta == pose.not_change)
             pose_footprint.header.stamp = ros::Time();
+        if (unchanging_ == direction_theta && pose_goal_.pose.orientation.w) // 已经初始化，且not_change为theta
+        {
+            q = pose_goal_.pose.orientation;
+        }
         p3D.orientation.w = (pose.pose.theta == pose.not_change) ? 1 : cos(pose.pose.theta / 2);
         p3D.orientation.z = (pose.pose.theta == pose.not_change) ? 0 : sin(pose.pose.theta / 2);
         p3D.position.x = (pose.pose.x == pose.not_change) ? 0 : pose.pose.x;
@@ -273,11 +279,10 @@ namespace motion_controller
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
             buffer_.transform(pose_footprint, pose_goal_, target_frame_);
             pose_goal_.header.stamp = ros::Time();
-            // if (unchanging_ == direction_theta)
-            // {
-            //     pose_goal_.pose.orientation.z = z;
-            //     pose_goal_.pose.orientation.w = w;
-            // }
+            if (unchanging_ == direction_theta && q.w)
+            {
+                pose_goal_.pose.orientation = q;
+            }
         }
         catch (const std::exception &e)
         {

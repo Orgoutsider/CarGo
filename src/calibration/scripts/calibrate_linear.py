@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 """ calibrate_linear.py - Version 1.1 2013-12-20
     Move the robot 1.0 meter to check on the PID parameters of the base controller.
@@ -40,7 +40,7 @@ class CalibrateLinear():
 
         # Set the distance to travel
         self.test_distance = rospy.get_param('~test_distance', 1.0) # meters
-        self.speed = rospy.get_param('~speed', 0.15) # meters per second
+        self.speed = rospy.get_param('~speed', 0.2) # meters per second
         self.tolerance = rospy.get_param('~tolerance', 0.01) # meters
         self.odom_linear_scale_correction = rospy.get_param('~odom_linear_scale_correction', 1.0)
         self.start_test = rospy.get_param('~start_test', True)
@@ -103,6 +103,7 @@ class CalibrateLinear():
                     self.start_test = False
                     params = {'start_test': False}
                     rospy.loginfo(params)
+                    rospy.loginfo(distance)
                     dyn_client.update_configuration(params)
                 else:
                     # If not, move in the appropriate direction
@@ -148,4 +149,5 @@ if __name__ == '__main__':
         CalibrateLinear()
         rospy.spin()
     except:
-        rospy.loginfo("Calibration terminated.")                                                                                                                              
+        rospy.loginfo("Calibration terminated.")       
+                                                                                                                           

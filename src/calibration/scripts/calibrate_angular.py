@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 """ calibrate_angular.py - Version 1.1 2013-12-20
     Rotate the robot 360 degrees to check the odometry parameters of the base controller.
