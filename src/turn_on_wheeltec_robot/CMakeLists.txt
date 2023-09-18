@@ -19,6 +19,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf
   motion_controller
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
 )
 
 # ulimit -c unlimited

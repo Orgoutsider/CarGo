@@ -56,8 +56,8 @@ class CalibrateLinear():
 
         # The base frame is base_footprint for the TurtleBot but base_link for Pi Robot
         self.base_frame = rospy.get_param('~base_frame', '/base_footprint')
-# The odom frame is usually just /odom
-        self.odom_frame = rospy.get_param('~odom_frame', '/odom_combined')
+        # The odom frame is usually just /odom
+        self.odom_frame = rospy.get_param('~odom_frame', '/odom')
 
         # Initialize the tf listener
         self.tf_listener = tf.TransformListener()

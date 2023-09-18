@@ -150,6 +150,24 @@ void turn_on_robot::Publish_Odom()
     memcpy(&odom.pose.covariance, odom_pose_covariance, sizeof(odom_pose_covariance)),
         memcpy(&odom.twist.covariance, odom_twist_covariance, sizeof(odom_twist_covariance));
   odom_publisher.publish(odom); // Pub odometer topic //发布里程计话题
+
+  if (publish_tf)
+  {
+    geometry_msgs::TransformStamped tfs;
+    //  |----头设置
+    tfs.header = odom.header;
+    tfs.header.frame_id = "odom";
+    //  |----坐标系 ID
+    tfs.child_frame_id = "base_footprint";
+    //  |----坐标系相对信息设置
+    tfs.transform.translation.x = Robot_Pos.X;
+    tfs.transform.translation.y = Robot_Pos.Y;
+    tfs.transform.translation.z = 0.0;
+    //  |--------- 四元数设置
+    tfs.transform.rotation = tf::createQuaternionMsgFromYaw(Robot_Pos.Z);
+    // 广播器发布数据
+    Broadcaster.sendTransform(tfs);
+  }
 }
 /**************************************
 Date: January 28, 2021
@@ -464,7 +482,7 @@ turn_on_robot::turn_on_robot() : Sampling_Time(0), Power_voltage(0)
   private_nh.param<std::string>("odom_frame_id", odom_frame_id, "odom_combined");                // The odometer topic corresponds to the parent TF coordinate //里程计话题对应父TF坐标
   private_nh.param<std::string>("robot_frame_id", robot_frame_id, "base_footprint");             // The odometer topic corresponds to sub-TF coordinates //里程计话题对应子TF坐标
   private_nh.param<std::string>("gyro_frame_id", gyro_frame_id, "gyro_link");                    // IMU topics correspond to TF coordinates //IMU话题对应TF坐标
-
+  private_nh.param<bool>("publish_tf", publish_tf, true);
   voltage_publisher = n.advertise<std_msgs::Float32>("PowerVoltage", 10); // Create a battery-voltage topic publisher //创建电池电压话题发布者
   odom_publisher = n.advertise<nav_msgs::Odometry>("odom", 50);           // Create the odometer topic publisher //创建里程计话题发布者
   // imu_publisher = n.advertise<sensor_msgs::Imu>("imu", 20);               // Create an IMU topic publisher //创建IMU话题发布者

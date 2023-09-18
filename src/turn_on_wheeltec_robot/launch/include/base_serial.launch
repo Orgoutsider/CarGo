@@ -2,6 +2,7 @@
   <!--打开节点wheeltec_robot，初始化串口等操作-->
   <arg name="smoother"  default="false"/> <!-- 是否开启速度平滑功能 -->
   <arg name="odom_frame_id"  default="odom_combined"/>
+  <arg name="publish_tf"  default="true"/>
  
   <node pkg="turn_on_wheeltec_robot" type="wheeltec_robot_node" name="wheeltec_robot" output="screen" respawn="false">
     <!-- <param name="usart_port_name"    type="string" value="/dev/wheeltec_controller"/>   -->
@@ -10,6 +11,7 @@
     <param name="odom_frame_id"      type="string" value="$(arg odom_frame_id)"/> 
     <param name="robot_frame_id"     type="string" value="base_footprint"/> 
     <param name="gyro_frame_id"      type="string" value="gyro_link"/> 
+    <param name="publish_tf"         type="bool" value="$(arg publish_tf)"/> 
     <!-- 如果开启了平滑功能，则订阅平滑速度 -->
     <remap if="$(arg smoother)" from="cmd_vel" to="smoother_cmd_vel"/>
     <!-- <remap from="/imu" to="/imu_ori"/> -->
