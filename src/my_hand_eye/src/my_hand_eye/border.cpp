@@ -330,4 +330,33 @@ namespace my_hand_eye
         morphologyEx(RangeImg, RangeImg, MORPH_CLOSE, element, Point(-1, -1), 3);
         return RangeImg;
     }
+
+    void BorderMethod::gramma_transform(int factor, cv::Mat &img)
+    {
+        using namespace cv;
+        float kFactor = (float)factor / 100;
+        unsigned char LUT[256];
+        for (size_t i = 0; i < 256; i++)
+        {
+            LUT[i] = saturate_cast<uchar>(pow((float)i / 255.0, kFactor) * 255.0f);
+        }
+        if (img.channels() == 1)
+        {
+            MatIterator_<uchar> iterator = img.begin<uchar>();
+            MatIterator_<uchar> iteratorEnd = img.end<uchar>();
+            for (; iterator != iteratorEnd; iterator++)
+                *iterator = LUT[(*iterator)];
+        }
+        else
+        {
+            MatIterator_<Vec3b> iterator = img.begin<Vec3b>();
+            MatIterator_<Vec3b> iteratorEnd = img.end<Vec3b>();
+            for (; iterator != iteratorEnd; iterator++)
+            {
+                (*iterator)[0] = LUT[((*iterator)[0])];
+                (*iterator)[1] = LUT[((*iterator)[1])];
+                (*iterator)[2] = LUT[((*iterator)[2])];
+            }
+        }
+    }
 } // namespace my_hand_eye

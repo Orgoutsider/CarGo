@@ -4,7 +4,7 @@
 using namespace cv;
 using namespace std;
 
-//gramma²ÎÊı£¬°µ²¿ÔöÇ¿È¡0-99£¬ÁÁ²¿ÔöÇ¿È¡101-300¡£È¡100ÎªÔ­Í¼
+//grammaå‚æ•°ï¼Œæš—éƒ¨å¢å¼ºå–0-99ï¼Œäº®éƒ¨å¢å¼ºå–101-300ã€‚å–100ä¸ºåŸå›¾
 int Factor = 40;
 
 void grammaTransForm(int Factor, Mat &resImg);
@@ -17,12 +17,12 @@ void Saturation_2(cv::Mat &src, int percent);
 
 int main()
 {
-	Mat srcImg = imread("E:\\CodeRepositories\\opencv_test\\car\\Ã÷°µ3.jpg");
+	Mat srcImg = imread("E:\\CodeRepositories\\opencv_test\\car\\æ˜æš—3.jpg");
 	if (!srcImg.data)
 		return -1;
 	imshow("srcImg", srcImg);
 
-	//Ô­Ê¼Í¼ÏñH·ÖÁ¿
+	//åŸå§‹å›¾åƒHåˆ†é‡
 	Mat HSV_Img;
 	cvtColor(srcImg, HSV_Img, COLOR_BGR2HSV);
 	vector<Mat> HSV_plane;
@@ -30,47 +30,47 @@ int main()
 	cv::imshow("H_Origin", HSV_plane[0]);
 
 	//*******
-	// ÒÔÏÂÎªÊ¹ÓÃroiÇøÓòÓĞÑ¡ÔñµÄµ÷½Ú°µ²¿ÇøÓò
+	// ä»¥ä¸‹ä¸ºä½¿ç”¨roiåŒºåŸŸæœ‰é€‰æ‹©çš„è°ƒèŠ‚æš—éƒ¨åŒºåŸŸ
 	//*******
 	
-	//×ª»»Îª»Ò¶ÈÍ¼£¬Ñ°ÕÒ¸ß¹âÇøÓò
+	//è½¬æ¢ä¸ºç°åº¦å›¾ï¼Œå¯»æ‰¾é«˜å…‰åŒºåŸŸ
 	Mat Gray;
 	cvtColor(srcImg, Gray, COLOR_BGR2GRAY);
-	//ãĞÖµ»¯·ÖÀë¸ß¹âÇøÓò
+	//é˜ˆå€¼åŒ–åˆ†ç¦»é«˜å…‰åŒºåŸŸ
 	Mat Thresh_Gray;
 	threshold(Gray, Thresh_Gray, 120, 255, THRESH_BINARY);
-	//È¡·´»ñµÃ°µ²¿ÇøÓò
+	//å–åè·å¾—æš—éƒ¨åŒºåŸŸ
 	bitwise_not(Thresh_Gray, Thresh_Gray);
 	cv::imshow("Thresh_origin", Thresh_Gray);
 
-	//ÅòÕÍ²Ù×÷£¬Ïû³ıĞ¡Ôëµã£¬Ò²¿ÉÒÔ²»ÓÃÕâÒ»²½£¬ÒòÎªºóÃæÒ²»á¸ù¾İÂÖÀª´óĞ¡½øĞĞÉ¸³ıĞ¡Ôëµã
+	//è†¨èƒ€æ“ä½œï¼Œæ¶ˆé™¤å°å™ªç‚¹ï¼Œä¹Ÿå¯ä»¥ä¸ç”¨è¿™ä¸€æ­¥ï¼Œå› ä¸ºåé¢ä¹Ÿä¼šæ ¹æ®è½®å»“å¤§å°è¿›è¡Œç­›é™¤å°å™ªç‚¹
 	Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3), Point(-1, -1));
 	dilate(Thresh_Gray, Thresh_Gray, kernel);
 	cv::imshow("Thresh_dilate", Thresh_Gray);
 
-	//ÂÖÀª²éÕÒ
+	//è½®å»“æŸ¥æ‰¾
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
 	findContours(Thresh_Gray, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
 
-	//°´ÇøÓògramma½ÃÕı
+	//æŒ‰åŒºåŸŸgrammaçŸ«æ­£
 	Mat Img_clone = srcImg.clone();
 	for (size_t i = 0; i < contours.size(); i++)
 	{
-		//ÂË³ıÌ«Ğ¡µÄÇøÓò
+		//æ»¤é™¤å¤ªå°çš„åŒºåŸŸ
 		if (contourArea(contours[i]) < 10000) continue;
-		//´´½¨ÑÚÄ¤
+		//åˆ›å»ºæ©è†œ
 		Rect roi = boundingRect(contours[i]);
 		Mat mask = Img_clone(roi);
-		//gramma½ÃÕı£¬²¢¶ÔÃ¿¸öÇøÓò½øĞĞÑÕÉ«ÔöÇ¿
+		//grammaçŸ«æ­£ï¼Œå¹¶å¯¹æ¯ä¸ªåŒºåŸŸè¿›è¡Œé¢œè‰²å¢å¼º
 		grammaTransForm(Factor, mask);
 		Saturation_2(mask, 40);
 	}
-	//È«¾ÖÑÕÉ«ÔöÇ¿
+	//å…¨å±€é¢œè‰²å¢å¼º
 	Saturation_2(Img_clone, 10);
 	imshow("resImg", Img_clone);
 
-	//´¦ÀíºóÍ¼ÏñH·ÖÁ¿
+	//å¤„ç†åå›¾åƒHåˆ†é‡
 	Mat HSV_Res_Img;
 	cvtColor(Img_clone, HSV_Res_Img, COLOR_BGR2HSV);
 	vector<Mat> HSV_Res_plane;
@@ -78,7 +78,7 @@ int main()
 	cv::imshow("H_Res", HSV_Res_plane[0]);
 
 	// *******
-	// Ò²¿ÉÒÔ¶ÔÕûÕÅÍ¼Æ¬½øĞĞÈ«¾Ögramma½ÃÕı£¬Ö±½ÓÊ¹ÓÃgrammaTransForm(int Factor, Mat &resImg)¼´¿É
+	// ä¹Ÿå¯ä»¥å¯¹æ•´å¼ å›¾ç‰‡è¿›è¡Œå…¨å±€grammaçŸ«æ­£ï¼Œç›´æ¥ä½¿ç”¨grammaTransForm(int Factor, Mat &resImg)å³å¯
 	// *******
 
 	waitKey(0);

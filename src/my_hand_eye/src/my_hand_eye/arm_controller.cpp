@@ -125,6 +125,7 @@ namespace my_hand_eye
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
+        factor_ = pnh.param<int>("factor", 40);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
         tracker_.flag = pnh.param<bool>("flag", false);
@@ -1146,15 +1147,57 @@ namespace my_hand_eye
         using namespace cv;
         std::vector<cv::Ellipse> ells;
         resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2)); // 重设大小，可选
-        // 第一次预处理
-        Mat sat = saturation(cv_image->image, 100);
+                                                                                                            //*******
+        // 以下为使用roi区域有选择的调节暗部区域
+        //*******
+
+        // 转换为灰度图，寻找高光区域
+        Mat Gray;
+        cvtColor(cv_image->image, Gray, COLOR_BGR2GRAY);
+        // 阈值化分离高光区域
+        Mat Thresh_Gray;
+        cv::threshold(Gray, Thresh_Gray, 120, 255, THRESH_BINARY);
+        // 取反获得暗部区域
+        bitwise_not(Thresh_Gray, Thresh_Gray);
+        cv::imshow("Thresh_origin", Thresh_Gray);
+
+        // 膨胀操作，消除小噪点，也可以不用这一步，因为后面也会根据轮廓大小进行筛除小噪点
+        Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3), cv::Point(-1, -1));
+        dilate(Thresh_Gray, Thresh_Gray, kernel);
+        cv::imshow("Thresh_dilate", Thresh_Gray);
+
+        // 轮廓查找
+        std::vector<std::vector<cv::Point>> contours;
+        std::vector<Vec4i> hierarchy;
+        findContours(Thresh_Gray, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+
+        // 按区域gramma矫正
+        Mat Img_clone = cv_image->image.clone();
+        for (size_t i = 0; i < contours.size(); i++)
+        {
+            // 滤除太小的区域
+            if (contourArea(contours[i]) < 10000)
+                continue;
+            // 创建掩膜
+            Rect roi = boundingRect(contours[i]);
+            Mat mask = Img_clone(roi);
+            // gramma矫正，并对每个区域进行颜色增强
+            gramma_transform(factor_, mask);
+            mask = saturation(mask, 40);
+        }
+        // *******
+        // 也可以对整张图片进行全局gramma矫正，直接使用gramma_transform(int Factor, Mat &resImg)即可
+        // *******
+        // 全局颜色增强
+        Img_clone = saturation(Img_clone, 10);
+        imshow("resImg", Img_clone);
         // take_picture(cv_image->image);
         Mat hsv;
-        cvtColor(sat, hsv, COLOR_BGR2HSV_FULL);
+        cvtColor(Img_clone, hsv, COLOR_BGR2HSV);
         std::vector<Mat1b> hsvs;
         split(hsv, hsvs);
-        // imshow("h", hsvs[1]);
-        // waitKey(10);
+        imshow("s", hsvs[1]);
+        waitKey(20);
         std::vector<cv::Ellipse> ellsYaed;
         yaed_->Detect(hsvs[1], ellsYaed);
         EllipseArray arr;

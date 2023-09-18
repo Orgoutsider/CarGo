@@ -82,44 +82,44 @@ namespace my_hand_eye
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		if (!as_.isActive())
-			return;
-		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		bool valid = false;
-		switch (arm_goal_.route)
-		{
-		case arm_goal_.route_rest:
-			return;
+		// if (!as_.isActive())
+		// 	return;
+		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		// bool valid = false;
+		// switch (arm_goal_.route)
+		// {
+		// case arm_goal_.route_rest:
+		// 	return;
 
-		case arm_goal_.route_QR_code_board:
-			ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
-			return;
+		// case arm_goal_.route_QR_code_board:
+		// 	ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
+		// 	return;
 
-		case arm_goal_.route_raw_material_area:
-			valid = operate_center(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_raw_material_area:
+		// 	valid = operate_center(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_roughing_area:
-			valid = operate_ellipse(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_roughing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_semi_finishing_area:
-			valid = operate_ellipse(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_semi_finishing_area:
+		// 	valid = operate_ellipse(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_parking_area:
-			valid = operate_parking_area(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_parking_area:
+		// 	valid = operate_parking_area(image_rect, debug_image);
+		// 	break;
 
-		case arm_goal_.route_border:
-			valid = operate_border(image_rect, debug_image);
-			break;
+		// case arm_goal_.route_border:
+		// 	valid = operate_border(image_rect, debug_image);
+		// 	break;
 
-		default:
-			return;
-		}
-		if (arm_controller_.show_detections && debug_image->height)
-			debug_image_publisher_.publish(debug_image);
+		// default:
+		// 	return;
+		// }
+		// if (arm_controller_.show_detections && debug_image->height)
+		// 	debug_image_publisher_.publish(debug_image);
 
 		// 输出检测物料位置
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -145,10 +145,10 @@ namespace my_hand_eye
 		// }
 
 		// 椭圆识别
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
-		// if (arm_controller_.show_detections && debug_image->height)
-		// 	debug_image_publisher_.publish(debug_image);
+		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
+		arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
+		if (arm_controller_.show_detections && debug_image->height)
+			debug_image_publisher_.publish(debug_image);
 
 		// z校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());

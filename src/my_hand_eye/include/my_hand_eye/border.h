@@ -16,6 +16,8 @@ namespace my_hand_eye
         cv::Mat saturation(cv::Mat &src, int percent);
         // 颜色inrange查找车道边界
         cv::Mat LBD_color_func(cv::Mat &enhanced, int threshold);
+        // gramma矫正
+        void gramma_transform(int factor, cv::Mat &img);
     };
 
     class Border : public BorderMethod
