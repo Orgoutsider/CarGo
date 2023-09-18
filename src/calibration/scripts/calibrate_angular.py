@@ -26,11 +26,11 @@ import dynamic_reconfigure.client
 from calibration.cfg import CalibrateAngularConfig
 import tf
 from math import radians, copysign
-import PyKDL
 from math import pi
+from math import atan2
 
 def quat_to_angle(quat):
-    rot = PyKDL.Rotation.Quaternion(quat.x, quat.y, quat.z, quat.w)
+    return atan2(2 * (quat.w * quat.z + quat.x * quat.y), 1 - 2 * (quat.z * quat.z + quat.y * quat.y))
 
 def normalize_angle(angle):
     res = angle

@@ -1,4 +1,5 @@
 #include <motion_controller/TwistMightEnd.h>
+#include <tf/tf.h>
 
 #include "motion_controller/vision_adjuster.h"
 
@@ -258,8 +259,6 @@ namespace motion_controller
         geometry_msgs::PoseStamped pose_footprint;
         pose_footprint.header = pose.header;
         geometry_msgs::Pose p3D;
-        double z = pose_goal_.pose.orientation.z;
-        double w = pose_goal_.pose.orientation.w;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
         if (pose.pose.x == pose.not_change && pose.pose.y == pose.not_change &&
             pose.pose.theta == pose.not_change)
@@ -274,11 +273,11 @@ namespace motion_controller
             //   解析 base_footprint 中的点相对于 odom_combined 的坐标
             buffer_.transform(pose_footprint, pose_goal_, target_frame_);
             pose_goal_.header.stamp = ros::Time();
-            if (unchanging_ == direction_theta)
-            {
-                pose_goal_.pose.orientation.z = z;
-                pose_goal_.pose.orientation.w = w;
-            }
+            // if (unchanging_ == direction_theta)
+            // {
+            //     pose_goal_.pose.orientation.z = z;
+            //     pose_goal_.pose.orientation.w = w;
+            // }
         }
         catch (const std::exception &e)
         {
@@ -301,7 +300,10 @@ namespace motion_controller
             ROS_WARN("_get_pose_now exception:%s", e.what());
             return false;
         }
-        pose.theta = atan2(pose_footprint.pose.orientation.z, pose_footprint.pose.orientation.w);
+        tf::Quaternion quat;
+        tf::quaternionMsgToTF(pose_footprint.pose.orientation, quat);
+        double roll, pitch;
+        tf::Matrix3x3(quat).getRPY(roll, pitch, pose.theta);
         pose.x = unchanging_ != direction_x ? pose_footprint.pose.position.x : 0;
         pose.y = unchanging_ != direction_y ? pose_footprint.pose.position.y : 0;
         // theta 特殊处理
