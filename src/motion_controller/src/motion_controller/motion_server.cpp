@@ -245,6 +245,7 @@ namespace motion_controller
         // 三维位姿
         geometry_msgs::Pose p3D;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
+        p3D.orientation = tf::createQuaternionMsgFromYaw(pose.theta);
         p3D.orientation.w = cos(pose.theta / 2);
         p3D.orientation.z = sin(pose.theta / 2);
         p3D.position.x = pose.x;

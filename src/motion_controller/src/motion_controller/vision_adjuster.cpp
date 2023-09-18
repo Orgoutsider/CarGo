@@ -269,6 +269,9 @@ namespace motion_controller
         {
             q = pose_goal_.pose.orientation;
         }
+        p3D.orientation = (pose.pose.theta == pose.not_change)
+                              ? tf::createQuaternionMsgFromYaw(0)
+                              : tf::createQuaternionMsgFromYaw(pose.pose.theta);
         p3D.orientation.w = (pose.pose.theta == pose.not_change) ? 1 : cos(pose.pose.theta / 2);
         p3D.orientation.z = (pose.pose.theta == pose.not_change) ? 0 : sin(pose.pose.theta / 2);
         p3D.position.x = (pose.pose.x == pose.not_change) ? 0 : pose.pose.x;
