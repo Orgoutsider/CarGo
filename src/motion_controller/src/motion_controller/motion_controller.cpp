@@ -619,6 +619,13 @@ namespace motion_controller
             boost::lock_guard<boost::mutex> lk(mtx_);
             finished();
         }
+        else
+        {
+            routeConfig config;
+            config.startup = false;
+            follower_.startup = false;
+            dr_server_.updateConfig(config);
+        }
     }
 
     void MotionController::_move_active_callback(){};
