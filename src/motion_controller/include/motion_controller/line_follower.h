@@ -28,7 +28,6 @@ namespace motion_controller
         LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         boost::recursive_mutex mtx; // 递归锁可以允许一个线程对同一互斥量多次加锁
         bool debug;       // 动态调参，与子类（MotionController）共用
-        bool startup;     // 调参，即停选项
         bool has_started; // 是否已经启动
         // 用于走直线动态调参
         void dr(routeConfig &config);
