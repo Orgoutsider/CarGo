@@ -573,6 +573,16 @@ namespace motion_controller
                 goal.pose.theta = arm_pose_.theta;
                 goal.precision = true;
                 ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                if (follower_.debug)
+                {
+                    {
+                        boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                        config_.startup = false;
+                    }
+                    dr_server_.updateConfig(config_);
+                    if (!timer_.hasStarted())
+                        timer_.start();
+                }
                 return;
             }
         }
@@ -626,6 +636,8 @@ namespace motion_controller
                 config_.startup = false;
             }
             dr_server_.updateConfig(config_);
+            if (!timer_.hasStarted())
+                timer_.start();
         }
     }
 

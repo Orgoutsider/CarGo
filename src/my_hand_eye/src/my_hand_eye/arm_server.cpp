@@ -682,6 +682,7 @@ namespace my_hand_eye
 
 	bool ArmServer::done_callback(moveDone::Request &req, moveDone::Response &resp)
 	{
+		ROS_INFO("Adjust angle done!");
 		arm_controller_.theta_turn = req.theta_turn;
 		return true;
 	}

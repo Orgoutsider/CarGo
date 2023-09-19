@@ -17,7 +17,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
           z_parking_area(1.40121),
-          z_ellipse(4.58369),
+          z_ellipse(4.68369),
           z_palletize(11.3079),
           z_turntable(13.27052) // 比赛转盘
     //   初始化列表记得复制一份到下面
@@ -36,7 +36,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
           z_parking_area(1.40121),
-          z_ellipse(4.58369),
+          z_ellipse(4.68369),
           z_palletize(11.3079),
           z_turntable(13.27052) // 比赛转盘
     //   初始化列表记得复制一份到上面
@@ -129,7 +129,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -5.25312)).rad();
+        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.702342609)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -245,8 +245,8 @@ namespace my_hand_eye
                 if (show_detections && !cv_image->image.empty())
                 {
                     // 复制target_pose
-                    Action a = Action(target_pose.pose[target_pose.target_center].x,
-                                      target_pose.pose[target_pose.target_center].y, 0)
+                    Action a = Action(target_pose.pose[target_pose.target_ellipse].x,
+                                      target_pose.pose[target_pose.target_ellipse].y, 0)
                                    .footprint2arm();
                     double u, v;
                     ps_.calculate_pixel_position(a.x, a.y, z_ellipse, u, v, true);
@@ -254,19 +254,19 @@ namespace my_hand_eye
                     v -= rect.y;
                     draw_cross(cv_image->image,
                                cv::Point2d(u, v),
-                               cv::Scalar(255, 255, 0), 30, 2);
+                               cv::Scalar(255, 255, 255), 30, 2);
                     if (cargo.response.results.boxes.size())
                     {
                         for (int color = color_red; color <= color_blue; color++)
                         {
                             if (!cargo.response.results.boxes[color].center.x)
                                 continue;
-                            cv::RotatedRect rect(cv::Point2d(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
-                                                 cv::Size2d(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
-                                                 cargo.response.results.boxes[color].center.theta);
-                            cv::Point2f vtx[4]; // 矩形顶点容器
-                            // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
-                            rect.points(vtx); // 确定旋转矩阵的四个顶点
+                            // cv::RotatedRect rect(cv::Point2d(cargo.response.results.boxes[color].center.x, cargo.response.results.boxes[color].center.y),
+                            //                      cv::Size2d(cargo.response.results.boxes[color].size_x, cargo.response.results.boxes[color].size_y),
+                            //                      cargo.response.results.boxes[color].center.theta);
+                            // cv::Point2f vtx[4]; // 矩形顶点容器
+                            // // cv::Mat dst = cv::Mat::zeros(cv_image->image.size(), CV_8UC3);//创建空白图像
+                            // rect.points(vtx); // 确定旋转矩阵的四个顶点
                             cv::Scalar colors;
                             switch (color)
                             {
@@ -282,10 +282,14 @@ namespace my_hand_eye
                             default:
                                 break;
                             }
-                            for (int j = 0; j < 4; j++)
-                            {
-                                cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2);
-                            }
+                            draw_cross(cv_image->image,
+                                       cv::Point2d(cargo.response.results.boxes[color].center.x,
+                                                   cargo.response.results.boxes[color].center.y),
+                                       colors, 30, 2);
+                            // for (int j = 0; j < 4; j++)
+                            // {
+                            //     cv::line(cv_image->image, vtx[j], vtx[(j + 1) % 4], colors, 2);
+                            // }
                         }
                     }
                     // imshow("det", cv_image->image);
@@ -328,6 +332,12 @@ namespace my_hand_eye
         {
             flag = false;
             ps_.reset(pose || (z == z_ellipse));
+            if (pose)
+            {
+                Action ellipse = Action(0, 20, 0).front2left().arm2footprint();
+                target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
+                target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
+            }
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
