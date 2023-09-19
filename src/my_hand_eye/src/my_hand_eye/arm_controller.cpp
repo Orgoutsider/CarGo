@@ -1146,8 +1146,9 @@ namespace my_hand_eye
         cv_image->image = cv_image->image(rect);
         using namespace cv;
         std::vector<cv::Ellipse> ells;
-        resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2)); // 重设大小，可选
-                                                                                                            //*******
+        // 重设大小，可选
+        resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
+        //*******
         // 以下为使用roi区域有选择的调节暗部区域
         //*******
 
@@ -1159,12 +1160,12 @@ namespace my_hand_eye
         cv::threshold(Gray, Thresh_Gray, 120, 255, THRESH_BINARY);
         // 取反获得暗部区域
         bitwise_not(Thresh_Gray, Thresh_Gray);
-        cv::imshow("Thresh_origin", Thresh_Gray);
+        // cv::imshow("Thresh_origin", Thresh_Gray);
 
         // 膨胀操作，消除小噪点，也可以不用这一步，因为后面也会根据轮廓大小进行筛除小噪点
         Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3), cv::Point(-1, -1));
         dilate(Thresh_Gray, Thresh_Gray, kernel);
-        cv::imshow("Thresh_dilate", Thresh_Gray);
+        // cv::imshow("Thresh_dilate", Thresh_Gray);
 
         // 轮廓查找
         std::vector<std::vector<cv::Point>> contours;
@@ -1190,14 +1191,14 @@ namespace my_hand_eye
         // *******
         // 全局颜色增强
         Img_clone = saturation(Img_clone, 10);
-        imshow("resImg", Img_clone);
+        // imshow("resImg", Img_clone);
         // take_picture(cv_image->image);
         Mat hsv;
         cvtColor(Img_clone, hsv, COLOR_BGR2HSV);
         std::vector<Mat1b> hsvs;
         split(hsv, hsvs);
-        imshow("s", hsvs[1]);
-        waitKey(20);
+        // imshow("s", hsvs[1]);
+        // waitKey(20);
         std::vector<cv::Ellipse> ellsYaed;
         yaed_->Detect(hsvs[1], ellsYaed);
         EllipseArray arr;

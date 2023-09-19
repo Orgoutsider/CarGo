@@ -110,6 +110,9 @@ class CalibrateAngular():
                     move_cmd.angular.z = copysign(self.speed, error)
                     self.cmd_vel.publish(move_cmd)
                     r.sleep()
+
+                    # Get the current rotation angle from tf
+                    self.odom_angle = self.get_odom_angle()
                     
                     # Compute how far we have gone since the last measurement
                     delta_angle = self.odom_angular_scale_correction * normalize_angle(self.odom_angle - last_angle)

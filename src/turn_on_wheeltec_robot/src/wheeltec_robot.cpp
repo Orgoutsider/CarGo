@@ -155,16 +155,16 @@ void turn_on_robot::Publish_Odom()
   {
     geometry_msgs::TransformStamped tfs;
     //  |----头设置
-    tfs.header = odom.header;
-    tfs.header.frame_id = "odom";
+    tfs.header.stamp = odom.header.stamp;
+    tfs.header.frame_id = "base_footprint";
     //  |----坐标系 ID
-    tfs.child_frame_id = "base_footprint";
+    tfs.child_frame_id = "odom";
     //  |----坐标系相对信息设置
-    tfs.transform.translation.x = Robot_Pos.X;
-    tfs.transform.translation.y = Robot_Pos.Y;
+    tfs.transform.translation.x = -Robot_Pos.X;
+    tfs.transform.translation.y = -Robot_Pos.Y;
     tfs.transform.translation.z = 0.0;
     //  |--------- 四元数设置
-    tfs.transform.rotation = tf::createQuaternionMsgFromYaw(Robot_Pos.Z);
+    tfs.transform.rotation = tf::createQuaternionMsgFromYaw(-Robot_Pos.Z);
     // 广播器发布数据
     Broadcaster.sendTransform(tfs);
   }
