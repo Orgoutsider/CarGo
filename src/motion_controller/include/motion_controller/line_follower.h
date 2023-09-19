@@ -2,7 +2,7 @@
 #define _LINE_FOLLOWER_H_
 
 #include <boost/thread/lock_guard.hpp>
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/thread.hpp>
 
 #include "motion_controller/field_guide.h"
@@ -23,10 +23,10 @@ namespace motion_controller
         ros::Publisher cmd_vel_publisher_; // 底盘速度话题发布
         ros::Publisher theta_publisher_;   // 调试时使用，观察theta变化
         PIDController pid_;
-        boost::mutex mtx_;
 
     public:
         LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);
+        boost::recursive_mutex mtx; // 递归锁可以允许一个线程对同一互斥量多次加锁
         bool debug;       // 动态调参，与子类（MotionController）共用
         bool startup;     // 调参，即停选项
         bool has_started; // 是否已经启动

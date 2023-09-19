@@ -24,7 +24,7 @@ namespace motion_controller
     {
         if (!debug)
             return;
-        boost::lock_guard<boost::mutex> lk(mtx_);
+        boost::lock_guard<boost::recursive_mutex> lk(mtx);
         if (front_back_ != config.front_back)
             front_back_ = config.front_back;
         if (front_left_ != config.front_left)
@@ -47,7 +47,7 @@ namespace motion_controller
         {
             if (!has_started)
             {
-                boost::lock_guard<boost::mutex> lk(mtx_);
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
                 has_started = true;
                 if (theta > M_PI * 3 / 4 || theta <= -M_PI * 3 / 4)
                     theta = M_PI;
@@ -72,7 +72,7 @@ namespace motion_controller
             TwistMightEnd tme;
             tme.end = true;
             cmd_vel_publisher_.publish(tme);
-            boost::lock_guard<boost::mutex> lk(mtx_);
+            boost::lock_guard<boost::recursive_mutex> lk(mtx);
             has_started = false;
         }
         else
@@ -95,7 +95,7 @@ namespace motion_controller
                         : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
             bool flag = false;
             {
-                boost::lock_guard<boost::mutex> lk(mtx_);
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
                 flag = pid_.update({theta}, now, control, success);
             }
             if (flag)
@@ -157,7 +157,7 @@ namespace motion_controller
                         : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
             bool flag = false;
             {
-                boost::lock_guard<boost::mutex> lk(mtx_);
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
                 flag = pid_.update({theta}, now, control, success);
             }
             if (flag)
@@ -187,7 +187,7 @@ namespace motion_controller
 
     void LineFollower::veer(bool front_back, bool front_left)
     {
-        boost::lock_guard<boost::mutex> lk(mtx_);
+        boost::lock_guard<boost::recursive_mutex> lk(mtx);
         front_back_ = front_back;
         front_left_ = front_left;
     }

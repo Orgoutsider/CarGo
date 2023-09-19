@@ -28,7 +28,6 @@ namespace motion_controller
         double delta_y_;
         double delta_theta_;
         bool finish_turning_; // 转弯之后关闭弯道视觉订阅
-        boost::mutex mtx_;
         tf2_ros::Buffer buffer_;
         tf2_ros::TransformListener listener_;
         ros::Timer timer_;                           // 全局定位定时器
@@ -40,6 +39,7 @@ namespace motion_controller
         geometry_msgs::Pose2D move_pose_, arm_pose_; // 目标姿态
         ros::Time move_time_, arm_time_;             // 接收时间
         ros::Time move_stamp_, arm_stamp_;           // 感知时间
+        routeConfig config_;
         dynamic_reconfigure::Server<routeConfig> dr_server_;
         bool move_active_, arm_active_;           // 传感器是否活动
         bool move_initialized_, arm_initialized_; // 传感器已经初始化
