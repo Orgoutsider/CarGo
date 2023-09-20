@@ -361,7 +361,11 @@ namespace my_hand_eye
 		{
 			msg.end = false;
 			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
+			{
+				if (!debug_ && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+					ROS_WARN_ONCE("If you want to palletize, set loop to 1.");
 				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
+			}
 			else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
 				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
 			else

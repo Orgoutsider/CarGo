@@ -1676,6 +1676,8 @@ namespace my_hand_eye
         }
         static bool last_finish = true;
         static bool rst = false;
+        static double target_x;
+        static double target_y;
         const int MAX = 5; // 读取5次求平均位姿
         if (!msg.end && last_finish && !store)
         {
@@ -1683,6 +1685,8 @@ namespace my_hand_eye
             last_finish = false;
             if (pose)
             {
+                target_x = target_pose.pose[target_pose.target_ellipse].x;
+                target_y = target_pose.pose[target_pose.target_ellipse].y;
                 Action ellipse = Action(0, 20, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
@@ -1696,6 +1700,7 @@ namespace my_hand_eye
             if (pose)
             {
                 clear(true, true, true, true);
+
                 if (rst)
                 {
                     // 尚未获得顺序，任意指定顺序
@@ -1765,6 +1770,8 @@ namespace my_hand_eye
         if (store && last_finish)
         {
             average_pose_once();
+            target_pose.pose[target_pose.target_ellipse].x = target_x;
+            target_pose.pose[target_pose.target_ellipse].y = target_y;
             // average_pose(msg.pose);
             // msg.header = image_rect->header;
             // msg.header.frame_id = "base_footprint";
