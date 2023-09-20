@@ -793,25 +793,31 @@ namespace my_hand_eye
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
-            double ex = (sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - (-x));
-            double ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
-            // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
-            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
-            err_x += ex;
-            err_y += ey;
+            if (x && y)
+            {
+                double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
+                double ex = (sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - (-x));
+                double ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
+                // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
+                ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+                err_x += ex;
+                err_y += ey;
+            }
         }
         else if (color_map_[color] == 3)
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
-            double ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - x);
-            double ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
-            // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
-            ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
-            err_x += ex;
-            err_y += ey;
+            if (x && y)
+            {
+                double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
+                double ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - x);
+                double ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
+                // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
+                ROS_INFO("err_x: %lf err_y: %lf order: %d", ex, ey, color_map_[color]);
+                err_x += ex;
+                err_y += ey;
+            }
         }
         err_x = err.x * cos(target_ellipse_theta_) +
                 err.y * sin(target_ellipse_theta_);
@@ -1680,6 +1686,18 @@ namespace my_hand_eye
         else if (msg.end && !last_finish && !store)
         {
             last_finish = msg.end;
+            if (pose)
+            {
+                clear(true, true, true, true);
+                if (rst)
+                {
+                    // 尚未获得顺序，任意指定顺序
+                    color_map_.insert(std::pair<Color, int>(color_red, 1));
+                    color_map_.insert(std::pair<Color, int>(color_green, 2));
+                    color_map_.insert(std::pair<Color, int>(color_blue, 3));
+                    rst = false;
+                }
+            }
             return true;
         }
         else if (msg.end && last_finish && store)
@@ -1763,6 +1781,15 @@ namespace my_hand_eye
         else if (msg.end && !last_finish && !store)
         {
             last_finish = msg.end;
+            clear(true, true, true, true);
+            if (rst)
+            {
+                // 尚未获得顺序，任意指定顺序
+                color_map_.insert(std::pair<Color, int>(color_red, 1));
+                color_map_.insert(std::pair<Color, int>(color_green, 2));
+                color_map_.insert(std::pair<Color, int>(color_blue, 3));
+                rst = false;
+            }
             return true;
         }
         else if (msg.end && last_finish && store)

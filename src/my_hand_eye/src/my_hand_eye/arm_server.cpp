@@ -391,7 +391,7 @@ namespace my_hand_eye
 				msg.pose.theta = msg.not_change;
 				msg.header = image_rect->header;
 				msg.header.frame_id = "base_footprint";
-				if ((image_rect->header.stamp - err_time).toSec() > 13) // 超时
+				if ((image_rect->header.stamp - err_time).toSec() > 5) // 超时
 				{
 					finish_adjusting_ = true;
 					finish_ = true;
@@ -399,6 +399,11 @@ namespace my_hand_eye
 					msg.end = true;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
+					// 结束该函数
+					if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
+						arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
+					else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+						arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
 					arm_controller_.theta_turn = 0;
 					bool pal = (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area);
 					arm_controller_.put(which_color(), pal, false);
@@ -416,11 +421,6 @@ namespace my_hand_eye
 						arm_controller_.catch_after_putting(which_color(), true);
 						next_task();
 					}
-					// 结束该函数
-					if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
-						arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
-					else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
-						arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 						arm_controller_.ready(arm_goal_.left_ready);
 					arm_goal_.route = arm_goal_.route_rest;
