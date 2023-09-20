@@ -38,4 +38,4 @@ palletize2_action: [-36.5089, -13.2114, 11.3079]
 # palletize3_action: [-36.3729, 3.05343, 11.3079]
 palletize3_action: [-36.5229, 2.57343, 11.3079]
 
-loop1_enlarge: [1.01, 0.94, 0.0]
+loop1_enlarge: [1.005, 0.935, 0.0]
