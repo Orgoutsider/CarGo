@@ -455,7 +455,8 @@ namespace my_hand_eye
     {
         Action a = pal ? action_palletize[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal])
                        : action_put[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal]);
-        a += pal ? action_palletize[order] : action_put[order];
+        a += (pal ? action_palletize[order] : action_put[order]);
+        ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
         {

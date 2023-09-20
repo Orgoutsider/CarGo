@@ -684,6 +684,10 @@ namespace my_hand_eye
 	{
 		ROS_INFO("Adjust angle done!");
 		arm_controller_.theta_turn = req.theta_turn;
+		if (!arm_controller_.theta_turn) // 0
+		{
+			arm_controller_.theta_turn = Pose2DMightEnd::not_change;
+		}
 		return true;
 	}
 } // namespace my_hand_eye

@@ -389,8 +389,8 @@ namespace motion_controller
                 if (feedback->pme.pose.theta != feedback->pme.not_change)
                 {
                     get_position();
-                    double theta = angle_correction(feedback->pme.pose.theta);
-                    theta = (theta + theta_) / 2;
+                    // double theta = angle_correction(feedback->pme.pose.theta);
+                    // theta = (theta + theta_) / 2;
                     ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                     if (where_is_car(follower_.debug, config_.startup) == route_roughing_area)
                     {

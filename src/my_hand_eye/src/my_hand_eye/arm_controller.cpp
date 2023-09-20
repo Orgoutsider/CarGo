@@ -664,7 +664,7 @@ namespace my_hand_eye
         case 1:
             if (left_x_.empty() || left_y_.empty())
             {
-                ROS_WARN_STREAM("left x is empty: " << left_x_.empty() << ", y is empty:" << left_y_.empty());
+                ROS_WARN_STREAM("left x is empty: " << left_x_.empty() << ", y is empty: " << left_y_.empty());
                 x = y = 0;
                 return;
             }
@@ -675,7 +675,7 @@ namespace my_hand_eye
         case 2:
             if (cargo_x_.empty() || cargo_y_.empty())
             {
-                ROS_WARN_STREAM("cargo x is empty: " << cargo_x_.empty() << ", y is empty:" << cargo_y_.empty());
+                ROS_WARN_STREAM("cargo x is empty: " << cargo_x_.empty() << ", y is empty: " << cargo_y_.empty());
                 x = y = 0;
                 return;
             }
@@ -686,7 +686,7 @@ namespace my_hand_eye
         case 3:
             if (right_x_.empty() || right_y_.empty())
             {
-                ROS_WARN_STREAM("right x is empty: " << right_x_.empty() << ", y is empty:" << right_y_.empty());
+                ROS_WARN_STREAM("right x is empty: " << right_x_.empty() << ", y is empty: " << right_y_.empty());
                 x = y = 0;
                 return;
             }
@@ -793,7 +793,10 @@ namespace my_hand_eye
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
+            double theta_tr = Angle(Angle::degree(
+                                        (theta_turn == Pose2DMightEnd::not_change) ? 0 : theta_turn))
+                                  .goal2now(ps_.enlarge_loop[pal])
+                                  .rad();
             double ex = (sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - (-x));
             double ey = -(-y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
             // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
@@ -805,7 +808,10 @@ namespace my_hand_eye
         {
             double x, y;
             average_position(x, y, color_map_[color]);
-            double theta_tr = Angle(Angle::degree(theta_turn)).goal2now(ps_.enlarge_loop[pal]).rad();
+            double theta_tr = Angle(Angle::degree(
+                                        (theta_turn == Pose2DMightEnd::not_change) ? 0 : theta_turn))
+                                  .goal2now(ps_.enlarge_loop[pal])
+                                  .rad();
             double ex = -(sqrt(x * x + y * y) * cos(atan(y / x) - theta_tr) - x);
             double ey = (y - sqrt(x * x + y * y) * sin(atan(y / x) - theta_tr));
             // ROS_INFO_STREAM(x << " " << y << " " << sqrt(x * x + y * y) << " " << atan(y / x) << " " << theta_tr);
@@ -818,7 +824,8 @@ namespace my_hand_eye
         err_y = -err.x * sin(target_ellipse_theta_) +
                 err.y * cos(target_ellipse_theta_);
         err_theta = Angle(Angle::degree(err.theta)).now2goal(ps_.enlarge_loop[pal]).rad();
-        ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf theta_turn:%lf", err_x, err_y, err_theta, theta_turn);
+        ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf theta_turn:%lf", err_x, err_y, err_theta,
+                 (theta_turn == Pose2DMightEnd::not_change) ? 0 : theta_turn);
         // err_x = 0;
         // err_y = 0;
     }
