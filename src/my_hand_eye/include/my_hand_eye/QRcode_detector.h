@@ -1,8 +1,12 @@
 #ifndef _QRCODE_DETECTOR_H_
 #define _QRCODE_DETECTOR_H_
 
+#define FRAME_HEADER 0X7B	 // Frame head //帧头
+#define FRAME_TAIL 0X7D		 // Frame tail //帧尾
+
 #include <ros/ros.h>
 #include <std_msgs/String.h>
+#include <serial/serial.h>
 
 namespace my_hand_eye
 {
@@ -13,6 +17,9 @@ namespace my_hand_eye
         ros::NodeHandle pnh_;
         ros::Subscriber QR_code_subscriber_;
         ros::Publisher QR_code_publisher_;
+        ros::Timer esp32_timer_;
+        // 声明串口对象
+        serial::Serial esp32_serial_;
         bool flag_; // 是否已检测到二维码
         // 文字坐标，假定显示文字的图像为1080p，已预设好
         const int ptx_info[6] = {350, 800, 1240, 350, 800, 1240};
@@ -26,11 +33,14 @@ namespace my_hand_eye
         const int txt_thick = 50;
     public:
         QRcodeDetector() = default;
-        ~QRcodeDetector() = default;
+        ~QRcodeDetector();
         void onInit();
-        void Callback(const std_msgs::StringConstPtr &info);
+        void QRcodeCallback(const std_msgs::StringConstPtr &info);
         void connectCallback();
         void disconnectCallback();
+        void esp32Callback(const ros::TimerEvent &event);
+        bool checkString(const std::string &str);
+        void screenShow(const cv::Mat &img);
     };
 }
 #endif // !_QRCODE_DETECTOR_H_
