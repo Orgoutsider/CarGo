@@ -7,12 +7,15 @@
 #include <ros/ros.h>
 #include <std_msgs/String.h>
 #include <serial/serial.h>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace my_hand_eye
 {
     class QRcodeDetector : public nodelet::Nodelet
     {
     private:
+        boost::mutex mtx_;
         ros::NodeHandle nh_;
         ros::NodeHandle pnh_;
         ros::Subscriber QR_code_subscriber_;
@@ -33,14 +36,14 @@ namespace my_hand_eye
         const int txt_thick = 50;
     public:
         QRcodeDetector() = default;
-        ~QRcodeDetector();
+        ~QRcodeDetector() = default;
         void onInit();
         void QRcodeCallback(const std_msgs::StringConstPtr &info);
         void connectCallback();
         void disconnectCallback();
         void esp32Callback(const ros::TimerEvent &event);
         bool checkString(const std::string &str);
-        void screenShow(const cv::Mat &img);
+        void screenShow(cv::Mat &img);
     };
 }
 #endif // !_QRCODE_DETECTOR_H_
