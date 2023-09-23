@@ -97,18 +97,12 @@ namespace my_hand_eye
 					for (const uint8_t &ch : ss)
 					{
 						check = check ^ ch;
-						NODELET_INFO("%c", ch);
 					}
 					if (check == str[DATA_SIZE - 2])
 					{
 						// 去掉帧头
 						ss.erase(ss.begin());
-						NODELET_INFO_STREAM(checkString(ss));
 						break;
-					}
-					else
-					{
-						NODELET_INFO("%c %c", check, str[DATA_SIZE - 2]);
 					}
 				}
 				str.clear();
