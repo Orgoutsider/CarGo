@@ -1,15 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="node_namespace" default="my_hand_eye_do_node" />
-    <arg name="ft_servo" default="ft_servo" />
-    <arg name="show_detections" default="true" />
-    <arg name="camera_name" default="/eye" />
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="flag" default="false" />
     <arg name="given_QR_code" default="true" />
-    <arg name="debug" default="true" />
     <arg name="respawn" default="false" />
-    <arg name="emulation" default="true" />
+    <arg name="usart_port_name" default="esp32" />
 
     <arg if="$(arg respawn)" name="bond" value="" />
     <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
@@ -17,7 +12,7 @@
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
 
     <!-- Example camera launch -->
-    <include file="$(find my_hand_eye)/launch/eye.launch">
+    <include file="$(find my_hand_eye)/launch/front_camera.launch">
         <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
         <arg name="respawn" value="$(arg respawn)"/>
     </include>
@@ -27,26 +22,8 @@
         <arg name="respawn" value="$(arg respawn)"/>
     </include>
 
-    <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector my_hand_eye_manager $(arg bond)" output="screen"/>
-
-    <node pkg="my_hand_eye" type="my_hand_eye_do_node" name="$(arg node_namespace)" output="screen">
-        <!-- <node pkg="nodelet" type="nodelet" name="$(arg node_namespace)" args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager)" output="screen"> -->
-
-        <!-- Remap topics from those used in code to those on the ROS network -->
-        <remap from="image_rect" to="$(arg camera_name)/image_rect_color" />
-
-        <param name="transport_hint" type="string" value="raw" />
-        <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
-        <param name="show_detections" type="bool" value="$(arg show_detections)" />
-        <param name="given_QR_code" type="bool" value="$(arg given_QR_code)" />
-        <param name="white_vmin" type="int" value="120" />
-        <param name="speed_standard_static" type="double" value="0.16" />
-        <param name="speed_standard_motion" type="double" value="0.12" />
-        <param name="fThScoreScore" type="double" value="0.4" />
-        <param name="fMinReliability" type="double" value="0.4" />
-        <param name="flag" type="bool" value="$(arg flag)" />
-        <param name="emulation" type="bool" value="$(arg emulation)" />
-        <param name="debug" type="bool" value="$(arg debug)" />
+    <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector my_hand_eye_manager $(arg bond)" output="screen">
+        <param name="usart_port_name" type="string" value="/dev/$(arg usart_port_name)"/>
+        <param name="serial_baud_rate" type="int" value="9600"/>
     </node>
-
 </launch>

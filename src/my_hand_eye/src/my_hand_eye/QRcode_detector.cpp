@@ -20,7 +20,7 @@ namespace my_hand_eye
 														  boost::bind(&QRcodeDetector::disconnectCallback, this));
 		esp32_timer_ = nh_.createTimer(ros::Rate(10), &QRcodeDetector::esp32Callback, this, false, false);
 		flag_ = false;
-		std::string usart_port_name = pnh_.param<std::string>("usart_port_name", "/dev/c_board"); // Fixed serial port number //固定串口号
+		std::string usart_port_name = pnh_.param<std::string>("usart_port_name", "/dev/esp32"); // Fixed serial port number //固定串口号
 		int serial_baud_rate = pnh_.param<int>("serial_baud_rate", 9600);						  // Communicate baud rate 115200 to the lower machine //和下位机通信波特率9600
 		try
 		{
@@ -66,28 +66,45 @@ namespace my_hand_eye
 	}
 
 	void QRcodeDetector::esp32Callback(const ros::TimerEvent &event)
-	{															 // Intermediate variable //中间变量
-		uint8_t i = 0, check = 0, Receive_Data_Pr[1]; // Temporary variable to save the data of the lower machine //临时变量，保存下位机数据										 // Static variable for counting //静态变量，用于计数
-		static std::string str;
-		// str[count] = Receive_Data_Pr[0]; // Fill the array with serial data //串口数据填入数组
-		if (Receive_Data_Pr[0] == FRAME_HEADER && str.size()) // Ensure that the first data in the array is FRAME_HEADER //确保数组第一个数据为FRAME_HEADER
-			str.clear();
-		else
-			str.push_back(Receive_Data_Pr[0]);
-		const int DATA_SIZE = 10;
-		if (str.size() >= DATA_SIZE)
+	{										   // Intermediate variable //中间变量
+		uint8_t check = 0, Receive_Data_Pr[1]; // Temporary variable to save the data of the lower machine //临时变量，保存下位机数据										 // Static variable for counting //静态变量，用于计数
+		std::string str;
+		while (true)
 		{
-			str.clear();
-			if (*(str.end()) == FRAME_TAIL)
+			try
 			{
-				for (const char &ch : str)
+				esp32_serial_.read(Receive_Data_Pr, sizeof(Receive_Data_Pr));
+			}
+			catch (serial::SerialException &e)
+			{
+				NODELET_WARN_STREAM(e.what());
+				break;
+			}
+			if (Receive_Data_Pr[0] == 0X00)
+				break;
+			if (Receive_Data_Pr[0] == FRAME_HEADER && str.size()) // Ensure that the first data in the array is FRAME_HEADER //确保数组第一个数据为FRAME_HEADER
+				str.clear();
+			else
+				str.push_back(Receive_Data_Pr[0]);
+			const int DATA_SIZE = 10;
+			if (str.size() >= DATA_SIZE)
+			{
+				if (*(str.end()) == FRAME_TAIL)
 				{
-					check = check ^ ch;
+					std::string ss = str.substr(0, DATA_SIZE - 2);
+					for (const char &ch : ss)
+					{
+						check = check ^ ch;
+					}
+					if (check == str[DATA_SIZE - 2])
+					{
+						// 去掉帧头
+						ss.erase(ss.begin());
+						checkString(ss);
+						break;
+					}
 				}
-				if (check == str[DATA_SIZE - 2])
-				{
-					checkString(str.substr(1, 7));
-				}
+				str.clear();
 			}
 		}
 	}
