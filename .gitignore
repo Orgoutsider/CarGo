@@ -39,4 +39,7 @@ src/yolov5_ros/src/yolov5/
 src/yolov5_ros/src/yolov5_deepsort_tensorrt/
 src/yolov5_ros/src/tensorrtx/
 src/lsn10/
+src/imu_utils/
+src/code_utils/
+src/VINS-Fusion-gpu/
 .VSCodeCounter
