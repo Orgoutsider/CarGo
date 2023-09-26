@@ -28,14 +28,13 @@ devel/
 src/cv_camera/
 src/fdilink_ahrs/
 src/image_proc/
-src/realsense-ros-development/
 # src/robot_pose_ekf/
 src/usb_cam/
 src/vision_msgs/
 # src/wheeltec_robot_rc/
 src/zbar_ros/
 src/cv_bridge/
-src/detection_msgs/
+src/kalibr/
 src/yolov5_ros/src/yolov5/
 src/yolov5_ros/src/yolov5_deepsort_tensorrt/
 src/yolov5_ros/src/tensorrtx/

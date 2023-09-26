@@ -102,6 +102,7 @@ namespace my_hand_eye
 					{
 						// 去掉帧头
 						ss.erase(ss.begin());
+						checkString(ss);
 						break;
 					}
 				}
