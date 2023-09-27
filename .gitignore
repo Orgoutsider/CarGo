@@ -18,6 +18,7 @@ _deps
 *.engine
 *.wts
 *.pyc
+*.bag
 build/
 logs/
 devel/
