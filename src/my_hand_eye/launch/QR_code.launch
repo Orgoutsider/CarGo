@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+    <!-- 192.168.43.10 -->
     <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="flag" default="false" />
     <arg name="given_QR_code" default="true" />
