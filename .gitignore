@@ -19,6 +19,7 @@ _deps
 *.wts
 *.pyc
 *.bag
+*.bag.*
 build/
 logs/
 devel/
@@ -45,5 +46,5 @@ src/yolov5_ros/src/tensorrtx/
 src/lsn10/
 src/imu_utils/
 src/code_utils/
-src/VINS-Fusion-gpu/
+# src/VINS-Fusion-gpu/
 .VSCodeCounter
