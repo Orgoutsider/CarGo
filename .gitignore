@@ -47,4 +47,5 @@ src/lsn10/
 src/imu_utils/
 src/code_utils/
 src/VINS-Fusion-gpu/
+src/mono-vo/
 .VSCodeCounter
