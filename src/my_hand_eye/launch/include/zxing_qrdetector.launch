@@ -1,0 +1,39 @@
+<!-- 
+ zxing_qrdetector_demo.launch
+
+ Copyright (C) 2015 Alessandro Francescon
+ 
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License.
+ 
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<launch>
+
+    <arg name="camera" default="front_camera"/>
+
+    <arg name="manager" default="my_hand_eye_manager"/>
+    <!-- Must be globally qualified -->
+    <arg name="respawn" default="false" />
+    <!-- TODO Arguments for debayer, interpolation methods -->
+  
+    <arg if="$(arg respawn)" name="bond" value="" />
+    <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+
+	<!-- The QR detector nodeler -->
+	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet image_nodelet">
+		<param name="adaptive_threshold_block_size" value="201" />
+		<param name="adaptive_threshold_threshold" value="21" />
+                <rosparam param="qr_code_points">[0.0, 0.0, 0.0, 0.0, 0.125, 0.0, 0.125, 0.0, 0.0]</rosparam>
+		<param name="ignore_point_in_excess" value="true" />
+	</node>
+
+</launch>
