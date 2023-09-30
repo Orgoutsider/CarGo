@@ -16,10 +16,10 @@ namespace my_hand_eye
           parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
-          z_parking_area(1.40121),
-          z_ellipse(4.68369),
-          z_palletize(11.3079),
-          z_turntable(13.27052) // 比赛转盘
+          z_parking_area(0.30121),
+          z_ellipse(3.58369),
+          z_palletize(10.2079),
+          z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到下面
     {
         cargo_x_.reserve(5);
@@ -35,10 +35,10 @@ namespace my_hand_eye
           parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
-          z_parking_area(1.40121),
-          z_ellipse(4.68369),
-          z_palletize(11.3079),
-          z_turntable(13.27052) // 比赛转盘
+          z_parking_area(0.30121),
+          z_ellipse(3.58369),
+          z_palletize(10.2079),
+          z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
@@ -504,8 +504,8 @@ namespace my_hand_eye
                 }
             }
             // 防止超出车道
-            if (ellipse_x < -35.5)
-                ellipse_x = -35.5;
+            if (ellipse_x < -34)
+                ellipse_x = -34;
             else if (ellipse_x > -27.5)
                 ellipse_x = -27.5;
             if (ellipse_y < -ARM_P - 8)

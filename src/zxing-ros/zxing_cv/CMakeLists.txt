@@ -15,6 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 2.8.3)
+if (POLICY CMP0046)
+  cmake_policy(SET CMP0046 NEW)
+endif (POLICY CMP0046)
 
 project(zxing_cv)
 
@@ -39,7 +42,7 @@ include_directories(
 
 add_library(qr_detector_nodelet src/qr_detector_nodelet.cpp src/qr_detector.cpp)
 
-add_dependencies(qr_detector_nodelet qr_detector_gencfg ${catkin_EXPORTED_TARGETS})
+add_dependencies(qr_detector_nodelet ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(qr_detector_nodelet
         ${catkin_LIBRARIES}
@@ -47,7 +50,7 @@ target_link_libraries(qr_detector_nodelet
 
 add_executable(qr_detector_node src/qr_detector_node.cpp src/qr_detector.cpp)
 
-add_dependencies(qr_detector_node qr_detector_gencfg ${catkin_EXPORTED_TARGETS})
+add_dependencies(qr_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(qr_detector_node
         ${catkin_LIBRARIES}
