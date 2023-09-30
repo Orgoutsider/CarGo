@@ -102,7 +102,7 @@ namespace my_hand_eye
         double theta_turn;      // 车体偏转的角度
         const double z_turntable;
         const double z_ellipse;
-        const double z_palletize;
+        // const double z_palletize;
         double z_parking_area;
         int threshold;
         bool show_detections;
