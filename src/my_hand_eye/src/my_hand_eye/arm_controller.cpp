@@ -67,6 +67,7 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue default_action;
         XmlRpc::XmlRpcValue back_action;
         XmlRpc::XmlRpcValue down_action;
+        XmlRpc::XmlRpcValue catch_correct_action;
         XmlRpc::XmlRpcValue put1_action;
         XmlRpc::XmlRpcValue put2_action;
         XmlRpc::XmlRpcValue put3_action;
@@ -141,6 +142,7 @@ namespace my_hand_eye
         ps_.set_action(default_action);
         ps_.set_action(back_action, "back");
         ps_.set_action(down_action, "down");
+        ps_.set_action(catch_correct_action, "catch_correct");
         ps_.set_action(put1_action, "put1");
         ps_.set_action(put2_action, "put2");
         ps_.set_action(put3_action, "put3");
@@ -327,6 +329,7 @@ namespace my_hand_eye
         if (pose && center)
         {
             ROS_WARN("log_cargo: Cannot set both of center and pose to true");
+            return false;
         }
         static bool flag = true; // 尚未初始化位姿
         static bool rst = true;
@@ -339,6 +342,10 @@ namespace my_hand_eye
                 Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
+            }
+            else if (z != z_ellipse)
+            {
+                ps_.correction = true;
             }
             return false;
         }
@@ -887,6 +894,7 @@ namespace my_hand_eye
             current_color_ = color;
             flag = false;
             ps_.reset();
+            ps_.correction = true;
             return false;
         }
         else if (current_color_ != color || cargo_x_.size() >= MAX_SIZE)
@@ -1027,6 +1035,7 @@ namespace my_hand_eye
         if (can_catch_ && !stop_) // 抓后重启或第一次
         {
             ps_.reset();
+            ps_.correction = true;
             current_color_ = color;
             can_catch_ = false;
             state = DETECTING;
@@ -1043,6 +1052,7 @@ namespace my_hand_eye
             stop_ = false;
             can_catch_ = false;
             ps_.reset();
+            ps_.correction = true;
             state = DETECTING;
             current_color_ = color;
             return false;
@@ -1167,6 +1177,7 @@ namespace my_hand_eye
             can_catch_ = true;
             stop_ = false;
             finish = true;
+            ps_.correction = false;
             // 此后不再判断对应的颜色是否有障碍物
             if (tracker_.left_color == color_next)
             {
@@ -1739,6 +1750,10 @@ namespace my_hand_eye
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
                 rst = true;
             }
+            else
+            {
+                ps_.correction = true;
+            }
             return false;
         }
         else if (msg.end && !last_finish && !store)
@@ -1747,7 +1762,6 @@ namespace my_hand_eye
             if (pose)
             {
                 clear(true, true, true, true);
-
                 if (rst)
                 {
                     // 尚未获得顺序，任意指定顺序
@@ -1756,6 +1770,10 @@ namespace my_hand_eye
                     color_map_.insert(std::pair<Color, int>(color_blue, 3));
                     rst = false;
                 }
+            }
+            else
+            {
+                ps_.correction = true;
             }
             return true;
         }

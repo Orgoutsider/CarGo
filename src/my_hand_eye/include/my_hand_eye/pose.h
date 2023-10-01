@@ -44,9 +44,9 @@ namespace my_hand_eye
         Action action_default;
         Action action_left;
         Action action_back;
+        Action action_catch_correct; // 抓取外参校正
         Action action_right;
         Action action_down;
-        Action action_ellipse;
         Action action_put[4];
         Action action_palletize[4];
         const double fx = 788.709302;
@@ -65,6 +65,7 @@ namespace my_hand_eye
         double wait_until_static(u8 ID[], u8 IDN, bool show_load = false);
         // 等待静止且到达指定位置附近，可指定允差
         void wait_until_arriving(u8 ID[], u8 IDN, int tolerance);
+        cv::Mat action2cv(Action *action); // Action转平移矩阵
         cv::Mat R_cam_to_end();
         cv::Mat T_cam_to_end();
         // 在y > 0处使用
@@ -80,6 +81,7 @@ namespace my_hand_eye
 
     public:
         Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat = false, bool look = true); // 初始化
+        bool correction;                                                            // 外参校正
         double tightness;                                                           // 取值0～1，为0时最松，为1时最紧
         Action enlarge_loop[2];                                                     // 从图像坐标到实际坐标的放缩
         bool begin(const char *argv);                                               // 打开串口

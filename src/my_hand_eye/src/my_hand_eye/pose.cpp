@@ -8,6 +8,7 @@ namespace my_hand_eye
     ArmPose::ArmPose() : empty(true){};
 
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : tightness(cat), look_(look),
+                                                                       correction(false),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr),
                                                                        Id{0, 1, 2, 3, 4, 5}
@@ -89,6 +90,12 @@ namespace my_hand_eye
             action_down = Action((double)action[0], (double)action[1], (double)action[2]);
             ROS_INFO_STREAM("Set action " << name);
             ARM_INFO_XYZ(action_down);
+        }
+        else if (name == "catch_correct")
+        {
+            action_catch_correct = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set action " << name);
+            ARM_INFO_XYZ(action_catch_correct);
         }
         else if (name == "put1" || name == "put2" || name == "put3")
         {
@@ -708,6 +715,11 @@ namespace my_hand_eye
     //     return valid;
     // }
 
+    cv::Mat Pos::action2cv(Action *action)
+    {
+        return (cv::Mat_<double>(3, 1) << action->x, action->y, action->z);
+    }
+
     cv::Mat Pos::R_cam_to_end()
     {
         return (cv::Mat_<double>(3, 3) << 0.03550199209038052, -0.273647536331188, 0.9611746118252841,
@@ -718,7 +730,8 @@ namespace my_hand_eye
     cv::Mat Pos::T_cam_to_end()
     {
         // return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.368791829, 0.825703402136746);
-        return (cv::Mat_<double>(3, 1) << -0.07835864392309588, -0.568791829, 1.525703402136746);
+        Action t = correction ? action_catch_correct : Action(-0.07835864392309588, -0.568791829, 1.525703402136746);
+        return action2cv(&t);
     }
 
     cv::Mat Pos::R_end_to_base()
@@ -748,8 +761,7 @@ namespace my_hand_eye
 
     cv::Mat Pos::T_end_to_base()
     {
-        cv::Mat T = (cv::Mat_<double>(3, 1) << x, y, z);
-        return T;
+        return action2cv(this);
     }
 
     ArmPose Pos::end_to_base_now()
