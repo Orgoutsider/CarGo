@@ -20,7 +20,7 @@
         <arg name="camera_name" value="/eye" />
         <arg name="nodelet_manager" value="my_hand_eye_manager" />
         <arg name="flag" value="false" />
-        <arg name="given_QR_code" value="false" />
+        <arg name="given_QR_code" value="true" />
         <arg name="emulation" value="false" />
         <arg name="debug" value="false" />
     </include>

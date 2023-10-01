@@ -13,8 +13,8 @@ namespace my_hand_eye
 
         // 偏差必须大于0.01
         tolerance[target_center].theta = Pose2DMightEnd::not_change;
-        tolerance[target_center].x = 0.015;
-        tolerance[target_center].y = 0.015;
+        tolerance[target_center].x = 0.012;
+        tolerance[target_center].y = 0.012;
 
         // pose[target_ellipse].theta = Angle(-5.632506667).rad();
         pose[target_ellipse].theta = Pose2DMightEnd::not_change;

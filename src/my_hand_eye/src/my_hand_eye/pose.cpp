@@ -265,7 +265,7 @@ namespace my_hand_eye
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
             if (z < 7 && cat)
             {
-                Position[3] -= 270; // 防止碰到物料
+                Position[3] -= 320; // 防止碰到物料
             }
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             u8 ID1[] = {1, 3, 4};
@@ -278,7 +278,7 @@ namespace my_hand_eye
             wait_until_static(ID2, 1);
             if (z < 7 && cat)
             {
-                Position[3] += 270;
+                Position[3] += 320;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
                 u8 ID[] = {3};
                 wait_until_static(ID, 1);
