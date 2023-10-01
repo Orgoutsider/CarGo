@@ -29,12 +29,13 @@ namespace my_hand_eye
     {
         if (!_is_quadrilateral())
             return false;
-        double maxCosine;
+        double maxCosine = 0;
         for (int j = 2; j < 5; j++)
         {
             double cosine = fabs(_cosine(j % 4, j - 2, j - 1));
             maxCosine = MAX(maxCosine, cosine);
         }
+        // ROS_INFO_STREAM("1 " << maxCosine);
         // 轮廓角度的最大余弦，值越小角度越接近90，判断条件越苛刻
         return maxCosine < 0.85;
     }
@@ -76,9 +77,10 @@ namespace my_hand_eye
 
     BestSquare::BestSquare(std::vector<std::vector<cv::Point>> &contours, double ratio)
     {
-        for (size_t i = 0; i < contours.size(); i++)
+        for (std::vector<cv::Point> &contour : contours)
         {
-            Square s(contours[i]);
+            Square s(contour);
+            // ROS_INFO_STREAM(s.area / ratio / ratio << " " << s.length / ratio);
             // 正方形判断和边长排序（起停区边长30cm）
             if (s.area > 100 * ratio * ratio && s.is_square() &&
                 fabs(s.length - 30 * ratio) < fabs(best.length - 30 * ratio))

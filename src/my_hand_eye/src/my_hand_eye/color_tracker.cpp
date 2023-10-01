@@ -443,6 +443,8 @@ namespace my_hand_eye
             stop = ros::Time::now();
             return false; // 放弃太远的物料
         }
+        else
+            ROS_INFO_STREAM(abs(theta + CV_PI / 2) / CV_PI << " pi of theta is ok to catch.");
         if (left_color)
         {
             double t = theta - 2.0 / 3 * CV_PI;

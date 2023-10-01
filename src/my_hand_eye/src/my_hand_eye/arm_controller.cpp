@@ -1403,9 +1403,9 @@ namespace my_hand_eye
             M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;   // 平移
             // ROS_INFO_STREAM(M);
             warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size());
-            cv_image->image = cv_image->image(rect).clone();
             // imshow("src", cv_image->image);
             // waitKey(100);
+            cv_image->image = cv_image->image(rect).clone();
             // resize(cv_image->image, cv_image->image, cv_image->image.size() / 2);
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
@@ -1421,7 +1421,8 @@ namespace my_hand_eye
             // imshow("threshold", srcbinary);
             // waitKey(1);
             Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
-            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 1); // 闭操作去除噪点
+            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除噪点
+            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1));     // 开操作去除缺口
             // imshow("MORPH_OPEN", srcbinary);
             // waitKey(1);
             Mat edges;
@@ -1471,7 +1472,13 @@ namespace my_hand_eye
                 else
                 {
                     if (show_detections && !cv_image->image.empty())
+                    {
+                        for (size_t i = 0; i < contours.size(); i++)
+                        {
+                            drawContours(cv_image->image, contours, i, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
+                        }
                         debug_image = cv_image->toImageMsg();
+                    }
                     ROS_WARN("Could not find parking area!");
                     return false;
                 }
