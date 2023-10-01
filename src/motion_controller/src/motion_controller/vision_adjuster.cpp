@@ -11,7 +11,7 @@ namespace motion_controller
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(2.1), ki_eye_angular_(0.21), kd_eye_angular_(0.4),
           kp_eye_linear_(1.2), ki_eye_linear_(0.12), kd_eye_linear_(0.31),
-          thresh_angular_(0.02), thresh_linear_x_(0.005), thresh_linear_y_(0.005),
+          thresh_angular_(0.02), thresh_linear_x_(0.01), thresh_linear_y_(0.005),
           limiting_freq_(2.5),
           pid_({0}, {kp_eye_angular_},
                {ki_eye_angular_}, {kd_eye_angular_},
@@ -117,7 +117,7 @@ namespace motion_controller
                     pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                                   {thresh_linear_x_, thresh_linear_y_, 0.005},
+                                                   {0.005, thresh_linear_y_, 0.005},
                                                    {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
                                                    {limiting_freq_, limiting_freq_, limiting_freq_});
                     return;
@@ -151,7 +151,7 @@ namespace motion_controller
                     pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                                   {thresh_linear_x_, thresh_linear_y_, 0.005}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
+                                                   {0.005, thresh_linear_y_, 0.005}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
                                                    {limiting_freq_, limiting_freq_, limiting_freq_});
                 }
                 else
@@ -159,7 +159,7 @@ namespace motion_controller
                     pid_ = PIDControllerWithFilter({0, 0}, {kp_eye_linear_, kp_eye_angular_},
                                                    {ki_eye_linear_, ki_eye_angular_},
                                                    {kd_eye_linear_, kd_eye_angular_},
-                                                   {thresh_linear_x_, 0.005}, {0.02, 0.05}, {0.2, 0.4},
+                                                   {0.005, 0.005}, {0.02, 0.05}, {0.2, 0.4},
                                                    {limiting_freq_, limiting_freq_});
                 }
             }

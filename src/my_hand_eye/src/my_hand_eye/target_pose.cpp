@@ -13,8 +13,8 @@ namespace my_hand_eye
 
         // 偏差必须大于0.01
         tolerance[target_center].theta = Pose2DMightEnd::not_change;
-        tolerance[target_center].x = 0.012;
-        tolerance[target_center].y = 0.012;
+        tolerance[target_center].x = 0.014;
+        tolerance[target_center].y = 0.014;
 
         // pose[target_ellipse].theta = Angle(-5.632506667).rad();
         pose[target_ellipse].theta = Pose2DMightEnd::not_change;
@@ -36,7 +36,7 @@ namespace my_hand_eye
         tolerance[target_border].x = Pose2DMightEnd::not_change;
         tolerance[target_border].y = 0.01;
 
-        Action parking_area = Action(-1.524004444, 21.5, 0).arm2footprint();
+        Action parking_area = Action(-2.024004444, 21.5, 0).arm2footprint();
         pose[target_parking_area].theta = Angle(-5.934951026).rad();
         pose[target_parking_area].x = parking_area.x;
         pose[target_parking_area].y = parking_area.y;

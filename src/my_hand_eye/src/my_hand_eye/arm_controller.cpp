@@ -92,6 +92,10 @@ namespace my_hand_eye
         {
             ROS_ERROR("No down action specified");
         }
+        if (!pnh.getParam("catch_correct_action", catch_correct_action))
+        {
+            ROS_ERROR("No catch correct action specified");
+        }
         if (!pnh.getParam("put1_action", put1_action))
         {
             ROS_ERROR("No put1 action specified");

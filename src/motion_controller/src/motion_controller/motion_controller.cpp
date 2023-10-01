@@ -573,9 +573,9 @@ namespace motion_controller
                               arm_pose_.x;
                 goal.pose.y = arm_pose_.y +
                               length_from_parking_area_ * sin(arm_pose_.theta);
-                goal.pose.theta = arm_pose_.theta;
+                // goal.pose.theta = arm_pose_.theta;
                 goal.precision = true;
-                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                ac_move_.sendGoalAndWait(goal, ros::Duration(20), ros::Duration(0.1));
                 if (follower_.debug)
                 {
                     {
