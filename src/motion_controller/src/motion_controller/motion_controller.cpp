@@ -397,7 +397,10 @@ namespace motion_controller
                         set_position(-(x_roughing_area_ + length_from_ellipse_ +
                                        feedback->pme.pose.x * cos(feedback->pme.pose.theta) +
                                        feedback->pme.pose.y * sin(feedback->pme.pose.theta)),
-                                     y_, theta_);
+                                     length_field_ - width_from_roughing_area_ -
+                                         feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
+                                         feedback->pme.pose.x * sin(feedback->pme.pose.theta),
+                                     theta_);
                     }
                     else if (loop_ == 1)
                     {

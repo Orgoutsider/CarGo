@@ -16,11 +16,13 @@ namespace my_hand_eye
           parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
-          z_parking_area(1.40121),
-          z_ellipse(4.68369),
-          z_palletize(11.3079),
-          z_turntable(13.27052) // 比赛转盘
-    //   初始化列表记得复制一份到下面
+          z_parking_area(0.30121),
+          z_ellipse(3.58369),
+          z_turntable(11.77052) // 比赛转盘
+    //   初始化列表记得复制一份到上面
+    //   z_turntable(16.4750)// 老转盘（弃用）
+    //   z_turntable(15.57)  // 新转盘（弃用）
+    // z_palletize(10.2079),
     {
         cargo_x_.reserve(5);
         cargo_y_.reserve(5);
@@ -35,13 +37,13 @@ namespace my_hand_eye
           parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched(false),
-          z_parking_area(1.40121),
-          z_ellipse(4.68369),
-          z_palletize(11.3079),
-          z_turntable(13.27052) // 比赛转盘
+          z_parking_area(0.30121),
+          z_ellipse(3.58369),
+          z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
+    // z_palletize(10.2079),
     {
         init(nh, pnh);
     }
@@ -129,7 +131,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.702342609)).rad();
+        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.952260769)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -334,7 +336,7 @@ namespace my_hand_eye
             ps_.reset(pose || (z == z_ellipse));
             if (pose)
             {
-                Action ellipse = Action(0, 20, 0).front2left().arm2footprint();
+                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
             }
@@ -504,8 +506,8 @@ namespace my_hand_eye
                 }
             }
             // 防止超出车道
-            if (ellipse_x < -35.5)
-                ellipse_x = -35.5;
+            if (ellipse_x < -34)
+                ellipse_x = -34;
             else if (ellipse_x > -27.5)
                 ellipse_x = -27.5;
             if (ellipse_y < -ARM_P - 8)
@@ -565,6 +567,7 @@ namespace my_hand_eye
         // 对象相对车体的偏角
         if (cnt >= 2)
         {
+            // y = a + bx
             double down = cnt * sum_x2 - sum_x * sum_x;
             double a = (sum_x2 * sum_y - sum_x * sum_xy) / down;
             double b = (cnt * sum_xy - sum_x * sum_y) / down;
@@ -576,10 +579,47 @@ namespace my_hand_eye
         else
             return false;
         if (valid && abs(Angle::degree(theta - target_ellipse_theta_)) > 3)
+        {
             theta = cv::sgn(theta -
                             target_ellipse_theta_) *
                         Angle(3).rad() +
                     target_ellipse_theta_;
+            if (cnt != 2)
+            {
+                // 如果theta过大，尝试找到错误点
+                cv::Vec2f line_try;
+                for (int i = 1; i <= 3; i++)
+                {
+                    double sum_x = 0, sum_y = 0, sum_x2 = 0, sum_xy = 0;
+                    for (int j = 1; j <= 3; j++)
+                    {
+                        if (i == j)
+                            continue;
+                        sum_x += objArray.boxes[color_order_[j].color].center.x;
+                        sum_y += objArray.boxes[color_order_[j].color].center.y;
+                        sum_x2 += objArray.boxes[color_order_[j].color].center.x *
+                                  objArray.boxes[color_order_[j].color].center.x;
+                        sum_xy += objArray.boxes[color_order_[j].color].center.x *
+                                  objArray.boxes[color_order_[j].color].center.y;
+                    }
+                    double down = 2 * sum_x2 - sum_x * sum_x;
+                    double a = (sum_x2 * sum_y - sum_x * sum_xy) / down;
+                    double b = (2 * sum_xy - sum_x * sum_y) / down;
+                    line_try[1] = atan(b) + CV_PI / 2;
+                    line_try[0] = abs(a * sin(line_try[1]));
+                    double dist, theta_try;
+                    if (ps_.calculate_border_position(line_try, z, dist, theta_try, false))
+                    {
+                        if (abs(theta_try - target_ellipse_theta_) <
+                            abs(theta - target_ellipse_theta_))
+                        {
+                            ROS_WARN("get_theta: One point is invalid. Correct theta: %lf", theta);
+                            theta = theta_try;
+                        }
+                    }
+                }
+            }
+        }
         return valid;
     }
 
@@ -1687,7 +1727,7 @@ namespace my_hand_eye
             {
                 target_x = target_pose.pose[target_pose.target_ellipse].x;
                 target_y = target_pose.pose[target_pose.target_ellipse].y;
-                Action ellipse = Action(0, 20, 0).front2left().arm2footprint();
+                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
                 rst = true;

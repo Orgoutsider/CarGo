@@ -63,6 +63,8 @@ namespace my_hand_eye
 		{
 			NODELET_INFO("Unsubscribing from barcode topic.");
 			QR_code_subscriber_.shutdown();
+			if (esp32_timer_.hasStarted())
+				esp32_timer_.stop();
 			esp32_serial_.close();
 		}
 	}

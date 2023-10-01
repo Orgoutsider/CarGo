@@ -26,6 +26,7 @@ import dynamic_reconfigure.client
 from calibration.cfg import CalibrateLinearConfig
 import tf
 
+
 class CalibrateLinear():
     def __init__(self):
         # Give the node a name
@@ -49,10 +50,12 @@ class CalibrateLinear():
         self.cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
 
         # Fire up the dynamic_reconfigure server
-        dyn_server = Server(CalibrateLinearConfig, self.dynamic_reconfigure_callback)
+        dyn_server = Server(CalibrateLinearConfig,
+                            self.dynamic_reconfigure_callback)
 
         # Connect to the dynamic_reconfigure server
-        dyn_client = dynamic_reconfigure.client.Client("calibrate_linear", timeout=60)
+        dyn_client = dynamic_reconfigure.client.Client(
+            "calibrate_linear", timeout=60)
 
         # The base frame is base_footprint for the TurtleBot but base_link for Pi Robot
         self.base_frame = rospy.get_param('~base_frame', '/base_footprint')
@@ -66,7 +69,8 @@ class CalibrateLinear():
         rospy.sleep(2)
 
         # Make sure we see the odom and base frames
-        self.tf_listener.waitForTransform(self.odom_frame, self.base_frame, rospy.Time(), rospy.Duration(60.0))
+        self.tf_listener.waitForTransform(
+            self.odom_frame, self.base_frame, rospy.Time(), rospy.Duration(60.0))
 
         rospy.loginfo("Bring up rqt_reconfigure to control the test.")
 
@@ -77,6 +81,8 @@ class CalibrateLinear():
 
         x_start = self.position.x
         y_start = self.position.y
+        x_start_ori = x_start
+        y_start_ori = y_start
 
         move_cmd = Twist()
 
@@ -89,22 +95,22 @@ class CalibrateLinear():
                 self.position = self.get_position()
 
                 # Compute the Euclidean distance from the target point
-                distance = sqrt(pow((self.position.x - x_start), 2) +
-                                pow((self.position.y - y_start), 2))
+                distance = abs(self.position.x - x_start)
 
                 # Correct the estimated distance by the correction factor
                 distance *= self.odom_linear_scale_correction
 
                 # How close are we?
-                error =  distance - self.test_distance
+                error = distance - self.test_distance
 
                 # Are we close enough?
-                if not self.start_test or abs(error) <  self.tolerance:
+                if not self.start_test or abs(error) < self.tolerance:
                     self.start_test = False
                     params = {'start_test': False}
                     rospy.loginfo(params)
-                    rospy.loginfo(distance)
                     dyn_client.update_configuration(params)
+                    x_start_ori = x_start
+                    y_start_ori = y_start
                 else:
                     # If not, move in the appropriate direction
                     move_cmd.linear.x = copysign(self.speed, -1 * error)
@@ -112,6 +118,8 @@ class CalibrateLinear():
                 self.position = self.get_position()
                 x_start = self.position.x
                 y_start = self.position.y
+                rospy.loginfo("dist:%lf", abs(self.position.x - x_start_ori) *
+                              self.odom_linear_scale_correction)
 
             self.cmd_vel.publish(move_cmd)
             r.sleep()
@@ -131,7 +139,8 @@ class CalibrateLinear():
     def get_position(self):
         # Get the current transform between the odom and base frames
         try:
-            (trans, rot)  = self.tf_listener.lookupTransform(self.odom_frame, self.base_frame, rospy.Time(0))
+            (trans, rot) = self.tf_listener.lookupTransform(
+                self.odom_frame, self.base_frame, rospy.Time(0))
         except (tf.Exception, tf.ConnectivityException, tf.LookupException):
             rospy.loginfo("TF Exception")
             return
@@ -144,10 +153,10 @@ class CalibrateLinear():
         self.cmd_vel.publish(Twist())
         rospy.sleep(1)
 
+
 if __name__ == '__main__':
     try:
         CalibrateLinear()
         rospy.spin()
     except:
-        rospy.loginfo("Calibration terminated.")       
-                                                                                                                           
+        rospy.loginfo("Calibration terminated.")

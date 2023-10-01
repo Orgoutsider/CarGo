@@ -53,7 +53,7 @@
         <param name="factor" type="int" value="40" />
         <param name="speed_standard_static" type="double" value="0.16" />
         <param name="speed_standard_motion" type="double" value="0.12" />
-        <param name="target_ellipse_theta" type="double" value="-4.702342609" />
+        <param name="target_ellipse_theta" type="double" value="-4.952260769" />
         <param name="fThScoreScore" type="double" value="0.4" />
         <param name="fMinReliability" type="double" value="0.4" />
         <param name="flag" type="bool" value="$(arg flag)" />
