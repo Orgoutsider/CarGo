@@ -28,7 +28,8 @@ class QRDetectorNodelet : public nodelet::Nodelet {
 
 public:
 
-    QRDetectorNodelet();
+    QRDetectorNodelet() = default;
+    ~QRDetectorNodelet() = default;
 
 private:
 
