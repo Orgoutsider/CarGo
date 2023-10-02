@@ -226,10 +226,10 @@ namespace motion_controller
                     else if (loop_ == 1)
                     {
                         ac_move_.waitForServer();
-                        MoveGoal goal1;
-                        get_position();
-                        goal1.pose.y = length_from_road();
-                        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+                        // MoveGoal goal1;
+                        // get_position();
+                        // goal1.pose.y = length_from_road();
+                        // ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                         get_position();
                         MoveGoal goal2;
                         goal2.pose.x = length_border();
