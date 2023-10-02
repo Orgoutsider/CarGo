@@ -304,6 +304,11 @@ namespace motion_controller
                         //                   length_car_ / 2 - (-x_);
                         // }
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                        if (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)
+                        {
+                            get_position();
+                            follower_.start(true, theta_);
+                        }
                     }
                     else
                     {
@@ -649,9 +654,12 @@ namespace motion_controller
         }
         if (!follower_.debug)
         {
-            get_position();
-            if (!follower_.has_started)
+            if (!follower_.has_started && (where_is_car(follower_.debug, config_.startup) != route_border ||
+                                           where_is_car(follower_.debug, config_.startup, -1) != route_semi_finishing_area))
+            {
+                get_position();
                 follower_.start(true, theta_);
+            }
             if (!timer_.hasStarted())
                 timer_.start();
             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);

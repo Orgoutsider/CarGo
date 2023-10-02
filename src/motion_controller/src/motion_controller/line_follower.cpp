@@ -44,26 +44,26 @@ namespace motion_controller
     {
         if (start)
         {
-            if (!has_started)
-            {
-                boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                has_started = true;
-                if (theta > M_PI * 3 / 4 || theta <= -M_PI * 3 / 4)
-                    theta = M_PI;
-                else if (theta > M_PI / 4)
-                    theta = M_PI / 2;
-                else if (theta > -M_PI / 4)
-                    theta = 0;
-                else
-                    theta = -M_PI / 2;
-
-                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
-                target_theta_ = theta;
-            }
+            if (theta > M_PI * 3 / 4 || theta <= -M_PI * 3 / 4)
+                theta = M_PI;
+            else if (theta > M_PI / 4)
+                theta = M_PI / 2;
+            else if (theta > -M_PI / 4)
+                theta = 0;
             else
+                theta = -M_PI / 2;
+
+            pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
+            target_theta_ = theta;
+            if (has_started)
             {
                 ROS_WARN("Failed to start/stop LineFollower");
                 return false;
+            }
+            else
+            {
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                has_started = true;
             }
         }
         else if (has_started) // stop
