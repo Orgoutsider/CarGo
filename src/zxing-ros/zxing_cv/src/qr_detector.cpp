@@ -34,19 +34,20 @@
 #include <zxing/qrcode/QRCodeReader.h>
 #include <zxing/MatSource.h>
 
-QRDetector::QRDetector(ros::NodeHandle & _nodeHandle, ros::NodeHandle & _privateNodeHandle) :
-    nodeHandle(_nodeHandle), privateNodeHandle(_privateNodeHandle), imageTransport(nodeHandle) {
+QRDetector::QRDetector(ros::NodeHandle &_nodeHandle, ros::NodeHandle &_privateNodeHandle) : nodeHandle(_nodeHandle), privateNodeHandle(_privateNodeHandle), imageTransport(nodeHandle)
+{
 }
 
-int QRDetector::init() {
+int QRDetector::init()
+{
 
     // Create dynamic reconfigure server
     dynamicReconfigureServer = new dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig>(privateNodeHandle);
-    dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig>::CallbackType callback = boost::bind(& QRDetector::reconfigureCallback, this, _1, _2);
+    dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig>::CallbackType callback = boost::bind(&QRDetector::reconfigureCallback, this, _1, _2);
     dynamicReconfigureServer->setCallback(callback);
 
     // Create image subscriber
-    imageSubscriber = imageTransport.subscribeCamera("/camera/image", 1, & QRDetector::imageCallback, this);
+    imageSubscriber = imageTransport.subscribeCamera("/camera/image", 1, &QRDetector::imageCallback, this);
 
     // Create optimized image publisher
     optimizedImagePublisher = imageTransport.advertise("image_optimized", 1);
@@ -55,46 +56,49 @@ int QRDetector::init() {
     debugImagePublisher = imageTransport.advertise("image_debug", 1);
 
     // Create qr codes publisher
-    qrCodeArrayPublisher = nodeHandle.advertise<zxing_msgs::QRCodeArray>("qr_codes", 5);
+    qrCodeArrayPublisher = nodeHandle.advertise<zxing_msgs::QRCodeArray>("qr_codes", 5,
+                                                                         boost::bind(&QRDetector::connectCallback, this),
+                                                                         boost::bind(&QRDetector::disconnectCallback, this));
 
     // Set barcode reader
     qrReader.reset(new zxing::qrcode::QRCodeReader);
 
     return 0;
-
 }
 
-void QRDetector::reconfigureCallback(zxing_cv::QRDetectorConfig & config, uint32_t level) {
+void QRDetector::reconfigureCallback(zxing_cv::QRDetectorConfig &config, uint32_t level)
+{
 
     // Update configuration
     adaptiveThresholdBlockSize = config.adaptive_threshold_block_size;
     adaptiveThresholdThreshold = config.adaptive_threshold_threshold;
 
-    if (adaptiveThresholdBlockSize % 2 == 0) {
+    if (adaptiveThresholdBlockSize % 2 == 0)
+    {
 
         // Increae by one (adaptive threshold block size must be an odd number
         adaptiveThresholdBlockSize++;
-
     }
-
 }
 
-void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr & imageConstPtr, const sensor_msgs::CameraInfoConstPtr & cameraInfoPtr) {
+void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr, const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr)
+{
 
     cv_bridge::CvImagePtr cvImagePtr;
 
-    try {
+    try
+    {
 
         // Convert image message to OpenCV image
         cvImagePtr = cv_bridge::toCvCopy(imageConstPtr, "");
-
-    } catch (cv_bridge::Exception & ex) {
+    }
+    catch (cv_bridge::Exception &ex)
+    {
 
         // Log
         ROS_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
 
         return;
-
     }
 
     // Convert to grayscale
@@ -104,17 +108,18 @@ void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr & imageConstPtr,
     // Apply adaptive threshold
     cv::adaptiveThreshold(cvImagePtr->image, cvImagePtr->image, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, adaptiveThresholdBlockSize, adaptiveThresholdThreshold);
 
-    if (optimizedImagePublisher.getNumSubscribers() > 0) {
+    if (optimizedImagePublisher.getNumSubscribers() > 0)
+    {
 
         // Publish optimized image message
         optimizedImagePublisher.publish(cvImagePtr->toImageMsg());
-
     }
 
     // Create luminance source
     zxing::Ref<zxing::LuminanceSource> source = zxing::MatSource::create(cvImagePtr->image);
 
-    try {
+    try
+    {
 
         // Read qr code
         zxing::Ref<zxing::Binarizer> binarizer(new zxing::GlobalHistogramBinarizer(source));
@@ -130,101 +135,123 @@ void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr & imageConstPtr,
         // Publish qr code message
         qrCodeArrayPublisher.publish(qrCodeArrayMessage);
 
-        if (debugImagePublisher.getNumSubscribers() > 0) {
+        if (debugImagePublisher.getNumSubscribers() > 0)
+        {
 
             // Publish debug image
             publishDebugImage(imageConstPtr, result);
-
         }
+    }
+    catch (const zxing::ReaderException &e)
+    {
 
-    } catch (const zxing::ReaderException & e) {
-
-        if (debugImagePublisher.getNumSubscribers() > 0) {
+        if (debugImagePublisher.getNumSubscribers() > 0)
+        {
 
             zxing::Ref<zxing::Result> result;
 
             // Publish debug image
             publishDebugImage(imageConstPtr, result);
-
         }
-
-    } catch (const zxing::IllegalArgumentException & e) {
+    }
+    catch (const zxing::IllegalArgumentException &e)
+    {
 
         // Log
         ROS_ERROR("zxing illegal argument exception: %s", e.what());
-
-    } catch (const zxing::Exception & e) {
-
-        // Log
-        ROS_ERROR("zxing reader exception: %s", e.what());
-
-    } catch (const cv::Exception & e) {
-
-        // Log
-        ROS_ERROR("zxing reader exception: %s", e.what());
-
     }
+    catch (const zxing::Exception &e)
+    {
 
+        // Log
+        ROS_ERROR("zxing reader exception: %s", e.what());
+    }
+    catch (const cv::Exception &e)
+    {
+
+        // Log
+        ROS_ERROR("zxing reader exception: %s", e.what());
+    }
 }
 
-void QRDetector::publishDebugImage(const sensor_msgs::ImageConstPtr & imageConstPtr, const zxing::Ref<zxing::Result> & result) {
+void QRDetector::connectCallback()
+{
+    if (!imageSubscriber && qrCodeArrayPublisher.getNumSubscribers() > 0)
+    {
+        ROS_INFO("Connecting to barcode topic.");
+        imageSubscriber = imageTransport.subscribeCamera("/camera/image", 1, &QRDetector::imageCallback, this);
+    }
+}
+
+void QRDetector::disconnectCallback()
+{
+    if (qrCodeArrayPublisher.getNumSubscribers() == 0)
+    {
+        ROS_INFO("Unsubscribing from image topic.");
+        imageSubscriber.shutdown();
+    }
+}
+
+void QRDetector::publishDebugImage(const sensor_msgs::ImageConstPtr &imageConstPtr, const zxing::Ref<zxing::Result> &result)
+{
 
     cv_bridge::CvImagePtr cvImagePtr;
 
-    try {
+    try
+    {
 
         // Convert image message to OpenCV image
         cvImagePtr = cv_bridge::toCvCopy(imageConstPtr, "");
-
-    } catch (cv_bridge::Exception & ex) {
+    }
+    catch (cv_bridge::Exception &ex)
+    {
 
         // Log
         ROS_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
 
         return;
-
     }
 
     // Get result point count
     int resultPointCount = (result == NULL) ? 0 : result->getResultPoints()->size();
 
-    for (int j = 0; j < resultPointCount; j++) {
+    for (int j = 0; j < resultPointCount; j++)
+    {
 
         // Draw circle
-        cv::circle(cvImagePtr->image, toCvPoint(result->getResultPoints()[j]), 10, cv::Scalar( 110, 220, 0 ), 2);
-
+        cv::circle(cvImagePtr->image, toCvPoint(result->getResultPoints()[j]), 10, cv::Scalar(110, 220, 0), 2);
     }
 
     // Draw boundary on image
-    if (resultPointCount > 1) {
+    if (resultPointCount > 1)
+    {
 
-        for (int j = 0; j < resultPointCount; j++) {
+        for (int j = 0; j < resultPointCount; j++)
+        {
 
             // Get start result point
             zxing::Ref<zxing::ResultPoint> previousResultPoint = (j > 0) ? result->getResultPoints()[j - 1] : result->getResultPoints()[resultPointCount - 1];
 
             // Draw line
-            cv::line(cvImagePtr->image, toCvPoint(previousResultPoint), toCvPoint(result->getResultPoints()[j]), cv::Scalar( 110, 220, 0 ),  2, 8 );
+            cv::line(cvImagePtr->image, toCvPoint(previousResultPoint), toCvPoint(result->getResultPoints()[j]), cv::Scalar(110, 220, 0), 2, 8);
 
             // Create text
-            char indexStr[7];
+            char indexStr[20];
             sprintf(indexStr, "Point %d", j);
 
             // Draw text
-            cv::putText(cvImagePtr->image, indexStr, toCvPoint(result->getResultPoints()[j]), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar( 110, 220, 0 ));
+            cv::putText(cvImagePtr->image, indexStr, toCvPoint(result->getResultPoints()[j]), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(110, 220, 0));
 
             // Update previous point
             previousResultPoint = result->getResultPoints()[j];
-
         }
-
     }
 
-    if (result != NULL) {
+    if (result != NULL)
+    {
 
         // Draw text
-        cv::putText(cvImagePtr->image, result->getText()->getText(), toCvPoint(result->getResultPoints()[0]), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar( 110, 220, 0 ));
-
+        cv::putText(cvImagePtr->image, result->getText()->getText(), toCvPoint(result->getResultPoints()[0]), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(110, 220, 0));
     }
 
     // Convert to image message
@@ -233,5 +260,4 @@ void QRDetector::publishDebugImage(const sensor_msgs::ImageConstPtr & imageConst
 
     // Publish image message
     debugImagePublisher.publish(debugImageMsg);
-
 }

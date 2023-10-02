@@ -54,6 +54,19 @@ namespace my_hand_eye
 		{
 			NODELET_INFO("Connecting to barcode topic.");
 			QR_code_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10, &QRcodeDetector::QRcodeCallback, this);
+			if (!esp32_serial_.isOpen())
+			{
+				try
+				{
+					esp32_serial_.open();
+				}
+				catch (serial::IOException &e)
+				{
+					NODELET_ERROR("QRcodeDetector can not open serial port, Please check the serial port cable! "); // If opening the serial port fails, an error message is printed //如果开启串口失败，打印错误信息
+				}
+			}
+			if (esp32_serial_.isOpen() && !esp32_timer_.hasStarted())
+				esp32_timer_.start();
 		}
 	}
 
@@ -70,7 +83,7 @@ namespace my_hand_eye
 	}
 
 	void QRcodeDetector::esp32Callback(const ros::TimerEvent &event)
-	{										   // Intermediate variable //中间变量
+	{								// Intermediate variable //中间变量
 		uint8_t Receive_Data_Pr[1]; // Temporary variable to save the data of the lower machine //临时变量，保存下位机数据										 // Static variable for counting //静态变量，用于计数
 		std::string str;
 		const int DATA_SIZE = 10;

@@ -43,6 +43,10 @@ class QRDetector {
 
         void imageCallback(const sensor_msgs::ImageConstPtr & imageConstPtr, const sensor_msgs::CameraInfoConstPtr & cameraInfoPtr);
 
+        void connectCallback();
+        
+        void disconnectCallback();
+        
         void publishDebugImage(const sensor_msgs::ImageConstPtr & imageConstPtr, const zxing::Ref<zxing::Result> & result);
 
         ros::NodeHandle nodeHandle;
