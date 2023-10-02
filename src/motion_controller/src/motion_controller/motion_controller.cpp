@@ -270,6 +270,7 @@ namespace motion_controller
                         goal.pose.theta = angle_corner();
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                         get_position();
+                        follower_.veer(true, true);
                         follower_.start(true, theta_);
                         boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                         doing();
