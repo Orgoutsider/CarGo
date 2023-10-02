@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   fast_ellipse_detector
   serial
+  zxing_msgs
 )
 set(OpenCV required PATHS /home/nano/opencv4/opencv/build)
 find_package(OpenCV REQUIRED)
@@ -124,7 +125,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_QR_code
- CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime geometry_msgs genmsg vision_msgs sensor_msgs actionlib actionlib_msgs fast_ellipse_detector serial
+ CATKIN_DEPENDS roscpp rospy std_msgs nodelet cv_bridge image_transport message_runtime geometry_msgs genmsg vision_msgs sensor_msgs actionlib actionlib_msgs fast_ellipse_detector serial zxing_msgs
  DEPENDS OpenCV
 )
 
