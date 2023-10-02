@@ -183,6 +183,9 @@ namespace motion_controller
                     return;
                 }
                 goal.route = where_is_car(follower_.debug, config_.startup);
+                int last_route = where_is_car(follower_.debug, config_.startup, -1);
+                int next_route = where_is_car(follower_.debug, config_.startup, 1);
+                // 暂存任务点信息，防止其他进程更改
                 goal.left_ready = !(where_is_car(follower_.debug, config_.startup, 1) == route_raw_material_area ||
                                     where_is_car(follower_.debug, config_.startup, 1) == route_parking_area);
                 if (goal.route == route_QR_code_board)
@@ -249,14 +252,14 @@ namespace motion_controller
                     }
                 }
                 else if (goal.route == route_border &&
-                         (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area ||
-                          where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area))
+                         (last_route == route_roughing_area ||
+                          last_route == route_semi_finishing_area))
                 {
                     ac_move_.waitForServer();
                     MoveGoal goal;
                     int sign =
-                        (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area &&
-                         where_is_car(follower_.debug, config_.startup, 1) == route_raw_material_area)
+                        (last_route == route_semi_finishing_area &&
+                         next_route == route_raw_material_area)
                             ? 1
                             : -1;
                     get_position();
@@ -291,9 +294,10 @@ namespace motion_controller
                     {
                         boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                         finish_turning_ = false;
+                        // 用于防止server移动或follower提前打开
                     }
-                    if (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area ||
-                        where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)
+                    if (last_route == route_roughing_area ||
+                        last_route == route_semi_finishing_area)
                     {
                         MoveGoal goal;
                         get_position();
@@ -304,11 +308,11 @@ namespace motion_controller
                         //                   length_car_ / 2 - (-x_);
                         // }
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                        if (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)
-                        {
-                            get_position();
-                            follower_.start(true, theta_);
-                        }
+                        // if (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)
+                        // {
+                        //     get_position();
+                        //     follower_.start(true, theta_);
+                        // }
                     }
                     else
                     {
@@ -382,7 +386,7 @@ namespace motion_controller
             where_is_car(follower_.debug, config_.startup) != route_raw_material_area &&
             where_is_car(follower_.debug, config_.startup != route_QR_code_board) &&
             (where_is_car(follower_.debug, config_.startup) != route_border ||
-             where_is_car(follower_.debug, config_.startup, -1) != route_semi_finishing_area))
+             where_is_car(follower_.debug, config_.startup, 1) != route_parking_area))
             timer_.stop();
     }
 
@@ -654,8 +658,11 @@ namespace motion_controller
         }
         if (!follower_.debug)
         {
-            if (!follower_.has_started && (where_is_car(follower_.debug, config_.startup) != route_border ||
-                                           where_is_car(follower_.debug, config_.startup, -1) != route_semi_finishing_area))
+            while (!finish_turning_)
+            {
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+            }           
+            if (!follower_.has_started)
             {
                 get_position();
                 follower_.start(true, theta_);
