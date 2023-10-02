@@ -87,6 +87,8 @@ class CalibrateAngular():
         rospy.loginfo("Bring up rqt_reconfigure to control the test.")
 
         reverse = 1
+        turn_angle = 0
+        last_angle = 0
 
         while not rospy.is_shutdown():
             if self.start_test:
@@ -133,6 +135,14 @@ class CalibrateAngular():
                 self.start_test = False
                 params = {'start_test': False}
                 dyn_client.update_configuration(params)
+
+            else:
+                self.odom_angle = self.get_odom_angle()
+                delta_angle = self.odom_angular_scale_correction * normalize_angle(self.odom_angle - last_angle)
+                turn_angle += delta_angle
+                error = self.test_angle - turn_angle
+                rospy.loginfo("err:%lf", error)
+                last_angle = self.odom_angle
 
             rospy.sleep(0.5)
 

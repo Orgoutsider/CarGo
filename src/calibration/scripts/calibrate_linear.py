@@ -80,9 +80,9 @@ class CalibrateLinear():
         self.position = self.get_position()
 
         x_start = self.position.x
-        y_start = self.position.y
+        # y_start = self.position.y
         x_start_ori = x_start
-        y_start_ori = y_start
+        # y_start_ori = y_start
 
         move_cmd = Twist()
 
@@ -110,14 +110,14 @@ class CalibrateLinear():
                     rospy.loginfo(params)
                     dyn_client.update_configuration(params)
                     x_start_ori = x_start
-                    y_start_ori = y_start
+                    # y_start_ori = y_start
                 else:
                     # If not, move in the appropriate direction
                     move_cmd.linear.x = copysign(self.speed, -1 * error)
             else:
                 self.position = self.get_position()
                 x_start = self.position.x
-                y_start = self.position.y
+                # y_start = self.position.y
                 rospy.loginfo("dist:%lf", abs(self.position.x - x_start_ori) *
                               self.odom_linear_scale_correction)
 
