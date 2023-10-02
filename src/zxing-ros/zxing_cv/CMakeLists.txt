@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
         dynamic_reconfigure
 	zxing	
 	zxing_msgs
+        nodelet
 )
 
 generate_dynamic_reconfigure_options(cfg/QRDetector.cfg)
