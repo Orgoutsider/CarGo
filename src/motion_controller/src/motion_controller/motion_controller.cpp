@@ -263,20 +263,25 @@ namespace motion_controller
                     goal.pose.x = sign * length_border();
                     ROS_INFO_STREAM("Move " << goal.pose.x * sign);
                     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                    if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
-                    {
-                        MoveGoal goal;
-                        get_position();
-                        goal.pose.theta = angle_corner();
-                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                        get_position();
-                        follower_.veer(true, true);
-                        follower_.start(true, theta_);
-                        boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                        doing();
-                        finished();
-                        return;
-                    }
+                    // if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+                    // {
+                    //     MoveGoal goal;
+                    //     get_position();
+                    //     goal.pose.theta = angle_corner();
+                    //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    //     get_position();
+                    //     follower_.veer(true, true);
+                    //     follower_.start(true, theta_);
+                    //     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    //     doing();
+                    //     finished();
+                    //     return;
+                    // }
+                }
+                // 保证doing在finished之前
+                {
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    doing();
                 }
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
@@ -312,8 +317,6 @@ namespace motion_controller
                     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                     finish_turning_ = true;
                 }
-                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                doing();
             }
             else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
                      is_doing())
@@ -371,8 +374,10 @@ namespace motion_controller
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
-            (where_is_car(follower_.debug, config_.startup) != route_raw_material_area) &&
-            where_is_car(follower_.debug, config_.startup != route_QR_code_board))
+            where_is_car(follower_.debug, config_.startup) != route_raw_material_area &&
+            where_is_car(follower_.debug, config_.startup != route_QR_code_board) &&
+            (where_is_car(follower_.debug, config_.startup) != route_border ||
+             where_is_car(follower_.debug, config_.startup, -1) != route_semi_finishing_area))
             timer_.stop();
     }
 
@@ -563,7 +568,7 @@ namespace motion_controller
         {
             if (!follower_.debug && result->pme.pose.y != result->pme.not_change &&
                 result->pme.pose.theta != result->pme.not_change &&
-                result->pme.end)
+                result->pme.end) // 如果下一步是启停区或原料区不进
             {
                 ac_move_.waitForServer();
                 ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
@@ -573,13 +578,15 @@ namespace motion_controller
                                        x, y, theta, !(y_ < width_road_)))
                     set_position(x, y, theta); // 进一步可以引入时间提高精确度
             }
-            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-            arm_initialized_ = arm_active_ = false;
-            move_initialized_ = move_active_ = false;
+            {
+                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                arm_initialized_ = arm_active_ = false;
+                move_initialized_ = move_active_ = false;
+            }
             if (where_is_car(follower_.debug, config_.startup, 1) == route_roughing_area)
                 follower_.veer(true, false);
-            // else if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
-            //     follower_.veer(true, true);
+            else if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+                follower_.veer(true, true);
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {

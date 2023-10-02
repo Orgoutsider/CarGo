@@ -496,15 +496,30 @@ namespace my_hand_eye
 								   sensor_msgs::ImagePtr &debug_image)
 	{
 		static ros::Time err_time;
+		Pose2DMightEnd msg;
 		if (finish_)
 		{
+			if (!arm_goal_.left_ready)
+			{
+				msg.end = false;
+				msg.pose.x = msg.not_change;
+				msg.pose.y = msg.not_change;
+				msg.pose.theta = msg.not_change;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
+				ArmResult result;
+				result.pme = msg;
+				as_.setSucceeded(ArmResult(), "Arm finish tasks");
+				arm_goal_.route = arm_goal_.route_rest;
+				arm_controller_.ready(arm_goal_.left_ready);
+				return true;
+			}
 			finish_adjusting_ = false;
 			finish_ = false;
 			ROS_INFO("Start to operate border...");
 			err_time = image_rect->header.stamp;
 		}
 		bool valid = true;
-		Pose2DMightEnd msg;
 		if (!finish_adjusting_)
 		{
 			msg.end = false;
