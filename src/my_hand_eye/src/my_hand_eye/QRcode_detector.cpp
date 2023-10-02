@@ -80,6 +80,8 @@ namespace my_hand_eye
 			std::size_t num = esp32_serial_.read(Receive_Data_Pr, sizeof(Receive_Data_Pr));
 			if (Receive_Data_Pr[0] == 0X00 || num != sizeof(Receive_Data_Pr))
 			{
+				// if (Receive_Data_Pr[0] == 0X00)
+				// 	boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
 				break;
 			}
 			if (Receive_Data_Pr[0] == FRAME_HEADER || str.size()) // Ensure that the first data in the array is FRAME_HEADER //确保数组第一个数据为FRAME_HEADER

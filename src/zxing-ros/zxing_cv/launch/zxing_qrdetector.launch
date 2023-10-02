@@ -19,37 +19,44 @@
 <launch>
 
 	<!-- The nodelet manager -->
-	<node pkg="nodelet" type="nodelet" name="image_nodelet" args="manager">
+	<arg name="nodelet_manager" default="my_hand_eye_manager" />
+	<arg name="respawn" default="false" />
+	<arg if="$(arg respawn)" name="bond" value="" />
+    <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+	<node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
+	<!-- <node pkg="nodelet" type="nodelet" name="my_hand_eye_manager" args="manager"  output="screen">
 		<remap from="/cv_camera/image_raw" to="/camera/image" />
-		<param name="device_id" value="/dev/video0" />
-	</node>
+	</node> -->
 
 	<!-- The camera nodelet -->
-	<node pkg="nodelet" type="nodelet" name="cv_camera" args="load cv_camera/CvCameraNodelet image_nodelet">
-	</node>
+	<include file="$(find my_hand_eye)/launch/front_camera.launch">
+        <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
+        <arg name="respawn" value="$(arg respawn)"/>
+    </include>
 
 	<!-- The QR detector nodeler -->
-	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet image_nodelet">
+	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet $(arg nodelet_manager) $(arg respawn)" output="screen">
 		<param name="adaptive_threshold_block_size" value="201" />
 		<param name="adaptive_threshold_threshold" value="21" />
                 <rosparam param="qr_code_points">[0.0, 0.0, 0.0, 0.0, 0.125, 0.0, 0.125, 0.0, 0.0]</rosparam>
 		<param name="ignore_point_in_excess" value="true" />
+		<remap from="/camera/image" to="/front_camera/image_rect_color" />
 	</node>
 
         <!-- The dynamic reconfigure gui -->
-        <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure">
-        </node>
+        <!-- <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure">
+        </node> -->
 
 	<!-- The optimized image viewer -->
-	<node pkg="image_view" type="image_view" name="optimized_image_viewer" args="image:=/qr_detector/image_optimized">
-	</node>
+	<!-- <node pkg="image_view" type="image_view" name="optimized_image_viewer" args="image:=/qr_detector/image_optimized">
+	</node> -->
 
 	<!-- The debug image viewer -->
-	<node pkg="image_view" type="image_view" name="debug_image_viewer" args="image:=/qr_detector/image_debug">
-	</node>
+	<!-- <node pkg="image_view" type="image_view" name="debug_image_viewer" args="image:=/qr_detector/image_debug">
+	</node> -->
 
         <!-- The rqt topic gui -->
-        <node pkg="rqt_topic" type="rqt_topic" name="rqt_topic">
-        </node>
+        <!-- <node pkg="rqt_topic" type="rqt_topic" name="rqt_topic">
+        </node> -->
 
 </launch>

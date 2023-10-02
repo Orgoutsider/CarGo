@@ -8,6 +8,7 @@
 #include <std_msgs/String.h>
 #include <serial/serial.h>
 #include <boost/thread/lock_guard.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
 namespace my_hand_eye
