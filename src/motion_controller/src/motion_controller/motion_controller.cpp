@@ -12,7 +12,7 @@ namespace motion_controller
           move_initialized_(false), arm_initialized_(false)
     {
         client_done_ = nh.serviceClient<my_hand_eye::moveDone>("moveDone");
-        timer_ = nh.createTimer(ros::Rate(4), &MotionController::_timer_callback, this, false, false);
+        timer_ = nh.createTimer(ros::Rate(10), &MotionController::_timer_callback, this, false, false);
         timeout_ = pnh.param("timeout", 1.0);
         if (!follower_.debug)
         {
@@ -212,7 +212,7 @@ namespace motion_controller
                     goal.precision = true;
                     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 }
-                if (goal.route == route_raw_material_area)
+                else if (goal.route == route_raw_material_area)
                 {
                     if (loop_ == 0)
                     {
@@ -248,6 +248,22 @@ namespace motion_controller
                         return;
                     }
                 }
+                else if (goal.route == route_border &&
+                         (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area ||
+                          where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area))
+                {
+                    ac_move_.waitForServer();
+                    MoveGoal goal;
+                    int sign =
+                        (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area &&
+                         where_is_car(follower_.debug, config_.startup, 1) == route_raw_material_area)
+                            ? 1
+                            : -1;
+                    get_position();
+                    goal.pose.x = sign * length_border();
+                    ROS_INFO_STREAM("Move " << goal.pose.x * sign);
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                }
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
@@ -260,26 +276,15 @@ namespace motion_controller
                     if (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area ||
                         where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)
                     {
-                        ac_move_.waitForServer();
                         MoveGoal goal;
                         get_position();
                         goal.pose.theta = angle_corner();
-                        int sign =
-                            (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area &&
-                             where_is_car(follower_.debug, config_.startup, 1) == route_raw_material_area)
-                                ? 1
-                                : -1;
-                        goal.pose.x = sign * length_border();
-                        ROS_INFO_STREAM("Move " << goal.pose.x * sign);
-                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                         if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
                         {
-                            get_position();
-                            MoveGoal goal;
-                            goal.pose.x = -(x_road_up_ + width_field_ - width_road_ -
-                                            length_car_ / 2 - (-x_));
-                            ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                            goal.pose.y = x_road_up_ + width_field_ - width_road_ -
+                                          length_car_ / 2 - (-x_);
                         }
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                     else
                     {

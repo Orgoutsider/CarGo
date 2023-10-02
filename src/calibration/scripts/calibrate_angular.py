@@ -140,8 +140,8 @@ class CalibrateAngular():
                 self.odom_angle = self.get_odom_angle()
                 delta_angle = self.odom_angular_scale_correction * normalize_angle(self.odom_angle - last_angle)
                 turn_angle += delta_angle
-                error = self.test_angle - turn_angle
-                rospy.loginfo("err:%lf", error)
+                error = self.test_angle * (-reverse) - turn_angle
+                rospy.loginfo("err:%lf", error / pi * 180)
                 last_angle = self.odom_angle
 
             rospy.sleep(0.5)

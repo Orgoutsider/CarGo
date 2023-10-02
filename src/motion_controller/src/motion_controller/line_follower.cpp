@@ -7,9 +7,9 @@ namespace motion_controller
 {
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : front_back_(false), front_left_(true), // 初始向左移动
-          kp_(3.8), ki_(0.4), kd_(0.3),
+          kp_(4.05), ki_(0), kd_(0.2),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
-          linear_velocity_(0.2), has_started(false)
+          linear_velocity_(0.35), has_started(false)
     {
         pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);
