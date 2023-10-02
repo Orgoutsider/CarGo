@@ -263,6 +263,19 @@ namespace motion_controller
                     goal.pose.x = sign * length_border();
                     ROS_INFO_STREAM("Move " << goal.pose.x * sign);
                     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+                    {
+                        MoveGoal goal;
+                        get_position();
+                        goal.pose.theta = angle_corner();
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                        get_position();
+                        follower_.start(true, theta_);
+                        boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                        doing();
+                        finished();
+                        return;
+                    }
                 }
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
@@ -279,11 +292,11 @@ namespace motion_controller
                         MoveGoal goal;
                         get_position();
                         goal.pose.theta = angle_corner();
-                        if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
-                        {
-                            goal.pose.y = x_road_up_ + width_field_ - width_road_ -
-                                          length_car_ / 2 - (-x_);
-                        }
+                        // if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+                        // {
+                        //     goal.pose.y = x_road_up_ + width_field_ - width_road_ -
+                        //                   length_car_ / 2 - (-x_);
+                        // }
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                     else
@@ -564,8 +577,8 @@ namespace motion_controller
             move_initialized_ = move_active_ = false;
             if (where_is_car(follower_.debug, config_.startup, 1) == route_roughing_area)
                 follower_.veer(true, false);
-            else if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
-                follower_.veer(true, true);
+            // else if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+            //     follower_.veer(true, true);
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
