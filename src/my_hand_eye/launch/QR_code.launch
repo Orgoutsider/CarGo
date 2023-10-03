@@ -23,6 +23,11 @@
         <arg name="respawn" value="$(arg respawn)"/>
     </include>
 
+    <include file="$(find my_hand_eye)/launch/include/zbar_ros.launch">
+        <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
+        <arg name="respawn" value="$(arg respawn)"/>
+    </include>
+
     <node pkg="nodelet" type="nodelet" name="my_hand_eye_QR_code_node" args="load my_hand_eye/QRcodeDetector my_hand_eye_manager $(arg bond)" output="screen">
         <param name="usart_port_name" type="string" value="/dev/$(arg usart_port_name)"/>
         <param name="serial_baud_rate" type="int" value="9600"/>

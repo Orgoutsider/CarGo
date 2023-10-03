@@ -3,6 +3,7 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <my_hand_eye/ArrayofTaskArrays.h>
 #include <zxing_msgs/QRCodeArray.h>
+#include <std_msgs/String.h>
 
 #include "my_hand_eye/QRcode_detector.h"
 
@@ -14,7 +15,10 @@ namespace my_hand_eye
 	{
 		nh_ = getMTNodeHandle();
 		pnh_ = getMTPrivateNodeHandle();
-		QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/qr_detector/qr_codes", 10, &QRcodeDetector::QRcodeCallback, this);
+		zxing_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>(
+			"/qr_detector/qr_codes", 10, &QRcodeDetector::zxingCallback, this);
+		zbar_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10,
+														   &QRcodeDetector::zbarCallback, this);
 		QR_code_publisher_ =
 			nh_.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10,
 														  boost::bind(&QRcodeDetector::connectCallback, this),
@@ -43,7 +47,7 @@ namespace my_hand_eye
 		}
 	}
 
-	void QRcodeDetector::QRcodeCallback(const zxing_msgs::QRCodeArrayConstPtr &msgs)
+	void QRcodeDetector::zxingCallback(const zxing_msgs::QRCodeArrayConstPtr &msgs)
 	{
 		for (const zxing_msgs::QRCode &qr_code : msgs->qr_codes)
 		{
@@ -52,12 +56,20 @@ namespace my_hand_eye
 		// NODELET_INFO("Succeeded to detect QR Code!");
 	}
 
+	void QRcodeDetector::zbarCallback(const std_msgs::StringConstPtr &msgs)
+	{
+		checkString(msgs->data);
+	}
+
 	void QRcodeDetector::connectCallback()
 	{
-		if (!QR_code_subscriber_ && QR_code_publisher_.getNumSubscribers() > 0)
+		if ((!zxing_subscriber_ || !zbar_subscriber_) && QR_code_publisher_.getNumSubscribers() > 0)
 		{
 			NODELET_INFO("Connecting to qr_codes topic.");
-			QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/qr_detector/qr_codes", 10, &QRcodeDetector::QRcodeCallback, this);
+			zxing_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>(
+				"/qr_detector/qr_codes", 10, &QRcodeDetector::zxingCallback, this);
+			zbar_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10,
+															   &QRcodeDetector::zbarCallback, this);
 			if (!esp32_serial_.isOpen())
 			{
 				try
@@ -79,7 +91,8 @@ namespace my_hand_eye
 		if (QR_code_publisher_.getNumSubscribers() == 0)
 		{
 			NODELET_INFO("Unsubscribing from qr_codes topic.");
-			QR_code_subscriber_.shutdown();
+			zxing_subscriber_.shutdown();
+			zbar_subscriber_.shutdown();
 			if (esp32_timer_.hasStarted())
 				esp32_timer_.stop();
 			esp32_serial_.close();
@@ -202,11 +215,11 @@ namespace my_hand_eye
 	{
 		if (flag_)
 			return;
-		// cv::namedWindow("resImg", cv::WINDOW_NORMAL);
-		// cv::setWindowProperty("resImg", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
-		// cv::resize(img, img, cv::Size(480, 640));
-		// imshow("resImg", img);
-		// cv::waitKey(500);
+		cv::namedWindow("resImg", cv::WINDOW_NORMAL);
+		cv::setWindowProperty("resImg", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+		cv::resize(img, img, cv::Size(480, 640));
+		imshow("resImg", img);
+		cv::waitKey(500);
 		boost::lock_guard<boost::mutex> lk(mtx_);
 		flag_ = true;
 	}

@@ -18,7 +18,8 @@ namespace my_hand_eye
         boost::mutex mtx_;
         ros::NodeHandle nh_;
         ros::NodeHandle pnh_;
-        ros::Subscriber QR_code_subscriber_;
+        ros::Subscriber zxing_subscriber_;
+        ros::Subscriber zbar_subscriber_;
         ros::Publisher QR_code_publisher_;
         ros::Timer esp32_timer_;
         // 声明串口对象
@@ -38,7 +39,8 @@ namespace my_hand_eye
         QRcodeDetector() = default;
         ~QRcodeDetector() = default;
         void onInit();
-        void QRcodeCallback(const zxing_msgs::QRCodeArrayConstPtr &msgs);
+        void zxingCallback(const zxing_msgs::QRCodeArrayConstPtr &msgs);
+        void zbarCallback(const std_msgs::StringConstPtr &msgs);
         void connectCallback();
         void disconnectCallback();
         void esp32Callback(const ros::TimerEvent &event);
