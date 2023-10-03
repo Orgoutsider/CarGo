@@ -2,6 +2,7 @@
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.hpp>
 #include <my_hand_eye/ArrayofTaskArrays.h>
+#include <zxing_msgs/QRCodeArray.h>
 
 #include "my_hand_eye/QRcode_detector.h"
 
@@ -13,7 +14,7 @@ namespace my_hand_eye
 	{
 		nh_ = getMTNodeHandle();
 		pnh_ = getMTPrivateNodeHandle();
-		QR_code_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10, &QRcodeDetector::QRcodeCallback, this);
+		QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/barcode", 10, &QRcodeDetector::QRcodeCallback, this);
 		QR_code_publisher_ =
 			nh_.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10,
 														  boost::bind(&QRcodeDetector::connectCallback, this),
@@ -42,9 +43,12 @@ namespace my_hand_eye
 		}
 	}
 
-	void QRcodeDetector::QRcodeCallback(const std_msgs::StringConstPtr &info)
+	void QRcodeDetector::QRcodeCallback(const zxing_msgs::QRCodeArrayConstPtr &msgs)
 	{
-		checkString(info->data);
+		for (const zxing_msgs::QRCode &qr_code : msgs->qr_codes)
+		{
+			checkString(qr_code.content);
+		}
 		// NODELET_INFO("Succeeded to detect QR Code!");
 	}
 
@@ -53,7 +57,7 @@ namespace my_hand_eye
 		if (!QR_code_subscriber_ && QR_code_publisher_.getNumSubscribers() > 0)
 		{
 			NODELET_INFO("Connecting to barcode topic.");
-			QR_code_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10, &QRcodeDetector::QRcodeCallback, this);
+			QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/barcode", 10, &QRcodeDetector::QRcodeCallback, this);
 			if (!esp32_serial_.isOpen())
 			{
 				try

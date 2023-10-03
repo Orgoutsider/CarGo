@@ -30,7 +30,7 @@
             args="load my_hand_eye/QRcodeDetector $(arg nodelet_manager) $(arg bond)"
             respawn="$(arg respawn)" output="screen" />
 
-        <include file="$(find my_hand_eye)/launch/include/zbar_ros.launch">
+        <include file="$(find my_hand_eye)/launch/include/zxing_qrdetector.launch">
             <arg name="manager" value="$(arg nodelet_manager)" />
             <arg name="respawn" value="$(arg respawn)" />
         </include>

@@ -5,7 +5,6 @@
 #define FRAME_TAIL 0X7D		 // Frame tail //帧尾
 
 #include <ros/ros.h>
-#include <std_msgs/String.h>
 #include <serial/serial.h>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/thread.hpp>
@@ -39,7 +38,7 @@ namespace my_hand_eye
         QRcodeDetector() = default;
         ~QRcodeDetector() = default;
         void onInit();
-        void QRcodeCallback(const std_msgs::StringConstPtr &info);
+        void QRcodeCallback(const zxing_msgs::QRCodeArrayConstPtr &msgs);
         void connectCallback();
         void disconnectCallback();
         void esp32Callback(const ros::TimerEvent &event);
