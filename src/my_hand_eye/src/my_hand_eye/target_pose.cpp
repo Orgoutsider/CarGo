@@ -28,7 +28,7 @@ namespace my_hand_eye
         tolerance[target_ellipse].y = 0.007;
 
         Action border = Action(0, 17.597695122, 0).front2left().arm2footprint();
-        pose[target_border].theta = Angle(-5.47759122).rad();
+        pose[target_border].theta = Angle(-5.43946875).rad();
         pose[target_border].x = Pose2DMightEnd::not_change;
         pose[target_border].y = border.y;
 
