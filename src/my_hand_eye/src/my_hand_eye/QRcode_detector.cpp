@@ -14,7 +14,7 @@ namespace my_hand_eye
 	{
 		nh_ = getMTNodeHandle();
 		pnh_ = getMTPrivateNodeHandle();
-		QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/barcode", 10, &QRcodeDetector::QRcodeCallback, this);
+		QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/qr_detector/qr_codes", 10, &QRcodeDetector::QRcodeCallback, this);
 		QR_code_publisher_ =
 			nh_.advertise<my_hand_eye::ArrayofTaskArrays>("/task", 10,
 														  boost::bind(&QRcodeDetector::connectCallback, this),
@@ -56,8 +56,8 @@ namespace my_hand_eye
 	{
 		if (!QR_code_subscriber_ && QR_code_publisher_.getNumSubscribers() > 0)
 		{
-			NODELET_INFO("Connecting to barcode topic.");
-			QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/barcode", 10, &QRcodeDetector::QRcodeCallback, this);
+			NODELET_INFO("Connecting to qr_codes topic.");
+			QR_code_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>("/qr_detector/qr_codes", 10, &QRcodeDetector::QRcodeCallback, this);
 			if (!esp32_serial_.isOpen())
 			{
 				try
@@ -78,7 +78,7 @@ namespace my_hand_eye
 	{
 		if (QR_code_publisher_.getNumSubscribers() == 0)
 		{
-			NODELET_INFO("Unsubscribing from barcode topic.");
+			NODELET_INFO("Unsubscribing from qr_codes topic.");
 			QR_code_subscriber_.shutdown();
 			if (esp32_timer_.hasStarted())
 				esp32_timer_.stop();

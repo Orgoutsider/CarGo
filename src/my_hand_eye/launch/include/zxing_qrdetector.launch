@@ -23,11 +23,6 @@
 	<arg name="respawn" default="false" />
 	<arg if="$(arg respawn)" name="bond" value="" />
     <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
-	<!-- The nodelet manager -->
-	<node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
-	<!-- <node pkg="nodelet" type="nodelet" name="my_hand_eye_manager" args="manager"  output="screen">
-		<remap from="/cv_camera/image_raw" to="/camera/image" />
-	</node> -->
 
 	<!-- The QR detector nodeler -->
 	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet $(arg nodelet_manager) $(arg bond)" output="screen">

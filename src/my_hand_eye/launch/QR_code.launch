@@ -19,7 +19,7 @@
     </include>
 
     <include file="$(find my_hand_eye)/launch/include/zxing_qrdetector.launch">
-        <arg name="manager" value="$(arg nodelet_manager)"/>
+        <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
         <arg name="respawn" value="$(arg respawn)"/>
     </include>
 
