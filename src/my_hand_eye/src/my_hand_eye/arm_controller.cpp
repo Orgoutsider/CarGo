@@ -1939,6 +1939,7 @@ namespace my_hand_eye
             ps_.look_down();
             last_finish = false;
             clear(true, true);
+            ROS_INFO("Look down...");
             return false;
         }
         else if (msg.end && !last_finish)

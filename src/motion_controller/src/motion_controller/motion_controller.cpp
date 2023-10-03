@@ -186,8 +186,8 @@ namespace motion_controller
                 int last_route = where_is_car(follower_.debug, config_.startup, -1);
                 int next_route = where_is_car(follower_.debug, config_.startup, 1);
                 // 暂存任务点信息，防止其他进程更改
-                goal.left_ready = !(where_is_car(follower_.debug, config_.startup, 1) == route_raw_material_area ||
-                                    where_is_car(follower_.debug, config_.startup, 1) == route_parking_area);
+                goal.left_ready = !(next_route == route_raw_material_area ||
+                                    next_route == route_parking_area);
                 if (goal.route == route_QR_code_board)
                 {
                     if (follower_.has_started && ac_arm_.getState().toString() != "SUCCEEDED")

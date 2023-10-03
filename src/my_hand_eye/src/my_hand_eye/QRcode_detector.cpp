@@ -202,11 +202,11 @@ namespace my_hand_eye
 	{
 		if (flag_)
 			return;
-		cv::namedWindow("resImg", cv::WINDOW_NORMAL);
-		cv::setWindowProperty("resImg", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
-		cv::resize(img, img, cv::Size(480, 640));
-		imshow("resImg", img);
-		cv::waitKey(500);
+		// cv::namedWindow("resImg", cv::WINDOW_NORMAL);
+		// cv::setWindowProperty("resImg", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+		// cv::resize(img, img, cv::Size(480, 640));
+		// imshow("resImg", img);
+		// cv::waitKey(500);
 		boost::lock_guard<boost::mutex> lk(mtx_);
 		flag_ = true;
 	}
