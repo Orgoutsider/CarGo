@@ -47,7 +47,7 @@ namespace motion_controller
         bool is_doing() const;
         bool arrived(bool debug, bool startup = false) const;
         // 位于任务点所在道路，距离下一任务点的距离，正号表示沿逆时针
-        double length_route() const;
+        double length_route(bool debug, bool startup = false, int offset = 0) const;
         // 位于弯道，到弯道中心线的距离，不位于弯道时返回0.5，正号表示沿y轴正向
         double length_border() const;
         // 偏离道路中心的距离

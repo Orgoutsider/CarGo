@@ -67,31 +67,30 @@ namespace motion_controller
     switch (where_is_car(debug, startup))
     {
     case route_QR_code_board:
-      return abs(length_route()) < 0.1 && -x_ < x_road_up_ + width_road_ - length_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && -x_ < x_road_up_ + width_road_ - length_car_ / 2;
 
     case route_raw_material_area:
       if (loop_ == 0)
-        return abs(length_route() -
-                   (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_)) < 0.1 &&
+        return abs(length_route(debug, startup)) < 0.1 &&
                -x_ < x_road_up_ + width_road_ - length_car_ / 2;
       else if (loop_ == 1)
-        return abs(length_border()) < 0.1 &&
-               -x_ < x_road_up_ + width_road_ - length_car_ / 2;
+        return abs(length_route(debug, startup)) < 0.1 &&
+               y_ > length_field_ - width_road_ + width_car_ / 2;
       else
         ROS_ERROR("Invalid loop!");
       return false;
 
     case route_roughing_area:
-      return abs(length_route()) < 0.1 && y_ > length_field_ - width_road_ + width_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && y_ > length_field_ - width_road_ + width_car_ / 2;
 
     case route_semi_finishing_area:
-      return abs(length_route()) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_ + width_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_ + width_car_ / 2;
 
     case route_parking_area:
-      return abs(length_route()) < 0.1 && y_ < width_road_ - width_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && y_ < width_road_ - width_car_ / 2;
 
     case route_border:
-      return abs(length_border()) < 0.1;
+      return abs(length_route(debug, startup)) < 0.1;
 
     default:
       ROS_ERROR_ONCE("where_is_car returns invalid value!");
@@ -255,15 +254,22 @@ namespace motion_controller
   //   return (loop_ == 1 && y_ > x_road_up_ + width_road_ && where_is_car(false) == route_raw_material_area);
   // }
 
-  double FieldGuide::length_route() const
+  double FieldGuide::length_route(bool debug, bool startup, int offset) const
   {
-    switch (where_is_car(false))
+    switch (where_is_car(debug, startup, offset))
     {
     case route_QR_code_board:
       return y_QR_code_board_ - y_;
 
     case route_raw_material_area:
-      return y_raw_material_area_ - y_;
+      if (loop_ == 0)
+        return y_raw_material_area_ - y_ -
+               (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_);
+      else if (loop_ == 1)
+        return x_road_up_ + width_road_ / 2 - (-x_);
+      else
+        ROS_ERROR("Invalid loop!");
+      return false;
 
     case route_roughing_area:
       return x_roughing_area_ - (-x_);
@@ -274,8 +280,29 @@ namespace motion_controller
     case route_parking_area:
       return -(x_parking_area_ - (-x_));
 
+    case route_border:
+      switch (where_is_car(debug, startup, offset + 1))
+      {
+      case route_roughing_area:
+        return length_field_ - width_road_ / 2 - y_;
+
+      case route_semi_finishing_area:
+        return x_road_up_ + width_field_ - width_road_ / 2 - (-x_);
+
+      case route_raw_material_area:
+        return -(length_field_ - width_road_ / 2 - y_);
+
+      case route_parking_area:
+        return -(width_road_ / 2 - y_);
+
+      default:
+        ROS_WARN("Attempted to use 'length_route' in route %d.",
+                 where_is_car(false, false, offset + 1));
+        return 0.5;
+      }
+
     default:
-      ROS_ERROR("where_is_car returns invalid value!");
+      ROS_ERROR_ONCE("where_is_car returns invalid value!");
       return 0.5;
     }
   }

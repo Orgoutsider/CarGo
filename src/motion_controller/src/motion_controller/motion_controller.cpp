@@ -118,12 +118,13 @@ namespace motion_controller
                     if (!follower_.has_started)
                     {
                         set_position(0, 0, 0);
-                        follower_.start(true, theta_);
+                        follower_.start(true, theta_, config_.dist);
                     }
                     if (get_position())
                     {
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_);
-                        follower_.follow(theta_, event.current_real);
+                        follower_.follow(theta_,
+                                         config_.dist - std::max(abs(x_), abs(y_)), event.current_real);
                     }
                     return;
                 }
@@ -131,7 +132,8 @@ namespace motion_controller
                          !follower_.has_started)
                 {
                     set_position(-(x_road_up_ + width_road_ / 2 - length_car_ / 2), width_car_ / 2, 0);
-                    follower_.start(true, theta_);
+                    follower_.start(true, theta_,
+                                    abs(length_route(follower_.debug, config_.startup, 0)));
                 }
                 else if (where_is_car(follower_.debug, config_.startup) == route_roughing_area ||
                          where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area)
@@ -165,7 +167,9 @@ namespace motion_controller
                     if (follower_.has_started)
                     {
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_);
-                        follower_.follow(theta_, event.current_real);
+                        follower_.follow(theta_,
+                                         abs(length_route(follower_.debug, config_.startup, 0)),
+                                         event.current_real);
                     }
                 }
             }
@@ -196,7 +200,7 @@ namespace motion_controller
                         ac_move_.waitForServer();
                         MoveGoal goal;
                         get_position();
-                        goal.pose.y = length_route();
+                        goal.pose.y = length_route(follower_.debug, config_.startup);
                         goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
@@ -223,7 +227,7 @@ namespace motion_controller
                         MoveGoal goal;
                         goal.pose.theta = angle_raw_material_area_;
                         get_position();
-                        goal.pose.y = length_route() - (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_);
+                        goal.pose.y = length_route(follower_.debug, config_.startup);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
                     else if (loop_ == 1)
@@ -241,8 +245,9 @@ namespace motion_controller
                         get_position();
                         MoveGoal goal3;
                         goal3.pose.theta = -angle_raw_material_area_;
-                        goal3.pose.y = length_route() + (radius_raw_material_area_ + width_road_ / 2) *
-                                                            tan(angle_raw_material_area_);
+                        goal3.pose.y =
+                            y_raw_material_area_ - y_ +
+                            (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_);
                         ac_move_.sendGoalAndWait(goal3, ros::Duration(15), ros::Duration(0.1));
                     }
                     else
@@ -334,7 +339,8 @@ namespace motion_controller
             }
             else if (!is_doing())
             {
-                follower_.follow(theta_, event.current_real);
+                follower_.follow(theta_, abs(length_route(follower_.debug, config_.startup, 0)),
+                                 event.current_real);
             }
         }
     }
@@ -661,11 +667,11 @@ namespace motion_controller
             while (!finish_turning_)
             {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-            }           
+            }
             if (!follower_.has_started)
             {
                 get_position();
-                follower_.start(true, theta_);
+                follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 1)));
             }
             if (!timer_.hasStarted())
                 timer_.start();
@@ -932,7 +938,7 @@ namespace motion_controller
                          boost::bind(&MotionController::_arm_active_callback, this),
                          boost::bind(&MotionController::_arm_feedback_callback, this, _1));
         get_position();
-        follower_.start(true, theta_);
+        follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 0)));
         timer_.start();
         // 直接前进到二维码板
         // motion_controller::MoveGoal goal2;

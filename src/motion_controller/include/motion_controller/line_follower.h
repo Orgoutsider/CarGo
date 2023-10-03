@@ -19,7 +19,11 @@ namespace motion_controller
         double ki_;                        // pid参数i
         double kd_;                        // pid参数d
         double target_theta_;              // 目标角度，开启时设定
-        double linear_velocity_;           // 线速度
+        double vel_max_;                   // 线速度阈值
+        double vel_;                       // 此轮运动线速度最大值
+        double acc_;                       // 线加速度
+        double length_;                    // 加速减速过程中位移
+        double dist_start;                 // 开始运动的位移
         ros::Publisher cmd_vel_publisher_; // 底盘速度话题发布
         ros::Publisher theta_publisher_;   // 调试时使用，观察theta变化
         PIDController pid_;
@@ -27,16 +31,16 @@ namespace motion_controller
     public:
         LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         boost::recursive_mutex mtx; // 递归锁可以允许一个线程对同一互斥量多次加锁
-        bool debug;       // 动态调参，与子类（MotionController）共用
-        bool has_started; // 是否已经启动
+        bool debug;                 // 动态调参，与子类（MotionController）共用
+        bool has_started;           // 是否已经启动
         // 用于走直线动态调参
         void dr(routeConfig &config);
         // 启动并输入theta，自动转成目标角度
-        bool start(bool start, double theta = 0);
-        // 使用pid走直线，如果LineFollower尚未启动，则不做处理
-        void follow(double theta, const ros::Time &now);
-        // 停止并调整姿态
-        bool stop_and_adjust(double theta, const ros::Time &now);
+        bool start(bool start, double theta = 0, double dist = 0);
+        // 使用pid走直线，如果LineFollower尚未启动，则不做处理，如果到达输出ture(dist == 0不停止)
+        bool follow(double theta, double dist, const ros::Time &now);
+        // // 停止并调整姿态
+        // bool stop_and_adjust(double theta, const ros::Time &now);
         // 改变行驶方向
         void veer(bool front_back, bool front_left);
     };
