@@ -15,7 +15,7 @@ namespace my_hand_eye
           ellipse_roi_(320, 540, 1280, 360),
           parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
-          threshold(50), catched(false),
+          threshold(50), catched_(false),
           z_parking_area(0.30121),
           z_ellipse(3.58369),
           z_turntable(11.77052) // 比赛转盘
@@ -36,7 +36,7 @@ namespace my_hand_eye
           ellipse_roi_(320, 540, 1280, 360),
           parking_area_roi_(320, 0, 1280, 720),
           yaed_(new cv::CEllipseDetectorYaed()),
-          threshold(50), catched(false),
+          threshold(50), catched_(false),
           z_parking_area(0.30121),
           z_ellipse(3.58369),
           z_turntable(11.77052) // 比赛转盘
@@ -994,12 +994,12 @@ namespace my_hand_eye
                 cargo_x_.push_back(x);
                 cargo_y_.push_back(y);
                 if ((cargo_x_.size() >= 3) &&
-                    (motion_before || catched)) // 放弃从开始就停止的块
+                    (motion_before || catched_)) // 放弃从开始就停止的块
                 {
                     cnt_motion = 0;
                     motion_before = false;
-                    if (!catched)
-                        catched = true;
+                    if (!catched_)
+                        catched_ = true;
                     return true;
                 }
             }
@@ -1750,6 +1750,12 @@ namespace my_hand_eye
     void ArmController::ready(bool left)
     {
         ps_.reset(left);
+    }
+
+    void ArmController::finish_catching()
+    {
+        ps_.look_down();
+        catched_ = false;
     }
 
     bool ArmController::find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,

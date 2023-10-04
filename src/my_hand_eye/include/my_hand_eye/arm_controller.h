@@ -19,6 +19,7 @@ namespace my_hand_eye
         bool emulation_;               // 是否进行仿真
         bool stop_;                    // 用于颜色追踪，物料是否已停
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
+        bool catched_;           // 是否已抓取过
         int white_vmin_;               // 用于滤除白色
         int factor_;                   // gramma参数，暗部增强取0-99，亮部增强取101-300。取100为原图
         float fThScoreScore_;
@@ -98,7 +99,6 @@ namespace my_hand_eye
         ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~ArmController();
         TargetPose target_pose; // 用于视觉位姿调节
-        bool catched;           // 是否已抓取过
         double theta_turn;      // 车体偏转的角度
         const double z_turntable;
         const double z_ellipse;
@@ -138,6 +138,8 @@ namespace my_hand_eye
         bool log_parking_area(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
         // reset准备下一任务
         void ready(bool left);
+        // 結束抓取准备下一任务
+        void finish_catching();
         // 计算物料中心点位置或位姿
         bool find_cargo(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                         sensor_msgs::ImagePtr &debug_image, bool pose, bool store = false);

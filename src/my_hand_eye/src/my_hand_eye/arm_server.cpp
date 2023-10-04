@@ -300,9 +300,9 @@ namespace my_hand_eye
 					ros::Duration(0.2).sleep();
 					// 结束该函数
 					arm_controller_.find_cargo(image_rect, msg, debug_image, false);
-					arm_controller_.catched = false;
-					arm_goal_.route = arm_goal_.route_rest;
 					as_.setAborted(ArmResult(), "Arm finish tasks");
+					arm_controller_.finish_catching();
+					arm_goal_.route = arm_goal_.route_rest;
 					ROS_WARN("Failed to operating center.");
 				}
 				else
@@ -328,9 +328,9 @@ namespace my_hand_eye
 				{
 					first = true;
 					finish_ = true;
-					arm_controller_.catched = false;
-					arm_goal_.route = arm_goal_.route_rest;
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
+					arm_controller_.finish_catching();
+					arm_goal_.route = arm_goal_.route_rest;
 					ROS_INFO("Finish operating center...");
 				}
 			}
@@ -514,8 +514,8 @@ namespace my_hand_eye
 					ArmResult result;
 					result.pme = msg;
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					arm_goal_.route = arm_goal_.route_rest;
 					arm_controller_.ready(arm_goal_.left_ready);
+					arm_goal_.route = arm_goal_.route_rest;
 					return true;
 				}
 			}
@@ -587,12 +587,12 @@ namespace my_hand_eye
 					ArmResult result;
 					result.pme = msg;
 					as_.setAborted(ArmResult(), "Arm finish tasks");
-					arm_goal_.route = arm_goal_.route_rest;
 					// 结束该函数
 					arm_controller_.find_border(image_rect, msg, debug_image);
 					arm_controller_.ready(arm_goal_.left_ready);
 					finish_adjusting_ = true;
 					finish_ = true;
+					arm_goal_.route = arm_goal_.route_rest;
 					ROS_WARN("Failed to operate border.");
 				}
 				else
