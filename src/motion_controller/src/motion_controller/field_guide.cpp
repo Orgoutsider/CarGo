@@ -35,13 +35,15 @@ namespace motion_controller
       return route_rest;
   }
 
-  void FieldGuide::doing()
+  void FieldGuide::doing(boost::recursive_mutex &mtx)
   {
+    boost::lock_guard<boost::recursive_mutex> lk(mtx);
     doing_ = true;
   }
 
-  void FieldGuide::finished()
+  void FieldGuide::finished(boost::recursive_mutex &mtx)
   {
+    boost::lock_guard<boost::recursive_mutex> lk(mtx);
     if (where_ + 1 < route_.size())
     {
       if (loop_ == 0 && !clockwise_ && where_is_car(false) == route_semi_finishing_area)
@@ -98,10 +100,10 @@ namespace motion_controller
     }
   }
 
-  double FieldGuide::length_from_road() const
+  double FieldGuide::length_from_road(bool debug, bool startup, int offset) const
   {
     // 需要考虑车所处的方位，考虑车子xy正向
-    switch (where_is_car(false))
+    switch (where_is_car(debug, startup, offset))
     {
     case route_QR_code_board:
       return -(x_road_up_ + width_road_ - x_QR_code_board_ - length_car_ / 2 - (-x_));

@@ -194,15 +194,27 @@ namespace motion_controller
                                     next_route == route_parking_area);
                 if (goal.route == route_QR_code_board)
                 {
+                    // 如果没停，且还没扫到码
                     if (follower_.has_started && ac_arm_.getState().toString() != "SUCCEEDED")
                     {
                         follower_.start(false, theta_);
+                        doing(follower_.mtx);
+                        {
+                            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                            finish_turning_ = false;
+                            // 用于防止follower提前打开或finished
+                        }
                         ac_move_.waitForServer();
                         MoveGoal goal;
                         get_position();
-                        goal.pose.y = length_route(follower_.debug, config_.startup);
+                        // goal.pose.y = length_route(follower_.debug, config_.startup);
                         goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                        {
+                            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                            finish_turning_ = true;
+                            // 用于防止follower提前打开或finished
+                        }
                     }
                     return;
                 }
@@ -235,7 +247,7 @@ namespace motion_controller
                         ac_move_.waitForServer();
                         get_position();
                         MoveGoal goal1;
-                        goal1.pose.y = length_from_road();
+                        goal1.pose.y = length_from_road(follower_.debug, config_.startup);
                         ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                         // get_position();
                         // MoveGoal goal2;
@@ -288,8 +300,7 @@ namespace motion_controller
                 }
                 // 保证doing在finished之前
                 {
-                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                    doing();
+                    doing(follower_.mtx);
                 }
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
@@ -339,17 +350,36 @@ namespace motion_controller
             }
             else if (!is_doing())
             {
-                double dist = on_road_
-                                  ? abs(length_route(follower_.debug, config_.startup, 0))
-                                  : abs(length_from_road());
-                bool ok = follower_.follow(theta_, dist, event.current_real);
+                bool ok = false;
+                if (on_road_)
+                    ok = follower_.follow(theta_, abs(length_route(follower_.debug, config_.startup, 0)),
+                                          event.current_real);
+                else if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board ||
+                         where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
+                    ok = follower_.follow(theta_,
+                                          abs(length_from_road(follower_.debug, config_.startup)),
+                                          event.current_real);
+                else if (where_is_car(follower_.debug, config_.startup) == route_border &&
+                         (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area ||
+                          where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area))
+                    ok = follower_.follow(theta_,
+                                          abs(length_from_road(follower_.debug, config_.startup, -1)),
+                                          event.current_real);
+                else
+                    ROS_ERROR("Car is not on the road. route: %d",
+                              where_is_car(follower_.debug, config_.startup));
                 if (ok && !on_road_)
                 {
                     follower_.start(false, theta_);
-                    if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board)
+                    if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board ||
+                        where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
                     {
                         follower_.veer(false, true);
                     }
+                    else if (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area && clockwise_)
+                        follower_.veer(true, true);
+                    else 
+                        follower_.veer(true, false);
                     follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 0)));
                     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                     on_road_ = true;
@@ -558,12 +588,18 @@ namespace motion_controller
             }
             else
             {
-                ac_move_.waitForServer();
-                MoveGoal goal;
-                get_position();
-                goal.pose.x = length_from_road() - x_QR_code_board_ + width_road_ / 2 - length_car_ / 2;
-                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                if (follower_.has_started)
+                    follower_.start(false, theta_);
+                follower_.veer(true, true);
             }
+            // else
+            // {
+            //     ac_move_.waitForServer();
+            //     MoveGoal goal;
+            //     get_position();
+            //     goal.pose.x = length_from_road() - x_QR_code_board_ + width_road_ / 2 - length_car_ / 2;
+            //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            // }
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
                  !follower_.debug)
@@ -572,15 +608,15 @@ namespace motion_controller
             ac_move_.waitForServer();
             get_position();
             goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-            goal.pose.x = length_from_road() * cos(-goal.pose.theta);
-            goal.pose.y = -length_from_road() * sin(-goal.pose.theta);
+            goal.pose.x = length_from_road(follower_.debug, config_.startup) * cos(-goal.pose.theta);
+            goal.pose.y = -length_from_road(follower_.debug, config_.startup) * sin(-goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             if (loop_ == 1)
             {
-                get_position();
-                MoveGoal goal;
-                goal.pose.y = length_border();
-                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                // get_position();
+                // MoveGoal goal;
+                // goal.pose.y = length_border();
+                // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 follower_.veer(false, true);
             }
         }
@@ -588,13 +624,14 @@ namespace motion_controller
                   where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area) &&
                  !follower_.debug)
         {
-            ac_move_.waitForServer();
-            MoveGoal goal;
-            get_position();
-            goal.pose.y = length_from_road();
-            ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-            if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 0)
-                follower_.veer(true, true);
+            follower_.veer(false, true);
+            // ac_move_.waitForServer();
+            // MoveGoal goal;
+            // get_position();
+            // goal.pose.y = length_from_road(follower_.debug, config_.startup);
+            // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            // if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 0)
+            //     follower_.veer(true, true);
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_border && !follower_.debug)
         {
@@ -688,12 +725,27 @@ namespace motion_controller
             if (!follower_.has_started)
             {
                 get_position();
-                follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 1)));
+                if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board)
+                {
+                    follower_.start(true, theta_,
+                                    abs(length_from_road(follower_.debug, config_.startup, 1)));
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    on_road_ = false;
+                }
+                else if (where_is_car(follower_.debug, config_.startup) == route_roughing_area ||
+                         where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area)
+                {
+                    follower_.start(true, theta_,
+                                    abs(length_from_road(follower_.debug, config_.startup)));
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    on_road_ = false;
+                }
+                else
+                    follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 1)));
             }
             if (!timer_.hasStarted())
                 timer_.start();
-            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-            finished();
+            finished(follower_.mtx);
         }
         else
         {
@@ -956,7 +1008,7 @@ namespace motion_controller
                          boost::bind(&MotionController::_arm_feedback_callback, this, _1));
         get_position();
         // 横向移动出停止区
-        follower_.start(true, theta_, abs(length_from_road()));
+        follower_.start(true, theta_, abs(length_from_road(follower_.debug, config_.startup)));
         timer_.start();
         // 直接前进到二维码板
         // motion_controller::MoveGoal goal2;

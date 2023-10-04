@@ -42,50 +42,6 @@ namespace motion_controller
             kd_ = config.kd;
     }
 
-    /*
-    bool LineFollower::start(bool start, double theta)
-    {
-        if (start)
-        {
-            if (theta > M_PI * 3 / 4 || theta <= -M_PI * 3 / 4)
-                theta = M_PI;
-            else if (theta > M_PI / 4)
-                theta = M_PI / 2;
-            else if (theta > -M_PI / 4)
-                theta = 0;
-            else
-                theta = -M_PI / 2;
-
-            pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
-            target_theta_ = theta;
-            if (has_started)
-            {
-                ROS_WARN("Failed to start/stop LineFollower");
-                return false;
-            }
-            else
-            {
-                boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                has_started = true;
-            }
-        }
-        else if (has_started) // stop
-        {
-            TwistMightEnd tme;
-            tme.end = true;
-            cmd_vel_publisher_.publish(tme);
-            boost::lock_guard<boost::recursive_mutex> lk(mtx);
-            has_started = false;
-        }
-        else
-        {
-            ROS_WARN("Failed to start/stop LineFollower");
-            return false;
-        }
-        return true;
-    }
-    */
-
     bool LineFollower::start(bool start, double theta, double dist)
     {
         if (start)
@@ -203,55 +159,6 @@ namespace motion_controller
             ROS_WARN_ONCE("Attempted to use 'follow' when follower has not started");
         return false;
     }
-
-    /*
-    void LineFollower::follow(double theta, const ros::Time &now)
-    {
-        bool success;
-        std::vector<double> control;
-        if (has_started)
-        {
-            // 将theta限制在target_theta_周围，防止不当的error
-            theta = (theta > target_theta_ + M_PI)
-                        ? theta - M_PI * 2
-                        : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
-            bool flag = false;
-            {
-                boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                flag = pid_.update({theta}, now, control, success);
-            }
-            if (flag)
-            {
-                geometry_msgs::Twist twist;
-                if (front_back_)
-                {
-                    if (front_left_)
-                        twist.linear.x = vel_max_;
-                    else
-                        twist.linear.x = -vel_max_;
-                }
-                else if (front_left_)
-                    twist.linear.y = vel_max_;
-                else
-                    twist.linear.y = -vel_max_;
-                // 需要增加一个负号来修正update的结果
-                twist.angular.z = -control[0];
-                TwistMightEnd tme;
-                tme.velocity = twist;
-                tme.end = false;
-                cmd_vel_publisher_.publish(tme);
-            }
-            if (debug)
-            {
-                std_msgs::Float64 msg;
-                msg.data = theta;
-                theta_publisher_.publish(msg);
-            }
-        }
-        else
-            ROS_WARN_ONCE("Attempted to use 'follow' when follower has not started");
-    }
-    */
 
     // bool LineFollower::stop_and_adjust(double theta, const ros::Time &now)
     // {
