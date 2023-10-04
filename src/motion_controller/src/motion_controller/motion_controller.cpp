@@ -981,20 +981,21 @@ namespace motion_controller
             ROS_ERROR("Failed to initialize position!");
             return false;
         }
-        // ac_move_.waitForServer();
+        ac_move_.waitForServer();
         // 横向移动出停止区
-        // motion_controller::MoveGoal goal1;
-        // goal1.pose.x = -(x_road_up_ + width_road_ - length_car_ - x_QR_code_board_);
-        // ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
-        // 发送二维码请求
-        ac_arm_.waitForServer();
-        my_hand_eye::ArmGoal goal;
-        goal.loop = loop_;
-        goal.route = where_is_car(follower_.debug, config_.startup);
-        ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
-                         boost::bind(&MotionController::_arm_active_callback, this),
-                         boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+        motion_controller::MoveGoal goal1;
         get_position();
+        goal1.pose.x = length_from_road(follower_.debug, config_.startup);
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
+        // 发送二维码请求
+        // ac_arm_.waitForServer();
+        // my_hand_eye::ArmGoal goal;
+        // goal.loop = loop_;
+        // goal.route = where_is_car(follower_.debug, config_.startup);
+        // ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
+        //                  boost::bind(&MotionController::_arm_active_callback, this),
+        //                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+        // get_position();
         // 横向移动出停止区
         follower_.start(true, theta_, abs(length_from_road(follower_.debug, config_.startup)));
         timer_.start();
