@@ -6,7 +6,7 @@
 namespace motion_controller
 {
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-        : front_back_(false), front_left_(true), // 初始向左移动
+        : front_back_(true), front_left_(false), // 初始向后移动
           kp_(4.05), ki_(0), kd_(0.2),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
           vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false)
@@ -197,7 +197,7 @@ namespace motion_controller
                 msg.data = theta;
                 theta_publisher_.publish(msg);
             }
-            return dist < 0.05;
+            return dist < 0.1;
         }
         else
             ROS_WARN_ONCE("Attempted to use 'follow' when follower has not started");

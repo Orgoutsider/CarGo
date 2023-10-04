@@ -5,7 +5,7 @@ namespace motion_controller
 {
     MotionController::MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : delta_x_(0), delta_y_(0), delta_theta_(0),
-          finish_turning_(true),
+          finish_turning_(true), on_road_(false),
           listener_(buffer_), follower_(nh, pnh), dr_server_(follower_.mtx, pnh),
           ac_move_(nh, "Move", true), ac_arm_(nh, "Arm", true),
           move_active_(false), arm_active_(false),
@@ -339,8 +339,25 @@ namespace motion_controller
             }
             else if (!is_doing())
             {
-                follower_.follow(theta_, abs(length_route(follower_.debug, config_.startup, 0)),
-                                 event.current_real);
+                double dist = on_road_
+                                  ? abs(length_route(follower_.debug, config_.startup, 0))
+                                  : abs(length_from_road());
+                bool ok = follower_.follow(theta_, dist, event.current_real);
+                if (ok && !on_road_)
+                {
+                    follower_.start(false, theta_);
+                    if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board)
+                    {
+                        follower_.veer(false, true);
+                    }
+                    follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 0)));
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    on_road_ = true;
+                }
+                else if (ok)
+                {
+                    ROS_WARN("Method 'follow' returns true but 'arrived' returns false.");
+                }
             }
         }
     }
@@ -924,11 +941,11 @@ namespace motion_controller
             ROS_ERROR("Failed to initialize position!");
             return false;
         }
-        ac_move_.waitForServer();
+        // ac_move_.waitForServer();
         // 横向移动出停止区
-        motion_controller::MoveGoal goal1;
-        goal1.pose.x = -(x_road_up_ + width_road_ - length_car_ - x_QR_code_board_);
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+        // motion_controller::MoveGoal goal1;
+        // goal1.pose.x = -(x_road_up_ + width_road_ - length_car_ - x_QR_code_board_);
+        // ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 发送二维码请求
         ac_arm_.waitForServer();
         my_hand_eye::ArmGoal goal;
@@ -938,7 +955,8 @@ namespace motion_controller
                          boost::bind(&MotionController::_arm_active_callback, this),
                          boost::bind(&MotionController::_arm_feedback_callback, this, _1));
         get_position();
-        follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 0)));
+        // 横向移动出停止区
+        follower_.start(true, theta_, abs(length_from_road()));
         timer_.start();
         // 直接前进到二维码板
         // motion_controller::MoveGoal goal2;
