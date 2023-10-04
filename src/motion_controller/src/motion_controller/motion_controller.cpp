@@ -561,7 +561,7 @@ namespace motion_controller
                 ac_move_.waitForServer();
                 MoveGoal goal;
                 get_position();
-                goal.pose.x = length_from_road();
+                goal.pose.x = length_from_road() - x_QR_code_board_ + width_road_ / 2 - length_car_ / 2;
                 ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             }
         }
@@ -577,10 +577,10 @@ namespace motion_controller
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             if (loop_ == 1)
             {
-                // get_position();
-                // MoveGoal goal;
-                // goal.pose.y = length_border();
-                // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                get_position();
+                MoveGoal goal;
+                goal.pose.y = length_border();
+                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                 follower_.veer(false, true);
             }
         }

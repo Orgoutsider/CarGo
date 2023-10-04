@@ -1,7 +1,7 @@
 #include<opencv.hpp>
 #include<iostream>
 #include <uchar.h>
-//±ß¿òÏß¿í
+//è¾¹æ¡†çº¿å®½
 int line_width = 1;
 void SquareWithBorder(cv::Mat& srcImage)
 {
@@ -12,7 +12,7 @@ void SquareWithBorder(cv::Mat& srcImage)
 	cv::Mat FImg = cv::Mat(srcImage.size(), CV_8UC1, cv::Scalar::all(0));
 	int rows = FImg.rows;
 	int cols = FImg.cols;
-	//ĞĞ´¦Àí
+	//è¡Œå¤„ç†
 	for (size_t i = 0; i < rows; i++)
 	{
 		for (size_t j = 0; j < line_width; j++)
@@ -21,7 +21,7 @@ void SquareWithBorder(cv::Mat& srcImage)
 			FImg.at<uchar>(i, cols - 1 - j) = 255;
 		}
 	}
-	//ÁĞ´¦Àí
+	//åˆ—å¤„ç†
 	for (size_t i = 0; i < cols; i++)
 	{
 		for (size_t j = 0; j < line_width; j++)
