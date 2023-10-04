@@ -9,7 +9,7 @@ namespace motion_controller
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(4.05), ki_(0), kd_(0.2),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
-          vel_max_(0.35), vel_(vel_max_), acc_(0.8), has_started(false)
+          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false)
     {
         pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);
@@ -90,6 +90,11 @@ namespace motion_controller
     {
         if (start)
         {
+            if (dist < 0)
+            {
+                ROS_ERROR("Invalid dist: %lf", dist);
+                return false;
+            }
             if (theta > M_PI * 3 / 4 || theta <= -M_PI * 3 / 4)
                 theta = M_PI;
             else if (theta > M_PI / 4)
@@ -139,6 +144,12 @@ namespace motion_controller
         std::vector<double> control;
         if (has_started)
         {
+            if ((dist < 0) && !debug)
+            {
+                ROS_ERROR("Invalid dist: %lf", dist);
+                return false;
+            }
+            dist = dist > dist_start ? dist_start : dist;
             // 将theta限制在target_theta_周围，防止不当的error
             theta = (theta > target_theta_ + M_PI)
                         ? theta - M_PI * 2
@@ -154,12 +165,13 @@ namespace motion_controller
                 if (dist_start)
                 {
                     if (dist > dist_start - length_)
-                        vel_n = sqrt(2 * acc_ * (dist_start - dist));
+                        vel_n = sqrt(2 * acc_ * (dist_start - dist)) * 0.8 + 0.2;
                     else if (dist < 0.1)
                         vel_n = 0;
                     else if (dist < length_)
-                        vel_n = sqrt(2 * acc_ * dist);
+                        vel_n = std::max(sqrt(2 * acc_ * dist) * 1.2 - 0.2, 0.2);
                 }
+                // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start, length_);
                 geometry_msgs::Twist twist;
                 if (front_back_)
                 {
@@ -185,7 +197,7 @@ namespace motion_controller
                 msg.data = theta;
                 theta_publisher_.publish(msg);
             }
-            return dist < 0.1;
+            return dist < 0.05;
         }
         else
             ROS_WARN_ONCE("Attempted to use 'follow' when follower has not started");

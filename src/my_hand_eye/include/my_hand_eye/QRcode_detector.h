@@ -6,16 +6,16 @@
 
 #include <ros/ros.h>
 #include <serial/serial.h>
-#include <boost/thread/lock_guard.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
+// #include <boost/thread/lock_guard.hpp>
+// #include <boost/thread/thread.hpp>
+// #include <boost/thread/mutex.hpp>
 
 namespace my_hand_eye
 {
     class QRcodeDetector : public nodelet::Nodelet
     {
     private:
-        boost::mutex mtx_;
+        // boost::mutex mtx_;
         ros::NodeHandle nh_;
         ros::NodeHandle pnh_;
         ros::Subscriber zxing_subscriber_;

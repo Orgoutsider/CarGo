@@ -13,8 +13,8 @@ namespace my_hand_eye
 {
 	void QRcodeDetector::onInit()
 	{
-		nh_ = getMTNodeHandle();
-		pnh_ = getMTPrivateNodeHandle();
+		nh_ = getNodeHandle();
+		pnh_ = getPrivateNodeHandle();
 		zxing_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>(
 			"/qr_detector/qr_codes", 10, &QRcodeDetector::zxingCallback, this);
 		zbar_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10,
@@ -215,12 +215,12 @@ namespace my_hand_eye
 	{
 		if (flag_)
 			return;
+		flag_ = true;
 		cv::namedWindow("resImg", cv::WINDOW_NORMAL);
 		cv::setWindowProperty("resImg", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
 		cv::resize(img, img, cv::Size(480, 640));
 		imshow("resImg", img);
 		cv::waitKey(500);
-		boost::lock_guard<boost::mutex> lk(mtx_);
-		flag_ = true;
+		// boost::lock_guard<boost::mutex> lk(mtx_);
 	}
 }
