@@ -1417,7 +1417,8 @@ namespace my_hand_eye
             ratio /= (z_parking_area * 2);                               // 2是图片缩小倍数，用于还原真实坐标
             M.row(0) += M.row(2).clone() * cv_image->image.cols / 2.0;   // 平移
             // ROS_INFO_STREAM(M);
-            warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size());
+            warpPerspective(cv_image->image, cv_image->image, M, cv_image->image.size(),
+                            INTER_LINEAR, BORDER_CONSTANT, Scalar(255, 255, 255));
             // imshow("src", cv_image->image);
             // waitKey(100);
             cv_image->image = cv_image->image(rect).clone();
@@ -1438,6 +1439,29 @@ namespace my_hand_eye
             Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
             morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除噪点
             morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1));     // 开操作去除缺口
+            // 保证轮廓封闭
+            Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
+            int rows = FImg.rows;
+            int cols = FImg.cols;
+            // 行处理
+            for (size_t i = 0; i < rows; i++)
+            {
+                for (size_t j = 0; j < 1; j++)
+                {
+                    FImg.at<uchar>(i, j) = 255;
+                    FImg.at<uchar>(i, cols - 1 - j) = 255;
+                }
+            }
+            // 列处理
+            for (size_t i = 0; i < cols; i++)
+            {
+                for (size_t j = 0; j < 1; j++)
+                {
+                    FImg.at<uchar>(j, i) = 255;
+                    FImg.at<uchar>(rows - 1 - j, i) = 255;
+                }
+            }
+            bitwise_or(FImg, srcbinary, srcbinary);
             // imshow("MORPH_OPEN", srcbinary);
             // waitKey(1);
             Mat edges;
