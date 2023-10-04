@@ -599,14 +599,14 @@ namespace motion_controller
             // goal.pose.x = length_from_road(follower_.debug, config_.startup) * cos(-goal.pose.theta);
             // goal.pose.y = -length_from_road(follower_.debug, config_.startup) * sin(-goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-            // if (loop_ == 1)
-            // {
+            if (loop_ == 1)
+            {
                 // get_position();
                 // MoveGoal goal;
                 // goal.pose.y = length_border();
                 // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                // follower_.veer(false, true);
-            // }
+                follower_.veer(false, true);
+            }
         }
         else if ((where_is_car(follower_.debug, config_.startup) == route_roughing_area ||
                   where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area) &&
