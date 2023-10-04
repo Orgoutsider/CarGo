@@ -556,14 +556,14 @@ namespace motion_controller
                     ROS_INFO("Shut down by done cb.");
                 }
             }
-            else
-            {
-                ac_move_.waitForServer();
-                MoveGoal goal;
-                get_position();
-                goal.pose.x = length_from_road();
-                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-            }
+            // else
+            // {
+            //     ac_move_.waitForServer();
+            //     MoveGoal goal;
+            //     get_position();
+            //     goal.pose.x = length_from_road();
+            //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            // }
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
                  !follower_.debug)
