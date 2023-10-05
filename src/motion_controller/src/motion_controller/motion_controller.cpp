@@ -239,12 +239,17 @@ namespace motion_controller
                     // if (!follower_.stop_and_adjust(theta_, event.current_real))
                     //     return;
                     ac_move_.waitForServer();
-                    MoveGoal goal;
+                    MoveGoal goal1;
                     get_position();
-                    goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                    goal.precision = true;
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    goal1.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                    ROS_INFO_STREAM("Move theta " << goal1.pose.theta);
+                    goal1.pose.y = length_from_road(follower_.debug, config_.startup) -
+                                   (goal.route == route_roughing_area
+                                        ? width_from_roughing_area_
+                                        : width_from_semi_finishing_area_) +
+                                   width_road_ / 2;
+                    // goal.precision = true;
+                    ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
                 else if (goal.route == route_raw_material_area)
                 {
