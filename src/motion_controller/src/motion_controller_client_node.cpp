@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     Client client(nh, "Move", true);
     client.waitForServer();
     motion_controller::MoveGoal goal;
-    goal.pose.theta = atof(argv[1]);
+    goal.pose.theta = atof(argv[1]) * M_PI / 180;
     goal.pose.x = atof(argv[2]);
     goal.pose.y = atof(argv[3]);
     goal.precision = atoi(argv[4]);

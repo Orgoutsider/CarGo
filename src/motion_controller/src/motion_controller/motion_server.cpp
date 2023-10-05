@@ -8,8 +8,8 @@ namespace motion_controller
     MotionServer::MotionServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
-          kp_angular_{1.6, 1.8}, ki_angular_{0.6, 0.5}, kd_angular_{0, 1.1},
-          kp_linear_(1.6), ki_linear_(0), kd_linear_(0)
+          kp_angular_{2.0, 1.8}, ki_angular_{0.6, 0.5}, kd_angular_{0, 1.1},
+          kp_linear_(2.1), ki_linear_(0.25), kd_linear_(0)
     {
         pnh.param<bool>("debug", debug_, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
@@ -46,7 +46,7 @@ namespace motion_controller
         {
             PIDController pid1({0}, {kp_angular_[goal->precision]}, {ki_angular_[goal->precision]},
                                {kd_angular_[goal->precision]},
-                               {(goal->precision ? 0.005 : 0.02)}, {0.1}, {0.8});
+                               {(goal->precision ? 0.005 : 0.02)}, {0.1}, {goal->precision ? 0.8 : 1.4});
             while (!success)
             {
                 if (server_.isPreemptRequested() || !ros::ok())

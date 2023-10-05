@@ -233,7 +233,7 @@ namespace estimation
         imu_covariance_(i+1, j+1) = imu->orientation_covariance[3*i+j];
 
     // Transforms imu data to base_footprint frame
-    if (!robot_state_.waitForTransform(base_footprint_frame_, imu->header.frame_id, imu_stamp_, ros::Duration(0.5))){
+    if (!robot_state_.waitForTransform(base_footprint_frame_, imu->header.frame_id, imu_stamp_, ros::Duration(1.0))){
       // warn when imu was already activated, not when imu is not active yet
       if (imu_active_)
         ROS_ERROR("Could not transform imu message from %s to %s", imu->header.frame_id.c_str(), base_footprint_frame_.c_str());
