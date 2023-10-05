@@ -222,7 +222,8 @@ namespace motion_controller
                         ac_move_.waitForServer();
                         MoveGoal goal;
                         get_position();
-                        goal.pose.y = length_route(follower_.debug, config_.startup);
+                        goal.pose.y = length_route(follower_.debug, config_.startup) *
+                                      cos(angle_from_road(follower_.debug, config_.startup));
                         goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                         {
@@ -243,11 +244,12 @@ namespace motion_controller
                     get_position();
                     goal1.pose.theta = angle_from_road(follower_.debug, config_.startup);
                     ROS_INFO_STREAM("Move theta " << goal1.pose.theta);
-                    goal1.pose.y = length_from_road(follower_.debug, config_.startup) -
-                                   (goal.route == route_roughing_area
-                                        ? width_from_roughing_area_
-                                        : width_from_semi_finishing_area_) +
-                                   width_road_ / 2;
+                    goal1.pose.y = (length_from_road(follower_.debug, config_.startup) -
+                                    (goal.route == route_roughing_area
+                                         ? width_from_roughing_area_
+                                         : width_from_semi_finishing_area_) +
+                                    width_road_ / 2) *
+                                   cos(angle_from_road(follower_.debug, config_.startup));
                     // goal.precision = true;
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
