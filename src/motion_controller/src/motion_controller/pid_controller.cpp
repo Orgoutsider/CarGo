@@ -86,6 +86,12 @@ namespace motion_controller
         return true;
     }
 
+    void PIDController::change_thresh(Vec &&thresh)
+    {
+        ROS_ASSERT(thresh.size() == thresh_.size());
+        thresh_ = thresh;
+    }
+
     PIDControllerWithFilter::PIDControllerWithFilter(Vec &&target, Vec &&p, Vec &&i, Vec &&d,
                                                      Vec &&thresh, Vec &&int_max,
                                                      Vec &&control_max, Vec &&limiting_freq)

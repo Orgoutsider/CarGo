@@ -27,6 +27,7 @@ namespace motion_controller
         // 注意调用update必须等到返回值为true时！
         bool update(Vec &&current, const ros::Time &now,
                     Vec &control, bool &success);
+        void change_thresh(Vec &&thresh);
     };
 
     class PIDControllerWithFilter : public PIDController

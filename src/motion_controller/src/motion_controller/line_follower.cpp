@@ -9,7 +9,7 @@ namespace motion_controller
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(4.05), ki_(0), kd_(0.2),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
-          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false)
+          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.05)
     {
         pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);
@@ -40,9 +40,11 @@ namespace motion_controller
             ki_ = config.ki;
         if (kd_ != config.kd)
             kd_ = config.kd;
+        if (thresh_adjust_ != config.thresh_adjust);
+            thresh_adjust_ = config.thresh_adjust;
     }
 
-    bool LineFollower::start(bool start, double theta, double dist)
+    bool LineFollower::start(bool start, double theta, double dist, double theta_adjust)
     {
         if (start)
         {
@@ -51,6 +53,7 @@ namespace motion_controller
                 ROS_ERROR("Invalid dist: %lf", dist);
                 return false;
             }
+            theta = theta + theta_adjust;
             if (theta > M_PI * 3 / 4 || theta <= -M_PI * 3 / 4)
                 theta = M_PI;
             else if (theta > M_PI / 4)
@@ -61,7 +64,8 @@ namespace motion_controller
                 theta = -M_PI / 2;
             {
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
+                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_},
+                                     {theta_adjust ? thresh_adjust_ : 0.01}, {0.1}, {0.5});
                 target_theta_ = theta;
                 vel_ = std::min(vel_max_, sqrt(acc_ * dist));
                 length_ = (vel_ * vel_) / (2 * acc_);
@@ -160,58 +164,65 @@ namespace motion_controller
         return false;
     }
 
-    // bool LineFollower::stop_and_adjust(double theta, const ros::Time &now)
-    // {
-    //     bool success = false;
-    //     std::vector<double> control;
-    //     static bool rst = true;
-    //     if (has_started)
-    //     {
-    //         ROS_INFO_STREAM("Adjusting ... theta: " << theta);
-    //         static ros::Time time;
-    //         if (rst)
-    //         {
-    //             time = now;
-    //             rst = false;
-    //         }
-    //         if ((now - time).toSec() >= 5)
-    //         {
-    //             ROS_WARN("Adjust timeout!");
-    //             start(false);
-    //             return true;
-    //         }
-    //         // 将theta限制在target_theta_周围，防止不当的error
-    //         theta = (theta > target_theta_ + M_PI)
-    //                     ? theta - M_PI * 2
-    //                     : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
-    //         bool flag = false;
-    //         {
-    //             boost::lock_guard<boost::recursive_mutex> lk(mtx);
-    //             flag = pid_.update({theta}, now, control, success);
-    //         }
-    //         if (flag)
-    //         {
-    //             geometry_msgs::Twist twist;
-    //             // 需要增加一个负号来修正update的结果
-    //             twist.angular.z = -control[0];
-    //             TwistMightEnd tme;
-    //             tme.velocity = twist;
-    //             tme.end = false;
-    //             if (success)
-    //             {
-    //                 ROS_INFO("Adjust success!");
-    //                 start(false);
-    //             }
-    //             cmd_vel_publisher_.publish(tme);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         ROS_WARN_ONCE("Attempted to use 'stop_and_adjust' when follower has not started");
-    //         return false;
-    //     }
-    //     return success;
-    // }
+    bool LineFollower::stop_and_adjust(double theta, const ros::Time &now)
+    {
+        bool success = false;
+        std::vector<double> control;
+        static bool rst = true;
+        if (has_started)
+        {
+            ROS_INFO_STREAM("Adjusting ... theta: " << theta);
+            static ros::Time time;
+            if (rst)
+            {
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                time = now;
+                rst = false;
+            }
+            if ((now - time).toSec() >= 5)
+            {
+                ROS_WARN("Adjust timeout!");
+                // start(false);
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                pid_.change_thresh({0.01});
+                rst = true;
+                return true;
+            }
+            // 将theta限制在target_theta_周围，防止不当的error
+            theta = (theta > target_theta_ + M_PI)
+                        ? theta - M_PI * 2
+                        : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
+            bool flag = false;
+            {
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                flag = pid_.update({theta}, now, control, success);
+            }
+            if (flag)
+            {
+                geometry_msgs::Twist twist;
+                // 需要增加一个负号来修正update的结果
+                twist.angular.z = -control[0];
+                TwistMightEnd tme;
+                tme.velocity = twist;
+                tme.end = false;
+                if (success)
+                {
+                    ROS_INFO("Adjust success!");
+                    boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                    pid_.change_thresh({0.01});
+                    rst = true;
+                    // start(false);
+                }
+                cmd_vel_publisher_.publish(tme);
+            }
+        }
+        else
+        {
+            ROS_WARN_ONCE("Attempted to use 'stop_and_adjust' when follower has not started");
+            return false;
+        }
+        return success;
+    }
 
     void LineFollower::veer(bool front_back, bool front_left)
     {

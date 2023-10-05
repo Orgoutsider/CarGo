@@ -117,14 +117,27 @@ namespace motion_controller
                 {
                     if (!follower_.has_started)
                     {
-                        set_position(0, 0, 0);
-                        follower_.start(true, theta_, config_.dist);
+                        set_position(0, 0, -config_.theta_adjust);
+                        follower_.start(true, theta_, config_.dist, config_.theta_adjust);
                     }
                     if (get_position())
                     {
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_);
-                        follower_.follow(theta_,
-                                         config_.dist - std::max(abs(x_), abs(y_)), event.current_real);
+                        if (config_.theta_adjust)
+                        {
+                            bool ok = follower_.stop_and_adjust(theta_, event.current_real);
+                            if (ok)
+                            {
+                                {
+                                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                                    config_.theta_adjust = 0;
+                                }
+                                dr_server_.updateConfig(config_);
+                            }
+                        }
+                        else
+                            follower_.follow(theta_,
+                                             config_.dist - std::max(abs(x_), abs(y_)), event.current_real);
                     }
                     return;
                 }
@@ -145,10 +158,12 @@ namespace motion_controller
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                 flag = false;
             }
             else if (!config_.startup && !flag)
             {
+                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                 flag = true; // 等待下一次启动
             }
             else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area && !flag)

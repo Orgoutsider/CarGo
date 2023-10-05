@@ -69,27 +69,27 @@ namespace motion_controller
     switch (where_is_car(debug, startup))
     {
     case route_QR_code_board:
-      return abs(length_route(debug, startup)) < 0.1 && -x_ < x_road_up_ + width_road_ - length_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && -x_ < x_road_up_ + width_road_;
 
     case route_raw_material_area:
       if (loop_ == 0)
         return abs(length_route(debug, startup)) < 0.1 &&
-               -x_ < x_road_up_ + width_road_ - length_car_ / 2;
+               -x_ < x_road_up_ + width_road_;
       else if (loop_ == 1)
         return abs(length_route(debug, startup)) < 0.1 &&
-               y_ > length_field_ - width_road_ + width_car_ / 2;
+               y_ > length_field_ - width_road_;
       else
         ROS_ERROR("Invalid loop!");
       return false;
 
     case route_roughing_area:
-      return abs(length_route(debug, startup)) < 0.1 && y_ > length_field_ - width_road_ + width_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && y_ > length_field_ - width_road_;
 
     case route_semi_finishing_area:
-      return abs(length_route(debug, startup)) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_ + width_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_;
 
     case route_parking_area:
-      return abs(length_route(debug, startup)) < 0.1 && y_ < width_road_ - width_car_ / 2;
+      return abs(length_route(debug, startup)) < 0.1 && y_ < width_road_;
 
     case route_border:
       return abs(length_route(debug, startup)) < 0.1;
@@ -309,19 +309,19 @@ namespace motion_controller
     }
   }
 
-  double FieldGuide::length_border() const
-  {
-    double len0 = 0.5, len1 = 0.5;
-    if (-x_ < x_road_up_ + width_road_) // 上
-      len0 = -x_ - x_road_up_ - width_road_ / 2;
-    else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下
-      len0 = -(-x_ - x_road_up_ - width_field_ + width_road_ / 2);
-    if (y_ < width_road_) // 右
-      len1 = y_ - width_road_ / 2;
-    else if (y_ > length_field_ - width_road_) // 左
-      len1 = -(y_ - length_field_ + width_road_ / 2);
-    return abs(len0) > abs(len1) ? len0 : len1;
-  }
+  // double FieldGuide::length_border() const
+  // {
+  //   double len0 = 0.5, len1 = 0.5;
+  //   if (-x_ < x_road_up_ + width_road_) // 上
+  //     len0 = -x_ - x_road_up_ - width_road_ / 2;
+  //   else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下
+  //     len0 = -(-x_ - x_road_up_ - width_field_ + width_road_ / 2);
+  //   if (y_ < width_road_) // 右
+  //     len1 = y_ - width_road_ / 2;
+  //   else if (y_ > length_field_ - width_road_) // 左
+  //     len1 = -(y_ - length_field_ + width_road_ / 2);
+  //   return abs(len0) > abs(len1) ? len0 : len1;
+  // }
 
   double FieldGuide::angle_corner() const
   {
