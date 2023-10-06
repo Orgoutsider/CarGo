@@ -119,15 +119,17 @@ namespace motion_controller
                     if (!follower_.has_started)
                     {
                         set_position(0, 0, -my_hand_eye::Angle(config_.theta_adjust).rad());
-                        follower_.start(true, theta_, config_.dist, 
-                        my_hand_eye::Angle(config_.theta_adjust).rad());
+                        follower_.start(true, theta_, config_.dist,
+                                        my_hand_eye::Angle(config_.theta_adjust).rad());
                     }
                     if (get_position())
                     {
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_ << " theta:" << theta_);
                         if (config_.theta_adjust)
                         {
-                            bool ok = follower_.stop_and_adjust(theta_, event.current_real);
+                            bool ok = follower_.stop_and_adjust(theta_,
+                                                                config_.dist - std::max(abs(x_), abs(y_)),
+                                                                event.current_real);
                             if (ok)
                             {
                                 {

@@ -67,9 +67,12 @@ namespace motion_controller
                 pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_},
                                      {theta_adjust ? thresh_adjust_ : 0.01}, {0.1}, {0.5});
                 target_theta_ = theta;
-                vel_ = std::min(vel_max_, sqrt(acc_ * dist));
-                length_ = (vel_ * vel_) / (2 * acc_);
-                dist_start = dist;
+                if (!theta_adjust)
+                {
+                    vel_ = std::min(vel_max_, sqrt(acc_ * dist));
+                    length_ = (vel_ * vel_) / (2 * acc_);
+                    dist_start_ = dist;
+                }
             }
             if (has_started)
             {
@@ -109,7 +112,7 @@ namespace motion_controller
                 ROS_ERROR("Invalid dist: %lf", dist);
                 return false;
             }
-            dist = dist > dist_start ? dist_start : dist;
+            dist = dist > dist_start_ ? dist_start_ : dist;
             // 将theta限制在target_theta_周围，防止不当的error
             theta = (theta > target_theta_ + M_PI)
                         ? theta - M_PI * 2
@@ -122,16 +125,16 @@ namespace motion_controller
             if (flag)
             {
                 double vel_n = vel_max_;
-                if (dist_start)
+                if (dist_start_)
                 {
-                    if (dist > dist_start - length_)
-                        vel_n = sqrt(2 * acc_ * (dist_start - dist)) * 0.8 + 0.2;
+                    if (dist > dist_start_ - length_)
+                        vel_n = sqrt(2 * acc_ * (dist_start_ - dist)) * 0.8 + 0.2;
                     else if (dist < 0.1)
                         vel_n = 0;
                     else if (dist < length_)
                         vel_n = std::max(sqrt(2 * acc_ * dist) * 1.2 - 0.2, 0.2);
                 }
-                // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start, length_);
+                // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start_, length_);
                 geometry_msgs::Twist twist;
                 if (front_back_)
                 {
@@ -164,7 +167,7 @@ namespace motion_controller
         return false;
     }
 
-    bool LineFollower::stop_and_adjust(double theta, const ros::Time &now)
+    bool LineFollower::stop_and_adjust(double theta, double dist, const ros::Time &now)
     {
         bool success = false;
         std::vector<double> control;
@@ -186,6 +189,9 @@ namespace motion_controller
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
                 pid_.change_thresh({0.01});
                 rst = true;
+                vel_ = std::min(vel_max_, sqrt(acc_ * dist));
+                length_ = (vel_ * vel_) / (2 * acc_);
+                dist_start_ = dist;
                 return true;
             }
             // 将theta限制在target_theta_周围，防止不当的error
@@ -199,19 +205,32 @@ namespace motion_controller
             }
             if (flag)
             {
-                double vel_n = 0.1;
+                double vel_1 = 0.1 * cos(target_theta_ - theta);
+                double vel_2 = 0.1 * sin(target_theta_ - theta);
                 geometry_msgs::Twist twist;
                 if (front_back_)
                 {
                     if (front_left_)
-                        twist.linear.x = vel_n;
+                    {
+                        twist.linear.x = vel_1;
+                        twist.linear.y = vel_2;
+                    }
                     else
-                        twist.linear.x = -vel_n;
+                    {
+                        twist.linear.x = -vel_1;
+                        twist.linear.y = -vel_2;
+                    }
                 }
                 else if (front_left_)
-                    twist.linear.y = vel_n;
+                {
+                    twist.linear.y = vel_1;
+                    twist.linear.x = -vel_2;
+                }
                 else
-                    twist.linear.y = -vel_n;
+                {
+                    twist.linear.x = vel_2;
+                    twist.linear.y = -vel_1;
+                }
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -control[0];
                 TwistMightEnd tme;
@@ -223,6 +242,9 @@ namespace motion_controller
                     boost::lock_guard<boost::recursive_mutex> lk(mtx);
                     pid_.change_thresh({0.01});
                     rst = true;
+                    vel_ = std::min(vel_max_, sqrt(acc_ * dist));
+                    length_ = (vel_ * vel_) / (2 * acc_);
+                    dist_start_ = dist;
                     // start(false);
                 }
                 cmd_vel_publisher_.publish(tme);
