@@ -257,7 +257,7 @@ namespace motion_controller
                                    width_road_ / 2;
                     goal1.pose.y = width * cos(goal1.pose.theta);
                     goal1.pose.x = -width * sin(goal1.pose.theta);
-                    // goal.precision = true;
+                    goal1.precision = true;
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
                 else if (goal.route == route_raw_material_area)
@@ -268,7 +268,8 @@ namespace motion_controller
                         // 等车停
                         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                         MoveGoal goal;
-                        goal.pose.theta = angle_raw_material_area_;
+                        goal.pose.theta = angle_raw_material_area_ +
+                                          angle_from_road(follower_.debug, config_.startup);
                         get_position();
                         goal.pose.y = length_route(follower_.debug, config_.startup);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
@@ -289,7 +290,8 @@ namespace motion_controller
                         // ac_move_.sendGoalAndWait(goal2, ros::Duration(15), ros::Duration(0.1));
                         get_position();
                         MoveGoal goal3;
-                        goal3.pose.theta = -angle_raw_material_area_;
+                        goal3.pose.theta = -angle_raw_material_area_ +
+                                           angle_from_road(follower_.debug, config_.startup);
                         goal3.pose.y =
                             y_raw_material_area_ - y_ +
                             (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_);
@@ -373,8 +375,11 @@ namespace motion_controller
                         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                         MoveGoal goal;
                         get_position();
+                        goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
                         goal.pose.y = length_route(follower_.debug, config_.startup) *
-                                      (clockwise_ ? -1 : 1);
+                                      (clockwise_ ? -1 : 1) * cos(goal.pose.theta);
+                        goal.pose.x = -length_route(follower_.debug, config_.startup) *
+                                      (clockwise_ ? -1 : 1) * sin(goal.pose.theta);
                         ROS_INFO_STREAM("Move " << goal.pose.y);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
@@ -650,11 +655,11 @@ namespace motion_controller
                  !follower_.debug)
         {
             // follower_.veer(false, true);
-            ac_move_.waitForServer();
-            MoveGoal goal;
-            get_position();
-            goal.pose.y = length_from_road(follower_.debug, config_.startup);
-            ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            // ac_move_.waitForServer();
+            // MoveGoal goal;
+            // get_position();
+            // goal.pose.y = length_from_road(follower_.debug, config_.startup);
+            // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 0)
                 follower_.veer(true, true);
         }
@@ -706,6 +711,8 @@ namespace motion_controller
                     if (!timer_.hasStarted())
                         timer_.start();
                 }
+                else
+                    ros::shutdown();
                 return;
             }
         }
@@ -731,14 +738,14 @@ namespace motion_controller
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());
         else
         {
-            if (where_is_car(follower_.debug, config_.startup) == route_border && !follower_.debug)
-            {
-                ac_move_.waitForServer();
-                MoveGoal goal;
-                get_position();
-                goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-                ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-            }
+            // if (where_is_car(follower_.debug, config_.startup) == route_border && !follower_.debug)
+            // {
+            //     ac_move_.waitForServer();
+            //     MoveGoal goal;
+            //     get_position();
+            //     goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+            //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            // }
             ROS_WARN_STREAM("*** Arm finished: " << state.toString());
         }
         if (!follower_.debug)

@@ -381,6 +381,7 @@ namespace my_hand_eye
 				{
 					ROS_INFO("x:%lf y:%lf theta:%lf", msg.pose.x, msg.pose.y, msg.pose.theta);
 					finish_adjusting_ = true;
+					ros::Duration(0.2).sleep();
 					ArmFeedback feedback;
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);

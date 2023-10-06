@@ -35,7 +35,7 @@
     </include>
 
 	<!-- The QR detector nodeler -->
-	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet $(arg nodelet_manager) $(arg bond)" output="screen">
+	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet $(arg nodelet_manager) $(arg bond)" respawn="$(arg respawn)" output="screen">
 		<param name="adaptive_threshold_block_size" value="201" />
 		<param name="adaptive_threshold_threshold" value="21" />
                 <rosparam param="qr_code_points">[0.0, 0.0, 0.0, 0.0, 0.125, 0.0, 0.125, 0.0, 0.0]</rosparam>

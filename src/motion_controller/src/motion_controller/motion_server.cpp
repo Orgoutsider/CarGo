@@ -9,7 +9,7 @@ namespace motion_controller
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
           kp_angular_{2.0, 1.8}, ki_angular_{0.6, 0.5}, kd_angular_{0, 1.1},
-          kp_linear_{2.1, 1.6}, ki_linear_{0.25, 0}, kd_linear_{0, 0}
+          kp_linear_{2.1, 2.1}, ki_linear_{0.25, 0.1}, kd_linear_{0, 0}
     {
         pnh.param<bool>("debug", debug_, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
@@ -46,7 +46,8 @@ namespace motion_controller
         {
             PIDController pid1({0}, {kp_angular_[goal->precision]}, {ki_angular_[goal->precision]},
                                {kd_angular_[goal->precision]},
-                               {(goal->precision ? 0.005 : 0.02)}, {0.1}, {goal->precision ? 0.8 : 1.4});
+                               {(goal->precision && !(goal->pose.x || goal->pose.y)) ? 0.01 : 0.02},
+                               {0.1}, {goal->precision ? 0.8 : 1.4});
             while (!success)
             {
                 if (server_.isPreemptRequested() || !ros::ok())
@@ -126,7 +127,7 @@ namespace motion_controller
                                {ki_linear_[goal->precision], ki_linear_[goal->precision], ki_angular_[0]},
                                {kd_linear_[goal->precision], kd_linear_[goal->precision], kd_angular_[0]},
                                {(goal->precision ? 0.007 : 0.01), (goal->precision ? 0.007 : 0.01),
-                                (goal->precision ? 0.005 : 0.02)},
+                                (goal->precision ? 0.01 : 0.02)},
                                {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
             success = false;
             while (!success)
@@ -180,11 +181,13 @@ namespace motion_controller
                 {
                     if (pid2.update({pose.x, pose.y, pose.theta}, header_.stamp, control, success))
                     {
+                        // ROS_INFO_STREAM("1:" << pose.x << " " << pose.y);
                         // 组织发布速度消息
                         geometry_msgs::Twist twist;
                         twist.linear.x = control[0];
                         twist.linear.y = control[1];
                         twist.angular.z = control[2];
+                        // ROS_INFO_STREAM(twist.linear.x << " " << twist.linear.y);
                         tme.velocity = twist;
                     }
                     else

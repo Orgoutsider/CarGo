@@ -1,8 +1,8 @@
 <launch>
-    <arg name="theta" default="10" />
-    <arg name="x" default="-0.5" />
-    <arg name="y" default="0.2" />
-    <arg name="precision" default="0" />
+    <arg name="theta" default="3" />
+    <arg name="x" default="-0.06" />
+    <arg name="y" default="0" />
+    <arg name="precision" default="1" />
 
     <node name="motion_controller_client_node" pkg="motion_controller" type="motion_controller_client_node" args="$(arg theta) $(arg x) $(arg y) $(arg precision)" respawn="false" output="screen" /> 
 </launch>
