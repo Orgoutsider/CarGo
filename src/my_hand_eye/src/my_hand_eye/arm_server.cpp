@@ -502,23 +502,23 @@ namespace my_hand_eye
 		{
 			if (!arm_goal_.left_ready)
 			{
-				static int cnt = 0;
-				cnt++;
-				if (cnt > 1) // 前方是停车区不调位姿
-				{
-					msg.end = false;
-					msg.pose.x = msg.not_change;
-					msg.pose.y = msg.not_change;
-					msg.pose.theta = msg.not_change;
-					msg.header = image_rect->header;
-					msg.header.frame_id = "base_footprint";
-					ArmResult result;
-					result.pme = msg;
-					as_.setSucceeded(ArmResult(), "Arm finish tasks");
-					arm_controller_.ready(arm_goal_.left_ready);
-					arm_goal_.route = arm_goal_.route_rest;
-					return true;
-				}
+				// static int cnt = 0;
+				// cnt++;
+				// if (cnt > 1) // 前方是停车区不调位姿
+				// {
+				msg.end = false;
+				msg.pose.x = msg.not_change;
+				msg.pose.y = msg.not_change;
+				msg.pose.theta = msg.not_change;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
+				ArmResult result;
+				result.pme = msg;
+				as_.setSucceeded(ArmResult(), "Arm finish tasks");
+				arm_controller_.ready(arm_goal_.left_ready);
+				arm_goal_.route = arm_goal_.route_rest;
+				return true;
+				// }
 			}
 			finish_adjusting_ = false;
 			finish_ = false;
