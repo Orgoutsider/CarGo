@@ -40,7 +40,7 @@ namespace motion_controller
             ki_ = config.ki;
         if (kd_ != config.kd)
             kd_ = config.kd;
-        if (thresh_adjust_ != config.thresh_adjust);
+        if (thresh_adjust_ != config.thresh_adjust)
             thresh_adjust_ = config.thresh_adjust;
     }
 
@@ -199,7 +199,19 @@ namespace motion_controller
             }
             if (flag)
             {
+                double vel_n = 0.1;
                 geometry_msgs::Twist twist;
+                if (front_back_)
+                {
+                    if (front_left_)
+                        twist.linear.x = vel_n;
+                    else
+                        twist.linear.x = -vel_n;
+                }
+                else if (front_left_)
+                    twist.linear.y = vel_n;
+                else
+                    twist.linear.y = -vel_n;
                 // 需要增加一个负号来修正update的结果
                 twist.angular.z = -control[0];
                 TwistMightEnd tme;

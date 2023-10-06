@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <motion_controller/MoveAction.h>
+#include <my_hand_eye/backward_kinematics.h>
 
 typedef actionlib::SimpleActionClient<motion_controller::MoveAction> Client;
 
@@ -39,7 +40,7 @@ int main(int argc, char *argv[])
     Client client(nh, "Move", true);
     client.waitForServer();
     motion_controller::MoveGoal goal;
-    goal.pose.theta = atof(argv[1]) * M_PI / 180;
+    goal.pose.theta = my_hand_eye::Angle(atof(argv[1])).rad();
     goal.pose.x = atof(argv[2]);
     goal.pose.y = atof(argv[3]);
     goal.precision = atoi(argv[4]);

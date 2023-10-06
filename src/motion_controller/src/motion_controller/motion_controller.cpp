@@ -1,4 +1,5 @@
 #include <tf/tf.h>
+#include <my_hand_eye/backward_kinematics.h>
 #include "motion_controller/motion_controller.h"
 
 namespace motion_controller
@@ -117,12 +118,13 @@ namespace motion_controller
                 {
                     if (!follower_.has_started)
                     {
-                        set_position(0, 0, -config_.theta_adjust);
-                        follower_.start(true, theta_, config_.dist, config_.theta_adjust);
+                        set_position(0, 0, -my_hand_eye::Angle(config_.theta_adjust).rad());
+                        follower_.start(true, theta_, config_.dist, 
+                        my_hand_eye::Angle(config_.theta_adjust).rad());
                     }
                     if (get_position())
                     {
-                        ROS_INFO_STREAM("x:" << x_ << " y:" << y_);
+                        ROS_INFO_STREAM("x:" << x_ << " y:" << y_ << " theta:" << theta_);
                         if (config_.theta_adjust)
                         {
                             bool ok = follower_.stop_and_adjust(theta_, event.current_real);
@@ -833,7 +835,7 @@ namespace motion_controller
             x_ = x;
             y_ = y;
             // 将theta_限定在(-pi,pi]之间
-            theta_ = (theta <= -M_PI) ? theta + M_PI : (theta > M_PI ? theta - M_PI : theta);
+            theta_ = (theta <= -M_PI) ? theta + 2 * M_PI : (theta > M_PI ? theta - 2 * M_PI : theta);
         }
         try
         {
@@ -1008,7 +1010,7 @@ namespace motion_controller
             theta_ = delta_theta_ + yaw;
             // theta_ = delta_theta_ + atan2(tfs.transform.rotation.z, tfs.transform.rotation.w) * 2;
             // 将theta_限定在(-pi,pi]之间
-            theta_ = (theta_ <= -M_PI) ? theta_ + M_PI : (theta_ > M_PI ? theta_ - M_PI : theta_);
+            theta_ = (theta_ <= -M_PI) ? theta_ + 2 * M_PI : (theta_ > M_PI ? theta_ - 2 * M_PI : theta_);
         }
         catch (const std::exception &e)
         {
