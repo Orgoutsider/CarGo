@@ -23,9 +23,9 @@ namespace motion_controller
         double kp_angular_[2];
         double ki_angular_[2];
         double kd_angular_[2];
-        double kp_linear_;
-        double ki_linear_;
-        double kd_linear_;
+        double kp_linear_[2];
+        double ki_linear_[2];
+        double kd_linear_[2];
         Server server_;
         tf2_ros::Buffer buffer_;              // 创建一个缓冲。
         tf2_ros::TransformListener listener_; // 用刚创建的缓冲Buffer来初始化创建一个TransformListener类的对象用于守听Transform消息。

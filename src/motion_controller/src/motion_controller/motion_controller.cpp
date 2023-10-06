@@ -220,11 +220,15 @@ namespace motion_controller
                             // 用于防止follower提前打开或finished
                         }
                         ac_move_.waitForServer();
+                        // 等车停
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                         MoveGoal goal;
                         get_position();
-                        goal.pose.y = length_route(follower_.debug, config_.startup) *
-                                      cos(angle_from_road(follower_.debug, config_.startup));
                         goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                        goal.pose.y = length_route(follower_.debug, config_.startup) *
+                                      cos(goal.pose.theta);
+                        goal.pose.x = -length_route(follower_.debug, config_.startup) *
+                                      sin(goal.pose.theta);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                         {
                             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
@@ -240,16 +244,19 @@ namespace motion_controller
                     // if (!follower_.stop_and_adjust(theta_, event.current_real))
                     //     return;
                     ac_move_.waitForServer();
+                    // 等车停
+                    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                     MoveGoal goal1;
                     get_position();
                     goal1.pose.theta = angle_from_road(follower_.debug, config_.startup);
                     ROS_INFO_STREAM("Move theta " << goal1.pose.theta);
-                    goal1.pose.y = (length_from_road(follower_.debug, config_.startup) -
-                                    (goal.route == route_roughing_area
-                                         ? width_from_roughing_area_
-                                         : width_from_semi_finishing_area_) +
-                                    width_road_ / 2) *
-                                   cos(angle_from_road(follower_.debug, config_.startup));
+                    double width = length_from_road(follower_.debug, config_.startup) -
+                                   (goal.route == route_roughing_area
+                                        ? width_from_roughing_area_
+                                        : width_from_semi_finishing_area_) +
+                                   width_road_ / 2;
+                    goal1.pose.y = width * cos(goal1.pose.theta);
+                    goal1.pose.x = -width * sin(goal1.pose.theta);
                     // goal.precision = true;
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
@@ -258,6 +265,8 @@ namespace motion_controller
                     if (loop_ == 0)
                     {
                         ac_move_.waitForServer();
+                        // 等车停
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                         MoveGoal goal;
                         goal.pose.theta = angle_raw_material_area_;
                         get_position();
@@ -267,6 +276,8 @@ namespace motion_controller
                     else if (loop_ == 1)
                     {
                         ac_move_.waitForServer();
+                        // 等车停
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                         get_position();
                         MoveGoal goal1;
                         goal1.pose.y = length_from_road(follower_.debug, config_.startup);
@@ -295,6 +306,8 @@ namespace motion_controller
                           last_route == route_semi_finishing_area))
                 {
                     ac_move_.waitForServer();
+                    // 等车停
+                    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                     MoveGoal goal;
                     int sign =
                         (last_route == route_semi_finishing_area &&
@@ -356,6 +369,8 @@ namespace motion_controller
                     else
                     {
                         ac_move_.waitForServer();
+                        // 等车停
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
                         MoveGoal goal;
                         get_position();
                         goal.pose.y = length_route(follower_.debug, config_.startup) *

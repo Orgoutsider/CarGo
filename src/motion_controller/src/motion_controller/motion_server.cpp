@@ -9,7 +9,7 @@ namespace motion_controller
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
           kp_angular_{2.0, 1.8}, ki_angular_{0.6, 0.5}, kd_angular_{0, 1.1},
-          kp_linear_(2.1), ki_linear_(0.25), kd_linear_(0)
+          kp_linear_{2.1, 1.6}, ki_linear_{0.25, 0}, kd_linear_{0, 0}
     {
         pnh.param<bool>("debug", debug_, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
@@ -122,9 +122,9 @@ namespace motion_controller
         // 平移
         if (goal->pose.x || goal->pose.y)
         {
-            PIDController pid2({0, 0, 0}, {kp_linear_, kp_linear_, kp_angular_[0]},
-                               {ki_linear_, ki_linear_, ki_angular_[0]},
-                               {kd_linear_, kd_linear_, kd_angular_[0]},
+            PIDController pid2({0, 0, 0}, {kp_linear_[goal->precision], kp_linear_[goal->precision], kp_angular_[0]},
+                               {ki_linear_[goal->precision], ki_linear_[goal->precision], ki_angular_[0]},
+                               {kd_linear_[goal->precision], kd_linear_[goal->precision], kd_angular_[0]},
                                {(goal->precision ? 0.007 : 0.01), (goal->precision ? 0.007 : 0.01),
                                 (goal->precision ? 0.005 : 0.02)},
                                {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
@@ -222,18 +222,18 @@ namespace motion_controller
     {
         if (!debug_)
             return;
-        if (config.kp_angular != kp_angular_[0])
+        if (config.kp_angular != kp_angular_[0] || config.kp_angular != kp_angular_[1])
             kp_angular_[0] = kp_angular_[1] = config.kp_angular;
-        if (config.ki_angular != ki_angular_[0])
+        if (config.ki_angular != ki_angular_[0] || config.ki_angular != ki_angular_[1])
             ki_angular_[0] = ki_angular_[1] = config.ki_angular;
-        if (config.kd_angular != kd_angular_[0])
+        if (config.kd_angular != kd_angular_[0] || config.kd_angular != kd_angular_[1])
             kd_angular_[0] = kd_angular_[1] = config.kd_angular;
-        if (config.kp_linear != kp_linear_)
-            kp_linear_ = config.kp_linear;
-        if (config.ki_linear != ki_linear_)
-            ki_linear_ = config.ki_linear;
-        if (config.kd_linear != kd_linear_)
-            kd_linear_ = config.kd_linear;
+        if (config.kp_linear != kp_linear_[0] || config.kp_linear != kp_linear_[1])
+            kp_linear_[0] = kp_linear_[1] = config.kp_linear;
+        if (config.ki_linear != ki_linear_[0] || config.ki_linear != ki_linear_[1])
+            ki_linear_[0] = kp_linear_[1] = config.ki_linear;
+        if (config.kd_linear != kd_linear_[0] || config.kd_linear != kd_linear_[1])
+            kd_linear_[0] = kp_linear_[1] = config.kd_linear;
     }
 
     bool MotionServer::_add_pose_goal(const geometry_msgs::Pose2D &pose)
