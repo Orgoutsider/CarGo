@@ -3,24 +3,24 @@
 using namespace cv;
 using namespace std;
 
-//±´Èû¶ûÇúÏß²ÎÊıÈ¡ÖµµÄ²½³¤
+//è´å¡å°”æ›²çº¿å‚æ•°å–å€¼çš„æ­¥é•¿
 #define BEZIER_STEP_LENTH 0.001
 
-RNG rng(123456);//Ëæ»úÑÕÉ«
+RNG rng(123456);//éšæœºé¢œè‰²
 
 Mat drawing_board = Mat(Size(800, 500), CV_8UC3, Scalar::all(0));
 
-//±´Èû¶ûÇúÏß»æÖÆ£¬P0-P2Îª¿ØÖÆµã£¬bezier_tÎª¿ÉÒÔ´Ó¸ø¶¨µÄ±´Èû¶ûÇúÏß²ÎÊı´¦¿ªÊ¼»æÖÆ
-//×¢Òâ£º¿ØÖÆµãË³ĞòÎªP2-P0-P1£¬¸Ä±ä¿ØÖÆµãµÄË³ĞòÔò»æÖÆº¯ÊıÒ²ĞèÒª¸Ä±ä
+//è´å¡å°”æ›²çº¿ç»˜åˆ¶ï¼ŒP0-P2ä¸ºæ§åˆ¶ç‚¹ï¼Œbezier_tä¸ºå¯ä»¥ä»ç»™å®šçš„è´å¡å°”æ›²çº¿å‚æ•°å¤„å¼€å§‹ç»˜åˆ¶
+//æ³¨æ„ï¼šæ§åˆ¶ç‚¹é¡ºåºä¸ºP2-P0-P1ï¼Œæ”¹å˜æ§åˆ¶ç‚¹çš„é¡ºåºåˆ™ç»˜åˆ¶å‡½æ•°ä¹Ÿéœ€è¦æ”¹å˜
 void draw_bezier(Point2d P0, Point2d P1, Point2d P2, double bezier_t)
 {
-	//»æÖÆ¿ØÖÆµã
+	//ç»˜åˆ¶æ§åˆ¶ç‚¹
 	Scalar ConP_color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 	line(drawing_board, P0, P0, ConP_color, 4);
 	line(drawing_board, P1, P1, ConP_color, 4);
 	line(drawing_board, P2, P2, ConP_color, 4);
 
-	//»æÖÆ±´Èû¶ûÇúÏß
+	//ç»˜åˆ¶è´å¡å°”æ›²çº¿
 	Scalar P_color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 	for (double i = bezier_t; i <= 1; i+= BEZIER_STEP_LENTH)
 	{
@@ -31,17 +31,17 @@ void draw_bezier(Point2d P0, Point2d P1, Point2d P2, double bezier_t)
 	}
 }
 
-//±´Èû¶ûÇúÏß»æÖÆ£¬P0-P2Îª¿ØÖÆµã
-//×¢Òâ£º¿ØÖÆµãË³ĞòÎªP2-P0-P1£¬¸Ä±ä¿ØÖÆµãµÄË³ĞòÔò»æÖÆº¯ÊıÒ²ĞèÒª¸Ä±ä
+//è´å¡å°”æ›²çº¿ç»˜åˆ¶ï¼ŒP0-P2ä¸ºæ§åˆ¶ç‚¹
+//æ³¨æ„ï¼šæ§åˆ¶ç‚¹é¡ºåºä¸ºP2-P0-P1ï¼Œæ”¹å˜æ§åˆ¶ç‚¹çš„é¡ºåºåˆ™ç»˜åˆ¶å‡½æ•°ä¹Ÿéœ€è¦æ”¹å˜
 void draw_bezier(Point2d P0, Point2d P1, Point2d P2)
 {
-	//»æÖÆ¿ØÖÆµã
+	//ç»˜åˆ¶æ§åˆ¶ç‚¹
 	Scalar ConP_color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 	line(drawing_board, P0, P0, ConP_color, 4);
 	line(drawing_board, P1, P1, ConP_color, 4);
 	line(drawing_board, P2, P2, ConP_color, 4);
 
-	//»æÖÆ±´Èû¶ûÇúÏß
+	//ç»˜åˆ¶è´å¡å°”æ›²çº¿
 	Scalar P_color = Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
 	for (double i = 0; i <= 1; i += BEZIER_STEP_LENTH)
 	{
@@ -52,8 +52,8 @@ void draw_bezier(Point2d P0, Point2d P1, Point2d P2)
 	}
 }
 
-//¸ø¶¨µãÑ°ÕÒ¿ØÖÆµã£¬¸ø¶¨µãÎªPb£¬P0-P1ÎªÒÑÖª¿ØÖÆµã£¬P2ÎªÎ´Öª¿ØÖÆµã£¬bezier_tÎªÍ¨¹ı¸Ãº¯Êı¼ÆËãµÃµ½µÄPbµã¶ÔÓ¦µÄ²ÎÊı
-//×¢Òâ£º¿ØÖÆµãË³ĞòÎªP2-P0-P1£¬¸Ä±ä¿ØÖÆµãÔòÑ°ÕÒ¿ØÖÆµãº¯ÊıÒ²ĞèÒª¸Ä±ä
+//ç»™å®šç‚¹å¯»æ‰¾æ§åˆ¶ç‚¹ï¼Œç»™å®šç‚¹ä¸ºPbï¼ŒP0-P1ä¸ºå·²çŸ¥æ§åˆ¶ç‚¹ï¼ŒP2ä¸ºæœªçŸ¥æ§åˆ¶ç‚¹ï¼Œbezier_tä¸ºé€šè¿‡è¯¥å‡½æ•°è®¡ç®—å¾—åˆ°çš„Pbç‚¹å¯¹åº”çš„å‚æ•°
+//æ³¨æ„ï¼šæ§åˆ¶ç‚¹é¡ºåºä¸ºP2-P0-P1ï¼Œæ”¹å˜æ§åˆ¶ç‚¹åˆ™å¯»æ‰¾æ§åˆ¶ç‚¹å‡½æ•°ä¹Ÿéœ€è¦æ”¹å˜
 Point2d point_find(Point2d Pb, Point2d P0, Point2d P1, double& bezier_t)
 {
 	double k = (Pb.x - P0.x) / (P1.x - P0.x);
@@ -63,8 +63,8 @@ Point2d point_find(Point2d Pb, Point2d P0, Point2d P1, double& bezier_t)
 	return Point2d(x, y);
 }
 
-//Çó³ö¸ø¶¨±´Èû¶û²ÎÊı¶ÔÓ¦µã´¦µÄµ¼Êı£¬P0-P2Îª¿ØÖÆµã
-//×¢Òâ£º¿ØÖÆµãË³ĞòÎªP2-P0-P1£¬¸Ä±ä¿ØÖÆµãÔò¸Ãº¯ÊıÒ²ĞèÒª¸Ä±ä
+//æ±‚å‡ºç»™å®šè´å¡å°”å‚æ•°å¯¹åº”ç‚¹å¤„çš„å¯¼æ•°ï¼ŒP0-P2ä¸ºæ§åˆ¶ç‚¹
+//æ³¨æ„ï¼šæ§åˆ¶ç‚¹é¡ºåºä¸ºP2-P0-P1ï¼Œæ”¹å˜æ§åˆ¶ç‚¹åˆ™è¯¥å‡½æ•°ä¹Ÿéœ€è¦æ”¹å˜
 double bezier_derivative(Point2d P0, Point2d P1, Point2d P2, double bezier_t)
 {
 	double x = 2 * bezier_t * (P1.x - P0.x);
@@ -72,8 +72,8 @@ double bezier_derivative(Point2d P0, Point2d P1, Point2d P2, double bezier_t)
 	return y / x;
 }
 
-//Çó³ö¸ø¶¨±´Èû¶ûµã´¦µÄµ¼Êı£¬P0-P2Îª¿ØÖÆµã
-//×¢Òâ£º¿ØÖÆµãË³ĞòÎªP2-P0-P1£¬¸Ä±ä¿ØÖÆµãÔò¸Ãº¯ÊıÒ²ĞèÒª¸Ä±ä
+//æ±‚å‡ºç»™å®šè´å¡å°”ç‚¹å¤„çš„å¯¼æ•°ï¼ŒP0-P2ä¸ºæ§åˆ¶ç‚¹
+//æ³¨æ„ï¼šæ§åˆ¶ç‚¹é¡ºåºä¸ºP2-P0-P1ï¼Œæ”¹å˜æ§åˆ¶ç‚¹åˆ™è¯¥å‡½æ•°ä¹Ÿéœ€è¦æ”¹å˜
 double bezier_derivative(Point2d P0, Point2d P1, Point2d P2, Point2d Pb)
 {
 	double k = (Pb.x - P0.x) / (P1.x - P0.x);
@@ -83,7 +83,7 @@ double bezier_derivative(Point2d P0, Point2d P1, Point2d P2, Point2d Pb)
 	return y / x;
 }
 
-//»æÖÆ¶ÔÓ¦±´Èû¶ûµã´¦µÄÇĞÏß
+//ç»˜åˆ¶å¯¹åº”è´å¡å°”ç‚¹å¤„çš„åˆ‡çº¿
 void draw_tangent(double Pb_Derivative, Point2d Pb)
 {
 	for (double i = 0; i <= 100; i++)

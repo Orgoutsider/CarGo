@@ -127,9 +127,9 @@ namespace motion_controller
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_ << " theta:" << theta_);
                         if (config_.theta_adjust)
                         {
-                            bool ok = follower_.stop_and_adjust(theta_,
-                                                                config_.dist - std::max(abs(x_), abs(y_)),
-                                                                event.current_real);
+                            bool ok = follower_.start_then_adjust(theta_,
+                                                                  config_.dist - std::max(abs(x_), abs(y_)),
+                                                                  event.current_real);
                             if (ok)
                             {
                                 {
@@ -245,7 +245,7 @@ namespace motion_controller
                 follower_.start(false, theta_);
                 if (goal.route == route_roughing_area || goal.route == route_semi_finishing_area)
                 {
-                    // if (!follower_.stop_and_adjust(theta_, event.current_real))
+                    // if (!follower_.start_then_adjust(theta_, event.current_real))
                     //     return;
                     ac_move_.waitForServer();
                     // 等车停
