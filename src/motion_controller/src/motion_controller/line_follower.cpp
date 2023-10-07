@@ -5,6 +5,8 @@
 
 namespace motion_controller
 {
+    Point2d::Point2d(double x, double y) : x(x), y(y) {}
+
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(4.05), ki_(0), kd_(0.2),
@@ -42,6 +44,47 @@ namespace motion_controller
             kd_ = config.kd;
         if (thresh_adjust_ != config.thresh_adjust)
             thresh_adjust_ = config.thresh_adjust;
+    }
+
+    void LineFollower::publish_vel(double vel_1, double vel_2, double omega)
+    {
+        geometry_msgs::Twist twist;
+        if (front_back_)
+        {
+            if (front_left_)
+            {
+                twist.linear.x = vel_1;
+                twist.linear.y = vel_2;
+            }
+            else
+            {
+                twist.linear.x = -vel_1;
+                twist.linear.y = -vel_2;
+            }
+        }
+        else if (front_left_)
+        {
+            twist.linear.y = vel_1;
+            twist.linear.x = -vel_2;
+        }
+        else
+        {
+            twist.linear.x = vel_2;
+            twist.linear.y = -vel_1;
+        }
+        twist.angular.z = omega;
+        TwistMightEnd tme;
+        tme.velocity = twist;
+        tme.end = false;
+        cmd_vel_publisher_.publish(tme);
+    }
+
+    void LineFollower::limit_theta(double &theta)
+    {
+        // 将theta限制在target_theta_周围，防止不当的error
+        theta = (theta > target_theta_ + M_PI)
+                    ? theta - M_PI * 2
+                    : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
     }
 
     bool LineFollower::start(bool start, double theta, double dist, double theta_adjust)
@@ -114,9 +157,7 @@ namespace motion_controller
             }
             dist = dist > dist_start_ ? dist_start_ : dist;
             // 将theta限制在target_theta_周围，防止不当的error
-            theta = (theta > target_theta_ + M_PI)
-                        ? theta - M_PI * 2
-                        : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
+            limit_theta(theta);
             bool flag = false;
             {
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
@@ -135,24 +176,8 @@ namespace motion_controller
                         vel_n = std::max(sqrt(2 * acc_ * dist) * 1.2 - 0.2, 0.2);
                 }
                 // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start_, length_);
-                geometry_msgs::Twist twist;
-                if (front_back_)
-                {
-                    if (front_left_)
-                        twist.linear.x = vel_n;
-                    else
-                        twist.linear.x = -vel_n;
-                }
-                else if (front_left_)
-                    twist.linear.y = vel_n;
-                else
-                    twist.linear.y = -vel_n;
                 // 需要增加一个负号来修正update的结果
-                twist.angular.z = -control[0];
-                TwistMightEnd tme;
-                tme.velocity = twist;
-                tme.end = false;
-                cmd_vel_publisher_.publish(tme);
+                publish_vel(vel_n, 0, -control[0]);
             }
             if (debug)
             {
@@ -167,7 +192,124 @@ namespace motion_controller
         return false;
     }
 
-    bool LineFollower::stop_and_adjust(double theta, double dist, const ros::Time &now)
+    void LineFollower::veer(bool front_back, bool front_left)
+    {
+        boost::lock_guard<boost::recursive_mutex> lk(mtx);
+        front_back_ = front_back;
+        front_left_ = front_left;
+    }
+
+    Point2d LineFollower::point_find(Point2d Pb, Point2d P0, Point2d P1, double &bezier_t)
+    {
+        double k = (Pb.x - P0.x) / (P1.x - P0.x);
+        bezier_t = sqrt(k);
+        double y = (Pb.y + (pow(bezier_t, 2.0) - 2 * bezier_t) * P0.y) / pow((1 - bezier_t), 2.0);
+        double x = P0.x;
+        return Point2d(x, y);
+    }
+
+    double LineFollower::bezier_derivative(Point2d P0, Point2d P1, Point2d P2, double bezier_t)
+    {
+        double x = 2 * bezier_t * (P1.x - P0.x);
+        double y = 2 * (1 - bezier_t) * (P2.y - P0.y);
+        return y / x;
+    }
+
+    bool LineFollower::start_bezier(double theta, double dist, double dist_l)
+    {
+        if (dist_l < 0)
+        {
+            ROS_ERROR("Invalid dist: %lf", dist_l);
+            return false;
+        }
+        if (theta > M_PI * 3 / 4 || theta <= -M_PI * 3 / 4)
+            theta = M_PI;
+        else if (theta > M_PI / 4)
+            theta = M_PI / 2;
+        else if (theta > -M_PI / 4)
+            theta = 0;
+        else
+            theta = -M_PI / 2;
+        {
+            boost::lock_guard<boost::recursive_mutex> lk(mtx);
+            pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
+            target_theta_ = theta;
+            bezier_length_ = abs(bezier_ratio_ * dist_l);
+            dist_start_ = dist;
+        }
+        geometry_msgs::Twist twist;
+        double vel_1 = 0.2;
+        double vel_2 = dist_l > 0 ? 0.2 : -0.2;
+        publish_vel(vel_1, vel_2, 0);
+        if (has_started)
+        {
+            ROS_WARN("Failed to start LineFollower");
+            return false;
+        }
+        else
+        {
+            boost::lock_guard<boost::recursive_mutex> lk(mtx);
+            has_started = true;
+        }
+        return true;
+    }
+
+    bool LineFollower::follow_bezier(double theta, double dist, double dist_l, const ros::Time &now)
+    {
+        bool success;
+        std::vector<double> control;
+        if (has_started)
+        {
+            if ((dist < 0) && !debug)
+            {
+                ROS_ERROR("Invalid dist: %lf", dist);
+                return false;
+            }
+            // 将theta限制在target_theta_周围，防止不当的error
+            limit_theta(theta);
+            bool flag = false;
+            {
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                flag = pid_.update({theta}, now, control, success);
+            }
+            if (flag)
+            {
+                if (dist > dist_start_)
+                {
+                    publish_vel(0.2, (dist_l > 0 ? 0.2 : -0.2), -control[0]);
+                    return false;
+                }
+                else if (dist_start_ - dist < bezier_length_)
+                {
+                    publish_vel(0.2, 0, -control[0]);
+                    boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                    vel_ = std::min(vel_max_, sqrt(acc_ * dist));
+                    length_ = (vel_ * vel_) / (2 * acc_);
+                    dist_start_ = dist;
+                    return true;
+                }
+                double vel_n = vel_max_;
+                double vel_1 = 0.2;
+                Point2d p0(0, 0);
+                Point2d p1(bezier_length_, 0);
+                Point2d pb(dist_start_ - dist, abs(dist_l));
+                double t;
+                Point2d p2 = point_find(pb, p0, p1, t);
+                double vel_2 = bezier_derivative(p0, p1, p2, t) * vel_1 * (dist_l > 0 ? 1 : -1);
+                vel_2 = std::min(vel_2, vel_max_);
+                if (abs(dist_l) < 0.05)
+                    vel_2 = 0;
+                // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start_, length_);
+                publish_vel(vel_1, vel_2, -control[0]);
+            }
+            return dist < 0.1;
+        }
+        else
+            ROS_WARN_ONCE("Attempted to use 'follow_bezier' when follower has not started");
+        return false;
+    }
+
+    bool LineFollower::start_then_adjust(double theta, double dist, const ros::Time &now)
     {
         bool success = false;
         std::vector<double> control;
@@ -176,11 +318,25 @@ namespace motion_controller
         {
             ROS_INFO_STREAM("Adjusting ... theta: " << theta);
             static ros::Time time;
+            if ((dist < 0) && !debug)
+            {
+                ROS_ERROR("Invalid dist: %lf", dist);
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                rst = true;
+                return true;
+            }
             if (rst)
             {
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
                 time = now;
                 rst = false;
+            }
+            if (dist < 0.1)
+            {
+                ROS_WARN("Arrived when adjusting.");
+                boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                rst = true;
+                return true;
             }
             if ((now - time).toSec() >= 5)
             {
@@ -200,9 +356,7 @@ namespace motion_controller
                 return true;
             }
             // 将theta限制在target_theta_周围，防止不当的error
-            theta = (theta > target_theta_ + M_PI)
-                        ? theta - M_PI * 2
-                        : (theta <= target_theta_ - M_PI ? theta + M_PI * 2 : theta);
+            limit_theta(theta);
             bool flag = false;
             {
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
@@ -212,35 +366,7 @@ namespace motion_controller
             {
                 double vel_1 = 0.2 * cos(target_theta_ - theta);
                 double vel_2 = 0.2 * sin(target_theta_ - theta);
-                geometry_msgs::Twist twist;
-                if (front_back_)
-                {
-                    if (front_left_)
-                    {
-                        twist.linear.x = vel_1;
-                        twist.linear.y = vel_2;
-                    }
-                    else
-                    {
-                        twist.linear.x = -vel_1;
-                        twist.linear.y = -vel_2;
-                    }
-                }
-                else if (front_left_)
-                {
-                    twist.linear.y = vel_1;
-                    twist.linear.x = -vel_2;
-                }
-                else
-                {
-                    twist.linear.x = vel_2;
-                    twist.linear.y = -vel_1;
-                }
-                // 需要增加一个负号来修正update的结果
-                twist.angular.z = -control[0];
-                TwistMightEnd tme;
-                tme.velocity = twist;
-                tme.end = false;
+                publish_vel(vel_1, vel_2, -control[0]);
                 if (success)
                 {
                     ROS_INFO("Adjust success!");
@@ -257,21 +383,13 @@ namespace motion_controller
                     dist_start_ = dist;
                     // start(false);
                 }
-                cmd_vel_publisher_.publish(tme);
             }
         }
         else
         {
-            ROS_WARN_ONCE("Attempted to use 'stop_and_adjust' when follower has not started");
+            ROS_WARN_ONCE("Attempted to use 'start_then_adjust' when follower has not started");
             return false;
         }
         return success;
-    }
-
-    void LineFollower::veer(bool front_back, bool front_left)
-    {
-        boost::lock_guard<boost::recursive_mutex> lk(mtx);
-        front_back_ = front_back;
-        front_left_ = front_left;
     }
 } // namespace motion_controller
