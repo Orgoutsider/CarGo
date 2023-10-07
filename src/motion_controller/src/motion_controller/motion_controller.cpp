@@ -354,8 +354,7 @@ namespace motion_controller
                         finish_turning_ = false;
                         // 用于防止server移动或follower提前打开
                     }
-                    if (last_route == route_roughing_area ||
-                        last_route == route_semi_finishing_area)
+                    if (last_route == route_roughing_area)
                     {
                         MoveGoal goal;
                         get_position();
@@ -372,7 +371,18 @@ namespace motion_controller
                         //     follower_.start(true, theta_);
                         // }
                     }
-                    else
+                    else if (last_route == route_semi_finishing_area)
+                    {
+                        // 等车停
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                        MoveGoal goal;
+                        get_position();
+                        if (next_route == route_parking_area)
+                            follower_.veer(true, true);
+                        follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 1)),
+                                        angle_from_road(follower_.debug, config_.startup, 1));
+                    }
+                    else if (last_route == route_raw_material_area)
                     {
                         ac_move_.waitForServer();
                         // 等车停
@@ -471,8 +481,8 @@ namespace motion_controller
         if (timer_.hasStarted() &&
             where_is_car(follower_.debug, config_.startup) != route_raw_material_area &&
             where_is_car(follower_.debug, config_.startup != route_QR_code_board) &&
-            (where_is_car(follower_.debug, config_.startup) != route_border ||
-             where_is_car(follower_.debug, config_.startup, 1) != route_parking_area))
+            !(where_is_car(follower_.debug, config_.startup) == route_border &&
+              (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)))
             timer_.stop();
     }
 
@@ -686,8 +696,8 @@ namespace motion_controller
             }
             if (where_is_car(follower_.debug, config_.startup, 1) == route_roughing_area)
                 follower_.veer(true, false);
-            else if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
-                follower_.veer(true, true);
+            // else if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+            //     follower_.veer(true, true);
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
@@ -755,6 +765,12 @@ namespace motion_controller
             while (!finish_turning_)
             {
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+            }
+            if (where_is_car(follower_.debug, config_.startup) == route_border &&
+                where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)
+            {
+                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                finish_turning_ = false;
             }
             if (!follower_.has_started)
             {

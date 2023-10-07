@@ -514,8 +514,8 @@ namespace my_hand_eye
 				msg.header.frame_id = "base_footprint";
 				ArmResult result;
 				result.pme = msg;
-				as_.setSucceeded(ArmResult(), "Arm finish tasks");
 				arm_controller_.ready(arm_goal_.left_ready);
+				as_.setSucceeded(ArmResult(), "Arm finish tasks");
 				arm_goal_.route = arm_goal_.route_rest;
 				return true;
 				// }
