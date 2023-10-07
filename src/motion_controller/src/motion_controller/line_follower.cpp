@@ -9,7 +9,7 @@ namespace motion_controller
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(4.05), ki_(0), kd_(0.2),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
-          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.05)
+          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.2)
     {
         pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);
@@ -185,6 +185,11 @@ namespace motion_controller
             if ((now - time).toSec() >= 5)
             {
                 ROS_WARN("Adjust timeout!");
+                if (dist < 0)
+                {
+                    ROS_ERROR("Invalid dist: %lf", dist);
+                    return false;
+                }
                 // start(false);
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
                 pid_.change_thresh({0.01});
@@ -205,8 +210,8 @@ namespace motion_controller
             }
             if (flag)
             {
-                double vel_1 = 0.1 * cos(target_theta_ - theta);
-                double vel_2 = 0.1 * sin(target_theta_ - theta);
+                double vel_1 = 0.2 * cos(target_theta_ - theta);
+                double vel_2 = 0.2 * sin(target_theta_ - theta);
                 geometry_msgs::Twist twist;
                 if (front_back_)
                 {
@@ -239,6 +244,11 @@ namespace motion_controller
                 if (success)
                 {
                     ROS_INFO("Adjust success!");
+                    if (dist < 0)
+                    {
+                        ROS_ERROR("Invalid dist: %lf", dist);
+                        return false;
+                    }
                     boost::lock_guard<boost::recursive_mutex> lk(mtx);
                     pid_.change_thresh({0.01});
                     rst = true;
