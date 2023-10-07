@@ -398,28 +398,29 @@ namespace motion_controller
             }
             else if (!is_doing())
             {
-                // double dist = on_road_
-                //                   ? abs(length_route(follower_.debug, config_.startup, 0))
-                //                   : abs(length_from_road(follower_.debug, config_.startup, 0));
-                follower_.follow(theta_, abs(length_route(follower_.debug, config_.startup, 0)), event.current_real);
-                // if (ok && !on_road_)
-                // {
-                //     follower_.start(false, theta_);
-                //     if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board)
-                //     {
-                //         follower_.veer(false, true);
-                //     }
-                //     else
-                //         ROS_ERROR("Car is not on the road. route: %d",
-                //                   where_is_car(follower_.debug, config_.startup));
-                //     follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 0)));
-                //     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                //     on_road_ = true;
-                // }
-                // else if (ok)
-                // {
-                //     ROS_WARN("Method 'follow' returns true but 'arrived' returns false.");
-                // }
+                if (finish_turning_)
+                    follower_.follow(theta_, abs(length_route(follower_.debug, config_.startup, 0)),
+                                     event.current_real);
+                else
+                {
+                    bool ok = follower_.start_then_adjust(theta_,
+                                                          abs(length_route(follower_.debug, config_.startup, 0)),
+                                                          event.current_real);
+                    if (ok)
+                    {
+                        boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                        finish_turning_ = true;
+                        // follower_.start(false, theta_);
+                        // if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board)
+                        // {
+                        //     follower_.veer(false, true);
+                        // }
+                        // else
+                        //     ROS_ERROR("Car is not on the road. route: %d",
+                        //               where_is_car(follower_.debug, config_.startup));
+                        // follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 0)));
+                    }
+                }
             }
         }
     }
@@ -636,7 +637,7 @@ namespace motion_controller
             }
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
-                 !follower_.debug)
+                 !follower_.debug && loop_ == 1)
         {
             MoveGoal goal;
             ac_move_.waitForServer();
@@ -645,14 +646,11 @@ namespace motion_controller
             // goal.pose.x = length_from_road(follower_.debug, config_.startup) * cos(-goal.pose.theta);
             // goal.pose.y = -length_from_road(follower_.debug, config_.startup) * sin(-goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-            if (loop_ == 1)
-            {
-                // get_position();
-                // MoveGoal goal;
-                // goal.pose.y = length_border();
-                // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                follower_.veer(false, true);
-            }
+            // get_position();
+            // MoveGoal goal;
+            // goal.pose.y = length_border();
+            // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+            follower_.veer(false, true);
         }
         else if ((where_is_car(follower_.debug, config_.startup) == route_roughing_area ||
                   where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area) &&
@@ -761,6 +759,18 @@ namespace motion_controller
             if (!follower_.has_started)
             {
                 get_position();
+                if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
+                    loop_ == 0)
+                {
+                    follower_.start(true, theta_,
+                                    abs(length_route(follower_.debug, config_.startup, 1)),
+                                    angle_from_road(follower_.debug, config_.startup));
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    finish_turning_ = false;
+                }
+                else
+                    follower_.start(true, theta_,
+                                    abs(length_route(follower_.debug, config_.startup, 1)));
                 // if (where_is_car(follower_.debug, config_.startup) == route_QR_code_board)
                 // {
                 //     follower_.start(true, theta_,
@@ -776,8 +786,6 @@ namespace motion_controller
                 //     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                 //     on_road_ = false;
                 // }
-                // else
-                follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 1)));
             }
             if (!timer_.hasStarted())
                 timer_.start();
