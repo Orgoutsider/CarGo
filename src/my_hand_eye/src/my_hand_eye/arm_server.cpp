@@ -500,7 +500,10 @@ namespace my_hand_eye
 		Pose2DMightEnd msg;
 		if (finish_)
 		{
-			if (!arm_goal_.left_ready)
+			static int cnt = 0;
+			if (arm_goal_.left_ready)
+				cnt++;
+			if (!arm_goal_.left_ready || (cnt >= 4))
 			{
 				// static int cnt = 0;
 				// cnt++;
@@ -514,8 +517,8 @@ namespace my_hand_eye
 				msg.header.frame_id = "base_footprint";
 				ArmResult result;
 				result.pme = msg;
-				arm_controller_.ready(arm_goal_.left_ready);
 				as_.setSucceeded(ArmResult(), "Arm finish tasks");
+				arm_controller_.ready(arm_goal_.left_ready);
 				arm_goal_.route = arm_goal_.route_rest;
 				return true;
 				// }

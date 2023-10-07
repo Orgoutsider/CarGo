@@ -354,7 +354,7 @@ namespace motion_controller
                         finish_turning_ = false;
                         // 用于防止server移动或follower提前打开
                     }
-                    if (last_route == route_roughing_area)
+                    if (last_route == route_roughing_area && loop_ == 0)
                     {
                         MoveGoal goal;
                         get_position();
@@ -371,7 +371,8 @@ namespace motion_controller
                         //     follower_.start(true, theta_);
                         // }
                     }
-                    else if (last_route == route_semi_finishing_area)
+                    else if (last_route == route_semi_finishing_area ||
+                             (last_route == route_roughing_area && loop_ == 1))
                     {
                         // 等车停
                         boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
@@ -482,7 +483,9 @@ namespace motion_controller
             where_is_car(follower_.debug, config_.startup) != route_raw_material_area &&
             where_is_car(follower_.debug, config_.startup != route_QR_code_board) &&
             !(where_is_car(follower_.debug, config_.startup) == route_border &&
-              (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)))
+              (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area ||
+               (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area &&
+                loop_ == 1))))
             timer_.stop();
     }
 
@@ -767,7 +770,9 @@ namespace motion_controller
                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
             }
             if (where_is_car(follower_.debug, config_.startup) == route_border &&
-                where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area)
+                (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area ||
+                 (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area &&
+                  loop_ == 1)))
             {
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                 finish_turning_ = false;
