@@ -42,6 +42,12 @@ namespace motion_controller
             ki_ = config.ki;
         if (kd_ != config.kd)
             kd_ = config.kd;
+        if (kp_adjust_ != config.kp_adjust)
+            kp_adjust_ = config.kp_adjust;
+        if (ki_adjust_ != config.ki_adjust)
+            ki_adjust_ = config.ki_adjust;
+        if (kd_adjust_ != config.kd_adjust)
+            kd_adjust_ = config.kd_adjust;
         if (thresh_adjust_ != config.thresh_adjust)
             thresh_adjust_ = config.thresh_adjust;
     }
@@ -107,8 +113,11 @@ namespace motion_controller
                 theta = -M_PI / 2;
             {
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_},
-                                     {theta_adjust ? thresh_adjust_ : 0.01}, {0.1}, {0.5});
+                pid_ = PIDController({theta}, {theta_adjust ? kp_adjust_ : kp_},
+                                     {theta_adjust ? ki_adjust_ : ki_},
+                                     {theta_adjust ? kd_adjust_ : kd_},
+                                     {theta_adjust ? thresh_adjust_ : 0.01}, {0.1},
+                                     {theta_adjust ? 0.8 : 0.5});
                 target_theta_ = theta;
                 if (!theta_adjust)
                 {
@@ -348,7 +357,7 @@ namespace motion_controller
                 }
                 // start(false);
                 boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                pid_.change_thresh({0.01});
+                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
                 rst = true;
                 vel_ = std::min(vel_max_, sqrt(acc_ * dist));
                 length_ = (vel_ * vel_) / (2 * acc_);
@@ -376,7 +385,7 @@ namespace motion_controller
                         return false;
                     }
                     boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                    pid_.change_thresh({0.01});
+                    pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
                     rst = true;
                     vel_ = std::min(vel_max_, sqrt(acc_ * dist));
                     length_ = (vel_ * vel_) / (2 * acc_);

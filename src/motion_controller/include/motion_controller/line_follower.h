@@ -24,6 +24,9 @@ namespace motion_controller
         double kp_;                        // pid参数p
         double ki_;                        // pid参数i
         double kd_;                        // pid参数d
+        double kp_adjust_;                 // pid参数p（调整时）
+        double ki_adjust_;                 // pid参数i（调整时）
+        double kd_adjust_;                 // pid参数d（调整时）
         double target_theta_;              // 目标角度，开启时设定
         double vel_max_;                   // 线速度阈值
         double vel_;                       // 此轮运动线速度最大值

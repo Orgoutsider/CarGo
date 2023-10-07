@@ -18,10 +18,14 @@ namespace motion_controller
         length_car_(0.293), width_car_(0.27), width_road_(0.45), length_field_(2.26), width_field_(2.02),
         y_QR_code_board_(0.8), x_QR_code_board_(0.02),
         y_raw_material_area_(1.6), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
-        x_roughing_area_(1.2), y_semi_finishing_area_(1.2), length_from_ellipse_(0.028),
+        x_roughing_area_(1.2), length_from_semi_finishing_area_(1.06),
+        y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_),
+        length_from_ellipse_(0.028),
         width_from_semi_finishing_area_(0.29), width_from_roughing_area_(width_from_semi_finishing_area_ - 0.005),
         length_from_parking_area_(0.399), x_road_up_(0.08), x_parking_area_(0.58),
-        clockwise_(false) {}
+        clockwise_(false)
+  {
+  }
 
   int FieldGuide::where_is_car(bool debug, bool startup, int offset) const
   {

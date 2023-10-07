@@ -121,22 +121,24 @@ namespace motion_controller
                         set_position(0, 0, -my_hand_eye::Angle(config_.theta_adjust).rad());
                         follower_.start(true, theta_, config_.dist,
                                         my_hand_eye::Angle(config_.theta_adjust).rad());
+                        if (config_.theta_adjust)
+                        {
+                            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                            finish_turning_ = false;
+                        }
                     }
                     if (get_position())
                     {
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_ << " theta:" << theta_);
-                        if (config_.theta_adjust)
+                        if (!finish_turning_)
                         {
                             bool ok = follower_.start_then_adjust(theta_,
                                                                   config_.dist - std::max(abs(x_), abs(y_)),
                                                                   event.current_real);
                             if (ok)
                             {
-                                {
-                                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                                    config_.theta_adjust = 0;
-                                }
-                                dr_server_.updateConfig(config_);
+                                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                                finish_turning_ = true;
                             }
                         }
                         else
@@ -225,7 +227,7 @@ namespace motion_controller
                         }
                         ac_move_.waitForServer();
                         // 等车停
-                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                         MoveGoal goal;
                         get_position();
                         goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
@@ -249,7 +251,7 @@ namespace motion_controller
                     //     return;
                     ac_move_.waitForServer();
                     // 等车停
-                    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                    boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                     MoveGoal goal1;
                     get_position();
                     goal1.pose.theta = angle_from_road(follower_.debug, config_.startup);
@@ -259,9 +261,9 @@ namespace motion_controller
                                         ? width_from_roughing_area_
                                         : width_from_semi_finishing_area_) +
                                    width_road_ / 2;
-                    double len = 0.02;
-                    goal1.pose.y = width * cos(goal1.pose.theta) + len * sin(goal1.pose.theta);
-                    goal1.pose.x = -width * sin(goal1.pose.theta) + len * cos(goal1.pose.theta);
+                    // double len = 0.02;
+                    goal1.pose.y = width * cos(goal1.pose.theta);  //+ len * sin(goal1.pose.theta);
+                    goal1.pose.x = -width * sin(goal1.pose.theta); //+ len * cos(goal1.pose.theta);
                     goal1.precision = true;
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
@@ -271,7 +273,7 @@ namespace motion_controller
                     {
                         ac_move_.waitForServer();
                         // 等车停
-                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                         MoveGoal goal;
                         goal.pose.theta = angle_raw_material_area_ +
                                           angle_from_road(follower_.debug, config_.startup);
@@ -283,7 +285,7 @@ namespace motion_controller
                     {
                         ac_move_.waitForServer();
                         // 等车停
-                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                         get_position();
                         MoveGoal goal1;
                         goal1.pose.y = length_from_road(follower_.debug, config_.startup);
@@ -314,7 +316,7 @@ namespace motion_controller
                 {
                     ac_move_.waitForServer();
                     // 等车停
-                    boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                    boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                     MoveGoal goal;
                     int sign =
                         (last_route == route_semi_finishing_area &&
@@ -376,7 +378,7 @@ namespace motion_controller
                              (last_route == route_roughing_area && loop_ == 1))
                     {
                         // 等车停
-                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                         MoveGoal goal;
                         get_position();
                         if (next_route == route_parking_area)
@@ -388,7 +390,7 @@ namespace motion_controller
                     {
                         ac_move_.waitForServer();
                         // 等车停
-                        boost::this_thread::sleep_for(boost::chrono::milliseconds(200));
+                        boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                         MoveGoal goal;
                         get_position();
                         goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
@@ -901,6 +903,11 @@ namespace motion_controller
                 !config.startup && follower_.has_started)
             {
                 follower_.start(false);
+                if (!finish_turning_)
+                {
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    finish_turning_ = true;
+                }
             }
             if (!config.startup)
             {
@@ -923,6 +930,16 @@ namespace motion_controller
         {
             if (config.startup)
             {
+                if ((dr_route_ == route_rest || dr_route_ == route_QR_code_board) &&
+                    follower_.has_started)
+                {
+                    follower_.start(false);
+                    if (!finish_turning_)
+                    {
+                        boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                        finish_turning_ = true;
+                    }
+                }
                 ac_arm_.cancelAllGoals();
                 if (dr_route_ == route_raw_material_area && timer_.hasStarted())
                 {

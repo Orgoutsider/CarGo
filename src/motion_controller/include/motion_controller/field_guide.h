@@ -28,6 +28,7 @@ namespace motion_controller
         double width_field_;  // 场地（车道部分）宽
         double y_raw_material_area_;
         double x_roughing_area_;
+        double length_from_semi_finishing_area_; // 左边界到半成品区距离
         double y_semi_finishing_area_;
         double length_from_ellipse_;            // 到中心椭圆距离道路方向
         double width_from_semi_finishing_area_; // 到半成品区距离宽度方向
