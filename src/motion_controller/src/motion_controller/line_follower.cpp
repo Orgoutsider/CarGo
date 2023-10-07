@@ -364,8 +364,8 @@ namespace motion_controller
             }
             if (flag)
             {
-                double vel_1 = 0.2 * cos(target_theta_ - theta);
-                double vel_2 = 0.2 * sin(target_theta_ - theta);
+                double vel_1 = 0.1 * cos(target_theta_ - theta);
+                double vel_2 = 0.1 * sin(target_theta_ - theta);
                 publish_vel(vel_1, vel_2, -control[0]);
                 if (success)
                 {
