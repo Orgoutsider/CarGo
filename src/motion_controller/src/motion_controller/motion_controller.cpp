@@ -259,8 +259,9 @@ namespace motion_controller
                                         ? width_from_roughing_area_
                                         : width_from_semi_finishing_area_) +
                                    width_road_ / 2;
-                    goal1.pose.y = width * cos(goal1.pose.theta);
-                    goal1.pose.x = -width * sin(goal1.pose.theta);
+                    double len = 0.02;
+                    goal1.pose.y = width * cos(goal1.pose.theta) + len * sin(goal1.pose.theta);
+                    goal1.pose.x = -width * sin(goal1.pose.theta) + len * cos(goal1.pose.theta);
                     goal1.precision = true;
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
