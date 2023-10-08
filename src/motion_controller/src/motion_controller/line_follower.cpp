@@ -51,6 +51,8 @@ namespace motion_controller
             kd_adjust_ = config.kd_adjust;
         if (thresh_adjust_ != config.thresh_adjust)
             thresh_adjust_ = config.thresh_adjust;
+        if (bezier_ratio_ != config.bezier_ratio)
+            bezier_ratio_ = config.bezier_ratio;
     }
 
     void LineFollower::publish_vel(double vel_1, double vel_2, double omega)

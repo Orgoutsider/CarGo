@@ -6,7 +6,7 @@ namespace motion_controller
 {
     MotionController::MotionController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : delta_x_(0), delta_y_(0), delta_theta_(0),
-          finish_turning_(true), // on_road_(false),
+          finish_turning_(true), on_road_(true),
           listener_(buffer_), follower_(nh, pnh), dr_server_(follower_.mtx, pnh),
           ac_move_(nh, "Move", true), ac_arm_(nh, "Arm", true),
           move_active_(false), arm_active_(false),
@@ -118,19 +118,46 @@ namespace motion_controller
                 {
                     if (!follower_.has_started)
                     {
-                        set_position(0, 0, -my_hand_eye::Angle(config_.theta_adjust).rad());
-                        follower_.start(true, theta_, config_.dist,
-                                        my_hand_eye::Angle(config_.theta_adjust).rad());
-                        if (config_.theta_adjust)
+                        if (!config_.dist_l)
                         {
+                            set_position(0, 0, -my_hand_eye::Angle(config_.theta_adjust).rad());
+                            follower_.start(true, theta_, config_.dist,
+                                            my_hand_eye::Angle(config_.theta_adjust).rad());
+                            if (config_.theta_adjust)
+                            {
+                                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                                finish_turning_ = false;
+                            }
+                        }
+                        else
+                        {
+                            set_position(config_.dist, 0, 0);
+                            follower_.start_bezier(theta_, config_.dist, config_.dist_l);
                             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                            finish_turning_ = false;
+                            {
+                                on_road_ = false;
+                                config_.front_back = false;
+                                config_.front_left = true;
+                            }
+                            dr_server_.updateConfig(config_);
                         }
                     }
                     if (get_position())
                     {
                         ROS_INFO_STREAM("x:" << x_ << " y:" << y_ << " theta:" << theta_);
-                        if (!finish_turning_)
+                        if (!on_road_)
+                        {
+                            bool ok = follower_.follow_bezier(theta_,
+                                                              config_.dist - y_,
+                                                              x_,
+                                                              event.current_real);
+                            if (ok)
+                            {
+                                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                                on_road_ = true;
+                            }
+                        }
+                        else if (!finish_turning_)
                         {
                             bool ok = follower_.start_then_adjust(theta_,
                                                                   config_.dist - std::max(abs(x_), abs(y_)),
@@ -400,6 +427,7 @@ namespace motion_controller
                                       (clockwise_ ? -1 : 1) * sin(goal.pose.theta);
                         ROS_INFO_STREAM("Move " << goal.pose.y);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                        ros::shutdown();
                     }
                     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                     finish_turning_ = true;

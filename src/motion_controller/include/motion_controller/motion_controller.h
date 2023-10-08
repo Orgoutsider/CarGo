@@ -28,7 +28,7 @@ namespace motion_controller
         double delta_y_;
         double delta_theta_;
         bool finish_turning_; // 转弯之后关闭弯道视觉订阅
-        // bool on_road_;        // 在路中央或在平移
+        bool on_road_;        // 在路中央或在平移
         tf2_ros::Buffer buffer_;
         tf2_ros::TransformListener listener_;
         ros::Timer timer_;                           // 全局定位定时器
