@@ -131,10 +131,15 @@ namespace motion_controller
                         }
                         else
                         {
-                            set_position(0, 0, 0);
+                            set_position(config_.dist, 0, 0);
                             follower_.start_bezier(theta_, config_.dist, config_.dist_l);
                             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                            on_road_ = false;
+                            {
+                                on_road_ = false;
+                                config_.front_back = false;
+                                config_.front_left = true;
+                            }
+                            dr_server_.updateConfig(config_);
                         }
                     }
                     if (get_position())
@@ -143,10 +148,8 @@ namespace motion_controller
                         if (!on_road_)
                         {
                             bool ok = follower_.follow_bezier(theta_,
-                                                              config_.dist - std::min(abs(x_), abs(y_)),
-                                                              config_.dist_l -
-                                                                  (config_.dist_l > 0 ? 1 : -1) *
-                                                                      std::max(abs(x_), abs(y_)),
+                                                              config_.dist - y_,
+                                                              x_,
                                                               event.current_real);
                             if (ok)
                             {
