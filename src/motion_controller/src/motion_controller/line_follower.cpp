@@ -10,9 +10,9 @@ namespace motion_controller
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(4.05), ki_(0), kd_(0.2),
-          kp_adjust_(4.5), ki_adjust_(0), kd_adjust_(0.6),
+          kp_adjust_(3.8), ki_adjust_(0), kd_adjust_(0.4),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
-          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.1)
+          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.03)
     {
         pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);
@@ -118,7 +118,7 @@ namespace motion_controller
                                      {theta_adjust ? ki_adjust_ : ki_},
                                      {theta_adjust ? kd_adjust_ : kd_},
                                      {theta_adjust ? thresh_adjust_ : 0.01}, {0.1},
-                                     {theta_adjust ? 0.8 : 0.5});
+                                     {theta_adjust ? 0.65 : 0.5});
                 target_theta_ = theta;
                 if (!theta_adjust)
                 {
@@ -126,6 +126,8 @@ namespace motion_controller
                     length_ = (vel_ * vel_) / (2 * acc_);
                     dist_start_ = dist;
                 }
+                else
+                    ROS_INFO_STREAM(target_theta_ << " " << theta_adjust << " " << kp_adjust_ << " " << ki_adjust_ << " " << kd_adjust_ << " " << thresh_adjust_ << " " << dist);
             }
             if (has_started)
             {
