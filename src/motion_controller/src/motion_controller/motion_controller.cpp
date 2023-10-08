@@ -428,7 +428,6 @@ namespace motion_controller
                                       (clockwise_ ? -1 : 1) * sin(goal.pose.theta);
                         ROS_INFO_STREAM("Move " << goal.pose.y);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                        ros::shutdown();
                     }
                     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                     finish_turning_ = true;
@@ -758,8 +757,6 @@ namespace motion_controller
                     if (!timer_.hasStarted())
                         timer_.start();
                 }
-                else
-                    ros::shutdown();
                 return;
             }
         }

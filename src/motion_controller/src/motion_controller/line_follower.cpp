@@ -128,8 +128,8 @@ namespace motion_controller
                     length_ = (vel_ * vel_) / (2 * acc_);
                     dist_start_ = dist;
                 }
-                else
-                    ROS_INFO_STREAM(target_theta_ << " " << theta_adjust << " " << kp_adjust_ << " " << ki_adjust_ << " " << kd_adjust_ << " " << thresh_adjust_ << " " << dist);
+                // else
+                //     ROS_INFO_STREAM(target_theta_ << " " << theta_adjust << " " << kp_adjust_ << " " << ki_adjust_ << " " << kd_adjust_ << " " << thresh_adjust_ << " " << dist);
             }
             if (has_started)
             {
