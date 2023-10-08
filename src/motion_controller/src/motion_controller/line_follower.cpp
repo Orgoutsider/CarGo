@@ -11,7 +11,7 @@ namespace motion_controller
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(4.05), ki_(0), kd_(0.2),
           kp_adjust_(3.8), ki_adjust_(0), kd_adjust_(0.4),
-          pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}),
+          pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}), bezier_ratio_(3),
           vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.03)
     {
         pnh.param<bool>("debug", debug, false);
@@ -252,8 +252,8 @@ namespace motion_controller
             dist_start_ = dist;
         }
         geometry_msgs::Twist twist;
-        double vel_1 = 0.2;
-        double vel_2 = dist_l > 0 ? 0.2 : -0.2;
+        double vel_1 = 0.1;
+        double vel_2 = dist_l > 0 ? 0.1 : -0.1;
         publish_vel(vel_1, vel_2, 0);
         if (has_started)
         {
@@ -290,33 +290,33 @@ namespace motion_controller
             {
                 if (dist > dist_start_)
                 {
-                    publish_vel(0.2, (dist_l > 0 ? 0.2 : -0.2), -control[0]);
+                    publish_vel(0.1, (dist_l > 0 ? 0.1 : -0.1), -control[0]);
                     return false;
-                }
-                else if (dist_start_ - dist < bezier_length_)
+                } 
+                double vel_1 = 0.1;
+                Point2d p0(0, 0);
+                Point2d p1(bezier_length_, 0);
+                Point2d pb(dist_start_ - dist, dist_l);
+                double t;
+                Point2d p2 = point_find(pb, p0, p1, t);
+                double vel_2 = bezier_derivative(p0, p1, p2, t) * vel_1;
+                vel_2 = (vel_2 > 0.3) ? 0.3 : (vel_2 < -0.3 ? -0.3 : vel_2);
+                if (abs(dist_l) < 0.03)
                 {
-                    publish_vel(0.2, 0, -control[0]);
+                    vel_2 = 0;
                     boost::lock_guard<boost::recursive_mutex> lk(mtx);
                     vel_ = std::min(vel_max_, sqrt(acc_ * dist));
                     length_ = (vel_ * vel_) / (2 * acc_);
                     dist_start_ = dist;
-                    return true;
                 }
-                double vel_n = vel_max_;
-                double vel_1 = 0.2;
-                Point2d p0(0, 0);
-                Point2d p1(bezier_length_, 0);
-                Point2d pb(dist_start_ - dist, abs(dist_l));
-                double t;
-                Point2d p2 = point_find(pb, p0, p1, t);
-                double vel_2 = bezier_derivative(p0, p1, p2, t) * vel_1 * (dist_l > 0 ? 1 : -1);
-                vel_2 = std::min(vel_2, vel_max_);
-                if (abs(dist_l) < 0.05)
-                    vel_2 = 0;
-                // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start_, length_);
+                else if (dist_start_ - dist > bezier_length_ || vel_2 == 0.3 || vel_2 == -0.3)
+                {
+                    vel_1 = 0;
+                }
+                ROS_INFO("%lf %lf %lf %lf %lf", vel_1, bezier_derivative(p0, p1, p2, t), vel_2, dist_l, bezier_length_);
                 publish_vel(vel_1, vel_2, -control[0]);
             }
-            return dist < 0.1;
+            return abs(dist_l) < 0.03;
         }
         else
             ROS_WARN_ONCE("Attempted to use 'follow_bezier' when follower has not started");

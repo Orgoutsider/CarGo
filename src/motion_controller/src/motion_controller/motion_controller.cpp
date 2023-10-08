@@ -131,7 +131,8 @@ namespace motion_controller
                         }
                         else
                         {
-                            set_position(config_.dist, 0, 0);
+                            set_position(config_.dist_l, 0, 0);
+                            follower_.veer(false, true);
                             follower_.start_bezier(theta_, config_.dist, config_.dist_l);
                             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                             {
@@ -1109,6 +1110,7 @@ namespace motion_controller
         motion_controller::MoveGoal goal1;
         get_position();
         goal1.pose.x = length_from_road(follower_.debug, config_.startup);
+        goal1.pose.y = 0.1;
         ac_move_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
         // 发送二维码请求
         ac_arm_.waitForServer();
