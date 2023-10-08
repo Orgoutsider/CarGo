@@ -289,9 +289,9 @@ namespace motion_controller
                                         ? width_from_roughing_area_
                                         : width_from_semi_finishing_area_) +
                                    width_road_ / 2;
-                    // double len = 0.02;
-                    goal1.pose.y = width * cos(goal1.pose.theta);  //+ len * sin(goal1.pose.theta);
-                    goal1.pose.x = -width * sin(goal1.pose.theta); //+ len * cos(goal1.pose.theta);
+                    double len = length_from_ellipse_;
+                    goal1.pose.y = width * cos(goal1.pose.theta) - len * sin(goal1.pose.theta);
+                    goal1.pose.x = -width * sin(goal1.pose.theta) - len * cos(goal1.pose.theta);
                     goal1.precision = true;
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
@@ -371,10 +371,29 @@ namespace motion_controller
                     //     return;
                     // }
                 }
-                // 保证doing在finished之前
+                else if (goal.route == route_border && last_route == route_roughing_area && loop_ == 0)
                 {
+                    ac_move_.waitForServer();
+                    // 等车停
+                    boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
+                    MoveGoal goal;
+                    get_position();
+                    goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                    goal.pose.y = length_route(follower_.debug, config_.startup) *
+                                  (clockwise_ ? -1 : 1) * cos(goal.pose.theta);
+                    goal.pose.x = -length_route(follower_.debug, config_.startup) *
+                                  (clockwise_ ? -1 : 1) * sin(goal.pose.theta);
+                    ROS_INFO_STREAM("Move " << goal.pose.y);
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    follower_.veer(true, false);
+                    get_position();
+                    follower_.start(true, theta_, length_route(follower_.debug, config_.startup, 1));
                     doing(follower_.mtx);
+                    finished(follower_.mtx);
+                    return;
                 }
+                // 保证doing在finished之前
+                doing(follower_.mtx);
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                                  boost::bind(&MotionController::_arm_active_callback, this),
                                  boost::bind(&MotionController::_arm_feedback_callback, this, _1));
@@ -414,7 +433,7 @@ namespace motion_controller
                         follower_.start(true, theta_, abs(length_route(follower_.debug, config_.startup, 1)),
                                         angle_from_road(follower_.debug, config_.startup, 1));
                     }
-                    else if (last_route == route_raw_material_area)
+                    else if (last_route == route_raw_material_area && loop_ == 1)
                     {
                         ac_move_.waitForServer();
                         // 等车停

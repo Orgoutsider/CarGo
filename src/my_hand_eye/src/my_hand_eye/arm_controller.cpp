@@ -1754,7 +1754,7 @@ namespace my_hand_eye
 
     void ArmController::finish_catching()
     {
-        ps_.look_down();
+        ps_.reset(true);
         catched_ = false;
     }
 
