@@ -289,7 +289,7 @@ namespace motion_controller
                                         ? width_from_roughing_area_
                                         : width_from_semi_finishing_area_) +
                                    width_road_ / 2;
-                    double len = length_from_ellipse_;
+                    double len = length_from_ellipse_ + length_route(follower_.debug, config_.startup);
                     goal1.pose.y = width * cos(goal1.pose.theta) - len * sin(goal1.pose.theta);
                     goal1.pose.x = -width * sin(goal1.pose.theta) - len * cos(goal1.pose.theta);
                     goal1.precision = true;
@@ -303,9 +303,9 @@ namespace motion_controller
                         // 等车停
                         boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                         MoveGoal goal;
+                        get_position();
                         goal.pose.theta = angle_raw_material_area_ +
                                           angle_from_road(follower_.debug, config_.startup);
-                        get_position();
                         goal.pose.y = length_route(follower_.debug, config_.startup);
                         ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
@@ -329,7 +329,9 @@ namespace motion_controller
                                            angle_from_road(follower_.debug, config_.startup);
                         goal3.pose.y =
                             y_raw_material_area_ - y_ +
-                            (radius_raw_material_area_ + width_road_ / 2) * tan(angle_raw_material_area_);
+                            (radius_raw_material_area_ + width_road_ / 2 +
+                             length_from_road(follower_.debug, config_.startup)) *
+                                tan(angle_raw_material_area_);
                         ac_move_.sendGoalAndWait(goal3, ros::Duration(15), ros::Duration(0.1));
                     }
                     else
@@ -371,7 +373,7 @@ namespace motion_controller
                     //     return;
                     // }
                 }
-                else if (goal.route == route_border && last_route == route_roughing_area && loop_ == 0)
+                else if (goal.route == route_border && last_route == route_raw_material_area && loop_ == 0)
                 {
                     ac_move_.waitForServer();
                     // 等车停
@@ -409,6 +411,8 @@ namespace motion_controller
                         MoveGoal goal;
                         get_position();
                         goal.pose.theta = angle_corner();
+                        goal.pose.x = -length_from_road(follower_.debug, config_.startup) * sin(goal.pose.theta);
+                        goal.pose.y = -length_from_road(follower_.debug, config_.startup) * (-cos(goal.pose.theta));
                         // if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
                         // {
                         //     goal.pose.y = x_road_up_ + width_field_ - width_road_ -
@@ -909,6 +913,7 @@ namespace motion_controller
 
     bool MotionController::set_position(double x, double y, double theta)
     {
+        bool flag = (theta == theta_);
         {
             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
             x_ = x;
@@ -925,9 +930,12 @@ namespace motion_controller
             double yaw;
             tf::Quaternion quat;
             tf::quaternionMsgToTF(tfs.transform.rotation, quat);
-            double roll, pitch;
-            tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-            delta_theta_ = theta_ - yaw;
+            if (!flag)
+            {
+                double roll, pitch;
+                tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+                delta_theta_ = theta_ - yaw;
+            }
             delta_x_ = x_ - tfs.transform.translation.x * cos(delta_theta_) + tfs.transform.translation.y * sin(delta_theta_);
             delta_y_ = y_ - tfs.transform.translation.y * cos(delta_theta_) - tfs.transform.translation.x * sin(delta_theta_);
         }
@@ -1127,7 +1135,7 @@ namespace motion_controller
         get_position();
         goal1.pose.x = length_from_road(follower_.debug, config_.startup);
         goal1.pose.y = 0.1;
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 发送二维码请求
         ac_arm_.waitForServer();
         my_hand_eye::ArmGoal goal;

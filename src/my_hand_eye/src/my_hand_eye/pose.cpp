@@ -291,7 +291,7 @@ namespace my_hand_eye
                 wait_until_static(ID, 1);
             }
             if (!cat && z < 7)
-                ros::Duration(1.5).sleep(); // 等待一段时间放稳
+                ros::Duration(1.2).sleep(); // 等待一段时间放稳
             else if (!cat)
                 ros::Duration(0.7).sleep(); // 等待一段时间放稳
             else
@@ -465,6 +465,10 @@ namespace my_hand_eye
         Action a = pal ? action_palletize[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal])
                        : action_put[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal]);
         a += (pal ? action_palletize[order] : action_put[order]);
+        if (cat)
+        {
+            a.z -= 0.2;
+        } // 防止抓的时候因抖动抓不上
         ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)

@@ -101,7 +101,7 @@ namespace motion_controller
         {
             if (pid_.update({pose.theta}, stamp, control, success))
             {
-                if (debug_)
+                // if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
                                          << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
@@ -134,7 +134,7 @@ namespace motion_controller
         {
             if (pid_.update({pose.x, pose.theta}, stamp, control, success))
             {
-                if (debug_)
+                // if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
                                          << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
@@ -168,7 +168,7 @@ namespace motion_controller
         {
             if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
             {
-                if (debug_)
+                // if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
                                          << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
@@ -195,7 +195,7 @@ namespace motion_controller
         case direction_theta:
             if (pid_.update({pose.theta}, stamp, control, success))
             {
-                if (debug_)
+                // if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
                                          << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
@@ -208,7 +208,7 @@ namespace motion_controller
         case direction_x:
             if (pid_.update({pose.x, pose.theta}, stamp, control, success))
             {
-                if (debug_)
+                // if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
                                          << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
@@ -222,7 +222,7 @@ namespace motion_controller
         case direction_y:
             if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
             {
-                if (debug_)
+                // if (debug_)
                     ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
                                          << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
