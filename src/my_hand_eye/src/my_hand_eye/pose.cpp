@@ -139,7 +139,7 @@ namespace my_hand_eye
             Position[3] = round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
             Position[4] = round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
             Position[5] = round(ARM_JOINT5_POS_WHEN_OPEN + (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * tightness);
-            // ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
+            ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
         }
         return valid;
     }
@@ -290,7 +290,9 @@ namespace my_hand_eye
                 u8 ID[] = {3};
                 wait_until_static(ID, 1);
             }
-            if (!cat)
+            if (!cat && z < 7)
+                ros::Duration(1.5).sleep(); // 等待一段时间放稳
+            else if (!cat)
                 ros::Duration(0.7).sleep(); // 等待一段时间放稳
             else
                 ros::Duration(0.1).sleep();

@@ -55,8 +55,6 @@ namespace my_hand_eye
         const double cy = 578.390364;
         double calculate_time(int ID);                    // 为指定舵机计算到达时间
         bool arrived(u8 ID[], u8 IDN, int tolerance = 3); // 判断所有是否到达指定位置附近
-        // 计算各joint运动的position
-        bool calculate_position(bool expand_y = false);
         bool read_position(int ID);      // 读指定舵机位置
         bool read_move(int ID);          // 指定舵机运动
         int read_load(int ID);           // 读指定舵机负载
@@ -104,6 +102,8 @@ namespace my_hand_eye
         ArmPose end_to_base_now();                                                             // 更新位置，并返回旋转矩阵，平移向量
         // Action *get_action_put();                                                             // 获取指定位置放置Action
         cv::Mat transformation_matrix(double z); // 透视变换矩阵（不保证实时性，配合refresh_xyz）
+        // 计算各joint运动的position
+        bool calculate_position(bool expand_y = false);
         // 计算物料位置
         bool calculate_cargo_position(double u, double v, double cargo_z,
                                       double &cargo_x, double &cargo_y, bool read = true);
