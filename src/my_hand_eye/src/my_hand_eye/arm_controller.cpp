@@ -1043,7 +1043,7 @@ namespace my_hand_eye
             current_color_ = color;
             can_catch_ = false;
             state = DETECTING;
-            return false;
+            // return false;
         }
         else if (!can_catch_ && stop_) // 停留不可抓
         {
@@ -1788,7 +1788,7 @@ namespace my_hand_eye
             {
                 ps_.correction = true;
             }
-            return false;
+            // return false;
         }
         else if (msg.end && !last_finish && !store)
         {
@@ -1889,7 +1889,7 @@ namespace my_hand_eye
             last_finish = false;
             ps_.reset(true);
             rst = true;
-            return false;
+            // return false;
         }
         else if (msg.end && !last_finish && !store)
         {
@@ -1970,7 +1970,7 @@ namespace my_hand_eye
             last_finish = false;
             clear(true, true);
             ROS_INFO("Look down...");
-            return false;
+            // return false;
         }
         else if (msg.end && !last_finish)
         {
@@ -2050,7 +2050,7 @@ namespace my_hand_eye
             ps_.reset();
             last_finish = false;
             clear(true, true);
-            return false;
+            // return false;
         }
         else if (msg.end && !last_finish)
         {

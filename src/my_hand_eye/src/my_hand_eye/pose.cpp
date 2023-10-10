@@ -169,6 +169,7 @@ namespace my_hand_eye
             if (arrived(ID, 5))
             {
                 ROS_INFO("Pose has arrived");
+                rst_time_ = ros::Time::now() - ros::Duration(5.0);
                 return valid;
             }
             if (Position[2] >= Position_now[2] && flag1 && !flag2)
@@ -210,6 +211,7 @@ namespace my_hand_eye
                 wait_until_static(ID, 5);
             }
         }
+        rst_time_ = ros::Time::now();
         return valid;
     }
 
@@ -248,14 +250,12 @@ namespace my_hand_eye
         bool valid = left
                          ? go_to(action_left.x, action_left.y, action_left.z, false, true, true)
                          : go_to(action_default.x, action_default.y, action_default.z, false, true, false);
-        rst_time_ = ros::Time::now();
         return valid;
     }
 
     bool Pos::look_down()
     {
         bool valid = go_to(action_down.x, action_down.y, action_down.z, false, true, true);
-        rst_time_ = ros::Time::now();
         return valid;
     }
 

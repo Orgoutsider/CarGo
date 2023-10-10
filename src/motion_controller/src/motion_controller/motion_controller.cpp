@@ -615,17 +615,15 @@ namespace motion_controller
                 ac_move_.waitForServer();
                 MoveGoal goal;
                 get_position();
-                goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                goal.pose.theta = feedback->pme.pose.theta;
                 goal.precision = true;
                 ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
-                if (client_done_.exists())
-                {
-                    my_hand_eye::moveDone md;
-                    get_position();
-                    md.request.theta_turn = angle_from_road(follower_.debug, config_.startup);
-                    if (!client_done_.call(md))
-                        ROS_WARN("Failed to call moveDone!");
-                }
+                client_done_.waitForExistence();
+                my_hand_eye::moveDone md;
+                get_position();
+                md.request.theta_turn = angle_from_road(follower_.debug, config_.startup);
+                if (!client_done_.call(md))
+                    ROS_WARN("Failed to call moveDone!");
             }
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_border)
