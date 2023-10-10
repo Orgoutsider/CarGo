@@ -134,7 +134,7 @@ namespace my_hand_eye
         white_vmin_ = pnh.param<int>("white_vmin", 170);
         factor_ = pnh.param<int>("factor", 40);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
-        speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.12);
+        speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
         target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.952260769)).rad();
         if (!ps_.begin(ft_servo.c_str()))

@@ -15,13 +15,13 @@ namespace motion_controller
         dr_route_(route_rest),
         doing_(false), where_(0),
         x_(0), y_(0), theta_(0), loop_(0), // length_field_(2.26)
-        length_car_(0.29), width_car_(0.27), width_road_(0.45), length_field_(2.29), width_field_(2.02),
+        length_car_(0.29), width_car_(0.27), width_road_(0.45), length_field_(2.29), width_field_(2.03),
         y_QR_code_board_(0.8), x_QR_code_board_(0.02),
-        y_raw_material_area_(1.65), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
-        x_roughing_area_(1.215), length_from_semi_finishing_area_(1.045),
+        y_raw_material_area_(1.665), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
+        x_roughing_area_(1.22), length_from_semi_finishing_area_(1.045),
         y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_),
         length_from_ellipse_(0.028),
-        width_from_semi_finishing_area_(0.295), width_from_roughing_area_(width_from_semi_finishing_area_ - 0.005),
+        width_from_semi_finishing_area_(0.30), width_from_roughing_area_(0.29),
         length_from_parking_area_(0.399), x_road_up_(0.08), x_parking_area_(0.58),
         clockwise_(false)
   {
@@ -172,7 +172,7 @@ namespace motion_controller
     ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
     int n = 0, sign = outside ? 1 : -1;
     yaw = angle_correction(yaw);
-    theta = (yaw + theta_) / 2;
+    theta = theta_;
     if (-x_ < x_road_up_ + width_road_) // 上
       n += 1;
     else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下

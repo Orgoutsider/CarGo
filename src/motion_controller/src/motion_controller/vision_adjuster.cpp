@@ -117,7 +117,7 @@ namespace motion_controller
                     pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                                   {0.005, thresh_linear_y_, 0.005},
+                                                   {0.004, thresh_linear_y_, 0.005},
                                                    {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
                                                    {limiting_freq_, limiting_freq_, limiting_freq_});
                     return;
@@ -151,7 +151,7 @@ namespace motion_controller
                     pid_ = PIDControllerWithFilter({0, 0, 0}, {kp_eye_linear_, kp_eye_linear_, kp_eye_angular_},
                                                    {ki_eye_linear_, ki_eye_linear_, ki_eye_angular_},
                                                    {kd_eye_linear_, kd_eye_linear_, kd_eye_angular_},
-                                                   {0.005, thresh_linear_y_, 0.005}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
+                                                   {0.004, thresh_linear_y_, 0.005}, {0.02, 0.02, 0.05}, {0.2, 0.2, 0.4},
                                                    {limiting_freq_, limiting_freq_, limiting_freq_});
                 }
                 else
@@ -159,7 +159,7 @@ namespace motion_controller
                     pid_ = PIDControllerWithFilter({0, 0}, {kp_eye_linear_, kp_eye_angular_},
                                                    {ki_eye_linear_, ki_eye_angular_},
                                                    {kd_eye_linear_, kd_eye_angular_},
-                                                   {0.005, 0.005}, {0.02, 0.05}, {0.2, 0.4},
+                                                   {0.004, 0.005}, {0.02, 0.05}, {0.2, 0.4},
                                                    {limiting_freq_, limiting_freq_});
                 }
             }

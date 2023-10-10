@@ -139,7 +139,7 @@ namespace my_hand_eye
             Position[3] = round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
             Position[4] = round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
             Position[5] = round(ARM_JOINT5_POS_WHEN_OPEN + (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * tightness);
-            ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
+            // ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
         }
         return valid;
     }
@@ -272,7 +272,7 @@ namespace my_hand_eye
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
             if (z < 7 && cat)
             {
-                Position[3] -= 320; // 防止碰到物料
+                Position[3] -= 450; // 防止碰到物料
             }
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             u8 ID1[] = {1, 3, 4};
@@ -285,7 +285,7 @@ namespace my_hand_eye
             wait_until_static(ID2, 1);
             if (z < 7 && cat)
             {
-                Position[3] += 320;
+                Position[3] += 420;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
                 u8 ID[] = {3};
                 wait_until_static(ID, 1);
@@ -294,6 +294,8 @@ namespace my_hand_eye
                 ros::Duration(1.2).sleep(); // 等待一段时间放稳
             else if (!cat)
                 ros::Duration(0.7).sleep(); // 等待一段时间放稳
+            else if (z < 7)
+                ros::Duration(0.7).sleep();
             else
                 ros::Duration(0.1).sleep();
             sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
@@ -465,15 +467,15 @@ namespace my_hand_eye
         Action a = pal ? action_palletize[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal])
                        : action_put[2].now2goal(err_x, err_y, err_theta, enlarge_loop[pal]);
         a += (pal ? action_palletize[order] : action_put[order]);
-        if (cat)
-        {
-            a.z -= 0.2;
-        } // 防止抓的时候因抖动抓不上
+        // if (cat)
+        // {
+        //     a.z -= 1;
+        // } // 防止抓的时候因抖动抓不上
         ARM_INFO_XYZ(a);
         bool valid = go_to_and_wait(a.x, a.y, a.z, cat, true);
         if (!cat && (valid = read_all_position()) && !pal)
         {
-            Position[3] = Position_now[3] - 270; // 略微下降防止碰到块
+            Position[3] = Position_now[3] - 200; // 略微下降防止碰到块
             sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
             u8 ID[] = {3};
             wait_until_static(ID, 1);

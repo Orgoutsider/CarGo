@@ -44,11 +44,12 @@ namespace motion_controller
         std::vector<double> control;
         if (goal->pose.theta)
         {
+            static int cnt = 0;
             PIDController pid1({0}, {kp_angular_[goal->precision]}, {ki_angular_[goal->precision]},
                                {kd_angular_[goal->precision]},
                                {(goal->precision && !(goal->pose.x || goal->pose.y)) ? 0.01 : 0.02},
                                {0.1}, {goal->precision ? 0.8 : 1.4});
-            while (!success)
+            while (!(success && (goal->pose.x || goal->pose.y)))
             {
                 if (server_.isPreemptRequested() || !ros::ok())
                 {
@@ -117,6 +118,20 @@ namespace motion_controller
                 feedback.pose_now = pose;
                 feedback.header = header_;
                 server_.publishFeedback(feedback);
+                if (!(goal->pose.x || goal->pose.y))
+                {
+                    if (success)
+                    {
+                        cnt++;
+                        if (cnt >= 2)
+                        {
+                            cnt = 0;
+                            break;
+                        }
+                    }
+                    else if (cnt)
+                        cnt = 0;
+                }
                 rate.sleep();
             }
         }
