@@ -503,7 +503,7 @@ namespace my_hand_eye
 			static int cnt = 0;
 			if (arm_goal_.left_ready)
 				cnt++;
-			if (!arm_goal_.left_ready || (cnt >= 3))
+			if (!arm_goal_.left_ready || (cnt >= 2))
 			{
 				// static int cnt = 0;
 				// cnt++;

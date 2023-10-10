@@ -1,10 +1,9 @@
 <launch>
-    <arg name="nodelet_manager" default="my_hand_eye_manager" />
+    <!-- <arg name="nodelet_manager" default="my_hand_eye_manager" /> -->
     <arg name="debug" default="false" />
 
-    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  args="manager" output="screen"/>
+    <!-- <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)"  args="manager" output="screen"/> -->
     <include file="$(find my_hand_eye)/launch/eye.launch" >
-        <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
     </include>
     <include file="$(find my_hand_eye)/launch/include/yolov5.launch" >
         <arg name="debug" value="$(arg debug)" />

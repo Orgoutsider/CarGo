@@ -373,7 +373,7 @@ namespace motion_controller
                     //     return;
                     // }
                 }
-                else if (goal.route == route_border && last_route == route_raw_material_area && loop_ == 0)
+                else if (goal.route == route_border && last_route == route_raw_material_area)
                 {
                     // ac_move_.waitForServer();
                     // 等车停
@@ -608,8 +608,6 @@ namespace motion_controller
                                          feedback->pme.pose.y * sin(feedback->pme.pose.theta),
                                      theta_);
                     }
-                    else
-                        ROS_ERROR("Invalid loop!");
                     ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                 }
                 ac_move_.waitForServer();
@@ -712,8 +710,8 @@ namespace motion_controller
             ac_move_.waitForServer();
             get_position();
             goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-            // goal.pose.x = length_from_road(follower_.debug, config_.startup) * cos(-goal.pose.theta);
-            // goal.pose.y = -length_from_road(follower_.debug, config_.startup) * sin(-goal.pose.theta);
+            goal.pose.x = length_from_road(follower_.debug, config_.startup) * cos(-goal.pose.theta);
+            goal.pose.y = -length_from_road(follower_.debug, config_.startup) * sin(-goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             // get_position();
             // MoveGoal goal;
@@ -753,8 +751,8 @@ namespace motion_controller
                 arm_initialized_ = arm_active_ = false;
                 move_initialized_ = move_active_ = false;
             }
-            if (where_is_car(follower_.debug, config_.startup, 1) == route_roughing_area)
-                follower_.veer(true, false);
+            // if (where_is_car(follower_.debug, config_.startup, 1) == route_roughing_area)
+            //     follower_.veer(true, false);
             // else if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
             //     follower_.veer(true, true);
         }

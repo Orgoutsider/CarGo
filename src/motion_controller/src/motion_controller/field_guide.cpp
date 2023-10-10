@@ -22,7 +22,7 @@ namespace motion_controller
         y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_),
         length_from_ellipse_(0.028),
         width_from_semi_finishing_area_(0.295), width_from_roughing_area_(0.29),
-        length_from_parking_area_(0.399), x_road_up_(0.08), x_parking_area_(0.58),
+        length_from_parking_area_(0.396), x_road_up_(0.08), x_parking_area_(0.58),
         clockwise_(false)
   {
   }
@@ -73,30 +73,30 @@ namespace motion_controller
     switch (where_is_car(debug, startup))
     {
     case route_QR_code_board:
-      return abs(length_route(debug, startup)) < 0.15 && -x_ < x_road_up_ + width_road_;
+      return length_route(debug, startup) < 0.1 && -x_ < x_road_up_ + width_road_;
 
     case route_raw_material_area:
       if (loop_ == 0)
-        return abs(length_route(debug, startup)) < 0.15 &&
+        return length_route(debug, startup) < 0.1 &&
                -x_ < x_road_up_ + width_road_;
       else if (loop_ == 1)
-        return abs(length_route(debug, startup)) < 0.15 &&
+        return -length_route(debug, startup) < 0.1 &&
                y_ > length_field_ - width_road_;
       else
         ROS_ERROR("Invalid loop!");
       return false;
 
     case route_roughing_area:
-      return abs(length_route(debug, startup)) < 0.15 && y_ > length_field_ - width_road_;
+      return length_route(debug, startup) < 0.1 && y_ > length_field_ - width_road_;
 
     case route_semi_finishing_area:
-      return abs(length_route(debug, startup)) < 0.15 && -x_ > x_road_up_ + width_field_ - width_road_;
+      return length_route(debug, startup) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_;
 
     case route_parking_area:
-      return abs(length_route(debug, startup)) < 0.15 && y_ < width_road_;
+      return length_route(debug, startup) < 0.1 && y_ < width_road_;
 
     case route_border:
-      return abs(length_route(debug, startup)) < 0.15;
+      return length_route(debug, startup) * (clockwise_ ? -1 : 1) < 0.1;
 
     default:
       ROS_ERROR_ONCE("where_is_car returns invalid value!");
