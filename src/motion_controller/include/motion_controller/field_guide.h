@@ -33,6 +33,7 @@ namespace motion_controller
         double length_from_ellipse_;            // 到中心椭圆距离道路方向
         double width_from_semi_finishing_area_; // 到半成品区距离宽度方向
         double width_from_roughing_area_;       // 到粗加工区椭圆距离宽度方向
+        double y_palletize_;                    // 码垛时纠正位置
         double length_from_parking_area_;       // 到停车区距离
         double x_road_up_;                      // 从停车区上侧挡板到上路上沿
         double y_QR_code_board_;                // 二维码板

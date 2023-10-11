@@ -593,14 +593,10 @@ namespace motion_controller
                                          feedback->pme.pose.x * sin(feedback->pme.pose.theta),
                                      theta);
                     }
-                    // else if (loop_ == 1)
-                    // {
-                    //     set_position(x_,
-                    //                  y_semi_finishing_area_ - length_from_ellipse_ -
-                    //                      feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
-                    //                      feedback->pme.pose.y * sin(feedback->pme.pose.theta),
-                    //                  theta_);
-                    // }
+                    else if (loop_ == 1)
+                    {
+                        set_position(x_, y_palletize_, theta_);
+                    }
                     else if (loop_ == 0)
                     {
                         set_position(-(x_road_up_ + width_field_ - width_from_semi_finishing_area_ -
