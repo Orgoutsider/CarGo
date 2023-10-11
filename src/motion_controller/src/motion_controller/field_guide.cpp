@@ -171,8 +171,8 @@ namespace motion_controller
   {
     ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
     int n = 0, sign = outside ? 1 : -1;
-    yaw = angle_correction(yaw);
-    theta = theta_;
+    theta = angle_correction(yaw);
+    theta = (theta_ + theta) / 2;
     if (-x_ < x_road_up_ + width_road_) // 上
       n += 1;
     else if (-x_ > x_road_up_ + width_field_ - width_road_) // 下

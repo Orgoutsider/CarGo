@@ -47,7 +47,7 @@ namespace motion_controller
             static int cnt = 0;
             PIDController pid1({0}, {kp_angular_[goal->precision]}, {ki_angular_[goal->precision]},
                                {kd_angular_[goal->precision]},
-                               {(goal->precision && !(goal->pose.x || goal->pose.y)) ? 0.01 : 0.02},
+                               {(goal->precision) ? 0.01 : 0.02},
                                {0.1}, {goal->precision ? 0.8 : 1.4});
             while (!(success && (goal->pose.x || goal->pose.y)))
             {
