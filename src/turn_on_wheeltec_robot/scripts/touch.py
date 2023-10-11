@@ -14,6 +14,7 @@ def cb(channel):
     global already_go
     if already_go:
         return
+       
     client = rospy.ServiceProxy("Go", Go)
     client.wait_for_service()
     req = GoRequest()

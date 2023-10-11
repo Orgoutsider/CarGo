@@ -577,8 +577,8 @@ namespace motion_controller
                 if (feedback->pme.pose.theta != feedback->pme.not_change)
                 {
                     get_position();
-                    // double theta = angle_correction(feedback->pme.pose.theta);
-                    // theta = (theta + theta_) / 2;
+                    double theta = angle_correction(feedback->pme.pose.theta);
+                    theta = (theta + theta_) / 2;
                     ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                     if (where_is_car(follower_.debug, config_.startup) == route_roughing_area)
                     {
@@ -588,7 +588,7 @@ namespace motion_controller
                                      length_field_ - width_from_roughing_area_ -
                                          feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
                                          feedback->pme.pose.x * sin(feedback->pme.pose.theta),
-                                     theta_);
+                                     theta);
                     }
                     // else if (loop_ == 1)
                     // {
@@ -606,7 +606,7 @@ namespace motion_controller
                                      y_semi_finishing_area_ - length_from_ellipse_ -
                                          feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
                                          feedback->pme.pose.y * sin(feedback->pme.pose.theta),
-                                     theta_);
+                                     theta);
                     }
                     ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                 }
@@ -694,6 +694,8 @@ namespace motion_controller
             {
                 if (follower_.has_started)
                     follower_.start(false, theta_);
+                ac_move_.cancelAllGoals();
+                boost::this_thread::sleep_for(boost::chrono::milliseconds(300));
                 ac_move_.waitForServer();
                 MoveGoal goal;
                 get_position();
@@ -704,14 +706,12 @@ namespace motion_controller
         else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
                  !follower_.debug && loop_ == 1)
         {
-            ac_move_.cancelAllGoals();
-            boost::this_thread::sleep_for(boost::chrono::milliseconds(300));
             MoveGoal goal;
             ac_move_.waitForServer();
             get_position();
             goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-            goal.pose.x = length_from_road(follower_.debug, config_.startup) * cos(-goal.pose.theta);
-            goal.pose.y = -length_from_road(follower_.debug, config_.startup) * sin(-goal.pose.theta);
+            goal.pose.x = -length_route(follower_.debug, config_.startup) * sin(goal.pose.theta);
+            goal.pose.y = length_route(follower_.debug, config_.startup) * cos(goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             // get_position();
             // MoveGoal goal;
@@ -762,6 +762,11 @@ namespace motion_controller
             {
                 _check_arm_pose(result->pme);
                 ac_move_.waitForServer();
+                get_position();
+                ROS_INFO("Original y: %lf", y_);
+                double yr = 0.299 / 2 - arm_pose_.y - length_from_parking_area_ * sin(arm_pose_.theta);
+                ROS_INFO("Real y: %lf", yr);
+                ROS_INFO("Real y - Original y: %lf", yr - y_);
                 MoveGoal goal;
                 goal.pose.x = length_from_parking_area_ * cos(arm_pose_.theta) +
                               arm_pose_.x;
