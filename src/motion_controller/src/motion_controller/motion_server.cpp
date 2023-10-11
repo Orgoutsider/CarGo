@@ -8,7 +8,7 @@ namespace motion_controller
     MotionServer::MotionServer(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : server_(nh, "Move", boost::bind(&MotionServer::_execute_callback, this, _1), false),
           listener_(buffer_),
-          kp_angular_{2.0, 1.8}, ki_angular_{0.6, 0.5}, kd_angular_{0, 1.1},
+          kp_angular_{2.0, 1.8}, ki_angular_{0.6, 0.5}, kd_angular_{0.1, 1.1},
           kp_linear_{2.1, 2.1}, ki_linear_{0.25, 0.1}, kd_linear_{0, 0}
     {
         pnh.param<bool>("debug", debug_, false);
@@ -100,6 +100,7 @@ namespace motion_controller
                         // 组织发布速度消息
                         geometry_msgs::Twist twist;
                         twist.angular.z = control[0];
+                        // ROS_INFO_STREAM(twist.angular.z);
                         tme.velocity = twist;
                     }
                     else
