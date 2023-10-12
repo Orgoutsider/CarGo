@@ -1129,18 +1129,22 @@ namespace motion_controller
 
     bool MotionController::go(Go::Request &req, Go::Response &res)
     {
+        ROS_INFO("4 %lf", ros::Time::now().toSec());
         if (!set_position(-length_car_ / 2, width_car_ / 2, 0))
         {
             ROS_ERROR("Failed to initialize position!");
             return false;
         }
+        ROS_INFO("5 %lf", ros::Time::now().toSec());
         ac_move_.waitForServer();
+        ROS_INFO("6 %lf", ros::Time::now().toSec());
         // 横向移动出停止区
         motion_controller::MoveGoal goal1;
         get_position();
         goal1.pose.x = length_from_road(follower_.debug, config_.startup);
         goal1.pose.y = 0.1;
         ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+        ROS_INFO("7 %lf", ros::Time::now().toSec());
         // 发送二维码请求
         ac_arm_.waitForServer();
         my_hand_eye::ArmGoal goal;
