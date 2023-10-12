@@ -20,9 +20,8 @@ namespace my_hand_eye
 		if (given_QR_code)
 			task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
 				"/task", 10, &ArmServer::task_callback, this);
-		else
-			camera_image_subscriber_ =
-				it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
+		camera_image_subscriber_ =
+			it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
 		pose_publisher_ = nh_.advertise<Pose2DMightEnd>("/vision_eye", 3);
 		if (arm_controller_.show_detections)
 		{
@@ -75,13 +74,12 @@ namespace my_hand_eye
 		ROS_INFO_STREAM(
 			"Get tasks:" << unsigned(tasks_.loop[0].task[0]) << unsigned(tasks_.loop[0].task[1]) << unsigned(tasks_.loop[0].task[2]) << "+"
 						 << unsigned(tasks_.loop[1].task[0]) << unsigned(tasks_.loop[1].task[1]) << unsigned(tasks_.loop[1].task[2]));
-		camera_image_subscriber_ =
-			it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
 		task_subscriber_.shutdown();
 	}
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
+		arm_controller_.ready_yolo(image_rect);
 		if (!as_.isActive())
 			return;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -146,7 +144,7 @@ namespace my_hand_eye
 
 		// 椭圆识别
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_ellipse(image_rect, color_green, debug_image, true);
+		// arm_controller_.log_ellipse(image_rect, color_blue, debug_image, false);
 		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
 

@@ -153,6 +153,7 @@ namespace my_hand_eye
         // 计算停车区位置
         bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                sensor_msgs::ImagePtr &debug_image);
+        void ready_yolo(const sensor_msgs::ImageConstPtr &image_rect);
     };
 } // namespace my_hand_eye
 

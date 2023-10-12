@@ -244,7 +244,6 @@ namespace my_hand_eye
             yolov5_ros::cargoSrv cargo;
             sensor_msgs::ImagePtr image = cv_image->toImageMsg();
             cargo.request.image = *image;
-            // ROS_INFO("a");
             // 发送请求,返回 bool 值，标记是否成功
             if (flag)
                 flag = cargo_client_.call(cargo);
@@ -317,7 +316,6 @@ namespace my_hand_eye
             }
             else
                 ROS_WARN("Responce invalid or failed to add image!");
-            // ROS_INFO("b");
             if (show_detections && !cv_image->image.empty())
                 debug_image = cv_image->toImageMsg();
             return flag;
@@ -1230,13 +1228,10 @@ namespace my_hand_eye
         if (!all && last_detect.boxes[color_order_[2].color].center.x)
         {
             double center_x = last_detect.boxes[color_order_[2].color].center.x - rect.x;
-            roi.x = std::max(center_x - rect.width / 2.0, 0.0);
+            roi.x = std::max(center_x - rect.width / 4.0, 0.0);
             roi.y = 0;
             roi.width = std::min(rect.width / 2, rect.width - roi.x);
             roi.height = rect.height;
-            cv_image->image = cv_image->image(roi);
-            roi.x += rect.x;
-            roi.y += rect.y;
         }
         else
             roi = rect;
@@ -1287,6 +1282,18 @@ namespace my_hand_eye
         // 全局颜色增强
         Img_clone = saturation(Img_clone, 10);
         // imshow("resImg", Img_clone);
+        if (!all && last_detect.boxes[color_order_[2].color].center.x)
+        {
+            Rect r;
+            r.x = roi.x / (rect.width / cv_image->image.cols);
+            r.y = 0;
+            r.width = roi.width / (rect.width / cv_image->image.cols);
+            r.height = cv_image->image.rows;
+            Img_clone = Img_clone(r);
+            cv_image->image = cv_image->image(r);
+            roi.x += rect.x;
+            roi.y += rect.y;
+        }
         // take_picture(cv_image->image);
         Mat hsv;
         cvtColor(Img_clone, hsv, COLOR_BGR2HSV);
@@ -1324,13 +1331,17 @@ namespace my_hand_eye
             }
             return false;
         }
-        last_detect = detections;
         if (!cv_image_.image.empty())
         {
             for (int color = color_red; color <= color_blue; color++)
             {
                 if (!detections.boxes[color].center.x)
                 {
+                    continue;
+                }
+                else if (!all && color_order_[2].color != color)
+                {
+                    detections.boxes[color].center.x = 0;
                     continue;
                 }
                 Rect rect(detections.boxes[color].center.x - detections.boxes[color].size_x / 2,
@@ -1404,6 +1415,7 @@ namespace my_hand_eye
             // // waitKey(10);
             // debug_image = cv_image->toImageMsg();
         }
+        last_detect = detections;
         // std::vector<double> times = yaed_->GetTimes();
         // std::cout << "--------------------------------" << std::endl;
         // std::cout << "Execution Time: " << std::endl;
@@ -1597,6 +1609,11 @@ namespace my_hand_eye
             else
             {
                 double x = 0, y = 0;
+                geometry_msgs::Pose2D p;
+                if (rst && get_position(objArray, z_parking_area, p.x, p.y, rst, false))
+                {
+                    rst = false;
+                }
                 if (valid = find_with_color(objArray, color, z_parking_area, x, y))
                 {
                     ROS_INFO_STREAM("x:" << x << " y:" << y);
@@ -2108,5 +2125,22 @@ namespace my_hand_eye
         }
         last_finish = msg.end;
         return valid;
+    }
+
+    void ArmController::ready_yolo(const sensor_msgs::ImageConstPtr &image_rect)
+    {
+        static bool ready = false;
+        if (!ready)
+        {
+            ready = true;
+            cv_bridge::CvImagePtr cv_image;
+            if (!add_image(image_rect, cv_image))
+                return;
+            cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / 8);
+            cargo_client_.waitForExistence();
+            yolov5_ros::cargoSrv cargo;
+            cargo.request.image = *(cv_image->toImageMsg());
+            cargo_client_.call(cargo);
+        }
     }
 } // namespace my_hand_eye

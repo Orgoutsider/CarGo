@@ -274,7 +274,7 @@ namespace my_hand_eye
             {
                 Position[3] -= 450; // 防止碰到物料
             }
-            else if (z < 7 && y > 4 && !cat)
+            else if (z < 7 && y > 3.9 && !cat)
             {
                 Position[3] -= 30; // 防止悬空抖动
             }

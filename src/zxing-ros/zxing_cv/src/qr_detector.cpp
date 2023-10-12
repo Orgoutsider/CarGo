@@ -35,6 +35,7 @@
 #include <zxing/MatSource.h>
 
 QRDetector::QRDetector(ros::NodeHandle &_nodeHandle, ros::NodeHandle &_privateNodeHandle) : nodeHandle(_nodeHandle), privateNodeHandle(_privateNodeHandle), imageTransport(nodeHandle)
+// dynamicReconfigureServer(privateNodeHandle)
 {
 }
 
@@ -42,9 +43,11 @@ int QRDetector::init()
 {
 
     // Create dynamic reconfigure server
-    dynamicReconfigureServer = new dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig>(privateNodeHandle);
-    dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig>::CallbackType callback = boost::bind(&QRDetector::reconfigureCallback, this, _1, _2);
-    dynamicReconfigureServer->setCallback(callback);
+    // dynamicReconfigureServer = dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig>(privateNodeHandle);
+    // dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig>::CallbackType callback = boost::bind(&QRDetector::reconfigureCallback, this, _1, _2);
+    // dynamicReconfigureServer.setCallback(callback);
+    adaptiveThresholdBlockSize = privateNodeHandle.param("adaptive_threshold_block_size", 201);
+    adaptiveThresholdThreshold = privateNodeHandle.param("adaptive_threshold_threshold", 21);
 
     // Create image subscriber
     imageSubscriber = imageTransport.subscribeCamera("/camera/image", 1, &QRDetector::imageCallback, this);
@@ -66,20 +69,20 @@ int QRDetector::init()
     return 0;
 }
 
-void QRDetector::reconfigureCallback(zxing_cv::QRDetectorConfig &config, uint32_t level)
-{
+// void QRDetector::reconfigureCallback(zxing_cv::QRDetectorConfig &config, uint32_t level)
+// {
 
-    // Update configuration
-    adaptiveThresholdBlockSize = config.adaptive_threshold_block_size;
-    adaptiveThresholdThreshold = config.adaptive_threshold_threshold;
+//     // Update configuration
+//     adaptiveThresholdBlockSize = config.adaptive_threshold_block_size;
+//     adaptiveThresholdThreshold = config.adaptive_threshold_threshold;
 
-    if (adaptiveThresholdBlockSize % 2 == 0)
-    {
+//     if (adaptiveThresholdBlockSize % 2 == 0)
+//     {
 
-        // Increae by one (adaptive threshold block size must be an odd number
-        adaptiveThresholdBlockSize++;
-    }
-}
+//         // Increae by one (adaptive threshold block size must be an odd number
+//         adaptiveThresholdBlockSize++;
+//     }
+// }
 
 void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr, const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr)
 {

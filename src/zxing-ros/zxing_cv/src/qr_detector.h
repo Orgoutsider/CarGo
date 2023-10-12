@@ -32,14 +32,13 @@
 class QRDetector {
 
 	public:
-
         QRDetector(ros::NodeHandle & _nodeHandle, ros::NodeHandle & _privateNodeHandle);
 
         int init();
 
     private:
 
-        void reconfigureCallback(zxing_cv::QRDetectorConfig & config, uint32_t level);
+        // void reconfigureCallback(zxing_cv::QRDetectorConfig & config, uint32_t level);
 
         void imageCallback(const sensor_msgs::ImageConstPtr & imageConstPtr, const sensor_msgs::CameraInfoConstPtr & cameraInfoPtr);
 
@@ -52,7 +51,7 @@ class QRDetector {
         ros::NodeHandle nodeHandle;
         ros::NodeHandle privateNodeHandle;
 
-        dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig> * dynamicReconfigureServer;
+        // dynamic_reconfigure::Server<zxing_cv::QRDetectorConfig> dynamicReconfigureServer;
 
         zxing::Ref<zxing::Reader> qrReader;
 
