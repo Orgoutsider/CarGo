@@ -96,7 +96,7 @@ void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr, 
     {
 
         // Log
-        ROS_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
+        // NODELET_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
 
         return;
     }
@@ -158,19 +158,19 @@ void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr, 
     {
 
         // Log
-        ROS_ERROR("zxing illegal argument exception: %s", e.what());
+        // NODELET_ERROR("zxing illegal argument exception: %s", e.what());
     }
     catch (const zxing::Exception &e)
     {
 
         // Log
-        ROS_ERROR("zxing reader exception: %s", e.what());
+        // NODELET_ERROR("zxing reader exception: %s", e.what());
     }
     catch (const cv::Exception &e)
     {
 
         // Log
-        ROS_ERROR("zxing reader exception: %s", e.what());
+        // NODELET_ERROR("zxing reader exception: %s", e.what());
     }
 }
 
@@ -178,7 +178,7 @@ void QRDetector::connectCallback()
 {
     if (!imageSubscriber && qrCodeArrayPublisher.getNumSubscribers() > 0)
     {
-        ROS_INFO("Connecting to barcode topic.");
+        // NODELET_INFO("Connecting to barcode topic.");
         imageSubscriber = imageTransport.subscribeCamera("/camera/image", 1, &QRDetector::imageCallback, this);
     }
 }
@@ -187,7 +187,7 @@ void QRDetector::disconnectCallback()
 {
     if (qrCodeArrayPublisher.getNumSubscribers() == 0)
     {
-        ROS_INFO("Unsubscribing from image topic.");
+        // NODELET_INFO("Unsubscribing from image topic.");
         imageSubscriber.shutdown();
     }
 }
@@ -207,7 +207,7 @@ void QRDetector::publishDebugImage(const sensor_msgs::ImageConstPtr &imageConstP
     {
 
         // Log
-        ROS_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
+        // NODELET_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
 
         return;
     }

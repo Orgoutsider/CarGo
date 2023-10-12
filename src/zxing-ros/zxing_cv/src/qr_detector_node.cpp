@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     if (result != 0) {
 
         // Log
-        ROS_FATAL("init failed with return code %d", result);
+        // ROS_FATAL("init failed with return code %d", result);
 
         return result;
 
