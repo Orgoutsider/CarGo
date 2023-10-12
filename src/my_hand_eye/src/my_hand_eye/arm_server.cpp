@@ -278,6 +278,7 @@ namespace my_hand_eye
 				}
 				ArmFeedback feedback;
 				feedback.pme = msg;
+				// ROS_INFO("c");
 				as_.publishFeedback(feedback);
 				err_time = image_rect->header.stamp;
 				return valid;

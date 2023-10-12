@@ -502,25 +502,29 @@ namespace motion_controller
         {
             ac_move_.waitForServer();
             ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+            // ROS_INFO("g");
         }
         else if (!arm_active_ && !arm_stamp_.is_zero() && finish_turning_) // is_zero说明出现问题
         {
+            // ROS_INFO("h");
+            if (!arm_initialized_)
             {
-                if (!arm_initialized_)
-                {
-                    MoveGoal goal;
-                    goal.pose = arm_pose_;
-                    ROS_INFO_STREAM("First move... x:" << goal.pose.x << " y:" << goal.pose.y << " theta:" << goal.pose.theta);
-                    ac_move_.waitForServer();
-                    ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
-                                      boost::bind(&MotionController::_move_active_callback, this),
-                                      boost::bind(&MotionController::_move_feedback_callback, this, _1));
-                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                    arm_initialized_ = true;
-                }
+                MoveGoal goal;
+                goal.pose = arm_pose_;
+                ROS_INFO_STREAM("First move... x:" << goal.pose.x << " y:" << goal.pose.y << " theta:" << goal.pose.theta);
+                ac_move_.waitForServer();
+                ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
+                                  boost::bind(&MotionController::_move_active_callback, this),
+                                  boost::bind(&MotionController::_move_feedback_callback, this, _1));
+                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                arm_initialized_ = true;
+            }
+            {
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                 arm_active_ = true;
             }
+            get_position();
+            ROS_INFO("x:%lf y:%lf", x_, y_);
         }
     }
 
@@ -569,6 +573,7 @@ namespace motion_controller
                 arm_stamp_ = feedback->pme.header.stamp;
                 arm_time_ = ros::Time::now();
             }
+            // ROS_INFO("Move with vision...");
             _check_arm_pose(feedback->pme);
             _check_arm_active();
         }

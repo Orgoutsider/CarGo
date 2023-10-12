@@ -15,9 +15,8 @@ def cb(channel):
     if already_go:
         return
        
-    client = rospy.ServiceProxy("Go", Go)
     rospy.loginfo("1 %f", rospy.Time.now().to_sec())
-    client.wait_for_service()
+    client = rospy.ServiceProxy("Go", Go)
     rospy.loginfo("2 %f", rospy.Time.now().to_sec())
     req = GoRequest()
     client.call(req)
@@ -32,6 +31,7 @@ def setup():
     GPIO.setup(button_pin, GPIO.IN)  # pull_up_down=GPIO.PUD_UP) # 输入模式，上拉至高电平
     GPIO.add_event_detect(button_pin, GPIO.FALLING,
                           callback=cb, bouncetime=200)
+    rospy.wait_for_service("Go")
 
 
 if __name__ == '__main__':

@@ -8,7 +8,9 @@ int main(int argc, char *argv[])
 
     motion_controller::MotionController controller(nh, pnh);
 
-    ros::spin();
+    ros::MultiThreadedSpinner spiner(3);
+    spiner.spin();
+    // ros::spin();
     // ros::MultiThreadedSpinner spinner(2);
     // spinner.spin();
     // ros::CallbackQueue callback_queue_t;

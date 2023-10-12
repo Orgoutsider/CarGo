@@ -244,6 +244,7 @@ namespace my_hand_eye
             yolov5_ros::cargoSrv cargo;
             sensor_msgs::ImagePtr image = cv_image->toImageMsg();
             cargo.request.image = *image;
+            // ROS_INFO("a");
             // 发送请求,返回 bool 值，标记是否成功
             if (flag)
                 flag = cargo_client_.call(cargo);
@@ -316,6 +317,7 @@ namespace my_hand_eye
             }
             else
                 ROS_WARN("Responce invalid or failed to add image!");
+            // ROS_INFO("b");
             if (show_detections && !cv_image->image.empty())
                 debug_image = cv_image->toImageMsg();
             return flag;
