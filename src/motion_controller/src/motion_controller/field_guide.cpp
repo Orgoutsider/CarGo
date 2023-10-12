@@ -22,6 +22,7 @@ namespace motion_controller
         y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_), 
         length_from_ellipse_(0.028),
         width_from_semi_finishing_area_(0.295), width_from_roughing_area_(0.29), y_palletize_(1.135876),
+        width_palletize_(0.28),
         length_from_parking_area_(0.386), x_road_up_(0.08), x_parking_area_(0.58),
         clockwise_(false)
   {

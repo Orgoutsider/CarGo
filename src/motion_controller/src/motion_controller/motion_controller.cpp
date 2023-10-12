@@ -287,7 +287,7 @@ namespace motion_controller
                     double width = length_from_road(follower_.debug, config_.startup) -
                                    (goal.route == route_roughing_area
                                         ? width_from_roughing_area_
-                                        : width_from_semi_finishing_area_) +
+                                        : (loop_ == 0 ? width_from_semi_finishing_area_ : width_palletize_)) +
                                    width_road_ / 2;
                     double len = length_from_ellipse_ + length_route(follower_.debug, config_.startup);
                     goal1.pose.y = width * cos(goal1.pose.theta) - len * sin(goal1.pose.theta);
