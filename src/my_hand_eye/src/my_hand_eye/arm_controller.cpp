@@ -1218,13 +1218,28 @@ namespace my_hand_eye
     }
 
     bool ArmController::detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
-                                       sensor_msgs::ImagePtr &debug_image, cv::Rect &rect)
+                                       sensor_msgs::ImagePtr &debug_image, cv::Rect &rect, bool all)
     {
         cv_bridge::CvImagePtr cv_image;
         if (!add_image(image_rect, cv_image))
             return false;
         cv_image->image = cv_image->image(rect);
         using namespace cv;
+        static vision_msgs::BoundingBox2DArray last_detect;
+        Rect roi;
+        if (!all && last_detect.boxes[color_order_[2].color].center.x)
+        {
+            double center_x = last_detect.boxes[color_order_[2].color].center.x - rect.x;
+            roi.x = std::max(center_x - rect.width / 2.0, 0.0);
+            roi.y = 0;
+            roi.width = std::min(rect.width / 2, rect.width - roi.x);
+            roi.height = rect.height;
+            cv_image->image = cv_image->image(roi);
+            roi.x += rect.x;
+            roi.y += rect.y;
+        }
+        else
+            roi = rect;
         std::vector<cv::Ellipse> ells;
         // 重设大小，可选
         resize(cv_image->image, cv_image->image, Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
@@ -1297,7 +1312,7 @@ namespace my_hand_eye
             return false;
         }
         detections.header = image_rect->header;
-        if (!arr.detection(detections, rect, cv_image))
+        if (!arr.detection(detections, roi, cv_image))
         {
             if (show_detections && !cv_image->image.empty())
             {
@@ -1309,6 +1324,7 @@ namespace my_hand_eye
             }
             return false;
         }
+        last_detect = detections;
         if (!cv_image_.image.empty())
         {
             for (int color = color_red; color <= color_blue; color++)
@@ -1557,7 +1573,8 @@ namespace my_hand_eye
         if (!ps_.check_stamp(image_rect->header.stamp))
             return false;
         vision_msgs::BoundingBox2DArray objArray;
-        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_);
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_,
+                                    rst || pose || color_order_[2].color != color);
         if (valid)
         {
             if (pose)
@@ -1885,12 +1902,14 @@ namespace my_hand_eye
     {
         static bool last_finish = true;
         static bool rst = false;
+        static bool success;
         const int MAX = 5; // 读取5次求平均位姿
         if (!msg.end && last_finish && !store)
         {
             last_finish = false;
             ps_.reset(true);
             rst = true;
+            success = false;
             // return false;
         }
         else if (msg.end && !last_finish && !store)
@@ -1915,11 +1934,12 @@ namespace my_hand_eye
             return false;
         vision_msgs::BoundingBox2DArray objArray;
         geometry_msgs::Pose2D p;
-        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_) &&
+        bool valid = detect_ellipse(image_rect, objArray, debug_image, ellipse_roi_,
+                                    rst || store || success) &&
                      get_position(objArray, z_parking_area, p.x, p.y, rst, store);
         if (valid)
         {
-            target_pose.calc(p, msg, MAX);
+            success = target_pose.calc(p, msg, MAX);
             if (store)
             {
                 if (valid)

@@ -19,7 +19,7 @@ namespace my_hand_eye
         bool emulation_;               // 是否进行仿真
         bool stop_;                    // 用于颜色追踪，物料是否已停
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
-        bool catched_;           // 是否已抓取过
+        bool catched_;                 // 是否已抓取过
         int white_vmin_;               // 用于滤除白色
         int factor_;                   // gramma参数，暗部增强取0-99，亮部增强取101-300。取100为原图
         float fThScoreScore_;
@@ -52,8 +52,9 @@ namespace my_hand_eye
                        cv_bridge::CvImagePtr &image); // 添加图片
         bool detect_cargo(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
                           sensor_msgs::ImagePtr &debug_image, cv::Rect &rect); // 向物块检测服务器发送请求
+        // 检测椭圆中心位置
         bool detect_ellipse(const sensor_msgs::ImageConstPtr &image_rect, vision_msgs::BoundingBox2DArray &detections,
-                            sensor_msgs::ImagePtr &debug_image, cv::Rect &rect);
+                            sensor_msgs::ImagePtr &debug_image, cv::Rect &rect, bool all);
         // 检测停车区位置
         bool detect_parking_area(const sensor_msgs::ImageConstPtr &image_rect, geometry_msgs::Pose2D &pose,
                                  sensor_msgs::ImagePtr &debug_image, cv::Rect &rect);
