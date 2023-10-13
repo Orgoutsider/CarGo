@@ -522,6 +522,7 @@ namespace my_hand_eye
 			return true;
 			// }
 		}
+		return false;
 		/*		finish_adjusting_ = false;
 				finish_ = false;
 				ROS_INFO("Start to operate border...");
