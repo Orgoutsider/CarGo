@@ -24,14 +24,19 @@
 	<arg if="$(arg respawn)" name="bond" value="" />
     <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
 
+	<node pkg="zxing_cv" type="qr_detector_node" name="qr_detector_node" output="screen">
+		<param name="adaptive_threshold_block_size" value="201" />
+		<param name="adaptive_threshold_threshold" value="21" />
+		<remap from="/camera/image" to="/$(arg camera)/image_rect_color" />
+	</node>
 	<!-- The QR detector nodeler -->
-	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet $(arg nodelet_manager) $(arg bond)" output="screen" respawn="$(arg respawn)">
+	<!-- <node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet $(arg nodelet_manager) $(arg bond)" output="screen" respawn="$(arg respawn)">
 		<param name="adaptive_threshold_block_size" value="201" />
 		<param name="adaptive_threshold_threshold" value="21" />
                 <rosparam param="qr_code_points">[0.0, 0.0, 0.0, 0.0, 0.125, 0.0, 0.125, 0.0, 0.0]</rosparam>
 		<param name="ignore_point_in_excess" value="true" />
 		<remap from="/camera/image" to="/$(arg camera)/image_rect_color" />
-	</node>
+	</node> -->
 
         <!-- The dynamic reconfigure gui -->
         <!-- <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure">

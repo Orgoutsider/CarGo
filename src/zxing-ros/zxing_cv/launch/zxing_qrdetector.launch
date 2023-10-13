@@ -29,10 +29,10 @@
 	</node> -->
 
 	<!-- The camera nodelet -->
-	<include file="$(find my_hand_eye)/launch/front_camera.launch">
+	<!-- <include file="$(find my_hand_eye)/launch/front_camera.launch">
 		<arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
 		<arg name="respawn" value="$(arg respawn)"/>
-	</include>
+	</include> -->
 
 	<!-- The QR detector nodeler -->
 	<node pkg="nodelet" type="nodelet" name="qr_detector" args="load zxing_cv/QRDetectorNodelet $(arg nodelet_manager) $(arg bond)" respawn="$(arg respawn)" output="screen">

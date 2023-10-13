@@ -128,8 +128,6 @@ namespace motion_controller
                     length_ = (vel_ * vel_) / (2 * acc_);
                     dist_start_ = dist;
                 }
-                // else
-                //     ROS_INFO_STREAM(target_theta_ << " " << theta_adjust << " " << kp_adjust_ << " " << ki_adjust_ << " " << kd_adjust_ << " " << thresh_adjust_ << " " << dist);
             }
             if (has_started)
             {
@@ -327,7 +325,7 @@ namespace motion_controller
     {
         bool success = false;
         std::vector<double> control;
-        static bool rst = true;
+        // static bool rst = true;
         if (has_started)
         {
             ROS_INFO_STREAM("Adjusting ... theta: " << theta);
@@ -335,40 +333,40 @@ namespace motion_controller
             if ((dist < 0) && !debug)
             {
                 ROS_ERROR("Invalid dist: %lf", dist);
-                boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                rst = true;
+                // boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                // rst = true;
                 return true;
             }
-            if (rst)
-            {
-                boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                time = now;
-                rst = false;
-            }
+            // if (rst)
+            // {
+            //     boost::lock_guard<boost::recursive_mutex> lk(mtx);
+            //     time = now;
+            //     rst = false;
+            // }
             if (dist < 0.1)
             {
-                ROS_WARN("Arrived when adjusting.");
-                boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                rst = true;
+                // ROS_WARN("Arrived when adjusting.");
+                // boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                // rst = true;
                 return true;
             }
-            if ((now - time).toSec() >= 5)
-            {
-                ROS_WARN("Adjust timeout!");
-                if (dist < 0)
-                {
-                    ROS_ERROR("Invalid dist: %lf", dist);
-                    return false;
-                }
-                // start(false);
-                boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
-                rst = true;
-                vel_ = std::min(vel_max_, sqrt(acc_ * dist));
-                length_ = (vel_ * vel_) / (2 * acc_);
-                dist_start_ = dist;
-                return true;
-            }
+            // if ((now - time).toSec() >= 5)
+            // {
+            //     ROS_WARN("Adjust timeout!");
+            //     if (dist < 0)
+            //     {
+            //         ROS_ERROR("Invalid dist: %lf", dist);
+            //         return false;
+            //     }
+            //     // start(false);
+            //     boost::lock_guard<boost::recursive_mutex> lk(mtx);
+            //     pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
+            //     rst = true;
+            //     vel_ = std::min(vel_max_, sqrt(acc_ * dist));
+            //     length_ = (vel_ * vel_) / (2 * acc_);
+            //     dist_start_ = dist;
+            //     return true;
+            // }
             // 将theta限制在target_theta_周围，防止不当的error
             limit_theta(theta);
             bool flag = false;
@@ -391,7 +389,7 @@ namespace motion_controller
                     }
                     boost::lock_guard<boost::recursive_mutex> lk(mtx);
                     pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
-                    rst = true;
+                    // rst = true;
                     vel_ = std::min(vel_max_, sqrt(acc_ * dist));
                     length_ = (vel_ * vel_) / (2 * acc_);
                     dist_start_ = dist;

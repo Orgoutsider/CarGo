@@ -33,6 +33,8 @@ public:
 
 private:
 
+    boost::shared_ptr<QRDetector> qrDetector;
+
     virtual void onInit() {
 
         // Get node handle
@@ -45,8 +47,6 @@ private:
         qrDetector->init();
 
     }
-
-    boost::shared_ptr<QRDetector> qrDetector;
 
 };
 
