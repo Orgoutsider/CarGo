@@ -50,7 +50,7 @@ int QRDetector::init()
     adaptiveThresholdThreshold = privateNodeHandle.param("adaptive_threshold_threshold", 21);
 
     // Create image subscriber
-    imageSubscriber = imageTransport.subscribeCamera("/camera/image", 1, &QRDetector::imageCallback, this);
+    imageSubscriber = imageTransport.subscribe("/camera/image", 1, &QRDetector::imageCallback, this);
 
     // Create optimized image publisher
     optimizedImagePublisher = imageTransport.advertise("image_optimized", 1);
@@ -84,7 +84,7 @@ int QRDetector::init()
 //     }
 // }
 
-void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr, const sensor_msgs::CameraInfoConstPtr &cameraInfoPtr)
+void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr)
 {
 
     cv_bridge::CvImagePtr cvImagePtr;
@@ -99,7 +99,7 @@ void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr, 
     {
 
         // Log
-        // NODELET_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
+        // ROS_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
 
         return;
     }
@@ -161,19 +161,19 @@ void QRDetector::imageCallback(const sensor_msgs::ImageConstPtr &imageConstPtr, 
     {
 
         // Log
-        // NODELET_ERROR("zxing illegal argument exception: %s", e.what());
+        // ROS_ERROR("zxing illegal argument exception: %s", e.what());
     }
     catch (const zxing::Exception &e)
     {
 
         // Log
-        // NODELET_ERROR("zxing reader exception: %s", e.what());
+        // ROS_ERROR("zxing reader exception: %s", e.what());
     }
     catch (const cv::Exception &e)
     {
 
         // Log
-        // NODELET_ERROR("zxing reader exception: %s", e.what());
+        // ROS_ERROR("zxing reader exception: %s", e.what());
     }
 }
 
@@ -181,8 +181,8 @@ void QRDetector::connectCallback()
 {
     if (!imageSubscriber && qrCodeArrayPublisher.getNumSubscribers() > 0)
     {
-        // NODELET_INFO("Connecting to barcode topic.");
-        imageSubscriber = imageTransport.subscribeCamera("/camera/image", 1, &QRDetector::imageCallback, this);
+        // ROS_INFO("Connecting to barcode topic.");
+        imageSubscriber = imageTransport.subscribe("/camera/image", 1, &QRDetector::imageCallback, this);
     }
 }
 
@@ -190,7 +190,7 @@ void QRDetector::disconnectCallback()
 {
     if (qrCodeArrayPublisher.getNumSubscribers() == 0)
     {
-        // NODELET_INFO("Unsubscribing from image topic.");
+        // ROS_INFO("Unsubscribing from image topic.");
         imageSubscriber.shutdown();
     }
 }
@@ -210,7 +210,7 @@ void QRDetector::publishDebugImage(const sensor_msgs::ImageConstPtr &imageConstP
     {
 
         // Log
-        // NODELET_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
+        // ROS_ERROR("an error occurs converting image to OpenCV image: %s", ex.what());
 
         return;
     }
