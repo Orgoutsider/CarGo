@@ -227,6 +227,11 @@ namespace motion_controller
         {
             if (arrived(follower_.debug, config_.startup))
             {
+                if (!finish_turning_)
+                {
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    finish_turning_ = true;
+                }
                 ac_arm_.waitForServer();
                 my_hand_eye::ArmGoal goal;
                 goal.loop = loop_;
@@ -314,10 +319,10 @@ namespace motion_controller
                         ac_move_.waitForServer();
                         // 等车停
                         boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
-                        get_position();
-                        MoveGoal goal1;
-                        goal1.pose.y = length_from_road(follower_.debug, config_.startup);
-                        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+                        // get_position();
+                        // MoveGoal goal1;
+                        // goal1.pose.y = length_from_road(follower_.debug, config_.startup);
+                        // ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                         // get_position();
                         // MoveGoal goal2;
                         // goal2.pose.x = length_border();
@@ -586,9 +591,11 @@ namespace motion_controller
         {
             if (feedback->pme.end)
             {
-                if (feedback->pme.pose.theta != feedback->pme.not_change)
+                get_position();
+                if (feedback->pme.pose.theta != feedback->pme.not_change &&
+                    abs(my_hand_eye::Angle::degree(feedback->pme.pose.theta -
+                                                   angle_from_road(follower_.debug, config_.startup))) < 1.2)
                 {
-                    get_position();
                     double theta = angle_correction(feedback->pme.pose.theta);
                     theta = (theta + theta_) / 2;
                     ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
@@ -621,7 +628,7 @@ namespace motion_controller
                 ac_move_.waitForServer();
                 MoveGoal goal;
                 get_position();
-                goal.pose.theta = feedback->pme.pose.theta;
+                goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
                 goal.precision = true;
                 ROS_INFO_STREAM("Move theta " << goal.pose.theta);
                 ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
@@ -719,8 +726,8 @@ namespace motion_controller
             ac_move_.waitForServer();
             get_position();
             goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-            goal.pose.x = -length_route(follower_.debug, config_.startup) * sin(goal.pose.theta);
-            goal.pose.y = length_route(follower_.debug, config_.startup) * cos(goal.pose.theta);
+            // goal.pose.x = -length_route(follower_.debug, config_.startup) * sin(goal.pose.theta);
+            // goal.pose.y = length_route(follower_.debug, config_.startup) * cos(goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             // get_position();
             // MoveGoal goal;

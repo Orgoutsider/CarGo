@@ -19,10 +19,10 @@
 <launch>
     
     <arg name="camera" default="front_camera"/>
-	<arg name="nodelet_manager" default="my_hand_eye_manager" />
+	<!-- <arg name="nodelet_manager" default="my_hand_eye_manager" />
 	<arg name="respawn" default="false" />
 	<arg if="$(arg respawn)" name="bond" value="" />
-    <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+    <arg unless="$(arg respawn)" name="bond" value="-no-bond" /> -->
 
 	<node pkg="zxing_cv" type="qr_detector_node" name="qr_detector_node" output="screen">
 		<param name="adaptive_threshold_block_size" value="201" />

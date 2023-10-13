@@ -1819,6 +1819,7 @@ namespace my_hand_eye
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
                 rst = true;
+                clear(true, true);
             }
             else
             {
@@ -1868,7 +1869,7 @@ namespace my_hand_eye
         }
         if (valid)
         {
-            target_pose.calc(p, msg, MAX);
+            bool success = target_pose.calc(p, msg, MAX);
             if (store)
             {
                 cv::Vec2f line;
@@ -1890,10 +1891,20 @@ namespace my_hand_eye
                 msg.header = image_rect->header;
                 msg.header.frame_id = "base_footprint";
                 cv::Vec2f line;
-                if (pose && msg.end && get_theta(objArray, z_parking_area, p.theta, line))
+                if (pose && success && get_theta(objArray, z_parking_area, p.theta, line))
                 {
                     msg.pose.theta = p.theta - target_ellipse_theta_;
+                    cargo_x_.push_back(msg.pose.x);
+                    cargo_y_.push_back(msg.pose.y);
+                    cargo_theta_.push_back(msg.pose.theta);
+                    if (msg.end)
+                    {
+                        average_pose(msg.pose);
+                        clear(true, true);
+                    }
                 }
+                else if (pose && !success && !cargo_x_.empty())
+                    clear(true, true);
             }
         }
         if (valid && show_detections && !cv_image_.image.empty() && !pose)
@@ -1927,6 +1938,7 @@ namespace my_hand_eye
             ps_.reset(true);
             rst = true;
             success = false;
+            clear(true, true);
             // return false;
         }
         else if (msg.end && !last_finish && !store)
@@ -1981,10 +1993,20 @@ namespace my_hand_eye
                 msg.header = image_rect->header;
                 msg.header.frame_id = "base_footprint";
                 cv::Vec2f line;
-                if (msg.end && get_theta(objArray, z_parking_area, p.theta, line))
+                if (success && get_theta(objArray, z_parking_area, p.theta, line))
                 {
                     msg.pose.theta = p.theta - target_ellipse_theta_;
+                    cargo_x_.push_back(msg.pose.x);
+                    cargo_y_.push_back(msg.pose.y);
+                    cargo_theta_.push_back(msg.pose.theta);
+                    if (msg.end)
+                    {
+                        average_pose(msg.pose);
+                        clear(true, true);
+                    }
                 }
+                else if (!success && !cargo_x_.empty())
+                    clear(true, true);
             }
         }
         last_finish = store ? cargo_x_.size() >= MAX : msg.end;
@@ -2068,13 +2090,13 @@ namespace my_hand_eye
                 {
                     average_pose(msg.pose);
                     msg.pose.x = msg.not_change;
+                    clear(true, true);
                 }
+            }
+            else if (!cargo_x_.empty())
+            {
                 clear(true, true);
             }
-        }
-        else if (!cargo_x_.empty())
-        {
-            clear(true, true);
         }
         last_finish = msg.end;
         return valid;
@@ -2113,8 +2135,10 @@ namespace my_hand_eye
                 cargo_y_.push_back(msg.pose.y);
                 cargo_theta_.push_back(msg.pose.theta);
                 if (msg.end)
+                {
                     average_pose(msg.pose);
-                clear(true, true);
+                    clear(true, true);
+                }
             }
             else if (!cargo_x_.empty())
             {
