@@ -40,6 +40,7 @@ namespace motion_controller
         geometry_msgs::Pose2D move_pose_, arm_pose_; // 目标姿态
         ros::Time move_time_, arm_time_;             // 接收时间
         ros::Time move_stamp_, arm_stamp_;           // 感知时间
+        ros::WallTime time_start_;                   // 开始运行时间
         routeConfig config_;
         dynamic_reconfigure::Server<routeConfig> dr_server_;
         bool move_active_, arm_active_;           // 传感器是否活动

@@ -31,8 +31,8 @@
             respawn="$(arg respawn)" output="screen" />
 
         <include file="$(find my_hand_eye)/launch/include/zxing_qrdetector.launch">
-            <arg name="nodelet_manager" value="$(arg nodelet_manager)" />
-            <arg name="respawn" value="$(arg respawn)" />
+            <!-- <arg name="nodelet_manager" value="$(arg nodelet_manager)" />
+            <arg name="respawn" value="$(arg respawn)" /> -->
         </include>
 
         <include file="$(find my_hand_eye)/launch/include/zbar_ros.launch">
