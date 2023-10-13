@@ -953,6 +953,7 @@ namespace my_hand_eye
         {
             ARM_INFO_XYZ(ps_);
             ROS_INFO_STREAM("tightness: " << ps_.tightness);
+            ps_.log_all_position();
             x = ps_.x;
             y = ps_.y;
             z = ps_.z;

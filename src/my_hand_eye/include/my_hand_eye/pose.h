@@ -55,10 +55,10 @@ namespace my_hand_eye
         const double cy = 578.390364;
         double calculate_time(int ID);                    // 为指定舵机计算到达时间
         bool arrived(u8 ID[], u8 IDN, int tolerance = 3); // 判断所有是否到达指定位置附近
-        bool read_position(int ID);      // 读指定舵机位置
-        bool read_move(int ID);          // 指定舵机运动
-        int read_load(int ID);           // 读指定舵机负载
-        bool is_moving(u8 ID[], u8 IDN); // 判断指定舵机运动
+        bool read_position(int ID);                       // 读指定舵机位置
+        bool read_move(int ID);                           // 指定舵机运动
+        int read_load(int ID);                            // 读指定舵机负载
+        bool is_moving(u8 ID[], u8 IDN);                  // 判断指定舵机运动
         // 等待静止且到达指定位置附近，如果show_load为真，返回最大load
         double wait_until_static(u8 ID[], u8 IDN, bool show_load = false);
         // 等待静止且到达指定位置附近，可指定允差
@@ -98,6 +98,7 @@ namespace my_hand_eye
         bool put(int order, bool cat, double err_x, double err_y, double err_theta, bool pal); // 运动到椭圆放置处，可选择是否抓取
         bool show_voltage();                                                                   // 显示电压，需要时警告
         bool read_all_position();                                                              // 读所有舵机正确位置
+        void log_all_position();                                                               // 日志打印所有舵机位置
         bool refresh_xyz(bool read = true);                                                    // 更新位置
         ArmPose end_to_base_now();                                                             // 更新位置，并返回旋转矩阵，平移向量
         // Action *get_action_put();                                                             // 获取指定位置放置Action

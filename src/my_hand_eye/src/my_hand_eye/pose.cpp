@@ -139,7 +139,7 @@ namespace my_hand_eye
             Position[3] = round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
             Position[4] = round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
             Position[5] = round(ARM_JOINT5_POS_WHEN_OPEN + (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * tightness);
-            // ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
+            // log_all_position();
         }
         return valid;
     }
@@ -598,6 +598,13 @@ namespace my_hand_eye
                 break;
         }
         return valid;
+    }
+
+    void Pos::log_all_position()
+    {
+        ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " "
+                                                  << Position[3] << " " << Position[4] << " "
+                                                  << Position[5]);
     }
 
     bool Pos::is_moving(u8 ID[], u8 IDN)
