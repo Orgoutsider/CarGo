@@ -289,9 +289,9 @@ namespace my_hand_eye
             ROS_WARN_ONCE("Please check the arm's position.");
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
             sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
-            // cargo_table_.reset();
-            u8 ID[] = {1, 2, 3, 4, 5};
-            wait_until_static(ID, 5);
+            cargo_table_.midpoint();
+            u8 ID[] = {1, 2, 3, 4, 5, 6};
+            wait_until_static(ID, 6);
         }
         else
         {
