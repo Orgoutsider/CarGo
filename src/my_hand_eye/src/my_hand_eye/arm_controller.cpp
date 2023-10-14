@@ -1801,7 +1801,7 @@ namespace my_hand_eye
 
     void ArmController::start(bool start)
     {
-        ps_.start();
+        ps_.start(start);
     }
 
     void ArmController::ready(bool left)
