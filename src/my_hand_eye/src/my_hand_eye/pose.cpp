@@ -268,16 +268,14 @@ namespace my_hand_eye
 
     bool Pos::start()
     {
-        bool valid = refresh_xyz(); // 此时xyz为当前值
-        bool flag = (this->y) < 0;
+        // bool flag = (this->y) < 0;
         this->x = action_start.x;
         this->y = action_start.y;
         this->z = action_start.z; // 此时xyz为目标值
         this->tightness = 0;
         this->look_ = true;
 
-        if (valid)
-            valid = calculate_position(true);
+        bool valid = calculate_position(true);
         if (valid)
         {
             log_all_position(false);
