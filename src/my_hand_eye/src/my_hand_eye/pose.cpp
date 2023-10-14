@@ -360,7 +360,6 @@ namespace my_hand_eye
         //     }
         // }
         // rst_time_ = ros::Time::now();
-        return valid;
     }
 
     bool Pos::go_to_and_wait(double x, double y, double z, bool cat, bool expand_y)
