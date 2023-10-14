@@ -10,6 +10,7 @@ namespace my_hand_eye
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : tightness(cat), look_(look),
                                                                        correction(false),
                                                                        Position_raise_(1220),
+                                                                       Position_front_(1490),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr),
                                                                        Id{0, 1, 2, 3, 4, 5}
@@ -266,7 +267,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool Pos::start()
+    bool Pos::start(bool start)
     {
         // bool flag = (this->y) < 0;
         this->x = action_start.x;
@@ -278,7 +279,34 @@ namespace my_hand_eye
         bool valid = calculate_position(true);
         if (valid)
         {
-            log_all_position(false);
+            if (start)
+            {
+                ROS_WARN_ONCE("Please check the arm's position.");
+                sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+                sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
+                // cargo_table_.reset();
+                u8 ID[] = {1, 2, 3, 4, 5};
+                wait_until_static(ID, 5);
+            }
+            else
+            {
+                s16 tmp = Position[2];
+                Position[2] = Position_front_;
+                sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+                cargo_table_.midpoint();
+                u8 ID1[] = {2, 6};
+                wait_until_static(ID1, 2);
+                sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3); 
+                u8 ID2[] = {3, 4};
+                wait_until_static(ID2, 2);
+                Position[2] = tmp;
+                sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+                u8 ID3[] = {2};
+                wait_until_static(ID3, 1);
+                cargo_table_.reset();
+                u8 ID4[] = {6};
+                wait_until_static(ID4, 1);
+            }
             //     u8 ID[] = {1, 2, 3, 4, 5};
             //     sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             //     if (arrived(ID, 5))

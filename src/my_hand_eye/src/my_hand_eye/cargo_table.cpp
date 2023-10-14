@@ -4,7 +4,7 @@ namespace my_hand_eye
 {
     CargoTable::CargoTable(SMS_STS *sm_st_ptr)
         : ID(6), where_(2), where_last_(2),
-          sm_st_ptr_(sm_st_ptr),
+          sm_st_ptr_(sm_st_ptr), rst_(false),
           what_color_({0}), where_cargo_({-1, -1, -1, -1}) {}
 
     void CargoTable::set_speed_and_acc(XmlRpc::XmlRpcValue &servo_description)
@@ -23,11 +23,28 @@ namespace my_hand_eye
         ROS_INFO_STREAM("Loaded servo desciptions id: 6, speed: " << Speed << ", acc: " << (int)servo_description["acc"]);
     }
 
+    void CargoTable::reset()
+    {
+        where_last_ = where_;
+        where_ = 0;
+        sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
+        rst_ = true;
+    }
+
+    void CargoTable::midpoint()
+    {
+        where_last_ = where_;
+        where_ = 0;
+        sm_st_ptr_->WritePosEx(ID, 0.5 * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
+    }
+
     void CargoTable::put_next(const Color color)
     {
         where_last_ = where_;
-        if ((++where_) >= what_color_.size())
+        if (rst_ || (++where_) >= what_color_.size())
             where_ = 0;
+        if (rst_)
+            rst_ = false;
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
         try
         {
@@ -107,10 +124,10 @@ namespace my_hand_eye
             where_cargo_.at(color) = -1;
             what_color_.at(where_) = 0;
         }
-        catch(const std::exception& e)
+        catch (const std::exception &e)
         {
             ROS_ERROR("Exception: %s", e.what());
-        }        
+        }
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
     }
 } // namespace my_hand_eye

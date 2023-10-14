@@ -24,6 +24,7 @@ namespace my_hand_eye
         u8 ACC;
         int where_;
         int where_last_;
+        bool rst_;                       // 重置位置后不移动的标志
         SMS_STS *sm_st_ptr_;             // 舵机
         std::array<int, 3> what_color_;  // 根据位置找颜色
         std::array<int, 4> where_cargo_; // 根据颜色找位置
@@ -31,12 +32,14 @@ namespace my_hand_eye
     public:
         CargoTable(SMS_STS *sm_st_ptr);
         void set_speed_and_acc(XmlRpc::XmlRpcValue &servo_description); // 获取速度加速度
-        void put_next(const Color color);                                       // 移动至下一个位置并记录颜色
+        void reset();                                                   // 重置位置，保证盘为空
+        void midpoint();                                                // 中间位置，防止打到
+        void put_next(const Color color);                               // 移动至下一个位置并记录颜色
         bool is_moving();                                               // 是否运动
-        bool arrived(int tolerance = 3);                                                 // 是否到达下一位置
+        bool arrived(int tolerance = 3);                                // 是否到达下一位置
         double calculate_time();                                        // 计算运动时间
         void get_next();                                                // 取下一个位置的物料
-        void get_color(const Color color);                                               // 取特定颜色的物料
+        void get_color(const Color color);                              // 取特定颜色的物料
     };
 } // namespace my_hand_eye
 
