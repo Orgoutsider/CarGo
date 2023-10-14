@@ -75,11 +75,18 @@ namespace my_hand_eye
 			"Get tasks:" << unsigned(tasks_.loop[0].task[0]) << unsigned(tasks_.loop[0].task[1]) << unsigned(tasks_.loop[0].task[2]) << "+"
 						 << unsigned(tasks_.loop[1].task[0]) << unsigned(tasks_.loop[1].task[1]) << unsigned(tasks_.loop[1].task[2]));
 		task_subscriber_.shutdown();
+		if (!camera_image_subscriber_)
+			camera_image_subscriber_ =
+				it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
 	}
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		arm_controller_.ready_yolo(image_rect);
+		if (arm_controller_.ready_yolo(image_rect) && task_subscriber_)
+		{
+			camera_image_subscriber_.shutdown();
+			return;
+		}
 		if (!as_.isActive())
 			return;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -144,7 +151,7 @@ namespace my_hand_eye
 
 		// 椭圆识别
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_ellipse(image_rect, color_blue, debug_image, false);
+		// arm_controller_.log_ellipse(image_rect, color_blue, debug_image, true);
 		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
 
@@ -184,9 +191,9 @@ namespace my_hand_eye
 			break;
 
 		case arm_goal_.route_QR_code_board:
-			if (!task_subscriber_)
-				task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
-					"/task", 10, &ArmServer::task_callback, this);
+			// if (!task_subscriber_)
+			// 	task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
+			// 		"/task", 10, &ArmServer::task_callback, this);
 			break;
 
 		case arm_goal_.route_raw_material_area:
@@ -418,6 +425,7 @@ namespace my_hand_eye
 					next_task();
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 					{
+						arm_controller_.ready_after_putting();
 						arm_controller_.catch_after_putting(which_color(), false);
 						next_task();
 						arm_controller_.catch_after_putting(which_color(), false);
@@ -457,6 +465,7 @@ namespace my_hand_eye
 					next_task();
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 					{
+						arm_controller_.ready_after_putting();
 						arm_controller_.catch_after_putting(which_color(), false);
 						next_task();
 						arm_controller_.catch_after_putting(which_color(), false);

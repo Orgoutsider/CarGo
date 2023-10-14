@@ -67,6 +67,7 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue default_action;
         XmlRpc::XmlRpcValue back_action;
         XmlRpc::XmlRpcValue down_action;
+        XmlRpc::XmlRpcValue start_action;
         XmlRpc::XmlRpcValue catch_correct_action;
         XmlRpc::XmlRpcValue put1_action;
         XmlRpc::XmlRpcValue put2_action;
@@ -91,6 +92,10 @@ namespace my_hand_eye
         if (!pnh.getParam("down_action", down_action))
         {
             ROS_ERROR("No down action specified");
+        }
+        if (!pnh.getParam("start_action", start_action))
+        {
+            ROS_ERROR("No start action specified");
         }
         if (!pnh.getParam("catch_correct_action", catch_correct_action))
         {
@@ -146,6 +151,7 @@ namespace my_hand_eye
         ps_.set_action(default_action);
         ps_.set_action(back_action, "back");
         ps_.set_action(down_action, "down");
+        ps_.set_action(start_action, "start");
         ps_.set_action(catch_correct_action, "catch_correct");
         ps_.set_action(put1_action, "put1");
         ps_.set_action(put2_action, "put2");
@@ -1172,6 +1178,7 @@ namespace my_hand_eye
             if (valid)
             {
                 ps_.go_to_table(false, color, left);
+                // ps_.reset();
             }
             else
             {
@@ -1687,7 +1694,9 @@ namespace my_hand_eye
         }
         bool valid = ps_.go_to_table(true, color, true) &&
                      ps_.put(color_map_[color], false, err_x, err_y, err_theta, pal);
-        ps_.reset(true);
+        // ps_.reset(true);
+        if (final)
+            ps_.reset(true);
         return valid;
     }
 
@@ -1701,9 +1710,15 @@ namespace my_hand_eye
         }
         bool valid = ps_.put(color_map_[color], true, err_x, err_y, err_theta, false) &&
                      ps_.go_to_table(false, color, true);
-        if (!final)
-            ps_.reset(true);
+        // if (!final)
+        //     ps_.reset(true);
         return valid;
+    }
+
+    void ArmController::ready_after_putting()
+    {
+        ROS_INFO("Ready to catch after putting...");
+        ps_.raise_height();
     }
 
     bool ArmController::log_border(const sensor_msgs::ImageConstPtr &image_rect,
@@ -2152,20 +2167,22 @@ namespace my_hand_eye
         return valid;
     }
 
-    void ArmController::ready_yolo(const sensor_msgs::ImageConstPtr &image_rect)
+    bool ArmController::ready_yolo(const sensor_msgs::ImageConstPtr &image_rect)
     {
         static bool ready = false;
-        if (!ready)
+        if (!ready && cargo_client_.exists())
         {
             ready = true;
             cv_bridge::CvImagePtr cv_image;
             if (!add_image(image_rect, cv_image))
-                return;
+                return false;
             cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / 8);
-            cargo_client_.waitForExistence();
+            // cargo_client_.waitForExistence();
             yolov5_ros::cargoSrv cargo;
             cargo.request.image = *(cv_image->toImageMsg());
             cargo_client_.call(cargo);
+            return true;
         }
+        return false;
     }
 } // namespace my_hand_eye

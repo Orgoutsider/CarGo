@@ -24,6 +24,9 @@ namespace motion_controller
             dr_server_.setCallback(boost::bind(&MotionController::_dr_callback, this, _1, _2));
             timer_.start();
         }
+        ac_move_.waitForServer();
+        ac_arm_.waitForServer();
+        client_done_.waitForExistence();
     }
 
     // bool MotionController::_turn()
@@ -408,6 +411,13 @@ namespace motion_controller
                     finished(follower_.mtx);
                     return;
                 }
+                else if (goal.route == route_parking_area)
+                {
+                    ac_move_.waitForServer();
+                    MoveGoal goal;
+                    goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                }
                 // 保证doing在finished之前
                 doing(follower_.mtx);
                 ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
@@ -591,11 +601,11 @@ namespace motion_controller
         {
             if (feedback->pme.end)
             {
-                get_position();
                 if (feedback->pme.pose.theta != feedback->pme.not_change &&
                     abs(my_hand_eye::Angle::degree(feedback->pme.pose.theta -
                                                    angle_from_road(follower_.debug, config_.startup))) < 1.2)
                 {
+                    get_position();
                     double theta = angle_correction(feedback->pme.pose.theta);
                     theta = (theta + theta_) / 2;
                     ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
@@ -628,7 +638,9 @@ namespace motion_controller
                 ac_move_.waitForServer();
                 MoveGoal goal;
                 get_position();
-                goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                goal.pose.theta = (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
+                                        ? feedback->pme.pose.theta
+                                        : angle_from_road(follower_.debug, config_.startup);
                 goal.precision = true;
                 ROS_INFO_STREAM("Move theta " << goal.pose.theta);
                 ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
@@ -1152,7 +1164,6 @@ namespace motion_controller
             ROS_ERROR("Failed to initialize position!");
             return false;
         }
-        ac_move_.waitForServer();
         ROS_INFO("5 %lf", ros::Time::now().toSec());
         // 横向移动出停止区
         motion_controller::MoveGoal goal1;
@@ -1161,7 +1172,6 @@ namespace motion_controller
         goal1.pose.y = 0.1;
         ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 发送二维码请求
-        ac_arm_.waitForServer();
         my_hand_eye::ArmGoal goal;
         goal.loop = loop_;
         goal.route = where_is_car(follower_.debug, config_.startup);

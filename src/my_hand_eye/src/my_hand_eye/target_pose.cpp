@@ -41,9 +41,9 @@ namespace my_hand_eye
         pose[target_parking_area].x = parking_area.x;
         pose[target_parking_area].y = parking_area.y;
 
-        tolerance[target_parking_area].theta = 0.009;
-        tolerance[target_parking_area].x = 0.01;
-        tolerance[target_parking_area].y = 0.01;
+        tolerance[target_parking_area].theta = 0.01;
+        tolerance[target_parking_area].x = 0.02;
+        tolerance[target_parking_area].y = 0.02;
     }
 
     bool TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)

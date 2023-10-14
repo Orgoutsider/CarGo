@@ -12,7 +12,7 @@ namespace motion_controller
           kp_(4.05), ki_(0), kd_(0.2),
           kp_adjust_(3.8), ki_adjust_(0), kd_adjust_(0.4),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}), bezier_ratio_(3),
-          vel_max_(0.5), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.03)
+          vel_max_(0.7), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.02)
     {
         pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);
@@ -181,11 +181,11 @@ namespace motion_controller
                 if (dist_start_)
                 {
                     if (dist > dist_start_ - length_)
-                        vel_n = sqrt(2 * acc_ * (dist_start_ - dist)) * 0.8 + 0.2;
+                        vel_n = sqrt(2 * acc_ * (dist_start_ - dist)) * 0.6 + 0.4 * vel_max_;
                     else if (dist < 0.1)
                         vel_n = 0;
-                    else if (dist < length_)
-                        vel_n = std::max(sqrt(2 * acc_ * dist) * 1.2 - 0.2, 0.2);
+                    else if (dist < length_ + 0.05)
+                        vel_n = std::max(sqrt(2 * acc_ * (dist - 0.05)) * 1.2 - 0.2 * vel_max_, 0.1);
                 }
                 // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start_, length_);
                 // 需要增加一个负号来修正update的结果

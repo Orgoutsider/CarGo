@@ -131,6 +131,7 @@ namespace my_hand_eye
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
         // 固定位置放置
         bool put(const Color color, bool pal, bool final);
+        void ready_after_putting();
         // 固定位置抓取
         bool catch_after_putting(const Color color, bool final);
         // 输出边界线位置
@@ -153,7 +154,7 @@ namespace my_hand_eye
         // 计算停车区位置
         bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                sensor_msgs::ImagePtr &debug_image);
-        void ready_yolo(const sensor_msgs::ImageConstPtr &image_rect);
+        bool ready_yolo(const sensor_msgs::ImageConstPtr &image_rect);
     };
 } // namespace my_hand_eye
 

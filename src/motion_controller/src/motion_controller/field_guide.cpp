@@ -16,12 +16,12 @@ namespace motion_controller
         doing_(false), where_(0),
         x_(0), y_(0), theta_(0), loop_(0), // length_field_(2.26)
         length_car_(0.29), width_car_(0.27), width_road_(0.45), length_field_(2.29), width_field_(2.03),
-        y_QR_code_board_(0.84), x_QR_code_board_(0.02),
+        y_QR_code_board_(0.82), x_QR_code_board_(0.02),
         y_raw_material_area_(1.69), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
-        x_roughing_area_(1.22), length_from_semi_finishing_area_(1.045),
+        x_roughing_area_(1.23), length_from_semi_finishing_area_(1.045),
         y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_), 
         length_from_ellipse_(0.028),
-        width_from_semi_finishing_area_(0.295), width_from_roughing_area_(0.29), y_palletize_(1.135876),
+        width_from_semi_finishing_area_(0.285), width_from_roughing_area_(0.28), y_palletize_(1.135876),
         width_palletize_(0.28),
         length_from_parking_area_(0.394), x_road_up_(0.08), x_parking_area_(0.58),
         clockwise_(false)
@@ -116,7 +116,7 @@ namespace motion_controller
     case route_raw_material_area:
       return (!doing_ && loop_ == 1)
                  ? length_field_ - width_road_ / 2 - y_
-                 : -(x_road_up_ + width_road_ / 2 - (-x_));
+                 : -(x_road_up_ + width_road_ / 2 + x_QR_code_board_ - (-x_));
 
     case route_roughing_area:
       return length_field_ - width_road_ / 2 - y_;
