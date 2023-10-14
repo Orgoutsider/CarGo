@@ -1,23 +1,20 @@
 <launch>
-    <arg name="node_namespace" default="my_hand_eye_do_node" />
+    <arg name="node_namespace" default="my_hand_eye_start_node" />
     <arg name="ft_servo" default="ft_servo" />
-    <arg name="show_detections" default="true" />
     <arg name="camera_name" default="/eye" />
-    <arg name="nodelet_manager" default="my_hand_eye_manager" />
     <arg name="flag" default="false" />
     <arg name="given_QR_code" default="false" />
     <arg name="emulation" default="false" />
-    <arg name="debug" default="true" />
-    <arg name="respawn" default="false" />
+
+    <!-- Set parameters -->
+    <rosparam command="load" file="$(find my_hand_eye)/param/move.yaml" ns="$(arg node_namespace)" />
 
     <node pkg="my_hand_eye" type="my_hand_eye_start_node" name="$(arg node_namespace)" output="screen">
 
         <!-- Remap topics from those used in code to those on the ROS network -->
         <remap from="image_rect" to="$(arg camera_name)/image_rect_color" />
 
-        <param name="transport_hint" type="string" value="raw" />
         <param name="ft_servo" type="string" value="/dev/$(arg ft_servo)" />
-        <param name="show_detections" type="bool" value="$(arg show_detections)" />
         <param name="given_QR_code" type="bool" value="$(arg given_QR_code)" />
         <param name="white_vmin" type="int" value="120" />
         <param name="factor" type="int" value="40" />
@@ -28,6 +25,6 @@
         <param name="fMinReliability" type="double" value="0.4" />
         <param name="flag" type="bool" value="$(arg flag)" />
         <param name="emulation" type="bool" value="$(arg emulation)" />
-        <param name="debug" type="bool" value="$(arg debug)" />
+
     </node>
 </launch>
