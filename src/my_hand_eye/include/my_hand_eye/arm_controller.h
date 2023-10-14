@@ -138,6 +138,8 @@ namespace my_hand_eye
         bool log_border(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
         // 输出停车区位置
         bool log_parking_area(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
+        // 启动机械臂，参数为false时取消展开形态
+        void start(bool start);
         // reset准备下一任务
         void ready(bool left);
         // 結束抓取准备下一任务

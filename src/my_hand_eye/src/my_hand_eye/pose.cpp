@@ -280,52 +280,53 @@ namespace my_hand_eye
             valid = calculate_position(true);
         if (valid)
         {
-        //     u8 ID[] = {1, 2, 3, 4, 5};
-        //     sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
-        //     if (arrived(ID, 5))
-        //     {
-        //         ROS_INFO("Pose has arrived");
-        //         rst_time_ = ros::Time::now() - ros::Duration(5.0);
-        //         return valid;
-        //     }
-        //     if (Position[2] >= Position_now[2] && flag1 && !flag2)
-        //     // 第2关节位置靠前，最后移动第2关节
-        //     {
-        //         if (Position[3] >= Position_now[3]) // 第23关节位置靠前，最后移动第23关节
-        //         {
-        //             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-        //             sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
-        //             u8 ID1[] = {4};
-        //             wait_until_arriving(ID1, 1, 200);
-        //             sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
-        //             wait_until_static(ID, 5);
-        //         }
-        //         else
-        //         {
-        //             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-        //             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-        //             u8 ID1[] = {3, 4};
-        //             wait_until_arriving(ID1, 2, 200);
-        //             sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-        //             wait_until_static(ID, 5);
-        //         }
-        //     }
-        //     else if ((Position[4] <= Position_now[4] || Position[3] <= Position_now[3]) && flag2)
-        //     // 第34关节位置靠上，最后移动第34关节
-        //     {
-        //         sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-        //         u8 ID1[] = {2};
-        //         wait_until_arriving(ID1, 1, 200);
-        //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-        //         sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-        //         wait_until_static(ID, 5);
-        //     }
-        //     else
-        //     {
-        //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-        //         sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
-        //         wait_until_static(ID, 5);
-        //     }
+            log_all_position(false);
+            //     u8 ID[] = {1, 2, 3, 4, 5};
+            //     sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
+            //     if (arrived(ID, 5))
+            //     {
+            //         ROS_INFO("Pose has arrived");
+            //         rst_time_ = ros::Time::now() - ros::Duration(5.0);
+            //         return valid;
+            //     }
+            //     if (Position[2] >= Position_now[2] && flag1 && !flag2)
+            //     // 第2关节位置靠前，最后移动第2关节
+            //     {
+            //         if (Position[3] >= Position_now[3]) // 第23关节位置靠前，最后移动第23关节
+            //         {
+            //             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            //             sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+            //             u8 ID1[] = {4};
+            //             wait_until_arriving(ID1, 1, 200);
+            //             sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
+            //             wait_until_static(ID, 5);
+            //         }
+            //         else
+            //         {
+            //             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            //             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+            //             u8 ID1[] = {3, 4};
+            //             wait_until_arriving(ID1, 2, 200);
+            //             sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            //             wait_until_static(ID, 5);
+            //         }
+            //     }
+            //     else if ((Position[4] <= Position_now[4] || Position[3] <= Position_now[3]) && flag2)
+            //     // 第34关节位置靠上，最后移动第34关节
+            //     {
+            //         sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            //         u8 ID1[] = {2};
+            //         wait_until_arriving(ID1, 1, 200);
+            //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            //         sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+            //         wait_until_static(ID, 5);
+            //     }
+            //     else
+            //     {
+            //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            //         sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
+            //         wait_until_static(ID, 5);
+            //     }
         }
         // rst_time_ = ros::Time::now();
         return valid;
@@ -685,12 +686,12 @@ namespace my_hand_eye
     {
         if (now)
             ROS_INFO_STREAM("position (from 1 to 5):" << Position_now[1] << " " << Position_now[2] << " "
-                                                  << Position_now[3] << " " << Position_now[4] << " "
-                                                  << Position_now[5]);
+                                                      << Position_now[3] << " " << Position_now[4] << " "
+                                                      << Position_now[5]);
         else
             ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " "
-                                                  << Position[3] << " " << Position[4] << " "
-                                                  << Position[5]);
+                                                      << Position[3] << " " << Position[4] << " "
+                                                      << Position[5]);
     }
 
     bool Pos::is_moving(u8 ID[], u8 IDN)
