@@ -20,7 +20,7 @@
         <arg name="camera_name" value="/eye" />
         <arg name="nodelet_manager" value="my_hand_eye_manager" />
         <arg name="flag" value="false" />
-        <arg name="given_QR_code" value="true" />
+        <arg name="given_QR_code" value="false" />
         <arg name="emulation" value="false" />
         <arg name="debug" value="false" />
     </include>
@@ -31,7 +31,7 @@
 
     <!-- 服务节点 -->
     <include file="$(find motion_controller)/launch/nodes/server.launch">
-        <arg name="debug" value="true" />
+        <arg name="debug" value="false" />
     </include>
     
     <!-- stm32pid不用开启执行节点 -->

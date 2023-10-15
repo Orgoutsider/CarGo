@@ -55,7 +55,7 @@
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
         <param name="given_QR_code" type="bool" value="$(arg given_QR_code)" />
         <param name="white_vmin" type="int" value="120" />
-        <param name="factor" type="int" value="40" />
+        <param name="factor" type="int" value="150" />
         <param name="speed_standard_static" type="double" value="0.17" />
         <param name="speed_standard_motion" type="double" value="0.14" />
         <param name="target_ellipse_theta" type="double" value="-4.24039" />

@@ -137,7 +137,7 @@ namespace my_hand_eye
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
-        factor_ = pnh.param<int>("factor", 40);
+        factor_ = pnh.param<int>("factor", 150);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
@@ -1281,7 +1281,7 @@ namespace my_hand_eye
             Rect roi = boundingRect(contours[i]);
             Mat mask = Img_clone(roi);
             // gramma矫正，并对每个区域进行颜色增强
-            gramma_transform(factor_, mask);
+            gramma_transform(40, mask);
             mask = saturation(mask, 40);
         }
         // *******
@@ -1464,6 +1464,7 @@ namespace my_hand_eye
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
             Mat srcgray;
+            gramma_transform(factor_, cv_image->image);
             srcgray = saturation(cv_image->image, 100);
             // imshow("saturation", srcgray);
             // waitKey(1);
@@ -1476,7 +1477,7 @@ namespace my_hand_eye
             // waitKey(1);
             Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
             morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除噪点
-            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1));     // 开操作去除缺口
+            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2);     // 开操作去除缺口
             // 保证轮廓封闭
             Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
             int rows = FImg.rows;
