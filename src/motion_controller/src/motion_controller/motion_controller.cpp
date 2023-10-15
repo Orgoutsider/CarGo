@@ -203,7 +203,9 @@ namespace motion_controller
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                 flag = true; // 等待下一次启动
             }
-            else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area && !flag)
+            else if ((where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+                      where_is_car(follower_.debug, config_.startup) == route_parking_area) &&
+                     !flag)
             {
                 _move_with_vision();
             }
@@ -561,18 +563,19 @@ namespace motion_controller
     {
         if (timer_.hasStarted() &&
             where_is_car(follower_.debug, config_.startup) != route_raw_material_area &&
-            where_is_car(follower_.debug, config_.startup != route_QR_code_board) &&
+            where_is_car(follower_.debug, config_.startup) != route_QR_code_board &&
+            where_is_car(follower_.debug, config_.startup) != route_parking_area &&
             !(where_is_car(follower_.debug, config_.startup) == route_border &&
               (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area ||
-               (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area &&
-                loop_ == 1))))
+               where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area)))
             timer_.stop();
     }
 
     void MotionController::_arm_feedback_callback(const my_hand_eye::ArmFeedbackConstPtr &feedback)
     {
         // ROS_INFO("d");
-        if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
+        if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+            where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
             if (feedback->pme.end)
             {
@@ -591,9 +594,7 @@ namespace motion_controller
                 arm_stamp_ = feedback->pme.header.stamp;
                 arm_time_ = ros::Time::now();
             }
-            // ROS_INFO("e");
             _check_arm_pose(feedback->pme);
-            // ROS_INFO("f");
             _check_arm_active();
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_roughing_area ||
@@ -639,8 +640,8 @@ namespace motion_controller
                 MoveGoal goal;
                 get_position();
                 goal.pose.theta = (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
-                                        ? feedback->pme.pose.theta
-                                        : angle_from_road(follower_.debug, config_.startup);
+                                      ? feedback->pme.pose.theta
+                                      : angle_from_road(follower_.debug, config_.startup);
                 goal.precision = true;
                 ROS_INFO_STREAM("Move theta " << goal.pose.theta);
                 ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));

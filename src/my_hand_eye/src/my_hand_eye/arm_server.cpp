@@ -283,7 +283,6 @@ namespace my_hand_eye
 				}
 				ArmFeedback feedback;
 				feedback.pme = msg;
-				// ROS_INFO("c");
 				as_.publishFeedback(feedback);
 				err_time = image_rect->header.stamp;
 				return valid;
@@ -294,6 +293,8 @@ namespace my_hand_eye
 				msg.pose.x = msg.not_change;
 				msg.pose.y = msg.not_change;
 				msg.pose.theta = msg.not_change;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
 				if ((image_rect->header.stamp - err_time).toSec() > 13) // 超时
 				{
 					finish_adjusting_ = true;
@@ -639,7 +640,10 @@ namespace my_hand_eye
 			valid = arm_controller_.find_parking_area(image_rect, msg, debug_image);
 			if (valid)
 			{
-				pose_publisher_.publish(msg);
+				// pose_publisher_.publish(msg);
+				ArmFeedback feedback;
+				feedback.pme = msg;
+				as_.publishFeedback(feedback);
 				err_time = image_rect->header.stamp;
 				if (msg.end)
 				{
@@ -670,8 +674,14 @@ namespace my_hand_eye
 				{
 					finish_adjusting_ = true;
 					finish_ = true;
-					ArmResult result;
 					msg.end = true;
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+					ros::Duration(0.2).sleep();
+					arm_controller_.find_parking_area(image_rect, msg, debug_image);
+					arm_goal_.route = arm_goal_.route_rest;
+					ArmResult result;
 					if (!debug_)
 					{
 						result.pme = msg;
@@ -679,13 +689,15 @@ namespace my_hand_eye
 					else
 						result.pme.end = false;
 					// 结束该函数
-					arm_controller_.find_parking_area(image_rect, msg, debug_image);
-					arm_goal_.route = arm_goal_.route_rest;
 					as_.setAborted(result, "Arm finish tasks");
 					ROS_WARN("Failed to operating parking area.");
 				}
 				else
-					pose_publisher_.publish(msg);
+				{
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+				}
 			}
 		}
 		return valid;
