@@ -11,5 +11,6 @@ int main(int argc, char *argv[])
     controller.init(nh, pnh);
     controller.start(true);
     controller.ready(false);
+    controller.start(false);
     return 0;
 }
