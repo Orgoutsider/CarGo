@@ -173,16 +173,16 @@ namespace my_hand_eye
             valid = calculate_position(expand_y);
         if (valid)
         {
-            if (flag1 && !flag2 && flag3)
-            {
-                s16 tmp = Position[2];
-                Position[2] = Position_front_;
-                sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-                u8 ID1[] = {2};
-                wait_until_static(ID1, 1);
-                // ros::Duration(0.2).sleep();
-                Position[2] = tmp;
-            }
+            // if (flag1 && !flag2 && flag3)
+            // {
+            //     s16 tmp = Position[2];
+            //     Position[2] = Position_front_;
+            //     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            //     u8 ID1[] = {2};
+            //     wait_until_static(ID1, 1);
+            //     // ros::Duration(0.2).sleep();
+            //     Position[2] = tmp;
+            // }
             u8 ID[] = {1, 2, 3, 4, 5};
             sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             if (arrived(ID, 5))
