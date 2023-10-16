@@ -18,7 +18,7 @@ namespace my_hand_eye
 
         // pose[target_ellipse].theta = Angle(-5.632506667).rad();
         pose[target_ellipse].theta = Pose2DMightEnd::not_change;
-        Action ellipse = Action(0, 18.5, 0).front2left().arm2footprint();
+        Action ellipse = Action(0, 16.5, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
 
