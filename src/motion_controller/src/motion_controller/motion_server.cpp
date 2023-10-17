@@ -233,6 +233,7 @@ namespace motion_controller
         _get_pose_now(pose);
         MoveResult result;
         result.pose_final = pose;
+        result.header = header_;
         ROS_INFO_STREAM("Move x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
         server_.setSucceeded(result, "Move success!");
         ROS_INFO("Move success!");

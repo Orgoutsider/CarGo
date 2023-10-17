@@ -3,6 +3,7 @@ geometry_msgs/Pose2D pose
 bool precision
 ---
 #最终结果  
+std_msgs/Header header
 geometry_msgs/Pose2D pose_final
 ---
 #连续反馈

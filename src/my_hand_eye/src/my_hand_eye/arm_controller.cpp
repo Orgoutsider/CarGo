@@ -141,7 +141,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.952260769)).rad();
+        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.8563548)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -349,7 +349,7 @@ namespace my_hand_eye
             ps_.reset(pose || (z == z_ellipse));
             if (pose)
             {
-                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
+                Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
             }
@@ -1476,8 +1476,8 @@ namespace my_hand_eye
             // imshow("threshold", srcbinary);
             // waitKey(1);
             Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
-            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除噪点
-            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2);     // 开操作去除缺口
+            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 3); // 闭操作去除噪点
+            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2);  // 开操作去除缺口
             // 保证轮廓封闭
             Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
             int rows = FImg.rows;
@@ -1837,7 +1837,7 @@ namespace my_hand_eye
             {
                 target_x = target_pose.pose[target_pose.target_ellipse].x;
                 target_y = target_pose.pose[target_pose.target_ellipse].y;
-                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
+                Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
                 rst = true;
