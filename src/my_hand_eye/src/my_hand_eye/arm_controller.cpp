@@ -17,7 +17,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched_(false),
           z_parking_area(0.30121),
-          z_ellipse(3.58369),
+          z_ellipse(3.38369),
           z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -38,7 +38,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched_(false),
           z_parking_area(0.30121),
-          z_ellipse(3.58369),
+          z_ellipse(3.38369),
           z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -141,7 +141,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -4.8563548)).rad();
+        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -3.953325)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -1828,6 +1828,7 @@ namespace my_hand_eye
         static bool rst = false;
         static geometry_msgs::Pose2D target;
         static geometry_msgs::Pose2D tolerance;
+        static double target_theta;
         const int MAX = 5; // 读取5次求平均位姿
         if (!msg.end && last_finish && !store)
         {
@@ -1842,6 +1843,8 @@ namespace my_hand_eye
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
                 target_pose.tolerance[target_pose.target_ellipse].x = 0.015;
                 target_pose.tolerance[target_pose.target_ellipse].y = 0.015;
+                target_theta = target_ellipse_theta;
+                target_ellipse_theta = Angle(-4.791815882).rad();
                 rst = true;
                 clear(true, true);
             }
@@ -1867,6 +1870,7 @@ namespace my_hand_eye
                 }
                 target_pose.pose[target_pose.target_ellipse] = target;
                 target_pose.tolerance[target_pose.target_ellipse] = tolerance;
+                target_ellipse_theta = target_theta;
             }
             else
             {
@@ -1944,6 +1948,7 @@ namespace my_hand_eye
             average_pose_once();
             target_pose.pose[target_pose.target_ellipse] = target;
             target_pose.tolerance[target_pose.target_ellipse] = tolerance;
+            target_ellipse_theta = target_theta;
             // average_pose(msg.pose);
             // msg.header = image_rect->header;
             // msg.header.frame_id = "base_footprint";
