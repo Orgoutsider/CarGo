@@ -350,39 +350,26 @@ namespace motion_controller
                         return;
                     }
                 }
-                else if (goal.route == route_border &&
-                         (last_route == route_roughing_area ||
-                          last_route == route_semi_finishing_area))
-                {
-                    ac_move_.waitForServer();
-                    // 等车停
-                    boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
-                    MoveGoal goal;
-                    int sign =
-                        (last_route == route_semi_finishing_area &&
-                         next_route == route_raw_material_area)
-                            ? 1
-                            : -1;
-                    get_position();
-                    goal.pose.x = sign * length_route(follower_.debug, config_.startup) *
-                                  (clockwise_ ? -1 : 1) / cos(angle_from_road(follower_.debug, config_.startup, 0));
-                    ROS_INFO_STREAM("Move " << goal.pose.x * sign);
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                    // if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
-                    // {
-                    //     MoveGoal goal;
-                    //     get_position();
-                    //     goal.pose.theta = angle_corner();
-                    //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                    //     get_position();
-                    //     follower_.veer(true, true);
-                    //     follower_.start(true, theta_);
-                    //     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                    //     doing();
-                    //     finished();
-                    //     return;
-                    // }
-                }
+                // else if (goal.route == route_border &&
+                //          (last_route == route_roughing_area ||
+                //           last_route == route_semi_finishing_area))
+                // {
+
+                // if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+                // {
+                //     MoveGoal goal;
+                //     get_position();
+                //     goal.pose.theta = angle_corner();
+                //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                //     get_position();
+                //     follower_.veer(true, true);
+                //     follower_.start(true, theta_);
+                //     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                //     doing();
+                //     finished();
+                //     return;
+                // }
+                // }
                 else if (goal.route == route_border && last_route == route_raw_material_area)
                 {
                     // 等车停
@@ -455,8 +442,22 @@ namespace motion_controller
                     //     // }
                     // }
                     // 等车停
+                    ac_move_.waitForServer();
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                     MoveGoal goal;
+                    int sign =
+                        (last_route == route_semi_finishing_area &&
+                         next_route == route_raw_material_area)
+                            ? 1
+                            : -1;
+                    get_position();
+                    goal.pose.x = sign * length_route(follower_.debug, config_.startup) *
+                                  (clockwise_ ? -1 : 1) / cos(angle_from_road(follower_.debug, config_.startup, 0));
+                    if (abs(goal.pose.x) > 0.03)
+                    {
+                        ROS_INFO_STREAM("Move " << goal.pose.x * sign);
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    }
                     get_position();
                     if (next_route == route_parking_area)
                         follower_.veer(true, true);
