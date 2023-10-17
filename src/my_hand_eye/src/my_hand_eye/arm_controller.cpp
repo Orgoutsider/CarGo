@@ -17,7 +17,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched_(false),
           z_parking_area(0.30121),
-          z_ellipse(3.58369),
+          z_ellipse(3.38369),
           z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -38,7 +38,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched_(false),
           z_parking_area(0.30121),
-          z_ellipse(3.58369),
+          z_ellipse(3.38369),
           z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -141,7 +141,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.8563548)).rad();
+        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -3.953325)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
