@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     return 1;
   ps.reset();
   ps.go_to(targetx[num], targety[num], targetz[num], true, true);
-  ros::init(argc, argv, "my_hand_eye_move");
+  ros::init(argc, argv, "my_hand_eye_move_node");
   ros::NodeHandle nh;
   cv::namedWindow("Video");
   cv::setMouseCallback("Video", MouseEvent, 0);

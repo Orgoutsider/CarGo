@@ -16,7 +16,7 @@ namespace my_hand_eye
 		nh_ = getNodeHandle();
 		pnh_ = getPrivateNodeHandle();
 		zxing_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>(
-			"/qr_detector/qr_codes", 10, &QRcodeDetector::zxingCallback, this);
+			"/qr_codes", 10, &QRcodeDetector::zxingCallback, this);
 		zbar_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10,
 														   &QRcodeDetector::zbarCallback, this);
 		QR_code_publisher_ =
@@ -67,7 +67,7 @@ namespace my_hand_eye
 		{
 			NODELET_INFO("Connecting to qr_codes topic.");
 			zxing_subscriber_ = nh_.subscribe<zxing_msgs::QRCodeArray>(
-				"/qr_detector/qr_codes", 10, &QRcodeDetector::zxingCallback, this);
+				"/qr_codes", 10, &QRcodeDetector::zxingCallback, this);
 			zbar_subscriber_ = nh_.subscribe<std_msgs::String>("/barcode", 10,
 															   &QRcodeDetector::zbarCallback, this);
 			if (!esp32_serial_.isOpen())

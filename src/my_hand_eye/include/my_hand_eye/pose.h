@@ -37,6 +37,8 @@ namespace my_hand_eye
         u16 Speed[6];
         u8 ACC[6];
         u8 Id[6];
+        const s16 Position_raise_;
+        const s16 Position_front_;
         SMS_STS *sm_st_ptr_; // 舵机
         SCSCL *sc_ptr_;
         CargoTable cargo_table_;
@@ -44,9 +46,10 @@ namespace my_hand_eye
         Action action_default;
         Action action_left;
         Action action_back;
-        Action action_catch_correct; // 抓取外参校正
         Action action_right;
         Action action_down;
+        Action action_start;
+        Action action_catch_correct; // 抓取外参校正
         Action action_put[4];
         Action action_palletize[4];
         const double fx = 788.709302;
@@ -55,10 +58,10 @@ namespace my_hand_eye
         const double cy = 578.390364;
         double calculate_time(int ID);                    // 为指定舵机计算到达时间
         bool arrived(u8 ID[], u8 IDN, int tolerance = 3); // 判断所有是否到达指定位置附近
-        bool read_position(int ID);      // 读指定舵机位置
-        bool read_move(int ID);          // 指定舵机运动
-        int read_load(int ID);           // 读指定舵机负载
-        bool is_moving(u8 ID[], u8 IDN); // 判断指定舵机运动
+        bool read_position(int ID);                       // 读指定舵机位置
+        bool read_move(int ID);                           // 指定舵机运动
+        int read_load(int ID);                            // 读指定舵机负载
+        bool is_moving(u8 ID[], u8 IDN);                  // 判断指定舵机运动
         // 等待静止且到达指定位置附近，如果show_load为真，返回最大load
         double wait_until_static(u8 ID[], u8 IDN, bool show_load = false);
         // 等待静止且到达指定位置附近，可指定允差
@@ -92,14 +95,17 @@ namespace my_hand_eye
         bool go_to(double x, double y, double z, bool cat, bool look, bool expand_y = false);  // 运动到指定位置，抓/不抓
         bool reset(bool left = false);                                                         // 重置位置，可选前侧/左侧
         bool look_down();                                                                      // 查看左侧车道线
+        void start(bool start);                                                                // 起始位置，注意之前将机械臂摆放好
         bool go_to_and_wait(double x, double y, double z, bool cat, bool expand_y = false);    // 运动到指定位置，运动完成后抓/不抓
         bool go_to_by_midpoint(double x, double y, double z);                                  // 通过中间点到达
         bool go_to_table(bool cat, Color color, bool left);                                    // 运动到转盘
         bool put(int order, bool cat, double err_x, double err_y, double err_theta, bool pal); // 运动到椭圆放置处，可选择是否抓取
-        bool show_voltage();                                                                   // 显示电压，需要时警告
-        bool read_all_position();                                                              // 读所有舵机正确位置
-        bool refresh_xyz(bool read = true);                                                    // 更新位置
-        ArmPose end_to_base_now();                                                             // 更新位置，并返回旋转矩阵，平移向量
+        void raise_height();
+        bool show_voltage();                    // 显示电压，需要时警告
+        bool read_all_position();               // 读所有舵机正确位置
+        void log_all_position(bool now = true); // 日志打印所有舵机位置
+        bool refresh_xyz(bool read = true);     // 更新位置
+        ArmPose end_to_base_now();              // 更新位置，并返回旋转矩阵，平移向量
         // Action *get_action_put();                                                             // 获取指定位置放置Action
         cv::Mat transformation_matrix(double z); // 透视变换矩阵（不保证实时性，配合refresh_xyz）
         // 计算各joint运动的position

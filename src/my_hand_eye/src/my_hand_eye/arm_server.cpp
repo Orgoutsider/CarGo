@@ -75,11 +75,18 @@ namespace my_hand_eye
 			"Get tasks:" << unsigned(tasks_.loop[0].task[0]) << unsigned(tasks_.loop[0].task[1]) << unsigned(tasks_.loop[0].task[2]) << "+"
 						 << unsigned(tasks_.loop[1].task[0]) << unsigned(tasks_.loop[1].task[1]) << unsigned(tasks_.loop[1].task[2]));
 		task_subscriber_.shutdown();
+		if (!camera_image_subscriber_)
+			camera_image_subscriber_ =
+				it_->subscribe<ArmServer>("image_rect", 1, &ArmServer::image_callback, this, image_transport::TransportHints(transport_hint_));
 	}
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		arm_controller_.ready_yolo(image_rect);
+		if (arm_controller_.ready_yolo(image_rect) && task_subscriber_)
+		{
+			camera_image_subscriber_.shutdown();
+			return;
+		}
 		if (!as_.isActive())
 			return;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -144,7 +151,7 @@ namespace my_hand_eye
 
 		// 椭圆识别
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_ellipse(image_rect, color_blue, debug_image, false);
+		// arm_controller_.log_ellipse(image_rect, color_blue, debug_image, true);
 		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
 
@@ -184,9 +191,9 @@ namespace my_hand_eye
 			break;
 
 		case arm_goal_.route_QR_code_board:
-			if (!task_subscriber_)
-				task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
-					"/task", 10, &ArmServer::task_callback, this);
+			// if (!task_subscriber_)
+			// 	task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
+			// 		"/task", 10, &ArmServer::task_callback, this);
 			break;
 
 		case arm_goal_.route_raw_material_area:
@@ -276,7 +283,6 @@ namespace my_hand_eye
 				}
 				ArmFeedback feedback;
 				feedback.pme = msg;
-				// ROS_INFO("c");
 				as_.publishFeedback(feedback);
 				err_time = image_rect->header.stamp;
 				return valid;
@@ -287,6 +293,8 @@ namespace my_hand_eye
 				msg.pose.x = msg.not_change;
 				msg.pose.y = msg.not_change;
 				msg.pose.theta = msg.not_change;
+				msg.header = image_rect->header;
+				msg.header.frame_id = "base_footprint";
 				if ((image_rect->header.stamp - err_time).toSec() > 13) // 超时
 				{
 					finish_adjusting_ = true;
@@ -418,6 +426,7 @@ namespace my_hand_eye
 					next_task();
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 					{
+						arm_controller_.ready_after_putting();
 						arm_controller_.catch_after_putting(which_color(), false);
 						next_task();
 						arm_controller_.catch_after_putting(which_color(), false);
@@ -457,6 +466,7 @@ namespace my_hand_eye
 					next_task();
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 					{
+						arm_controller_.ready_after_putting();
 						arm_controller_.catch_after_putting(which_color(), false);
 						next_task();
 						arm_controller_.catch_after_putting(which_color(), false);
@@ -630,7 +640,10 @@ namespace my_hand_eye
 			valid = arm_controller_.find_parking_area(image_rect, msg, debug_image);
 			if (valid)
 			{
-				pose_publisher_.publish(msg);
+				// pose_publisher_.publish(msg);
+				ArmFeedback feedback;
+				feedback.pme = msg;
+				as_.publishFeedback(feedback);
 				err_time = image_rect->header.stamp;
 				if (msg.end)
 				{
@@ -661,8 +674,14 @@ namespace my_hand_eye
 				{
 					finish_adjusting_ = true;
 					finish_ = true;
-					ArmResult result;
 					msg.end = true;
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+					ros::Duration(0.2).sleep();
+					arm_controller_.find_parking_area(image_rect, msg, debug_image);
+					arm_goal_.route = arm_goal_.route_rest;
+					ArmResult result;
 					if (!debug_)
 					{
 						result.pme = msg;
@@ -670,13 +689,15 @@ namespace my_hand_eye
 					else
 						result.pme.end = false;
 					// 结束该函数
-					arm_controller_.find_parking_area(image_rect, msg, debug_image);
-					arm_goal_.route = arm_goal_.route_rest;
 					as_.setAborted(result, "Arm finish tasks");
 					ROS_WARN("Failed to operating parking area.");
 				}
 				else
-					pose_publisher_.publish(msg);
+				{
+					ArmFeedback feedback;
+					feedback.pme = msg;
+					as_.publishFeedback(feedback);
+				}
 			}
 		}
 		return valid;

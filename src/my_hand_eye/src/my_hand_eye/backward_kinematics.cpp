@@ -57,7 +57,7 @@ namespace my_hand_eye
             valid = 0 <= deg && deg < 360;
         }
         else if (joint == 3)
-            valid = -38 <= deg && deg <= 218;
+            valid = -38 <= deg && deg <= 225;
         else
             valid = -28 <= deg && deg <= 208;
         return valid;

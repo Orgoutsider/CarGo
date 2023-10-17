@@ -67,6 +67,7 @@ namespace my_hand_eye
         XmlRpc::XmlRpcValue default_action;
         XmlRpc::XmlRpcValue back_action;
         XmlRpc::XmlRpcValue down_action;
+        XmlRpc::XmlRpcValue start_action;
         XmlRpc::XmlRpcValue catch_correct_action;
         XmlRpc::XmlRpcValue put1_action;
         XmlRpc::XmlRpcValue put2_action;
@@ -91,6 +92,10 @@ namespace my_hand_eye
         if (!pnh.getParam("down_action", down_action))
         {
             ROS_ERROR("No down action specified");
+        }
+        if (!pnh.getParam("start_action", start_action))
+        {
+            ROS_ERROR("No start action specified");
         }
         if (!pnh.getParam("catch_correct_action", catch_correct_action))
         {
@@ -132,11 +137,11 @@ namespace my_hand_eye
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
-        factor_ = pnh.param<int>("factor", 40);
+        factor_ = pnh.param<int>("factor", 150);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.952260769)).rad();
+        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.8563548)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -146,6 +151,7 @@ namespace my_hand_eye
         ps_.set_action(default_action);
         ps_.set_action(back_action, "back");
         ps_.set_action(down_action, "down");
+        ps_.set_action(start_action, "start");
         ps_.set_action(catch_correct_action, "catch_correct");
         ps_.set_action(put1_action, "put1");
         ps_.set_action(put2_action, "put2");
@@ -343,7 +349,7 @@ namespace my_hand_eye
             ps_.reset(pose || (z == z_ellipse));
             if (pose)
             {
-                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
+                Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
             }
@@ -953,6 +959,7 @@ namespace my_hand_eye
         {
             ARM_INFO_XYZ(ps_);
             ROS_INFO_STREAM("tightness: " << ps_.tightness);
+            ps_.log_all_position();
             x = ps_.x;
             y = ps_.y;
             z = ps_.z;
@@ -1171,6 +1178,7 @@ namespace my_hand_eye
             if (valid)
             {
                 ps_.go_to_table(false, color, left);
+                // ps_.reset();
             }
             else
             {
@@ -1273,7 +1281,7 @@ namespace my_hand_eye
             Rect roi = boundingRect(contours[i]);
             Mat mask = Img_clone(roi);
             // gramma矫正，并对每个区域进行颜色增强
-            gramma_transform(factor_, mask);
+            gramma_transform(40, mask);
             mask = saturation(mask, 40);
         }
         // *******
@@ -1456,6 +1464,7 @@ namespace my_hand_eye
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
             Mat srcgray;
+            gramma_transform(factor_, cv_image->image);
             srcgray = saturation(cv_image->image, 100);
             // imshow("saturation", srcgray);
             // waitKey(1);
@@ -1467,8 +1476,8 @@ namespace my_hand_eye
             // imshow("threshold", srcbinary);
             // waitKey(1);
             Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
-            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除噪点
-            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1));     // 开操作去除缺口
+            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 3); // 闭操作去除噪点
+            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2);  // 开操作去除缺口
             // 保证轮廓封闭
             Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
             int rows = FImg.rows;
@@ -1686,7 +1695,9 @@ namespace my_hand_eye
         }
         bool valid = ps_.go_to_table(true, color, true) &&
                      ps_.put(color_map_[color], false, err_x, err_y, err_theta, pal);
-        ps_.reset(true);
+        // ps_.reset(true);
+        if (final)
+            ps_.reset(true);
         return valid;
     }
 
@@ -1700,9 +1711,15 @@ namespace my_hand_eye
         }
         bool valid = ps_.put(color_map_[color], true, err_x, err_y, err_theta, false) &&
                      ps_.go_to_table(false, color, true);
-        if (!final)
-            ps_.reset(true);
+        // if (!final)
+        //     ps_.reset(true);
         return valid;
+    }
+
+    void ArmController::ready_after_putting()
+    {
+        ROS_INFO("Ready to catch after putting...");
+        ps_.raise_height();
     }
 
     bool ArmController::log_border(const sensor_msgs::ImageConstPtr &image_rect,
@@ -1783,6 +1800,11 @@ namespace my_hand_eye
         return valid;
     }
 
+    void ArmController::start(bool start)
+    {
+        ps_.start(start);
+    }
+
     void ArmController::ready(bool left)
     {
         ps_.reset(left);
@@ -1815,7 +1837,7 @@ namespace my_hand_eye
             {
                 target_x = target_pose.pose[target_pose.target_ellipse].x;
                 target_y = target_pose.pose[target_pose.target_ellipse].y;
-                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
+                Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
                 rst = true;
@@ -2151,20 +2173,22 @@ namespace my_hand_eye
         return valid;
     }
 
-    void ArmController::ready_yolo(const sensor_msgs::ImageConstPtr &image_rect)
+    bool ArmController::ready_yolo(const sensor_msgs::ImageConstPtr &image_rect)
     {
         static bool ready = false;
-        if (!ready)
+        if (!ready && cargo_client_.exists())
         {
             ready = true;
             cv_bridge::CvImagePtr cv_image;
             if (!add_image(image_rect, cv_image))
-                return;
+                return false;
             cv::resize(cv_image->image, cv_image->image, cv_image->image.size() / 8);
-            cargo_client_.waitForExistence();
+            // cargo_client_.waitForExistence();
             yolov5_ros::cargoSrv cargo;
             cargo.request.image = *(cv_image->toImageMsg());
             cargo_client_.call(cargo);
+            return true;
         }
+        return false;
     }
 } // namespace my_hand_eye

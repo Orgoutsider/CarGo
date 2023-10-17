@@ -131,12 +131,15 @@ namespace my_hand_eye
                          sensor_msgs::ImagePtr &debug_image, bool pose = false);
         // 固定位置放置
         bool put(const Color color, bool pal, bool final);
+        void ready_after_putting();
         // 固定位置抓取
         bool catch_after_putting(const Color color, bool final);
         // 输出边界线位置
         bool log_border(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
         // 输出停车区位置
         bool log_parking_area(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
+        // 启动机械臂，参数为false时取消展开形态
+        void start(bool start);
         // reset准备下一任务
         void ready(bool left);
         // 結束抓取准备下一任务
@@ -153,7 +156,7 @@ namespace my_hand_eye
         // 计算停车区位置
         bool find_parking_area(const sensor_msgs::ImageConstPtr &image_rect, Pose2DMightEnd &msg,
                                sensor_msgs::ImagePtr &debug_image);
-        void ready_yolo(const sensor_msgs::ImageConstPtr &image_rect);
+        bool ready_yolo(const sensor_msgs::ImageConstPtr &image_rect);
     };
 } // namespace my_hand_eye
 

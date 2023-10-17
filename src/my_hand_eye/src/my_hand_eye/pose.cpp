@@ -9,6 +9,8 @@ namespace my_hand_eye
 
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : tightness(cat), look_(look),
                                                                        correction(false),
+                                                                       Position_raise_(1220),
+                                                                       Position_front_(1270),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr),
                                                                        Id{0, 1, 2, 3, 4, 5}
@@ -91,6 +93,12 @@ namespace my_hand_eye
             ROS_INFO_STREAM("Set action " << name);
             ARM_INFO_XYZ(action_down);
         }
+        else if (name == "start")
+        {
+            action_start = Action((double)action[0], (double)action[1], (double)action[2]);
+            ROS_INFO_STREAM("Set action " << name);
+            ARM_INFO_XYZ(action_start);
+        }
         else if (name == "catch_correct")
         {
             action_catch_correct = Action((double)action[0], (double)action[1], (double)action[2]);
@@ -139,7 +147,7 @@ namespace my_hand_eye
             Position[3] = round(ARM_JOINT3_POS_WHEN_DEG0 + (ARM_JOINT3_POS_WHEN_DEG180 - ARM_JOINT3_POS_WHEN_DEG0) * deg3 / 180);
             Position[4] = round(ARM_JOINT4_POS_WHEN_DEG0 + (ARM_JOINT4_POS_WHEN_DEG180 - ARM_JOINT4_POS_WHEN_DEG0) * deg4 / 180);
             Position[5] = round(ARM_JOINT5_POS_WHEN_OPEN + (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * tightness);
-            // ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " " << Position[3] << " " << Position[4] << " " << Position[5]);
+            // log_all_position();
         }
         return valid;
     }
@@ -153,7 +161,8 @@ namespace my_hand_eye
     {
         bool valid = refresh_xyz(); // 此时xyz为当前值
         bool flag1 = (this->y) < 0;
-        bool flag2 = (this->z) < 12;
+        bool flag2 = (this->z) < 11;
+        // bool flag3 = (abs(this->y + ARM_P) < 3 && abs(x) < 3);
         this->x = x;
         this->y = y;
         this->z = z; // 此时xyz为目标值
@@ -164,6 +173,16 @@ namespace my_hand_eye
             valid = calculate_position(expand_y);
         if (valid)
         {
+            // if (flag1 && !flag2 && flag3)
+            // {
+            //     s16 tmp = Position[2];
+            //     Position[2] = Position_front_;
+            //     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            //     u8 ID1[] = {2};
+            //     wait_until_static(ID1, 1);
+            //     // ros::Duration(0.2).sleep();
+            //     Position[2] = tmp;
+            // }
             u8 ID[] = {1, 2, 3, 4, 5};
             sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
             if (arrived(ID, 5))
@@ -172,7 +191,20 @@ namespace my_hand_eye
                 rst_time_ = ros::Time::now() - ros::Duration(5.0);
                 return valid;
             }
-            if (Position[2] >= Position_now[2] && flag1 && !flag2)
+            // if (flag1 && !flag2 && flag3) // 起始位置
+            // {
+            //     sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            //     sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+            //     u8 ID1[] = {4};
+            //     wait_until_arriving(ID1, 1, 200);
+            //     sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
+            //     u8 ID2[] = {3};
+            //     wait_until_arriving(ID2, 1, 200);
+            //     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            //     cargo_table_.reset();
+            //     wait_until_static(ID, 5);
+            // }
+            if (Position[2] >= Position_now[2] && flag1 && !flag2) // 转盘
             // 第2关节位置靠前，最后移动第2关节
             {
                 if (Position[3] >= Position_now[3]) // 第23关节位置靠前，最后移动第23关节
@@ -194,7 +226,7 @@ namespace my_hand_eye
                     wait_until_static(ID, 5);
                 }
             }
-            else if ((Position[4] <= Position_now[4] || Position[3] <= Position_now[3]) && flag2)
+            else if ((Position[4] <= Position_now[4] || Position[3] <= Position_now[3]) && flag2) // 椭圆
             // 第34关节位置靠上，最后移动第34关节
             {
                 sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
@@ -204,7 +236,7 @@ namespace my_hand_eye
                 sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
                 wait_until_static(ID, 5);
             }
-            else
+            else // 其他位置
             {
                 sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
                 sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
@@ -259,8 +291,109 @@ namespace my_hand_eye
         return valid;
     }
 
+    void Pos::start(bool start)
+    {
+        // bool flag = (this->y) < 0;
+        this->x = action_start.x;
+        this->y = action_start.y;
+        this->z = action_start.z; // 此时xyz为目标值
+        this->tightness = 0;
+        this->look_ = true;
+
+        // bool valid = calculate_position(true);
+        // if (valid)
+        // {
+        Position[1] = 897;
+        Position[2] = 1965;
+        Position[3] = 3280;
+        Position[4] = 2887;
+        Position[5] = ARM_JOINT5_POS_WHEN_CATCH;
+        if (start)
+        {
+            ROS_WARN_ONCE("Please check the arm's position.");
+            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
+            cargo_table_.midpoint();
+            u8 ID1[] = {2, 3, 4};
+            wait_until_static(ID1, 3);
+            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
+            u8 ID2[] = {1, 5, 6};
+            wait_until_static(ID2, 3);
+        }
+        else
+        {
+            s16 tmp = Position[2];
+            Position[2] = Position_front_;
+            sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            cargo_table_.midpoint();
+            u8 ID1[] = {2};
+            wait_until_static(ID1, 1);
+            sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+            sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
+            u8 ID21[] = {4, 6};
+            wait_until_static(ID21, 2);
+            sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
+            u8 ID22[] = {3, 5};
+            wait_until_static(ID22, 2);
+            Position[2] = tmp;
+            sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+            u8 ID3[] = {1, 2};
+            wait_until_static(ID3, 2);
+        }
+        //     u8 ID[] = {1, 2, 3, 4, 5};
+        //     sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
+        //     if (arrived(ID, 5))
+        //     {
+        //         ROS_INFO("Pose has arrived");
+        //         rst_time_ = ros::Time::now() - ros::Duration(5.0);
+        //         return valid;
+        //     }
+        //     if (Position[2] >= Position_now[2] && flag1 && !flag2)
+        //     // 第2关节位置靠前，最后移动第2关节
+        //     {
+        //         if (Position[3] >= Position_now[3]) // 第23关节位置靠前，最后移动第23关节
+        //         {
+        //             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+        //             sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
+        //             u8 ID1[] = {4};
+        //             wait_until_arriving(ID1, 1, 200);
+        //             sm_st_ptr_->SyncWritePosEx(Id + 2, 2, Position + 2, Speed + 2, ACC + 2);
+        //             wait_until_static(ID, 5);
+        //         }
+        //         else
+        //         {
+        //             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+        //             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+        //             u8 ID1[] = {3, 4};
+        //             wait_until_arriving(ID1, 2, 200);
+        //             sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+        //             wait_until_static(ID, 5);
+        //         }
+        //     }
+        //     else if ((Position[4] <= Position_now[4] || Position[3] <= Position_now[3]) && flag2)
+        //     // 第34关节位置靠上，最后移动第34关节
+        //     {
+        //         sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+        //         u8 ID1[] = {2};
+        //         wait_until_arriving(ID1, 1, 200);
+        //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+        //         sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
+        //         wait_until_static(ID, 5);
+        //     }
+        //     else
+        //     {
+        //         sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+        //         sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
+        //         wait_until_static(ID, 5);
+        //     }
+        // }
+        // rst_time_ = ros::Time::now();
+    }
+
     bool Pos::go_to_and_wait(double x, double y, double z, bool cat, bool expand_y)
     {
+        // const double TIGHTNESS = 0.65;
         this->x = x;
         this->y = y;
         this->z = z;
@@ -274,7 +407,7 @@ namespace my_hand_eye
             {
                 Position[3] -= 450; // 防止碰到物料
             }
-            else if (z < 7 && y > 3.9 && !cat)
+            else if (z < 7 && y > 4.2 && !cat)
             {
                 Position[3] -= 30; // 防止悬空抖动
             }
@@ -359,13 +492,13 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, Color color, bool left)
     {
-        const double TIGHTNESS_TABLE = 0.65; // 在转盘进行抓取放置时略微松手
+        const double TIGHTNESS = 0.65; // 在转盘进行抓取放置时略微松手
         bool valid = refresh_xyz();
-        bool flag = (this->z < 7);
+        bool flag = (this->z < 11);
         this->x = left ? action_right.x : action_back.x;
         this->y = left ? action_right.y : action_back.y;
         this->z = left ? action_right.z : action_back.z;
-        this->tightness = cat ? 1 : TIGHTNESS_TABLE;
+        this->tightness = cat ? 1 : TIGHTNESS;
         this->look_ = false;
         // 前往转盘，必须扩展y轴
         if (valid)
@@ -381,7 +514,7 @@ namespace my_hand_eye
                 cargo_table_.get_next();
                 sc_ptr_->WritePos(5,
                                   round(ARM_JOINT5_POS_WHEN_OPEN +
-                                        (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * TIGHTNESS_TABLE),
+                                        (ARM_JOINT5_POS_WHEN_CATCH - ARM_JOINT5_POS_WHEN_OPEN) * TIGHTNESS),
                                   0, Speed[5]);
             }
             u8 ID0[] = {6, 5};
@@ -485,6 +618,14 @@ namespace my_hand_eye
             wait_until_static(ID, 1);
         }
         return valid;
+    }
+
+    void Pos::raise_height()
+    {
+        Position[2] = Position_raise_;
+        sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
+        u8 ID[] = {2};
+        wait_until_static(ID, 1);
     }
 
     bool Pos::read_position(int ID)
@@ -598,6 +739,18 @@ namespace my_hand_eye
                 break;
         }
         return valid;
+    }
+
+    void Pos::log_all_position(bool now)
+    {
+        if (now)
+            ROS_INFO_STREAM("position (from 1 to 5):" << Position_now[1] << " " << Position_now[2] << " "
+                                                      << Position_now[3] << " " << Position_now[4] << " "
+                                                      << Position_now[5]);
+        else
+            ROS_INFO_STREAM("position (from 1 to 5):" << Position[1] << " " << Position[2] << " "
+                                                      << Position[3] << " " << Position[4] << " "
+                                                      << Position[5]);
     }
 
     bool Pos::is_moving(u8 ID[], u8 IDN)

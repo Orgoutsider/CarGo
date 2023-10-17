@@ -240,7 +240,7 @@ void QRDetector::publishDebugImage(const sensor_msgs::ImageConstPtr &imageConstP
 
             // Create text
             char indexStr[20];
-            sprintf(indexStr, "Point %d", j);
+            sprintf(indexStr, "Point %1d", j);
 
             // Draw text
             cv::putText(cvImagePtr->image, indexStr, toCvPoint(result->getResultPoints()[j]), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(110, 220, 0));
