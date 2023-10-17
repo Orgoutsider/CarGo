@@ -141,7 +141,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.8563548)).rad();
+        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -4.8563548)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -595,12 +595,12 @@ namespace my_hand_eye
         }
         else
             return false;
-        if (valid && abs(Angle::degree(theta - target_ellipse_theta_)) > 3)
+        if (valid && abs(Angle::degree(theta - target_ellipse_theta)) > 3)
         {
             theta = cv::sgn(theta -
-                            target_ellipse_theta_) *
+                            target_ellipse_theta) *
                         Angle(3).rad() +
-                    target_ellipse_theta_;
+                    target_ellipse_theta;
             if (cnt != 2)
             {
                 // 如果theta过大，尝试找到错误点
@@ -627,8 +627,8 @@ namespace my_hand_eye
                     double dist, theta_try;
                     if (ps_.calculate_border_position(line_try, z, dist, theta_try, false))
                     {
-                        if (abs(theta_try - target_ellipse_theta_) <
-                            abs(theta - target_ellipse_theta_))
+                        if (abs(theta_try - target_ellipse_theta) <
+                            abs(theta - target_ellipse_theta))
                         {
                             ROS_WARN("get_theta: One point is invalid. Correct theta: %lf", theta);
                             theta = theta_try;
@@ -882,10 +882,10 @@ namespace my_hand_eye
                 err_y += ey;
             }
         }
-        err_x = err.x * cos(target_ellipse_theta_) +
-                err.y * sin(target_ellipse_theta_);
-        err_y = -err.x * sin(target_ellipse_theta_) +
-                err.y * cos(target_ellipse_theta_);
+        err_x = err.x * cos(target_ellipse_theta) +
+                err.y * sin(target_ellipse_theta);
+        err_y = -err.x * sin(target_ellipse_theta) +
+                err.y * cos(target_ellipse_theta);
         err_theta = Angle(Angle::degree(err.theta)).now2goal(ps_.enlarge_loop[pal]).rad();
         ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf theta_turn:%lf", err_x, err_y, err_theta,
                  (theta_turn == Pose2DMightEnd::not_change) ? 0 : theta_turn);
@@ -1901,7 +1901,7 @@ namespace my_hand_eye
                 cv::Vec2f line;
                 if (get_theta(objArray, z_parking_area, p.theta, line))
                 {
-                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                    msg.pose.theta = p.theta - target_ellipse_theta;
                     cargo_theta_.push_back(msg.pose.theta);
                 }
                 else
@@ -1919,7 +1919,7 @@ namespace my_hand_eye
                 cv::Vec2f line;
                 if (pose && success && get_theta(objArray, z_parking_area, p.theta, line))
                 {
-                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                    msg.pose.theta = p.theta - target_ellipse_theta;
                     cargo_x_.push_back(msg.pose.x);
                     cargo_y_.push_back(msg.pose.y);
                     cargo_theta_.push_back(msg.pose.theta);
@@ -2002,7 +2002,7 @@ namespace my_hand_eye
                     cv::Vec2f line;
                     if (get_theta(objArray, z_parking_area, p.theta, line))
                     {
-                        msg.pose.theta = p.theta - target_ellipse_theta_;
+                        msg.pose.theta = p.theta - target_ellipse_theta;
                         cargo_theta_.push_back(msg.pose.theta);
                     }
                     else
@@ -2021,7 +2021,7 @@ namespace my_hand_eye
                 cv::Vec2f line;
                 if (success && get_theta(objArray, z_parking_area, p.theta, line))
                 {
-                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                    msg.pose.theta = p.theta - target_ellipse_theta;
                     cargo_x_.push_back(msg.pose.x);
                     cargo_y_.push_back(msg.pose.y);
                     cargo_theta_.push_back(msg.pose.theta);
