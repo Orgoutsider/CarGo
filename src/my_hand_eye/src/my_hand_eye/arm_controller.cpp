@@ -1826,8 +1826,8 @@ namespace my_hand_eye
         }
         static bool last_finish = true;
         static bool rst = false;
-        static double target_x;
-        static double target_y;
+        static geometry_msgs::Pose2D target;
+        static geometry_msgs::Pose2D tolerance;
         const int MAX = 5; // 读取5次求平均位姿
         if (!msg.end && last_finish && !store)
         {
@@ -1835,11 +1835,13 @@ namespace my_hand_eye
             last_finish = false;
             if (pose)
             {
-                target_x = target_pose.pose[target_pose.target_ellipse].x;
-                target_y = target_pose.pose[target_pose.target_ellipse].y;
+                target = target_pose.pose[target_pose.target_ellipse];
+                tolerance = target_pose.pose[target_pose.target_ellipse];
                 Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
+                target_pose.tolerance[target_pose.target_ellipse].x = 0.015;
+                target_pose.tolerance[target_pose.target_ellipse].y = 0.015;
                 rst = true;
                 clear(true, true);
             }
@@ -1863,6 +1865,8 @@ namespace my_hand_eye
                     color_map_.insert(std::pair<Color, int>(color_blue, 3));
                     rst = false;
                 }
+                target_pose.pose[target_pose.target_ellipse] = target;
+                target_pose.tolerance[target_pose.target_ellipse] = tolerance;
             }
             else
             {
@@ -1938,8 +1942,8 @@ namespace my_hand_eye
         if (store && last_finish)
         {
             average_pose_once();
-            target_pose.pose[target_pose.target_ellipse].x = target_x;
-            target_pose.pose[target_pose.target_ellipse].y = target_y;
+            target_pose.pose[target_pose.target_ellipse] = target;
+            target_pose.tolerance[target_pose.target_ellipse] = tolerance;
             // average_pose(msg.pose);
             // msg.header = image_rect->header;
             // msg.header.frame_id = "base_footprint";

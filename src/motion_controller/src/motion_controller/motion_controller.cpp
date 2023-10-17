@@ -302,7 +302,7 @@ namespace motion_controller
                     double len = length_from_ellipse_ + length_route(follower_.debug, config_.startup);
                     goal1.pose.y = width * cos(goal1.pose.theta) - len * sin(goal1.pose.theta);
                     goal1.pose.x = -width * sin(goal1.pose.theta) - len * cos(goal1.pose.theta);
-                    goal1.precision = true;
+                    goal1.precision = !(goal.route == route_semi_finishing_area && loop_ == 1);
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
                 else if (goal.route == route_raw_material_area)
