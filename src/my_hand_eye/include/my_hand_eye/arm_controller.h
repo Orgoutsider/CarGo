@@ -10,7 +10,7 @@
 
 namespace my_hand_eye
 {
-    class ArmController : public BorderMethod
+    class ArmController : public BorderMethod, SquareMethod
     {
     private:
         double speed_standard_static_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
