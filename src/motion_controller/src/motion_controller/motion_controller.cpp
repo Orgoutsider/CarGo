@@ -482,8 +482,8 @@ namespace motion_controller
                     finish_turning_ = true;
                 }
             }
-            else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
-                     where_is_car(follower_.debug, config_.startup) == route_parking_area &&
+            else if ((where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+                     where_is_car(follower_.debug, config_.startup) == route_parking_area) &&
                      is_doing())
             {
                 _move_with_vision();
@@ -538,8 +538,14 @@ namespace motion_controller
                 ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
                                   boost::bind(&MotionController::_move_active_callback, this),
                                   boost::bind(&MotionController::_move_feedback_callback, this, _1));
-                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                arm_initialized_ = true;
+                {
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    arm_initialized_ = true;
+                    move_stamp_ = arm_stamp_;
+                    move_time_ = arm_time_;
+                    move_pose_ = arm_pose_;
+                }
+                _check_move_active();
             }
             {
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
@@ -594,8 +600,7 @@ namespace motion_controller
         if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
             where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
-            if (feedback->pme.end &&
-                where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
+            if (feedback->pme.end)
             {
                 if (timer_.hasStarted())
                     timer_.stop();
