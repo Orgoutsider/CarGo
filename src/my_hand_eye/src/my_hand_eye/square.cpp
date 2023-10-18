@@ -20,7 +20,7 @@ namespace my_hand_eye
         return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
     }
 
-    void Square::_square_point_delete(vector<Point>& approx_)
+    void Square::_square_point_delete(std::vector<cv::Point>& approx_)
     {
         int approxSize = approx_.size();
         while (approxSize > 4)
@@ -35,7 +35,7 @@ namespace my_hand_eye
             for (size_t i = 0; i < approxSize; i++)
             {
                 side_length.lenth.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) + pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
-                side_length.point.push_back(Point(i, (i + 1) % approxSize));
+                side_length.point.push_back(cv::Point(i, (i + 1) % approxSize));
             }
             //寻找最短边长的标号
             int lenth_temp = side_length.lenth[0];
