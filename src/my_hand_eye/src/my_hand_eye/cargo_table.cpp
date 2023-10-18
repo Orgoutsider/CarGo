@@ -26,9 +26,16 @@ namespace my_hand_eye
     void CargoTable::reset()
     {
         where_last_ = where_;
-        where_ = 0;
+        where_ = round(nearest(0));
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
         rst_ = true;
+    }
+
+    double CargoTable::nearest(double where)
+    {
+        int sub = where - where_ % 3;
+        double add = abs(sub) > 1.5 ? (sub > 0 ? sub - 3 : sub + 3) : sub;
+        return where_ + add;
     }
 
     void CargoTable::midpoint()
@@ -41,15 +48,18 @@ namespace my_hand_eye
     void CargoTable::put_next(const Color color)
     {
         where_last_ = where_;
-        if (rst_ || (++where_) >= what_color_.size())
-            where_ = 0;
         if (rst_)
+        {
             rst_ = false;
+            where_ = round(nearest(0));
+        }
+        else
+            where_++;
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
         try
         {
-            what_color_.at(where_) = color;
-            where_cargo_.at(color) = where_;
+            what_color_.at(where_ % 3) = color;
+            where_cargo_.at(color) = where_ % 3;
         }
         catch (const std::exception &e)
         {
@@ -70,7 +80,10 @@ namespace my_hand_eye
             sleep(1);
             return false;
         }
-        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 - Position_now) <= tolerance;
+        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 -
+                   nearest(Position_now * 1.0 / ARM_CARGO_TABLE_POS_WHEN_DEG120) *
+                       ARM_CARGO_TABLE_POS_WHEN_DEG120) <=
+               tolerance;
     }
 
     bool CargoTable::is_moving()
@@ -101,13 +114,12 @@ namespace my_hand_eye
     void CargoTable::get_next()
     {
         where_last_ = where_;
-        if ((++where_) >= what_color_.size())
-            where_ = 0;
+        where_++;
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
         try
         {
-            where_cargo_.at(what_color_.at(where_)) = -1;
-            what_color_.at(where_) = 0;
+            where_cargo_.at(what_color_.at(where_ % 3)) = -1;
+            what_color_.at(where_ % 3) = 0;
         }
         catch (const std::exception &e)
         {
@@ -120,9 +132,9 @@ namespace my_hand_eye
         where_last_ = where_;
         try
         {
-            where_ = where_cargo_.at(color);
+            where_ = round(nearest(where_cargo_.at(color)));
             where_cargo_.at(color) = -1;
-            what_color_.at(where_) = 0;
+            what_color_.at(where_ % 3) = 0;
         }
         catch (const std::exception &e)
         {
