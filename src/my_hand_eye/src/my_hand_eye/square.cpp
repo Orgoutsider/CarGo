@@ -25,37 +25,37 @@ namespace my_hand_eye
         int approxSize = approx_.size();
         while (approxSize > 4)
         {
-            // lenth存放长度，point存放端点标号
-            std::vector<int> lenth;
+            // len存放长度，point存放端点标号
+            std::vector<int> len;
             std::vector<cv::Point2i> point;
 
             // 计算边长长度
             for (size_t i = 0; i < approxSize; i++)
             {
-                lenth.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) +
+                len.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) +
                                      pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
                 point.push_back(cv::Point(i, (i + 1) % approxSize));
             }
             // 寻找最短边长的标号
-            int lenth_temp = lenth[0];
-            int lenth_flag = 0; // 最短边长的标号
+            int len_temp = len[0];
+            int len_flag = 0; // 最短边长的标号
             int point_flag = 0; // 目标点的标号
             for (size_t i = 0; i < approxSize; i++)
             {
-                if (lenth_temp > lenth[i])
+                if (len_temp > len[i])
                 {
-                    lenth_flag = i;
-                    lenth_temp = lenth[i];
+                    len_flag = i;
+                    len_temp = len[i];
                 }
             }
             // 比较最短边前一条边和后一条边的长度
-            int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1); // 前一条边的序号
-            int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);  // 后一条边的序号
+            int front_side = (len_flag - 1) < 0 ? (approxSize - 1) : (len_flag - 1); // 前一条边的序号
+            int back_side = (len_flag + 1) > (approxSize - 1) ? 0 : (len_flag + 1);  // 后一条边的序号
             // 得到目标点的标号
             point_flag =
-                lenth[front_side] < lenth[back_side]
-                    ? point[lenth_flag].x
-                    : point[lenth_flag].y;
+                len[front_side] < len[back_side]
+                    ? point[len_flag].x
+                    : point[len_flag].y;
             // 删除目标点
             approx_.erase(approx_.begin() + point_flag);
             approxSize--;
@@ -71,6 +71,8 @@ namespace my_hand_eye
             _square_point_delete();
             return isContourConvex(approx_);
         }
+        else
+            return false;
         // return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
     }
 

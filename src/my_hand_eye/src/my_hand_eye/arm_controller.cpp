@@ -1521,6 +1521,7 @@ namespace my_hand_eye
                             }
                             debug_image = cv_image->toImageMsg();
                         }
+                        ROS_WARN("Could not find parking area with method %d.", method);
                         continue;
                     }
                 }
@@ -1528,6 +1529,7 @@ namespace my_hand_eye
                 {
                     if (show_detections && !cv_image->image.empty())
                         debug_image = cv_image->toImageMsg();
+                    ROS_WARN("Could not find parking area with method %d.", method);
                     continue;
                 }
             }
