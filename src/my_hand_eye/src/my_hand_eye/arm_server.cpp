@@ -327,7 +327,7 @@ namespace my_hand_eye
 			bool finish = false;
 			valid = arm_controller_.track(image_rect, which_color(), first, x, y, debug_image) &&
 					arm_controller_.catch_after_tracking(x, y, which_color(false), which_color(true),
-														 task_idx_ == 2, finish);
+														 false, finish);
 			if (finish)
 			{
 				next_task();

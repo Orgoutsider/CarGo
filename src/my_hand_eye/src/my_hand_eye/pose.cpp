@@ -162,7 +162,7 @@ namespace my_hand_eye
         bool valid = refresh_xyz(); // 此时xyz为当前值
         bool flag1 = (this->y) < 0;
         bool flag2 = (this->z) < 11;
-        // bool flag3 = (abs(this->y + ARM_P) < 3 && abs(x) < 3);
+        // bool flag3 = near(action_start);
         this->x = x;
         this->y = y;
         this->z = z; // 此时xyz为目标值

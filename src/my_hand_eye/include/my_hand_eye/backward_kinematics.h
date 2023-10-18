@@ -39,6 +39,7 @@ namespace my_hand_eye
     protected:
         double length();
         double height();
+        bool near(const Action &t) const;
         // static double normxy(const Action &a1, const Action &a2);
     };
 
