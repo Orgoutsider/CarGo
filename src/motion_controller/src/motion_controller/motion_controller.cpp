@@ -561,6 +561,19 @@ namespace motion_controller
             arm_pose_.y = 0;
     }
 
+    void MotionController::_check_move_active()
+    {
+        if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
+        {
+            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+            if (!move_initialized_)
+            {
+                move_initialized_ = true;
+            }
+            move_active_ = true;
+        }
+    }
+
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
@@ -971,15 +984,7 @@ namespace motion_controller
                 move_time_ = ros::Time::now();
                 move_pose_ = feedback->pose_now;
             }
-            if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
-            {
-                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                if (!move_initialized_)
-                {
-                    move_initialized_ = true;
-                }
-                move_active_ = true;
-            }
+            _check_move_active();
         }
     }
 
@@ -992,18 +997,15 @@ namespace motion_controller
         {
             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
             move_stamp_ = result->header.stamp;
+            if (move_stamp_.is_zero())
+            {
+                ROS_WARN("_move_done_callback: Stamp is zero!");
+                move_stamp_ = ros::Time::now();
+            }
             move_time_ = ros::Time::now();
             move_pose_ = result->pose_final;
         }
-        if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
-        {
-            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-            if (!move_initialized_)
-            {
-                move_initialized_ = true;
-            }
-            move_active_ = true;
-        }
+        _check_move_active();
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Move finished: " << state.toString());
         else

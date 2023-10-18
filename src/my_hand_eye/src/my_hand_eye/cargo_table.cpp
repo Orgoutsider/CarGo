@@ -64,8 +64,17 @@ namespace my_hand_eye
         else if (what_color_.at(mod3()) == 0) // 当前位置没放块
         {
             clockwise_ = !clockwise_;
+            try
+            {
+                what_color_.at(mod3()) = color;
+                where_cargo_.at(color) = mod3();
+            }
+            catch (const std::exception &e)
+            {
+                ROS_ERROR("Exception: %s", e.what());
+            }
             return;
-        } 
+        }
         else if (clockwise_)
             where_++;
         else
