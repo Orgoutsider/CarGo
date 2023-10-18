@@ -18,7 +18,7 @@ namespace my_hand_eye
           threshold(50), catched_(false),
           z_parking_area(0.30121),
           z_ellipse(3.38369),
-          z_turntable(11.77052) // 比赛转盘
+          z_turntable(11.47052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
@@ -39,7 +39,7 @@ namespace my_hand_eye
           threshold(50), catched_(false),
           z_parking_area(0.30121),
           z_ellipse(3.38369),
-          z_turntable(11.77052) // 比赛转盘
+          z_turntable(11.47052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
