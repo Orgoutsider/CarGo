@@ -3,8 +3,8 @@
 namespace my_hand_eye
 {
     CargoTable::CargoTable(SMS_STS *sm_st_ptr)
-        : ID(6), where_(2), where_last_(2),
-          sm_st_ptr_(sm_st_ptr), rst_(false),
+        : ID(6), where_(0), where_last_(0),
+          sm_st_ptr_(sm_st_ptr), rst_(false), clockwise_(true),
           what_color_({0}), where_cargo_({-1, -1, -1, -1}) {}
 
     void CargoTable::set_speed_and_acc(XmlRpc::XmlRpcValue &servo_description)
@@ -26,30 +26,64 @@ namespace my_hand_eye
     void CargoTable::reset()
     {
         where_last_ = where_;
-        where_ = 0;
+        where_ = round(nearest(0));
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
         rst_ = true;
+    }
+
+    int CargoTable::mod3()
+    {
+        int mod = where_ % 3;
+        if (mod < 0)
+            mod += 3;
+        return mod;
+    }
+
+    double CargoTable::nearest(double where)
+    {
+        int sub = where - mod3();
+        double add = abs(sub) > 1.5 ? (sub > 0 ? sub - 3 : sub + 3) : sub;
+        return where_ + add;
     }
 
     void CargoTable::midpoint()
     {
         where_last_ = where_;
-        where_ = 0;
+        where_ = 1;
         sm_st_ptr_->WritePosEx(ID, 0.5 * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
     }
 
     void CargoTable::put_next(const Color color)
     {
         where_last_ = where_;
-        if (rst_ || (++where_) >= what_color_.size())
-            where_ = 0;
         if (rst_)
+        {
             rst_ = false;
+            where_ = round(nearest(0));
+        }
+        else if (what_color_.at(mod3()) == 0) // 当前位置没放块
+        {
+            clockwise_ = !clockwise_;
+            try
+            {
+                what_color_.at(mod3()) = color;
+                where_cargo_.at(color) = mod3();
+            }
+            catch (const std::exception &e)
+            {
+                ROS_ERROR("Exception: %s", e.what());
+            }
+            return;
+        }
+        else if (clockwise_)
+            where_++;
+        else
+            where_--;
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
         try
         {
-            what_color_.at(where_) = color;
-            where_cargo_.at(color) = where_;
+            what_color_.at(mod3()) = color;
+            where_cargo_.at(color) = mod3();
         }
         catch (const std::exception &e)
         {
@@ -70,7 +104,10 @@ namespace my_hand_eye
             sleep(1);
             return false;
         }
-        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 - Position_now) <= tolerance;
+        return abs(where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120 -
+                   nearest(Position_now * 1.0 / ARM_CARGO_TABLE_POS_WHEN_DEG120) *
+                       ARM_CARGO_TABLE_POS_WHEN_DEG120) <=
+               tolerance;
     }
 
     bool CargoTable::is_moving()
@@ -101,13 +138,15 @@ namespace my_hand_eye
     void CargoTable::get_next()
     {
         where_last_ = where_;
-        if ((++where_) >= what_color_.size())
-            where_ = 0;
+        if (clockwise_)
+            where_++;
+        else
+            where_--;
         sm_st_ptr_->WritePosEx(ID, where_ * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
         try
         {
-            where_cargo_.at(what_color_.at(where_)) = -1;
-            what_color_.at(where_) = 0;
+            where_cargo_.at(what_color_.at(mod3())) = -1;
+            what_color_.at(mod3()) = 0;
         }
         catch (const std::exception &e)
         {
@@ -120,9 +159,9 @@ namespace my_hand_eye
         where_last_ = where_;
         try
         {
-            where_ = where_cargo_.at(color);
+            where_ = round(nearest(where_cargo_.at(color)));
             where_cargo_.at(color) = -1;
-            what_color_.at(where_) = 0;
+            what_color_.at(mod3()) = 0;
         }
         catch (const std::exception &e)
         {

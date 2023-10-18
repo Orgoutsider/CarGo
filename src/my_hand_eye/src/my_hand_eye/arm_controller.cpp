@@ -17,7 +17,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched_(false),
           z_parking_area(0.30121),
-          z_ellipse(3.58369),
+          z_ellipse(3.38369),
           z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -38,7 +38,7 @@ namespace my_hand_eye
           yaed_(new cv::CEllipseDetectorYaed()),
           threshold(50), catched_(false),
           z_parking_area(0.30121),
-          z_ellipse(3.58369),
+          z_ellipse(3.38369),
           z_turntable(11.77052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
@@ -137,11 +137,11 @@ namespace my_hand_eye
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
-        factor_ = pnh.param<int>("factor", 40);
+        factor_ = pnh.param<int>("factor", 150);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta_ = Angle(pnh.param<double>("target_ellipse_theta", -4.952260769)).rad();
+        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -3.953325)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -349,7 +349,7 @@ namespace my_hand_eye
             ps_.reset(pose || (z == z_ellipse));
             if (pose)
             {
-                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
+                Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
             }
@@ -595,12 +595,12 @@ namespace my_hand_eye
         }
         else
             return false;
-        if (valid && abs(Angle::degree(theta - target_ellipse_theta_)) > 3)
+        if (valid && abs(Angle::degree(theta - target_ellipse_theta)) > 3)
         {
             theta = cv::sgn(theta -
-                            target_ellipse_theta_) *
+                            target_ellipse_theta) *
                         Angle(3).rad() +
-                    target_ellipse_theta_;
+                    target_ellipse_theta;
             if (cnt != 2)
             {
                 // 如果theta过大，尝试找到错误点
@@ -627,8 +627,8 @@ namespace my_hand_eye
                     double dist, theta_try;
                     if (ps_.calculate_border_position(line_try, z, dist, theta_try, false))
                     {
-                        if (abs(theta_try - target_ellipse_theta_) <
-                            abs(theta - target_ellipse_theta_))
+                        if (abs(theta_try - target_ellipse_theta) <
+                            abs(theta - target_ellipse_theta))
                         {
                             ROS_WARN("get_theta: One point is invalid. Correct theta: %lf", theta);
                             theta = theta_try;
@@ -882,10 +882,10 @@ namespace my_hand_eye
                 err_y += ey;
             }
         }
-        err_x = err.x * cos(target_ellipse_theta_) +
-                err.y * sin(target_ellipse_theta_);
-        err_y = -err.x * sin(target_ellipse_theta_) +
-                err.y * cos(target_ellipse_theta_);
+        err_x = err.x * cos(target_ellipse_theta) +
+                err.y * sin(target_ellipse_theta);
+        err_y = -err.x * sin(target_ellipse_theta) +
+                err.y * cos(target_ellipse_theta);
         err_theta = Angle(Angle::degree(err.theta)).now2goal(ps_.enlarge_loop[pal]).rad();
         ROS_INFO("err_x: %lf err_y: %lf err_theta: %lf theta_turn:%lf", err_x, err_y, err_theta,
                  (theta_turn == Pose2DMightEnd::not_change) ? 0 : theta_turn);
@@ -1281,7 +1281,7 @@ namespace my_hand_eye
             Rect roi = boundingRect(contours[i]);
             Mat mask = Img_clone(roi);
             // gramma矫正，并对每个区域进行颜色增强
-            gramma_transform(factor_, mask);
+            gramma_transform(40, mask);
             mask = saturation(mask, 40);
         }
         // *******
@@ -1464,6 +1464,7 @@ namespace my_hand_eye
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
             Mat srcgray;
+            gramma_transform(factor_, cv_image->image);
             srcgray = saturation(cv_image->image, 100);
             // imshow("saturation", srcgray);
             // waitKey(1);
@@ -1475,8 +1476,8 @@ namespace my_hand_eye
             // imshow("threshold", srcbinary);
             // waitKey(1);
             Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
-            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除噪点
-            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1));     // 开操作去除缺口
+            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 3); // 闭操作去除噪点
+            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2);  // 开操作去除缺口
             // 保证轮廓封闭
             Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
             int rows = FImg.rows;
@@ -1799,9 +1800,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    void ArmController::start(bool start)
+    void ArmController::start()
     {
-        ps_.start(start);
+        ps_.start();
     }
 
     void ArmController::ready(bool left)
@@ -1825,8 +1826,9 @@ namespace my_hand_eye
         }
         static bool last_finish = true;
         static bool rst = false;
-        static double target_x;
-        static double target_y;
+        static geometry_msgs::Pose2D target;
+        static geometry_msgs::Pose2D tolerance;
+        static double target_theta;
         const int MAX = 5; // 读取5次求平均位姿
         if (!msg.end && last_finish && !store)
         {
@@ -1834,11 +1836,15 @@ namespace my_hand_eye
             last_finish = false;
             if (pose)
             {
-                target_x = target_pose.pose[target_pose.target_ellipse].x;
-                target_y = target_pose.pose[target_pose.target_ellipse].y;
-                Action ellipse = Action(0, 19.5, 0).front2left().arm2footprint();
+                target = target_pose.pose[target_pose.target_ellipse];
+                tolerance = target_pose.pose[target_pose.target_ellipse];
+                Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
+                target_pose.tolerance[target_pose.target_ellipse].x = 0.015;
+                target_pose.tolerance[target_pose.target_ellipse].y = 0.015;
+                target_theta = target_ellipse_theta;
+                target_ellipse_theta = Angle(-4.791815882).rad();
                 rst = true;
                 clear(true, true);
             }
@@ -1862,6 +1868,9 @@ namespace my_hand_eye
                     color_map_.insert(std::pair<Color, int>(color_blue, 3));
                     rst = false;
                 }
+                target_pose.pose[target_pose.target_ellipse] = target;
+                target_pose.tolerance[target_pose.target_ellipse] = tolerance;
+                target_ellipse_theta = target_theta;
             }
             else
             {
@@ -1896,7 +1905,7 @@ namespace my_hand_eye
                 cv::Vec2f line;
                 if (get_theta(objArray, z_parking_area, p.theta, line))
                 {
-                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                    msg.pose.theta = p.theta - target_ellipse_theta;
                     cargo_theta_.push_back(msg.pose.theta);
                 }
                 else
@@ -1914,7 +1923,7 @@ namespace my_hand_eye
                 cv::Vec2f line;
                 if (pose && success && get_theta(objArray, z_parking_area, p.theta, line))
                 {
-                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                    msg.pose.theta = p.theta - target_ellipse_theta;
                     cargo_x_.push_back(msg.pose.x);
                     cargo_y_.push_back(msg.pose.y);
                     cargo_theta_.push_back(msg.pose.theta);
@@ -1937,8 +1946,9 @@ namespace my_hand_eye
         if (store && last_finish)
         {
             average_pose_once();
-            target_pose.pose[target_pose.target_ellipse].x = target_x;
-            target_pose.pose[target_pose.target_ellipse].y = target_y;
+            target_pose.pose[target_pose.target_ellipse] = target;
+            target_pose.tolerance[target_pose.target_ellipse] = tolerance;
+            target_ellipse_theta = target_theta;
             // average_pose(msg.pose);
             // msg.header = image_rect->header;
             // msg.header.frame_id = "base_footprint";
@@ -1997,7 +2007,7 @@ namespace my_hand_eye
                     cv::Vec2f line;
                     if (get_theta(objArray, z_parking_area, p.theta, line))
                     {
-                        msg.pose.theta = p.theta - target_ellipse_theta_;
+                        msg.pose.theta = p.theta - target_ellipse_theta;
                         cargo_theta_.push_back(msg.pose.theta);
                     }
                     else
@@ -2016,7 +2026,7 @@ namespace my_hand_eye
                 cv::Vec2f line;
                 if (success && get_theta(objArray, z_parking_area, p.theta, line))
                 {
-                    msg.pose.theta = p.theta - target_ellipse_theta_;
+                    msg.pose.theta = p.theta - target_ellipse_theta;
                     cargo_x_.push_back(msg.pose.x);
                     cargo_y_.push_back(msg.pose.y);
                     cargo_theta_.push_back(msg.pose.theta);

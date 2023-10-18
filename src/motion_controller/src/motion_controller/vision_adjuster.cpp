@@ -10,7 +10,7 @@ namespace motion_controller
           tf2_filter_(eye_subscriber_, buffer_, target_frame_, 15, 0),
           unchanging_(direction_void), changing_(direction_theta),
           kp_eye_angular_(2.1), ki_eye_angular_(0.21), kd_eye_angular_(0.4),
-          kp_eye_linear_(1.2), ki_eye_linear_(0.1), kd_eye_linear_(0.31),
+          kp_eye_linear_(1.2), ki_eye_linear_(0.1), kd_eye_linear_(0.35),
           thresh_angular_(0.02), thresh_linear_x_(0.01), thresh_linear_y_(0.005),
           limiting_freq_(2.5),
           pid_({0}, {kp_eye_angular_},
@@ -22,7 +22,7 @@ namespace motion_controller
         eye_subscriber_.subscribe(nh, "/vision_eye", 3);
         tf2_filter_.registerCallback(boost::bind(&VisionAdjuster::_eye_callback, this, _1));
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_vision", 3);
-        timer_ = nh.createTimer(ros::Rate(10), &VisionAdjuster::_timer_callback, this, false, false);
+        // timer_ = nh.createTimer(ros::Rate(10), &VisionAdjuster::_timer_callback, this, false, false);
         pnh.param<bool>("debug", debug_, false);
         if (debug_)
             dr_server_.setCallback(boost::bind(&VisionAdjuster::_dr_callback, this, _1, _2));
@@ -46,7 +46,7 @@ namespace motion_controller
                 pid_ = PIDControllerWithFilter({0}, {kp_eye_angular_},
                                                {ki_eye_angular_}, {kd_eye_angular_},
                                                {thresh_angular_}, {0.05}, {0.4}, {limiting_freq_});
-                timer_.stop();
+                // timer_.stop();
                 pose_goal_.pose.orientation = geometry_msgs::Quaternion();
             }
             return;
@@ -85,12 +85,12 @@ namespace motion_controller
         }
         if (!_add_pose_goal(*msg))
         {
-            if (timer_.hasStarted())
-                timer_.stop();
+            // if (timer_.hasStarted())
+            //     timer_.stop();
             return;
         }
-        else if (!timer_.hasStarted())
-            timer_.start();
+        // else if (!timer_.hasStarted())
+        //     timer_.start();
         geometry_msgs::Pose2D pose;
         ros::Time stamp;
         if (!_get_pose_now(pose, stamp))
@@ -102,8 +102,8 @@ namespace motion_controller
             if (pid_.update({pose.theta}, stamp, control, success))
             {
                 // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+                                     << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.angular.z = control[0];
@@ -135,8 +135,8 @@ namespace motion_controller
             if (pid_.update({pose.x, pose.theta}, stamp, control, success))
             {
                 // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+                                     << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = control[0];
@@ -169,8 +169,8 @@ namespace motion_controller
             if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
             {
                 // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+                                     << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 if (unchanging_ != direction_x)
@@ -182,62 +182,62 @@ namespace motion_controller
         }
     }
 
-    void VisionAdjuster::_timer_callback(const ros::TimerEvent &event)
-    {
-        geometry_msgs::Pose2D pose;
-        ros::Time stamp;
-        if (!_get_pose_now(pose, stamp))
-            return;
-        std::vector<double> control;
-        bool success;
-        switch (changing_)
-        {
-        case direction_theta:
-            if (pid_.update({pose.theta}, stamp, control, success))
-            {
-                // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
-                TwistMightEnd tme;
-                tme.end = false;
-                tme.velocity.angular.z = control[0];
-                cmd_vel_publisher_.publish(tme);
-            }
-            break;
+    // void VisionAdjuster::_timer_callback(const ros::TimerEvent &event)
+    // {
+    //     geometry_msgs::Pose2D pose;
+    //     ros::Time stamp;
+    //     if (!_get_pose_now(pose, stamp))
+    //         return;
+    //     std::vector<double> control;
+    //     bool success;
+    //     switch (changing_)
+    //     {
+    //     case direction_theta:
+    //         if (pid_.update({pose.theta}, stamp, control, success))
+    //         {
+    //             // if (debug_)
+    //                 ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+    //                                      << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+    //             TwistMightEnd tme;
+    //             tme.end = false;
+    //             tme.velocity.angular.z = control[0];
+    //             cmd_vel_publisher_.publish(tme);
+    //         }
+    //         break;
 
-        case direction_x:
-            if (pid_.update({pose.x, pose.theta}, stamp, control, success))
-            {
-                // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
-                TwistMightEnd tme;
-                tme.end = false;
-                tme.velocity.linear.x = control[0];
-                tme.velocity.angular.z = control[1];
-                cmd_vel_publisher_.publish(tme);
-            }
-            break;
+    //     case direction_x:
+    //         if (pid_.update({pose.x, pose.theta}, stamp, control, success))
+    //         {
+    //             // if (debug_)
+    //                 ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+    //                                      << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+    //             TwistMightEnd tme;
+    //             tme.end = false;
+    //             tme.velocity.linear.x = control[0];
+    //             tme.velocity.angular.z = control[1];
+    //             cmd_vel_publisher_.publish(tme);
+    //         }
+    //         break;
 
-        case direction_y:
-            if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
-            {
-                // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
-                TwistMightEnd tme;
-                tme.end = false;
-                tme.velocity.linear.x = control[0];
-                tme.velocity.linear.y = control[1];
-                tme.velocity.angular.z = control[2];
-                cmd_vel_publisher_.publish(tme);
-            }
-            break;
+    //     case direction_y:
+    //         if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
+    //         {
+    //             // if (debug_)
+    //                 ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+    //                                      << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+    //             TwistMightEnd tme;
+    //             tme.end = false;
+    //             tme.velocity.linear.x = control[0];
+    //             tme.velocity.linear.y = control[1];
+    //             tme.velocity.angular.z = control[2];
+    //             cmd_vel_publisher_.publish(tme);
+    //         }
+    //         break;
 
-        default:
-            break;
-        }
-    }
+    //     default:
+    //         break;
+    //     }
+    // }
 
     void VisionAdjuster::_dr_callback(params_PID_visionConfig &config, uint32_t level)
     {

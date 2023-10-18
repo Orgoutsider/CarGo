@@ -15,7 +15,6 @@ namespace my_hand_eye
     private:
         double speed_standard_static_; // 速度标准，当速度小于此标准足够多次数时，判定为静止
         double speed_standard_motion_; // 速度标准，当速度大于此标准足够多次数时，判定为运动
-        double target_ellipse_theta_;  // 椭圆区域目标角度
         bool emulation_;               // 是否进行仿真
         bool stop_;                    // 用于颜色追踪，物料是否已停
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
@@ -99,8 +98,9 @@ namespace my_hand_eye
         ArmController();
         ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~ArmController();
-        TargetPose target_pose; // 用于视觉位姿调节
-        double theta_turn;      // 车体偏转的角度
+        TargetPose target_pose;      // 用于视觉位姿调节
+        double theta_turn;           // 车体偏转的角度
+        double target_ellipse_theta; // 椭圆区域目标角度
         const double z_turntable;
         const double z_ellipse;
         // const double z_palletize;
@@ -138,8 +138,8 @@ namespace my_hand_eye
         bool log_border(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
         // 输出停车区位置
         bool log_parking_area(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
-        // 启动机械臂，参数为false时取消展开形态
-        void start(bool start);
+        // 启动机械臂
+        void start();
         // reset准备下一任务
         void ready(bool left);
         // 結束抓取准备下一任务

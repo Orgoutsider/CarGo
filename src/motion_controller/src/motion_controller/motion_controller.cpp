@@ -203,7 +203,9 @@ namespace motion_controller
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
                 flag = true; // 等待下一次启动
             }
-            else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area && !flag)
+            else if ((where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+                      where_is_car(follower_.debug, config_.startup) == route_parking_area) &&
+                     !flag)
             {
                 _move_with_vision();
             }
@@ -300,7 +302,7 @@ namespace motion_controller
                     double len = length_from_ellipse_ + length_route(follower_.debug, config_.startup);
                     goal1.pose.y = width * cos(goal1.pose.theta) - len * sin(goal1.pose.theta);
                     goal1.pose.x = -width * sin(goal1.pose.theta) - len * cos(goal1.pose.theta);
-                    goal1.precision = true;
+                    goal1.precision = !(goal.route == route_semi_finishing_area && loop_ == 1);
                     ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                 }
                 else if (goal.route == route_raw_material_area)
@@ -335,11 +337,11 @@ namespace motion_controller
                         MoveGoal goal3;
                         goal3.pose.theta = -angle_raw_material_area_ +
                                            angle_from_road(follower_.debug, config_.startup);
-                        goal3.pose.y =
-                            y_raw_material_area_ - y_ +
-                            (radius_raw_material_area_ + width_road_ / 2 +
-                             length_from_road(follower_.debug, config_.startup)) *
-                                tan(angle_raw_material_area_);
+                        // goal3.pose.y =
+                        //     y_raw_material_area_ - y_ +
+                        //     (radius_raw_material_area_ + width_road_ / 2 +
+                        //      length_from_road(follower_.debug, config_.startup)) *
+                        //         tan(angle_raw_material_area_);
                         ac_move_.sendGoalAndWait(goal3, ros::Duration(15), ros::Duration(0.1));
                     }
                     else
@@ -348,39 +350,26 @@ namespace motion_controller
                         return;
                     }
                 }
-                else if (goal.route == route_border &&
-                         (last_route == route_roughing_area ||
-                          last_route == route_semi_finishing_area))
-                {
-                    ac_move_.waitForServer();
-                    // 等车停
-                    boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
-                    MoveGoal goal;
-                    int sign =
-                        (last_route == route_semi_finishing_area &&
-                         next_route == route_raw_material_area)
-                            ? 1
-                            : -1;
-                    get_position();
-                    goal.pose.x = sign * length_route(follower_.debug, config_.startup) *
-                                  (clockwise_ ? -1 : 1) / cos(angle_from_road(follower_.debug, config_.startup, 0));
-                    ROS_INFO_STREAM("Move " << goal.pose.x * sign);
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                    // if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
-                    // {
-                    //     MoveGoal goal;
-                    //     get_position();
-                    //     goal.pose.theta = angle_corner();
-                    //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
-                    //     get_position();
-                    //     follower_.veer(true, true);
-                    //     follower_.start(true, theta_);
-                    //     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                    //     doing();
-                    //     finished();
-                    //     return;
-                    // }
-                }
+                // else if (goal.route == route_border &&
+                //          (last_route == route_roughing_area ||
+                //           last_route == route_semi_finishing_area))
+                // {
+
+                // if (where_is_car(follower_.debug, config_.startup, 1) == route_parking_area)
+                // {
+                //     MoveGoal goal;
+                //     get_position();
+                //     goal.pose.theta = angle_corner();
+                //     ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                //     get_position();
+                //     follower_.veer(true, true);
+                //     follower_.start(true, theta_);
+                //     boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                //     doing();
+                //     finished();
+                //     return;
+                // }
+                // }
                 else if (goal.route == route_border && last_route == route_raw_material_area)
                 {
                     // 等车停
@@ -453,8 +442,22 @@ namespace motion_controller
                     //     // }
                     // }
                     // 等车停
+                    ac_move_.waitForServer();
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                     MoveGoal goal;
+                    int sign =
+                        (last_route == route_semi_finishing_area &&
+                         next_route == route_raw_material_area)
+                            ? 1
+                            : -1;
+                    get_position();
+                    goal.pose.x = sign * length_route(follower_.debug, config_.startup) *
+                                  (clockwise_ ? -1 : 1) / cos(angle_from_road(follower_.debug, config_.startup, 0));
+                    if (abs(goal.pose.x) > 0.03)
+                    {
+                        ROS_INFO_STREAM("Move " << goal.pose.x * sign);
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
+                    }
                     get_position();
                     if (next_route == route_parking_area)
                         follower_.veer(true, true);
@@ -479,7 +482,8 @@ namespace motion_controller
                     finish_turning_ = true;
                 }
             }
-            else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
+            else if ((where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+                     where_is_car(follower_.debug, config_.startup) == route_parking_area) &&
                      is_doing())
             {
                 _move_with_vision();
@@ -534,8 +538,14 @@ namespace motion_controller
                 ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
                                   boost::bind(&MotionController::_move_active_callback, this),
                                   boost::bind(&MotionController::_move_feedback_callback, this, _1));
-                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                arm_initialized_ = true;
+                {
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    arm_initialized_ = true;
+                    move_stamp_ = arm_stamp_;
+                    move_time_ = arm_time_;
+                    move_pose_ = arm_pose_;
+                }
+                _check_move_active();
             }
             {
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
@@ -557,24 +567,40 @@ namespace motion_controller
             arm_pose_.y = 0;
     }
 
+    void MotionController::_check_move_active()
+    {
+        if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
+        {
+            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+            if (!move_initialized_)
+            {
+                move_initialized_ = true;
+            }
+            move_active_ = true;
+        }
+    }
+
     void MotionController::_arm_active_callback()
     {
         if (timer_.hasStarted() &&
             where_is_car(follower_.debug, config_.startup) != route_raw_material_area &&
-            where_is_car(follower_.debug, config_.startup != route_QR_code_board) &&
+            where_is_car(follower_.debug, config_.startup) != route_QR_code_board &&
+            where_is_car(follower_.debug, config_.startup) != route_parking_area &&
             !(where_is_car(follower_.debug, config_.startup) == route_border &&
               (where_is_car(follower_.debug, config_.startup, -1) == route_semi_finishing_area ||
-               (where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area &&
-                loop_ == 1))))
+               where_is_car(follower_.debug, config_.startup, -1) == route_roughing_area)))
+        {
             timer_.stop();
+        }
     }
 
     void MotionController::_arm_feedback_callback(const my_hand_eye::ArmFeedbackConstPtr &feedback)
     {
         // ROS_INFO("d");
-        if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
+        if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+            where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
-            if (feedback->pme.end)
+            if (feedback->pme.end && where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
             {
                 if (timer_.hasStarted())
                     timer_.stop();
@@ -591,9 +617,7 @@ namespace motion_controller
                 arm_stamp_ = feedback->pme.header.stamp;
                 arm_time_ = ros::Time::now();
             }
-            // ROS_INFO("e");
             _check_arm_pose(feedback->pme);
-            // ROS_INFO("f");
             _check_arm_active();
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_roughing_area ||
@@ -603,7 +627,8 @@ namespace motion_controller
             {
                 if (feedback->pme.pose.theta != feedback->pme.not_change &&
                     abs(my_hand_eye::Angle::degree(feedback->pme.pose.theta -
-                                                   angle_from_road(follower_.debug, config_.startup))) < 1.2)
+                                                   angle_from_road(follower_.debug, config_.startup))) < 1.2 &&
+                    !(where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 1))
                 {
                     get_position();
                     double theta = angle_correction(feedback->pme.pose.theta);
@@ -619,10 +644,6 @@ namespace motion_controller
                                          feedback->pme.pose.x * sin(feedback->pme.pose.theta),
                                      theta);
                     }
-                    else if (loop_ == 1)
-                    {
-                        set_position(x_, y_palletize_, theta_);
-                    }
                     else if (loop_ == 0)
                     {
                         set_position(-(x_road_up_ + width_field_ - width_from_semi_finishing_area_ -
@@ -634,16 +655,32 @@ namespace motion_controller
                                      theta);
                     }
                     ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
+                    ac_move_.waitForServer();
+                    MoveGoal goal;
+                    get_position();
+                    goal.pose.theta = feedback->pme.pose.theta;
+                    goal.precision = true;
+                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
                 }
-                ac_move_.waitForServer();
-                MoveGoal goal;
-                get_position();
-                goal.pose.theta = (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
-                                        ? feedback->pme.pose.theta
-                                        : angle_from_road(follower_.debug, config_.startup);
-                goal.precision = true;
-                ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+                else if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area &&
+                         loop_ == 1)
+                {
+                    get_position();
+                    set_position(x_, y_palletize_, theta_);
+                }
+                else
+                {
+                    ac_move_.waitForServer();
+                    MoveGoal goal;
+                    get_position();
+                    goal.pose.theta = (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
+                                          ? feedback->pme.pose.theta
+                                          : angle_from_road(follower_.debug, config_.startup);
+                    goal.precision = true;
+                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+                }
                 client_done_.waitForExistence();
                 my_hand_eye::moveDone md;
                 get_position();
@@ -786,23 +823,59 @@ namespace motion_controller
         }
         else if (where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
+            if (timer_.hasStarted())
+                timer_.stop();
+            ROS_INFO("Succeeded to move with vision");
+            ac_move_.waitForServer();
+            ac_move_.sendGoalAndWait(MoveGoal(), ros::Duration(5), ros::Duration(0.1));
+            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+            arm_initialized_ = arm_active_ = false;
+            move_initialized_ = move_active_ = false;
             if (result->pme.end)
             {
-                _check_arm_pose(result->pme);
-                ac_move_.waitForServer();
                 get_position();
                 ROS_INFO("Original y: %lf", y_);
-                double yr = 0.299 / 2 - arm_pose_.y - length_from_parking_area_ * sin(arm_pose_.theta);
+                double yr = 0.225;
                 ROS_INFO("Real y: %lf", yr);
                 ROS_INFO("Real y - Original y: %lf", yr - y_);
-                MoveGoal goal;
-                goal.pose.x = length_from_parking_area_ * cos(arm_pose_.theta) +
-                              arm_pose_.x;
-                goal.pose.y = arm_pose_.y +
-                              length_from_parking_area_ * sin(arm_pose_.theta);
+                if (result->pme.pose.x != result->pme.not_change &&
+                    result->pme.pose.y != result->pme.not_change &&
+                    result->pme.pose.theta != result->pme.not_change)
+                {
+                    geometry_msgs::Pose2D pose = result->pme.pose;
+                    ac_move_.waitForServer();
+                    MoveGoal goal;
+                    goal.pose.theta = pose.theta;
+                    goal.pose.x = length_from_parking_area_ * cos(pose.theta) +
+                                  width_from_parking_area_ * sin(pose.theta) +
+                                  pose.x;
+                    goal.pose.y = pose.y +
+                                  length_from_parking_area_ * sin(pose.theta) -
+                                  width_from_parking_area_ * cos(pose.theta);
+                    goal.precision = true;
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(20), ros::Duration(0.1));
+                }
+                // 利用里程计停车
+                else if (!follower_.debug)
+                {
+                    ac_move_.waitForServer();
+                    // 先移动到停车区的下侧
+                    get_position();
+                    motion_controller::MoveGoal goal;
+                    goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                    double width = y_ - length_parking_area_ / 2;
+                    double length = (-x_) - length_parking_area_ / 2;
+                    goal.pose.x = length * cos(goal.pose.theta) +
+                                  width * sin(goal.pose.theta);
+                    goal.pose.y = length * sin(goal.pose.theta) -
+                                  width * cos(goal.pose.theta);
+                    goal.precision = true;
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(20), ros::Duration(0.1));
+                    // if (get_position())
+                    //     ROS_INFO_STREAM("Finish! x: " << (-x_ - length_parking_area_ / 2) << " y: " << (y_ - length_parking_area_ / 2));
+                    return;
+                }
                 // goal.pose.theta = arm_pose_.theta;
-                goal.precision = true;
-                ac_move_.sendGoalAndWait(goal, ros::Duration(20), ros::Duration(0.1));
                 if (follower_.debug)
                 {
                     {
@@ -810,31 +883,23 @@ namespace motion_controller
                         config_.startup = false;
                     }
                     dr_server_.updateConfig(config_);
-                    if (!timer_.hasStarted())
-                        timer_.start();
+                    timer_.start();
                 }
-                ROS_INFO("Time: %lf", (ros::WallTime::now() - time_start_).toSec());
+                else
+                    ROS_INFO("Time: %lf", (ros::WallTime::now() - time_start_).toSec());
                 return;
             }
+            if (follower_.debug)
+            {
+                {
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    config_.startup = false;
+                }
+                dr_server_.updateConfig(config_);
+                if (!timer_.hasStarted())
+                    timer_.start();
+            }
         }
-        // 利用里程计停车
-        // else if (where_is_car(follower_.debug, config_.startup) == route_parking_area)
-        // {
-        //     ac_move_.waitForServer();
-        //     // 先移动到停车区的下侧
-        //     get_position();
-        //     motion_controller::MoveGoal goal1;
-        //     goal1.pose.theta = angle_from_road();
-        //     goal1.pose.y = -(y_ - length_parking_area_ / 2);
-        //     ac_move_.sendGoalAndWait(goal1, ros::Duration(20), ros::Duration(0.1));
-        //     motion_controller::MoveGoal goal2;
-        //     get_position();
-        //     goal2.pose.x = -x_ - length_parking_area_ / 2;
-        //     ac_move_.sendGoalAndWait(goal2, ros::Duration(10), ros::Duration(0.1));
-        //     if (get_position())
-        //         ROS_INFO_STREAM("Finish! x: " << (-x_ - length_parking_area_ / 2) << " y: " << (y_ - length_parking_area_ / 2));
-        //     return;
-        // }
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Arm finished: " << state.toString());
         else
@@ -915,7 +980,8 @@ namespace motion_controller
     void MotionController::_move_feedback_callback(const motion_controller::MoveFeedbackConstPtr &feedback)
     {
         if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
-            where_is_car(follower_.debug, config_.startup) == route_border)
+            where_is_car(follower_.debug, config_.startup) == route_border ||
+            where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
             {
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
@@ -923,21 +989,28 @@ namespace motion_controller
                 move_time_ = ros::Time::now();
                 move_pose_ = feedback->pose_now;
             }
-            if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
-            {
-                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                if (!move_initialized_)
-                {
-                    move_initialized_ = true;
-                }
-                move_active_ = true;
-            }
+            _check_move_active();
         }
     }
 
     void MotionController::_move_done_callback(const actionlib::SimpleClientGoalState &state,
                                                const motion_controller::MoveResultConstPtr &result)
     {
+        if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+            where_is_car(follower_.debug, config_.startup) == route_border ||
+            where_is_car(follower_.debug, config_.startup) == route_parking_area)
+        {
+            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+            move_stamp_ = result->header.stamp;
+            if (move_stamp_.is_zero())
+            {
+                ROS_WARN("_move_done_callback: Stamp is zero!");
+                move_stamp_ = ros::Time::now();
+            }
+            move_time_ = ros::Time::now();
+            move_pose_ = result->pose_final;
+        }
+        _check_move_active();
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Move finished: " << state.toString());
         else
@@ -1064,6 +1137,7 @@ namespace motion_controller
         ros::Time now = ros::Time::now();
         // check which sensors are still active
         // 里程计/视觉活动：对接收时间进行比较 !is_zero()
+        // ROS_INFO_STREAM(now.toSec() << " " << move_time_.toSec() << " " << timeout_ << " " << move_active_);
         if (move_active_ && ((now - move_time_).toSec() > timeout_ || move_stamp_.is_zero()))
         {
             {
@@ -1073,7 +1147,7 @@ namespace motion_controller
             if (move_stamp_.is_zero())
                 ROS_WARN("Move feedback not active any more");
             else
-                ROS_WARN("Move feedback not active any more, timeout:%lf", (now - move_stamp_).toSec());
+                ROS_INFO("Move feedback not active any more, timeout:%lf", (now - move_stamp_).toSec());
         }
         if (arm_active_ && ((now - arm_time_).toSec() > timeout_ || arm_stamp_.is_zero()))
         {
@@ -1165,12 +1239,6 @@ namespace motion_controller
             return false;
         }
         ROS_INFO("5 %lf", ros::Time::now().toSec());
-        // 横向移动出停止区
-        motion_controller::MoveGoal goal1;
-        get_position();
-        goal1.pose.x = length_from_road(follower_.debug, config_.startup);
-        goal1.pose.y = 0.1;
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 发送二维码请求
         my_hand_eye::ArmGoal goal;
         goal.loop = loop_;
@@ -1178,6 +1246,12 @@ namespace motion_controller
         ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                          boost::bind(&MotionController::_arm_active_callback, this),
                          boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+        // 横向移动出停止区
+        motion_controller::MoveGoal goal1;
+        get_position();
+        goal1.pose.x = length_from_road(follower_.debug, config_.startup);
+        goal1.pose.y = 0.1;
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 横向移动出停止区
         // follower_.start(true, theta_, abs(length_from_road(follower_.debug, config_.startup)));
         get_position();

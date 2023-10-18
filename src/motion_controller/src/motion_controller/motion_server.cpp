@@ -78,10 +78,11 @@ namespace motion_controller
                     //     }
                     //     tme.end = false;
                     //     cmd_vel_publisher_.publish(tme);
-                    //     feedback.is_paning = false;
-                    //     feedback.pose_now = pose;
-                    //     feedback.header = header_;
-                    //     server_.publishFeedback(feedback);
+                    _get_pose_now(pose);
+                    feedback.is_paning = false;
+                    feedback.pose_now = pose;
+                    feedback.header = header_;
+                    server_.publishFeedback(feedback);
                     //     rate.sleep();
                     // }
 
@@ -185,7 +186,7 @@ namespace motion_controller
                     //     server_.publishFeedback(feedback);
                     //     rate.sleep();
                     // }
-
+                    _get_pose_now(pose);
                     TwistMightEnd tme;
                     tme.end = true;
                     tme.velocity = geometry_msgs::Twist();
@@ -232,6 +233,7 @@ namespace motion_controller
         _get_pose_now(pose);
         MoveResult result;
         result.pose_final = pose;
+        result.header = header_;
         ROS_INFO_STREAM("Move x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta);
         server_.setSucceeded(result, "Move success!");
         ROS_INFO("Move success!");
@@ -308,6 +310,11 @@ namespace motion_controller
         pose.x = pose_footprint.pose.position.x;
         pose.y = pose_footprint.pose.position.y;
         header_ = pose_footprint.header;
+        if (header_.stamp.is_zero())
+        {
+            ROS_WARN("_get_pose_now: Stamp is zero!");
+            header_.stamp = ros::Time::now();
+        }
         return true;
     }
 } // namespace motion_controller

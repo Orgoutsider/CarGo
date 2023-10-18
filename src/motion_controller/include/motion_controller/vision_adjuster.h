@@ -48,7 +48,7 @@ namespace motion_controller
         PIDControllerWithFilter pid_;
         // 机械手摄像头视觉信息订阅
         ros::Publisher cmd_vel_publisher_;
-        ros::Timer timer_;                    // 定时器利用odom信息
+        // ros::Timer timer_;                    // 定时器利用odom信息
         std::string target_frame_;            // 目标坐标系
         tf2_ros::Buffer buffer_;              // 创建一个缓冲
         tf2_ros::TransformListener listener_; // 用刚创建的缓冲Buffer来初始化创建一个TransformListener类的对象用于守听Transform消息。
@@ -59,7 +59,7 @@ namespace motion_controller
         // 动态参数
         dynamic_reconfigure::Server<params_PID_visionConfig> dr_server_;
         void _eye_callback(const my_hand_eye::Pose2DMightEndConstPtr &msg);
-        void _timer_callback(const ros::TimerEvent &event);
+        // void _timer_callback(const ros::TimerEvent &event);
         void _dr_callback(params_PID_visionConfig &config, uint32_t level);
         bool _add_pose_goal(const my_hand_eye::Pose2DMightEnd &pose);
         bool _get_pose_now(geometry_msgs::Pose2D &pose, ros::Time &stamp);

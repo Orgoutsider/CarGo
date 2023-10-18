@@ -35,7 +35,9 @@ namespace motion_controller
         double width_from_roughing_area_;       // 到粗加工区椭圆距离宽度方向
         double y_palletize_;                    // 码垛时纠正位置
         double width_palletize_;                // 到半成品区（码垛）距离宽度方向
-        double length_from_parking_area_;       // 到停车区距离
+        double length_from_parking_area_;       // 到停车区距离x
+        double width_from_parking_area_;        // 到停车区距离y
+        double length_parking_area_;            // 停车区边长
         double x_road_up_;                      // 从停车区上侧挡板到上路上沿
         double y_QR_code_board_;                // 二维码板
         double x_QR_code_board_;                // 为扫描二维码不行驶在路中心，而是距离车道线一定距离

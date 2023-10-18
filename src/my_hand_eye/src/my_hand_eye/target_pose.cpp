@@ -18,7 +18,7 @@ namespace my_hand_eye
 
         // pose[target_ellipse].theta = Angle(-5.632506667).rad();
         pose[target_ellipse].theta = Pose2DMightEnd::not_change;
-        Action ellipse = Action(0, 18.5, 0).front2left().arm2footprint();
+        Action ellipse = Action(0, 17, 0).front2left().arm2footprint();
         pose[target_ellipse].x = ellipse.x;
         pose[target_ellipse].y = ellipse.y;
 
@@ -36,14 +36,14 @@ namespace my_hand_eye
         tolerance[target_border].x = Pose2DMightEnd::not_change;
         tolerance[target_border].y = 0.01;
 
-        Action parking_area = Action(-2.024004444, 21.5, 0).arm2footprint();
-        pose[target_parking_area].theta = Angle(-5.934951026).rad();
+        Action parking_area = Action(6.01125125, 24.4274875, 0).arm2footprint();
+        pose[target_parking_area].theta = Angle(-4.99760375).rad();
         pose[target_parking_area].x = parking_area.x;
         pose[target_parking_area].y = parking_area.y;
 
-        tolerance[target_parking_area].theta = 0.01;
-        tolerance[target_parking_area].x = 0.02;
-        tolerance[target_parking_area].y = 0.02;
+        tolerance[target_parking_area].theta = 0.022;
+        tolerance[target_parking_area].x = 0.015;
+        tolerance[target_parking_area].y = 0.015;
     }
 
     bool TargetPose::calc(geometry_msgs::Pose2D &pose_arm, Pose2DMightEnd &pose_target, const int cnt_max)
