@@ -20,9 +20,56 @@ namespace my_hand_eye
         return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
     }
 
+    void Square::_square_point_delete(vector<Point>& approx_)
+    {
+        int approxSize = approx_.size();
+        while (approxSize > 4)
+        {
+            //定义边长结构体，lenth存放长度，point存放端点标号
+            struct _side_length
+            {
+                std::vector<int> lenth;
+                std::vector<cv::Point2i> point;
+            }side_length;
+            //计算边长长度
+            for (size_t i = 0; i < approxSize; i++)
+            {
+                side_length.lenth.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) + pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
+                side_length.point.push_back(Point(i, (i + 1) % approxSize));
+            }
+            //寻找最短边长的标号
+            int lenth_temp = side_length.lenth[0];
+            int lenth_flag = 0;//最短边长的标号
+            int point_flag = 0;//目标点的标号
+            for (size_t i = 0; i < approxSize; i++)
+            {
+                if (lenth_temp > side_length.lenth[i])
+                {
+                    lenth_flag = i;
+                    lenth_temp = side_length.lenth[i];
+                }
+            }
+            //比较最短边前一条边和后一条边的长度
+            int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1);//前一条边的序号
+            int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);//后一条边的序号
+            //得到目标点的标号
+            point_flag = 
+                side_length.lenth[front_side]
+                < side_length.lenth[back_side]
+                ? side_length.point[lenth_flag].x
+                : side_length.point[lenth_flag].y;
+            //删除目标点
+            approx_.erase(approx_.begin() + point_flag);
+            approxSize--;
+        }
+    }
+
     bool Square::_is_quadrilateral()
     {
-        return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
+        if(approx_.size() == 4 && isContourConvex(approx_))
+            return true;
+        else _square_point_delete(approx_);
+        //return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
     }
 
     bool Square::_is_rectangle()
