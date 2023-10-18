@@ -1,11 +1,10 @@
 #include<opencv.hpp>
 #include<iostream>
 #include"usings.hpp"
-using namespace cv;
-using namespace std;
 
-//½Ç¶È¼ÆËã
-static double angle(Point pt1, Point pt2, Point pt0)
+
+//è§’åº¦è®¡ç®—
+static double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
 {
 	double dx1 = pt1.x - pt0.x;
 	double dy1 = pt1.y - pt0.y;
@@ -14,36 +13,36 @@ static double angle(Point pt1, Point pt2, Point pt0)
 	return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
 
-//¾ØĞÎ»æÖÆ
-void square_drawing(Mat& Img, vector<vector<Point> > squares, int thickness)
+//çŸ©å½¢ç»˜åˆ¶
+void square_drawing(cv::Mat& Img, std::vector<std::vector<cv::Point> > squares, int thickness)
 {
 	for (size_t i = 0; i < squares.size(); i++)
 	{
-		const Point* p = &squares[i][0];
+		const cv::Point* p = &squares[i][0];
 
 		int n = (int)squares[i].size();
 		//dont detect the border
 		if (p->x > 3 && p->y > 3)
-			polylines(Img, &p, &n, 1, true, Scalar(0, 0, 255), thickness, LINE_AA);
+			polylines(Img, &p, &n, 1, true, cv::Scalar(0, 0, 255), thickness, cv::LINE_AA);
 	}
 }
 
-//ÀûÓÃ»Ò¶ÈĞÅÏ¢ÕÒ¾ØĞÎ
-bool square_find(Mat srcImg, vector<vector<Point>>& squares)
+//åˆ©ç”¨ç°åº¦ä¿¡æ¯æ‰¾çŸ©å½¢
+bool square_find(cv::Mat srcImg, std::vector<std::vector<cv::Point>>& squares)
 {
-	Mat srcGray = Saturation(srcImg, 50);
-	//»Ò¶È´¦Àí
-	cvtColor(srcGray, srcGray, COLOR_BGR2GRAY);
-	Mat srcbinary;
-	cv::threshold(srcGray, srcbinary, 0, 255, THRESH_OTSU | THRESH_BINARY_INV);
-	Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3), cv::Point(-1, -1));
-	morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // ±Õ²Ù×÷È¥³ıÔëµã
-	morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2); // ¿ª²Ù×÷È¥³ıÈ±¿Ú
-	//Ìí¼Ó±ß¿ò
-	Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
+	cv::Mat srcGray = Saturation(srcImg, 50);
+	//ç°åº¦å¤„ç†
+	cv::cvtColor(srcGray, srcGray, cv::COLOR_BGR2GRAY);
+	cv::Mat srcbinary;
+	cv::threshold(srcGray, srcbinary, 0, 255, cv::THRESH_OTSU | cv::THRESH_BINARY_INV);
+	cv::Mat kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(-1, -1));
+	morphologyEx(srcbinary, srcbinary, cv::MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // é—­æ“ä½œå»é™¤å™ªç‚¹
+	morphologyEx(srcbinary, srcbinary, cv::MORPH_OPEN, kernel, cv::Point(-1, -1), 2); // å¼€æ“ä½œå»é™¤ç¼ºå£
+	//æ·»åŠ è¾¹æ¡†
+	cv::Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
 	int rows = FImg.rows;
 	int cols = FImg.cols;
-	for (size_t i = 0; i < rows; i++)// ĞĞ´¦Àí
+	for (size_t i = 0; i < rows; i++)// è¡Œå¤„ç†
 	{
 		for (size_t j = 0; j < 1; j++)
 		{
@@ -51,7 +50,7 @@ bool square_find(Mat srcImg, vector<vector<Point>>& squares)
 			FImg.at<uchar>(i, cols - 1 - j) = 255;
 		}
 	}
-	for (size_t i = 0; i < cols; i++)// ÁĞ´¦Àí
+	for (size_t i = 0; i < cols; i++)// åˆ—å¤„ç†
 	{
 		for (size_t j = 0; j < 1; j++)
 		{
@@ -61,20 +60,20 @@ bool square_find(Mat srcImg, vector<vector<Point>>& squares)
 	}
 	bitwise_or(FImg, srcbinary, srcbinary);
 
-	Mat edges;
+	cv::Mat edges;
 	Canny(srcbinary, edges, 0, 50, 3, false);
 	std::vector<std::vector<cv::Point>> contours;
-	std::vector<Vec4i> hierarchy;
-	// ¼ì²âËùÓĞÂÖÀª,Ö»±£Áô¹ÕµãµÄĞÅÏ¢
-	findContours(edges, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE); 
-	vector<Point> approx;
+	std::vector<cv::Vec4i> hierarchy;
+	// æ£€æµ‹æ‰€æœ‰è½®å»“,åªä¿ç•™æ‹ç‚¹çš„ä¿¡æ¯
+	findContours(edges, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+	std::vector<cv::Point> approx;
 	if (contours.size())
 	{
 		for (size_t i = 0; i < contours.size(); i++)
 		{
-			approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true) * 0.03, true);
-			//µ÷ÊÔµÄÊ±ºò°ÑÂÖÀªÃæ»ıÅĞ¶Ï¸Ä³ÉÁË3000
-			if (approx.size() == 4 && fabs(contourArea(Mat(approx))) > 3000 && isContourConvex(Mat(approx)))
+			cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true) * 0.03, true);
+			//è°ƒè¯•çš„æ—¶å€™æŠŠè½®å»“é¢ç§¯åˆ¤æ–­æ”¹æˆäº†3000
+			if (approx.size() == 4 && fabs(cv::contourArea(cv::Mat(approx))) > 3000 && cv::isContourConvex(cv::Mat(approx)))
 			{
 				// find the maximum cosine of the angle between joint edges
 				double maxCosine = 0;
@@ -97,28 +96,28 @@ bool square_find(Mat srcImg, vector<vector<Point>>& squares)
 		return false;
 }
 
-//É¾³ı¶àÓàµã
-void square_point_delete(vector<Point>& approx)
+//åˆ é™¤å¤šä½™ç‚¹
+void square_point_delete(std::vector<cv::Point>& approx)
 {
 	int approxSize = approx.size();
 	while (approxSize > 4)
 	{
-		//¶¨Òå±ß³¤½á¹¹Ìå£¬lenth´æ·Å³¤¶È£¬point´æ·Å¶Ëµã±êºÅ
+		//å®šä¹‰è¾¹é•¿ç»“æ„ä½“ï¼Œlenthå­˜æ”¾é•¿åº¦ï¼Œpointå­˜æ”¾ç«¯ç‚¹æ ‡å·
 		struct _side_length
 		{
-			vector<int> lenth;
-			vector<Point2i> point;
+			std::vector<int> lenth;
+			std::vector<cv::Point2i> point;
 		}side_length;
-		//¼ÆËã±ß³¤³¤¶È
+		//è®¡ç®—è¾¹é•¿é•¿åº¦
 		for (size_t i = 0; i < approxSize; i++)
 		{
 			side_length.lenth.push_back(sqrt(pow((approx[i].x - approx[(i + 1) % approxSize].x), 2) + pow((approx[i].y - approx[(i + 1) % approxSize].y), 2)));
-			side_length.point.push_back(Point(i, (i + 1) % approxSize));
+			side_length.point.push_back(cv::Point(i, (i + 1) % approxSize));
 		}
-		//Ñ°ÕÒ×î¶Ì±ß³¤µÄ±êºÅ
+		//å¯»æ‰¾æœ€çŸ­è¾¹é•¿çš„æ ‡å·
 		int lenth_temp = side_length.lenth[0];
-		int lenth_flag = 0;//×î¶Ì±ß³¤µÄ±êºÅ
-		int point_flag = 0;//Ä¿±êµãµÄ±êºÅ
+		int lenth_flag = 0;//æœ€çŸ­è¾¹é•¿çš„æ ‡å·
+		int point_flag = 0;//ç›®æ ‡ç‚¹çš„æ ‡å·
 		for (size_t i = 0; i < approxSize; i++)
 		{
 			if (lenth_temp > side_length.lenth[i])
@@ -127,47 +126,47 @@ void square_point_delete(vector<Point>& approx)
 				lenth_temp = side_length.lenth[i];
 			}
 		}
-		//±È½Ï×î¶Ì±ßÇ°Ò»Ìõ±ßºÍºóÒ»Ìõ±ßµÄ³¤¶È
-		int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1);//Ç°Ò»Ìõ±ßµÄĞòºÅ
-		int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);//ºóÒ»Ìõ±ßµÄĞòºÅ
-		//µÃµ½Ä¿±êµãµÄ±êºÅ
+		//æ¯”è¾ƒæœ€çŸ­è¾¹å‰ä¸€æ¡è¾¹å’Œåä¸€æ¡è¾¹çš„é•¿åº¦
+		int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1);//å‰ä¸€æ¡è¾¹çš„åºå·
+		int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);//åä¸€æ¡è¾¹çš„åºå·
+		//å¾—åˆ°ç›®æ ‡ç‚¹çš„æ ‡å·
 		point_flag = 
 			  side_length.lenth[front_side]
 			< side_length.lenth[back_side]
 			? side_length.point[lenth_flag].x
 			: side_length.point[lenth_flag].y;
-		//É¾³ıÄ¿±êµã
+		//åˆ é™¤ç›®æ ‡ç‚¹
 		approx.erase(approx.begin() + point_flag);
 		approxSize--;
 	}
 }
 
-// Ê¹ÓÃÑÕÉ«ĞÅÏ¢ÕÒ¾ØĞÎ
-// Èç¹ûÕÒ²»µ½£¬¾ÍÕÒ³ö×î´óµÄÂÖÀª£¬²¢½øĞĞÉ¾µã²Ù×÷£¬×îºóµÃµ½ËÄ±ßĞÎ
-bool square_find_color(Mat srcImg, vector<vector<Point> >& squares)
+// ä½¿ç”¨é¢œè‰²ä¿¡æ¯æ‰¾çŸ©å½¢
+// å¦‚æœæ‰¾ä¸åˆ°ï¼Œå°±æ‰¾å‡ºæœ€å¤§çš„è½®å»“ï¼Œå¹¶è¿›è¡Œåˆ ç‚¹æ“ä½œï¼Œæœ€åå¾—åˆ°å››è¾¹å½¢
+bool square_find_color(cv::Mat srcImg, std::vector<std::vector<cv::Point>>& squares)
 {
 	//Low of S can be adjusted. High of S and V must be set to 255.
-	Scalar low_Area_Color = Scalar(70, 20, 10);
-	Scalar high_Area_Color = Scalar(145, 255, 255);
+	cv::Scalar low_Area_Color = cv::Scalar(70, 20, 10);
+	cv::Scalar high_Area_Color = cv::Scalar(145, 255, 255);
 
-	Mat srcHSV;
-	cvtColor(srcImg, srcHSV, COLOR_BGR2HSV);
-	Mat StopArea;
-	inRange(srcHSV, low_Area_Color, high_Area_Color, StopArea);
+	cv::Mat srcHSV;
+	cv::cvtColor(srcImg, srcHSV, cv::COLOR_BGR2HSV);
+	cv::Mat StopArea;
+	cv::inRange(srcHSV, low_Area_Color, high_Area_Color, StopArea);
 	//imshow("HSV", StopArea);
 
 	std::vector<std::vector<cv::Point>> contours;
-	std::vector<Vec4i> hierarchy;
-	// ¼ì²â×îÍâÎ§ÂÖÀª,Ö»±£Áô¹ÕµãµÄĞÅÏ¢
-	findContours(StopArea, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-	vector<Point> approx;
+	std::vector<cv::Vec4i> hierarchy;
+	// æ£€æµ‹æœ€å¤–å›´è½®å»“,åªä¿ç•™æ‹ç‚¹çš„ä¿¡æ¯
+	findContours(StopArea, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+	std::vector<cv::Point> approx;
 	if (contours.size())
 	{
-		//ÕÒ¾ØĞÎ
+		//æ‰¾çŸ©å½¢
 		for (size_t i = 0; i < contours.size(); i++)
 		{
-			approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true) * 0.03, true);
-			if (approx.size() == 4 && fabs(contourArea(Mat(approx))) > 1000 && isContourConvex(Mat(approx)))
+			cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true) * 0.03, true);
+			if (approx.size() == 4 && fabs(cv::contourArea(cv::Mat(approx))) > 1000 && cv::isContourConvex(cv::Mat(approx)))
 			{
 				double maxCosine = 0;
 				for (int j = 2; j < 5; j++)
@@ -184,7 +183,7 @@ bool square_find_color(Mat srcImg, vector<vector<Point> >& squares)
 		return true;
 	else
 	{
-		//ÕÒµ½×î´óµÄÂÖÀª
+		//æ‰¾åˆ°æœ€å¤§çš„è½®å»“
 		if (contours.size())
 		{
 			double countersArea_temp = contourArea(contours[0]);
@@ -197,9 +196,9 @@ bool square_find_color(Mat srcImg, vector<vector<Point> >& squares)
 					MaxAreaNum = i;
 				}
 			}
-			//¶à±ßĞÎÄâºÏ
-			vector<Point> approx;
-			approxPolyDP(Mat(contours[MaxAreaNum]), approx, arcLength(Mat(contours[MaxAreaNum]), true) * 0.03, true);
+			//å¤šè¾¹å½¢æ‹Ÿåˆ
+			std::vector<cv::Point> approx;
+			cv::approxPolyDP(cv::Mat(contours[MaxAreaNum]), approx, cv::arcLength(cv::Mat(contours[MaxAreaNum]), true) * 0.03, true);
 			square_point_delete(approx);
 			squares.push_back(approx);
 		}
@@ -208,23 +207,23 @@ bool square_find_color(Mat srcImg, vector<vector<Point> >& squares)
 	return true;
 }
 
-void ParkingAreaTarget(Mat srcImg)
+void ParkingAreaTarget(cv::Mat srcImg)
 {
-	//ÂË²¨´¦Àí
-	resize(srcImg, srcImg, Size(srcImg.cols / 4, srcImg.rows / 4));
-	GaussianBlur(srcImg, srcImg, Size(3, 3), 0, 0);
+	//æ»¤æ³¢å¤„ç†
+	cv::resize(srcImg, srcImg, cv::Size(srcImg.cols / 4, srcImg.rows / 4));
+	cv::GaussianBlur(srcImg, srcImg, cv::Size(3, 3), 0, 0);
 
-	//ÉèÖÃ¾ØĞÎÈİÆ÷²¢Ñ°ÕÒ¾ØĞÎ
-	vector<vector<Point>> squares;
+	//è®¾ç½®çŸ©å½¢å®¹å™¨å¹¶å¯»æ‰¾çŸ©å½¢
+	std::vector<std::vector<cv::Point>> squares;
 	if (square_find(srcImg, squares))
 	{
-		putText(srcImg, "square find by GRAY", Point(30, 50), FONT_HERSHEY_PLAIN, 3, Scalar(200, 200, 50), 2, 8);
+		cv::putText(srcImg, "square find by GRAY", cv::Point(30, 50), cv::FONT_HERSHEY_PLAIN, 3, cv::Scalar(200, 200, 50), 2, 8);
 		//cout << "square find by GRAY" << endl;
 		square_drawing(srcImg, squares, 1);
 	}
 	else if(square_find_color(srcImg, squares))
 	{
-		putText(srcImg, "square find by COLOR", Point(30, 50), FONT_HERSHEY_PLAIN, 3, Scalar(50, 200, 200), 2, 8);
+		cv::putText(srcImg, "square find by COLOR", cv::Point(30, 50), cv::FONT_HERSHEY_PLAIN, 3, cv::Scalar(50, 200, 200), 2, 8);
 		//cout << "square find by COLOR" << endl;
 		square_drawing(srcImg, squares, 1);
 	}
@@ -234,8 +233,8 @@ void ParkingAreaTarget(Mat srcImg)
 
 void ParkingAreaTarget_()
 {
-	int name_c = 9;
-	vector<String> Img_names;
+	int name_c = 1;
+	std::vector<cv::String> Img_names;
 	const char* name_1 = "E:\\CodeRepositories\\opencv_test\\car\\light\\light";
 	const char* name_2 = ".jpg";
 
@@ -246,7 +245,7 @@ void ParkingAreaTarget_()
 		Img_names.push_back(name);
 	}
 
-	Mat Img = imread(Img_names[name_c]);
+	cv::Mat Img = cv::imread(Img_names[name_c]);
 	if (Img.empty())
 		return;
 	//imshow("origin", Img);
