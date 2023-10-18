@@ -200,6 +200,11 @@ namespace my_hand_eye
         return sqrt(x * x + (y + ARM_P) * (y + ARM_P));
     }
 
+    bool Action::near(const Action &t) const
+    {
+        return abs(x - t.x) < 0.5 && abs(y - t.y) < 0.5 && abs(z - t.z) < 0.5;
+    }
+
     Axis::Axis() : expand_y(false) {}
 
     double Axis::L(double alpha)
@@ -411,7 +416,7 @@ namespace my_hand_eye
                 ROS_WARN("forward_kinematics: Result invalid!");
                 return false;
             }
-            else if (std::abs(tx - x) > 0.5 || std::abs(ty - y) > 0.5 || std::abs(tz - z) > 0.5)
+            else if (!near(Action(tx, ty, tz)))
             {
                 ROS_ERROR("Forward kinematics error! tx:%lf ty:%lf tz:%lf x:%lf y:%lf z:%lf",
                           tx, ty, tz, x, y, z);
