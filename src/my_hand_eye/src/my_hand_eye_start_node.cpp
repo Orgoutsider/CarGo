@@ -9,8 +9,8 @@ int main(int argc, char *argv[])
     ros::NodeHandle pnh("~");
     // pnh.setParam("emulation", true);
     controller.init(nh, pnh);
-    // controller.start(true);
+    controller.start();
     // controller.ready(false);
-    // controller.start(false);
+    // controller.start();
     return 0;
 }

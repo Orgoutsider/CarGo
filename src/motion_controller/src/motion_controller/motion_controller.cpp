@@ -1232,12 +1232,6 @@ namespace motion_controller
             return false;
         }
         ROS_INFO("5 %lf", ros::Time::now().toSec());
-        // 横向移动出停止区
-        motion_controller::MoveGoal goal1;
-        get_position();
-        goal1.pose.x = length_from_road(follower_.debug, config_.startup);
-        goal1.pose.y = 0.1;
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 发送二维码请求
         my_hand_eye::ArmGoal goal;
         goal.loop = loop_;
@@ -1245,6 +1239,12 @@ namespace motion_controller
         ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                          boost::bind(&MotionController::_arm_active_callback, this),
                          boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+        // 横向移动出停止区
+        motion_controller::MoveGoal goal1;
+        get_position();
+        goal1.pose.x = length_from_road(follower_.debug, config_.startup);
+        goal1.pose.y = 0.1;
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 横向移动出停止区
         // follower_.start(true, theta_, abs(length_from_road(follower_.debug, config_.startup)));
         get_position();

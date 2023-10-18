@@ -38,7 +38,7 @@ namespace my_hand_eye
         u8 ACC[6];
         u8 Id[6];
         const s16 Position_raise_;
-        const s16 Position_front_;
+        // const s16 Position_front_;
         SMS_STS *sm_st_ptr_; // 舵机
         SCSCL *sc_ptr_;
         CargoTable cargo_table_;

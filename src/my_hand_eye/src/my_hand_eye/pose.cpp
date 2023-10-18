@@ -10,10 +10,10 @@ namespace my_hand_eye
     Pos::Pos(SMS_STS *sm_st_ptr, SCSCL *sc_ptr, bool cat, bool look) : tightness(cat), look_(look),
                                                                        correction(false),
                                                                        Position_raise_(1220),
-                                                                       Position_front_(1270),
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr),
                                                                        Id{0, 1, 2, 3, 4, 5}
+                                                                    //    Position_front_(1270),
     {
         memset(Position, 0, sizeof(Position));
         memset(Position_now, 0, sizeof(Position_now));
@@ -162,7 +162,7 @@ namespace my_hand_eye
         bool valid = refresh_xyz(); // 此时xyz为当前值
         bool flag1 = (this->y) < 0;
         bool flag2 = (this->z) < 11;
-        // bool flag3 = near(action_start);
+        bool flag3 = near(action_start);
         this->x = x;
         this->y = y;
         this->z = z; // 此时xyz为目标值
@@ -191,20 +191,14 @@ namespace my_hand_eye
                 rst_time_ = ros::Time::now() - ros::Duration(5.0);
                 return valid;
             }
-            // if (flag1 && !flag2 && flag3) // 起始位置
-            // {
-            //     sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
-            //     sm_st_ptr_->WritePosEx(4, Position[4], Speed[4], ACC[4]);
-            //     u8 ID1[] = {4};
-            //     wait_until_arriving(ID1, 1, 200);
-            //     sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
-            //     u8 ID2[] = {3};
-            //     wait_until_arriving(ID2, 1, 200);
-            //     sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
-            //     cargo_table_.reset();
-            //     wait_until_static(ID, 5);
-            // }
-            if (Position[2] >= Position_now[2] && flag1 && !flag2) // 转盘
+            if (flag1 && !flag2 && flag3) // 起始位置
+            {
+                sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+                sm_st_ptr_->SyncWritePosEx(Id + 2, 3, Position + 2, Speed + 2, ACC + 2);
+                cargo_table_.reset();
+                wait_until_static(ID, 5);
+            }
+            else if (Position[2] >= Position_now[2] && flag1 && !flag2) // 转盘
             // 第2关节位置靠前，最后移动第2关节
             {
                 if (Position[3] >= Position_now[3]) // 第23关节位置靠前，最后移动第23关节
