@@ -6,7 +6,7 @@ namespace my_hand_eye
 
     Square::Square(std::vector<cv::Point> &contour)
     {
-        cv::approxPolyDP(contour, approx_, cv::arcLength(contour, true) * 0.02, true); // 多边形拟合
+        cv::approxPolyDP(contour, approx_, cv::arcLength(contour, true) * 0.03, true); // 多边形拟合
         length = cv::arcLength(approx_, true) / 4;
         area = fabs(cv::contourArea(approx_));
     }
@@ -20,45 +20,43 @@ namespace my_hand_eye
         return (dx1 * dx2 + dy1 * dy2) / sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
     }
 
-    void Square::_square_point_delete(std::vector<cv::Point>& approx_)
+    void Square::_square_point_delete()
     {
         int approxSize = approx_.size();
         while (approxSize > 4)
         {
-            //定义边长结构体，lenth存放长度，point存放端点标号
-            struct _side_length
-            {
-                std::vector<int> lenth;
-                std::vector<cv::Point2i> point;
-            }side_length;
-            //计算边长长度
+            // lenth存放长度，point存放端点标号
+            std::vector<int> lenth;
+            std::vector<cv::Point2i> point;
+
+            // 计算边长长度
             for (size_t i = 0; i < approxSize; i++)
             {
-                side_length.lenth.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) + pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
-                side_length.point.push_back(cv::Point(i, (i + 1) % approxSize));
+                lenth.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) +
+                                     pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
+                point.push_back(cv::Point(i, (i + 1) % approxSize));
             }
-            //寻找最短边长的标号
-            int lenth_temp = side_length.lenth[0];
-            int lenth_flag = 0;//最短边长的标号
-            int point_flag = 0;//目标点的标号
+            // 寻找最短边长的标号
+            int lenth_temp = lenth[0];
+            int lenth_flag = 0; // 最短边长的标号
+            int point_flag = 0; // 目标点的标号
             for (size_t i = 0; i < approxSize; i++)
             {
-                if (lenth_temp > side_length.lenth[i])
+                if (lenth_temp > lenth[i])
                 {
                     lenth_flag = i;
-                    lenth_temp = side_length.lenth[i];
+                    lenth_temp = lenth[i];
                 }
             }
-            //比较最短边前一条边和后一条边的长度
-            int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1);//前一条边的序号
-            int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);//后一条边的序号
-            //得到目标点的标号
-            point_flag = 
-                side_length.lenth[front_side]
-                < side_length.lenth[back_side]
-                ? side_length.point[lenth_flag].x
-                : side_length.point[lenth_flag].y;
-            //删除目标点
+            // 比较最短边前一条边和后一条边的长度
+            int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1); // 前一条边的序号
+            int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);  // 后一条边的序号
+            // 得到目标点的标号
+            point_flag =
+                lenth[front_side] < lenth[back_side]
+                    ? point[lenth_flag].x
+                    : point[lenth_flag].y;
+            // 删除目标点
             approx_.erase(approx_.begin() + point_flag);
             approxSize--;
         }
@@ -66,10 +64,14 @@ namespace my_hand_eye
 
     bool Square::_is_quadrilateral()
     {
-        if(approx_.size() == 4 && isContourConvex(approx_))
+        if (approx_.size() == 4 && isContourConvex(approx_))
             return true;
-        else _square_point_delete(approx_);
-        //return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
+        else if (approx_.size() > 4)
+        {
+            _square_point_delete();
+            return isContourConvex(approx_);
+        }
+        // return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
     }
 
     bool Square::_is_rectangle()
@@ -136,6 +138,64 @@ namespace my_hand_eye
                 // best_id = i;
             }
         }
+    }
+
+    cv::Mat SquareMethod::square_find(const cv::Mat &img)
+    {
+        using namespace cv;
+        Mat srcgray;
+        cvtColor(img, srcgray, COLOR_BGR2GRAY); // 灰度转换
+        // imshow("gray", srcgray);
+        // waitKey(1);
+        Mat srcbinary;
+        cv::threshold(srcgray, srcbinary, 0, 255, THRESH_OTSU | THRESH_BINARY); // 阈值化
+        // imshow("threshold", srcbinary);
+        // waitKey(1);
+        Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
+        morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除噪点
+        morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2);  // 开操作去除缺口
+        // 保证轮廓封闭
+        Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
+        int rows = FImg.rows;
+        int cols = FImg.cols;
+        // 行处理
+        for (size_t i = 0; i < rows; i++)
+        {
+            for (size_t j = 0; j < 1; j++)
+            {
+                FImg.at<uchar>(i, j) = 255;
+                // FImg.at<uchar>(i, cols - 1 - j) = 255;
+            }
+        }
+        // 列处理
+        for (size_t i = 0; i < cols; i++)
+        {
+            for (size_t j = 0; j < 1; j++)
+            {
+                FImg.at<uchar>(j, i) = 255;
+                FImg.at<uchar>(rows - 1 - j, i) = 255;
+            }
+        }
+        bitwise_or(FImg, srcbinary, srcbinary);
+        // imshow("MORPH_OPEN", srcbinary);
+        // waitKey(1);
+        Mat edges;
+        Canny(srcbinary, edges, 0, 50, 3, false); // 查找边缘
+        // imshow("edges", edges);
+        // waitKey(1);
+        return edges;
+    }
+
+    cv::Mat SquareMethod::square_find_color(const cv::Mat &img)
+    {
+        // Low of S can be adjusted.High of S and V must be set to 255. 
+        cv::Scalar low_Area_Color = cv::Scalar(70, 20, 10);
+        cv::Scalar high_Area_Color = cv::Scalar(145, 255, 255);
+        cv::Mat srcHSV;
+        cv::cvtColor(img, srcHSV, cv::COLOR_BGR2HSV);
+        cv::Mat StopArea;
+        cv::inRange(srcHSV, low_Area_Color, high_Area_Color, StopArea);
+        return StopArea;
     }
 
 } // namespace my_hand_eye
