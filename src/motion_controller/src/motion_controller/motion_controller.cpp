@@ -600,7 +600,7 @@ namespace motion_controller
         if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
             where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
-            if (feedback->pme.end)
+            if (feedback->pme.end && where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
             {
                 if (timer_.hasStarted())
                     timer_.stop();

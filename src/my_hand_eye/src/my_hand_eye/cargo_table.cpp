@@ -3,7 +3,7 @@
 namespace my_hand_eye
 {
     CargoTable::CargoTable(SMS_STS *sm_st_ptr)
-        : ID(6), where_(2), where_last_(2),
+        : ID(6), where_(0), where_last_(0),
           sm_st_ptr_(sm_st_ptr), rst_(false), clockwise_(true),
           what_color_({0}), where_cargo_({-1, -1, -1, -1}) {}
 
@@ -49,7 +49,7 @@ namespace my_hand_eye
     void CargoTable::midpoint()
     {
         where_last_ = where_;
-        where_ = 0;
+        where_ = 1;
         sm_st_ptr_->WritePosEx(ID, 0.5 * ARM_CARGO_TABLE_POS_WHEN_DEG120, Speed, ACC);
     }
 
