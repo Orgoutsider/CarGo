@@ -64,16 +64,16 @@ namespace my_hand_eye
 
     bool Square::_is_quadrilateral()
     {
-        if (approx_.size() == 4 && isContourConvex(approx_))
-            return true;
-        else if (approx_.size() > 4)
-        {
-            _square_point_delete();
-            return isContourConvex(approx_);
-        }
-        else
-            return false;
-        // return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
+        // if (approx_.size() == 4 && isContourConvex(approx_))
+        //     return true;
+        // else if (approx_.size() > 4)
+        // {
+        //     _square_point_delete();
+        //     return isContourConvex(approx_);
+        // }
+        // else
+        //     return false;
+        return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
     }
 
     bool Square::_is_rectangle()
