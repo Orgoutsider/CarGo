@@ -11,6 +11,7 @@ namespace my_hand_eye
 		pnh_.param<std::string>("transport_hint", transport_hint_, "raw");
 		pnh_.param<bool>("show_detections", arm_controller_.show_detections, false);
 		pnh_.param<bool>("debug", debug_, false);
+		pnh_.param<int>("mode", mode_, debug_default);
 		if (debug_)
 			dr_server_.setCallback(boost::bind(&ArmServer::dr_callback, this, _1, _2));
 		else
@@ -81,55 +82,74 @@ namespace my_hand_eye
 
 	void ArmServer::image_callback(const sensor_msgs::ImageConstPtr &image_rect)
 	{
-		if (arm_controller_.ready_yolo(image_rect) && task_subscriber_)
-		{
-			camera_image_subscriber_.shutdown();
-			return;
-		}
-		if (!as_.isActive())
-			return;
 		sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		bool valid = false;
-		switch (arm_goal_.route)
+		switch (mode_)
 		{
-		case arm_goal_.route_rest:
-			return;
+		case debug_default:
+			if (arm_controller_.ready_yolo(image_rect) && task_subscriber_)
+			{
+				camera_image_subscriber_.shutdown();
+				return;
+			}
+			if (!as_.isActive())
+				return;
+			switch (arm_goal_.route)
+			{
+			case arm_goal_.route_rest:
+				return;
 
-		case arm_goal_.route_QR_code_board:
-			ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
-			return;
+			case arm_goal_.route_QR_code_board:
+				ROS_WARN_ONCE("When using QR code. Please set given_QR_code to true");
+				return;
 
-		case arm_goal_.route_raw_material_area:
-			valid = operate_center(image_rect, debug_image);
+			case arm_goal_.route_raw_material_area:
+				operate_center(image_rect, debug_image);
+				break;
+
+			case arm_goal_.route_roughing_area:
+				operate_ellipse(image_rect, debug_image);
+				break;
+
+			case arm_goal_.route_semi_finishing_area:
+				operate_ellipse(image_rect, debug_image);
+				break;
+
+			case arm_goal_.route_parking_area:
+				operate_parking_area(image_rect, debug_image);
+				break;
+
+			case arm_goal_.route_border:
+				operate_border(image_rect, debug_image);
+				break;
+
+			default:
+				return;
+			}
 			break;
 
-		case arm_goal_.route_roughing_area:
-			valid = operate_ellipse(image_rect, debug_image);
+		case debug_cargo:
+			// 输出检测物料位置
+			arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse,
+									  debug_image, false, true);
 			break;
 
-		case arm_goal_.route_semi_finishing_area:
-			valid = operate_ellipse(image_rect, debug_image);
+		case debug_ellipse:
+			arm_controller_.log_ellipse(image_rect, color_blue, debug_image, true);
 			break;
 
-		case arm_goal_.route_parking_area:
-			valid = operate_parking_area(image_rect, debug_image);
+		case debug_border:
+			arm_controller_.log_border(image_rect, debug_image);
 			break;
 
-		case arm_goal_.route_border:
-			valid = operate_border(image_rect, debug_image);
-			break;
+		case debug_parking_area:
+			arm_controller_.log_parking_area(image_rect, debug_image);
 
 		default:
-			return;
+			ROS_WARN("Invalid mode %d", mode_);
+			break;
 		}
 		if (arm_controller_.show_detections && debug_image->height)
 			debug_image_publisher_.publish(debug_image);
-
-		// 输出检测物料位置
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse, debug_image, false, true);
-		// if (arm_controller_.show_detections && debug_image->height)
-		// 	debug_image_publisher_.publish(debug_image);
 
 		// 外参校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
@@ -148,27 +168,9 @@ namespace my_hand_eye
 		// 		debug_image_publisher_.publish(debug_image);
 		// }
 
-		// 椭圆识别
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_ellipse(image_rect, color_blue, debug_image, true);
-		// if (arm_controller_.show_detections && debug_image->height)
-		// 	debug_image_publisher_.publish(debug_image);
-
 		// z校正
 		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
 		// arm_controller_.log_z_correction(image_rect, {0.15, -0.65}, {0.14, -0.5}, {0, -0.46}, debug_image);
-		// if (arm_controller_.show_detections && debug_image->height)
-		// 	debug_image_publisher_.publish(debug_image);
-
-		// 边界线查找
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_border(image_rect, debug_image);
-		// if (arm_controller_.show_detections && debug_image->height)
-		// 	debug_image_publisher_.publish(debug_image);
-
-		// 停车区查找
-		// sensor_msgs::ImagePtr debug_image = boost::shared_ptr<sensor_msgs::Image>(new sensor_msgs::Image());
-		// arm_controller_.log_parking_area(image_rect, debug_image);
 		// if (arm_controller_.show_detections && debug_image->height)
 		// 	debug_image_publisher_.publish(debug_image);
 	}
