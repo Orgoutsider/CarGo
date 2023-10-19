@@ -57,6 +57,8 @@ namespace motion_controller
         void _check_arm_active();
         // 检查arm pose 不改变
         void _check_arm_pose(const my_hand_eye::Pose2DMightEnd &pme);
+        // 检查move ac活跃
+        void _check_move_active();
         void _arm_done_callback(const actionlib::SimpleClientGoalState &state,
                                 const my_hand_eye::ArmResultConstPtr &result);
         void _arm_active_callback();

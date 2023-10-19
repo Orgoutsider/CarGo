@@ -67,7 +67,6 @@ namespace my_hand_eye
 			if (!as_.isActive())
 				return;
 			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			arm_controller_.ready(arm_goal_.left_ready);
 			arm_goal_.route = arm_goal_.route_rest;
 		}
 		tasks_ = *task;
@@ -191,9 +190,7 @@ namespace my_hand_eye
 			break;
 
 		case arm_goal_.route_QR_code_board:
-			// if (!task_subscriber_)
-			// 	task_subscriber_ = nh_.subscribe<my_hand_eye::ArrayofTaskArrays>(
-			// 		"/task", 10, &ArmServer::task_callback, this);
+			arm_controller_.ready(arm_goal_.left_ready);
 			break;
 
 		case arm_goal_.route_raw_material_area:

@@ -10,7 +10,7 @@ namespace motion_controller
     LineFollower::LineFollower(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         : front_back_(false), front_left_(true), // 初始向左移动
           kp_(4.05), ki_(0), kd_(0.2),
-          kp_adjust_(3.8), ki_adjust_(0), kd_adjust_(0.4),
+          kp_adjust_(3.4), ki_adjust_(0), kd_adjust_(0.5),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}), bezier_ratio_(3),
           vel_max_(0.7), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.02)
     {
@@ -120,7 +120,7 @@ namespace motion_controller
                                      {theta_adjust ? ki_adjust_ : ki_},
                                      {theta_adjust ? kd_adjust_ : kd_},
                                      {theta_adjust ? thresh_adjust_ : 0.01}, {0.1},
-                                     {theta_adjust ? 0.65 : 0.5});
+                                     {theta_adjust ? 0.75 : 0.5});
                 target_theta_ = theta;
                 if (!theta_adjust)
                 {
@@ -184,8 +184,8 @@ namespace motion_controller
                         vel_n = sqrt(2 * acc_ * (dist_start_ - dist)) * 0.6 + 0.4 * vel_max_;
                     else if (dist < 0.1)
                         vel_n = 0;
-                    else if (dist < length_ + 0.05)
-                        vel_n = std::max(sqrt(2 * acc_ * (dist - 0.05)) * 1.2 - 0.2 * vel_max_, 0.1);
+                    else if (dist < length_ + 0.1)
+                        vel_n = std::max(sqrt(2 * acc_ * (dist - 0.1)), 0.1);
                 }
                 // ROS_INFO("%lf %lf %lf %lf", vel_n, dist, dist_start_, length_);
                 // 需要增加一个负号来修正update的结果
@@ -290,7 +290,7 @@ namespace motion_controller
                 {
                     publish_vel(0.1, (dist_l > 0 ? 0.1 : -0.1), -control[0]);
                     return false;
-                } 
+                }
                 double vel_1 = 0.1;
                 Point2d p0(0, 0);
                 Point2d p1(bezier_length_, 0);
@@ -325,48 +325,19 @@ namespace motion_controller
     {
         bool success = false;
         std::vector<double> control;
-        // static bool rst = true;
         if (has_started)
         {
             ROS_INFO_STREAM("Adjusting ... theta: " << theta);
-            static ros::Time time;
+            static int cnt = 0;
             if ((dist < 0) && !debug)
             {
                 ROS_ERROR("Invalid dist: %lf", dist);
-                // boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                // rst = true;
                 return true;
             }
-            // if (rst)
-            // {
-            //     boost::lock_guard<boost::recursive_mutex> lk(mtx);
-            //     time = now;
-            //     rst = false;
-            // }
             if (dist < 0.1)
             {
-                // ROS_WARN("Arrived when adjusting.");
-                // boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                // rst = true;
                 return true;
             }
-            // if ((now - time).toSec() >= 5)
-            // {
-            //     ROS_WARN("Adjust timeout!");
-            //     if (dist < 0)
-            //     {
-            //         ROS_ERROR("Invalid dist: %lf", dist);
-            //         return false;
-            //     }
-            //     // start(false);
-            //     boost::lock_guard<boost::recursive_mutex> lk(mtx);
-            //     pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
-            //     rst = true;
-            //     vel_ = std::min(vel_max_, sqrt(acc_ * dist));
-            //     length_ = (vel_ * vel_) / (2 * acc_);
-            //     dist_start_ = dist;
-            //     return true;
-            // }
             // 将theta限制在target_theta_周围，防止不当的error
             limit_theta(theta);
             bool flag = false;
@@ -378,30 +349,36 @@ namespace motion_controller
             {
                 double vel_1 = 0.1 * cos(target_theta_ - theta);
                 double vel_2 = 0.1 * sin(target_theta_ - theta);
-                publish_vel(vel_1, vel_2, -control[0]);
                 if (success)
                 {
-                    ROS_INFO("Adjust success!");
-                    if (dist < 0)
+                    if ((++cnt) >= 2)
                     {
-                        ROS_ERROR("Invalid dist: %lf", dist);
-                        return false;
+                        publish_vel(0.1, 0, 0);
+                        ROS_INFO("Adjust success!");
+                        boost::lock_guard<boost::recursive_mutex> lk(mtx);
+                        pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
+                        pid_.update({theta}, now, control, success);
+                        // rst = true;
+                        vel_ = std::min(vel_max_, sqrt(acc_ * dist));
+                        length_ = (vel_ * vel_) / (2 * acc_);
+                        dist_start_ = dist;
+                        return true;
                     }
-                    boost::lock_guard<boost::recursive_mutex> lk(mtx);
-                    pid_ = PIDController({theta}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5});
-                    // rst = true;
-                    vel_ = std::min(vel_max_, sqrt(acc_ * dist));
-                    length_ = (vel_ * vel_) / (2 * acc_);
-                    dist_start_ = dist;
-                    // start(false);
+                    else
+                        publish_vel(vel_1, vel_2, -control[0]);
+                }
+                else
+                {
+                    publish_vel(vel_1, vel_2, -control[0]);
+                    if (cnt)
+                        cnt = 0;
                 }
             }
         }
         else
         {
             ROS_WARN_ONCE("Attempted to use 'start_then_adjust' when follower has not started");
-            return false;
         }
-        return success;
+        return false;
     }
 } // namespace motion_controller

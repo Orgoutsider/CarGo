@@ -310,6 +310,11 @@ namespace motion_controller
         pose.x = pose_footprint.pose.position.x;
         pose.y = pose_footprint.pose.position.y;
         header_ = pose_footprint.header;
+        if (header_.stamp.is_zero())
+        {
+            ROS_WARN("_get_pose_now: Stamp is zero!");
+            header_.stamp = ros::Time::now();
+        }
         return true;
     }
 } // namespace motion_controller

@@ -18,7 +18,7 @@ namespace my_hand_eye
           threshold(50), catched_(false),
           z_parking_area(0.30121),
           z_ellipse(3.38369),
-          z_turntable(11.77052) // 比赛转盘
+          z_turntable(11.47052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
@@ -39,7 +39,7 @@ namespace my_hand_eye
           threshold(50), catched_(false),
           z_parking_area(0.30121),
           z_ellipse(3.38369),
-          z_turntable(11.77052) // 比赛转盘
+          z_turntable(11.47052) // 比赛转盘
     //   初始化列表记得复制一份到上面
     //   z_turntable(16.4750)// 老转盘（弃用）
     //   z_turntable(15.57)  // 新转盘（弃用）
@@ -1463,110 +1463,75 @@ namespace my_hand_eye
             // resize(cv_image->image, cv_image->image, cv_image->image.size() / 2);
             pyrDown(cv_image->image, cv_image->image,
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
-            Mat srcgray;
             gramma_transform(factor_, cv_image->image);
-            srcgray = saturation(cv_image->image, 100);
+            Mat img = saturation(cv_image->image, 50);
             // imshow("saturation", srcgray);
             // waitKey(1);
-            cvtColor(srcgray, srcgray, COLOR_BGR2GRAY); // 灰度转换
-            // imshow("gray", srcgray);
-            // waitKey(1);
-            Mat srcbinary;
-            cv::threshold(srcgray, srcbinary, 0, 255, THRESH_OTSU | THRESH_BINARY); // 阈值化
-            // imshow("threshold", srcbinary);
-            // waitKey(1);
-            Mat kernel = getStructuringElement(MORPH_RECT, Size(7, 7), cv::Point(-1, -1));
-            morphologyEx(srcbinary, srcbinary, MORPH_CLOSE, kernel, cv::Point(-1, -1), 3); // 闭操作去除噪点
-            morphologyEx(srcbinary, srcbinary, MORPH_OPEN, kernel, cv::Point(-1, -1), 2);  // 开操作去除缺口
-            // 保证轮廓封闭
-            Mat FImg = cv::Mat(srcbinary.size(), CV_8UC1, cv::Scalar::all(0));
-            int rows = FImg.rows;
-            int cols = FImg.cols;
-            // 行处理
-            for (size_t i = 0; i < rows; i++)
+            for (int method = 0; method <= 1; method++)
             {
-                for (size_t j = 0; j < 1; j++)
+                Mat dst = method ? square_find_color(img) : square_find(img);
+                std::vector<std::vector<cv::Point>> contours;
+                std::vector<Vec4i> hierarchy;
+                findContours(dst, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // 只检测最外围的轮廓,只保留拐点的信息
+                if (contours.size())
                 {
-                    FImg.at<uchar>(i, j) = 255;
-                    FImg.at<uchar>(i, cols - 1 - j) = 255;
-                }
-            }
-            // 列处理
-            for (size_t i = 0; i < cols; i++)
-            {
-                for (size_t j = 0; j < 1; j++)
-                {
-                    FImg.at<uchar>(j, i) = 255;
-                    FImg.at<uchar>(rows - 1 - j, i) = 255;
-                }
-            }
-            bitwise_or(FImg, srcbinary, srcbinary);
-            // imshow("MORPH_OPEN", srcbinary);
-            // waitKey(1);
-            Mat edges;
-            Canny(srcbinary, edges, 0, 50, 3, false); // 查找边缘
-            // imshow("edges", edges);
-            // waitKey(1);
-            std::vector<std::vector<cv::Point>> contours;
-            std::vector<Vec4i> hierarchy;
-            findContours(edges, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // 只检测最外围的轮廓,只保留拐点的信息
-            if (contours.size())
-            {
-                BestSquare s(contours, ratio);
-                if (s.best.length && s.best.get_pose(pose))
-                {
-                    if (show_detections && !cv_image->image.empty())
+                    BestSquare s(contours, ratio);
+                    if (s.best.length && s.best.get_pose(pose))
                     {
-                        // 绘制矩形轮廓
-                        RotatedRect rotate_rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length),
-                                                Angle::degree(pose.theta));
-                        // 获取旋转矩形的四个顶点
-                        Point2f *vertices = new Point2f[4];
-                        rotate_rect.points(vertices);
-                        // 逐条边绘制
-                        for (int j = 0; j < 4; j++)
+                        if (show_detections && !cv_image->image.empty())
                         {
-                            cv::line(cv_image->image, vertices[j], vertices[(j + 1) % 4],
-                                     cv::Scalar(0, 255, 0));
+                            // 绘制矩形轮廓
+                            RotatedRect rotate_rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length),
+                                                    Angle::degree(pose.theta));
+                            // 获取旋转矩形的四个顶点
+                            Point2f *vertices = new Point2f[4];
+                            rotate_rect.points(vertices);
+                            // 逐条边绘制
+                            for (int j = 0; j < 4; j++)
+                            {
+                                cv::line(cv_image->image, vertices[j], vertices[(j + 1) % 4],
+                                         cv::Scalar(0, 255, 0));
+                            }
+                            // 当前绘制白
+                            draw_cross(cv_image->image, cv::Point2d(pose.x, pose.y), Scalar(255, 255, 255),
+                                       30, 1);
+                            Action a = Action(target_pose.pose[target_pose.target_parking_area].x,
+                                              target_pose.pose[target_pose.target_parking_area].y, 0)
+                                           .footprint2arm();
+                            a *= ratio;
+                            a.x += cv_image->image.cols / 2.0;
+                            // 目标绘制红
+                            draw_cross(cv_image->image, cv::Point2d(a.x, a.y), Scalar(0, 0, 255),
+                                       30, 1);
+                            debug_image = cv_image->toImageMsg();
+                            delete[] vertices;
                         }
-                        // 当前绘制白
-                        draw_cross(cv_image->image, cv::Point2d(pose.x, pose.y), Scalar(255, 255, 255),
-                                   30, 1);
-                        Action a = Action(target_pose.pose[target_pose.target_parking_area].x,
-                                          target_pose.pose[target_pose.target_parking_area].y, 0)
-                                       .footprint2arm();
-                        a *= ratio;
-                        a.x += cv_image->image.cols / 2.0;
-                        // 目标绘制红
-                        draw_cross(cv_image->image, cv::Point2d(a.x, a.y), Scalar(0, 0, 255),
-                                   30, 1);
-                        debug_image = cv_image->toImageMsg();
-                        delete[] vertices;
+                        // 计算真实世界中坐标
+                        pose.x = (pose.x - cv_image->image.cols / 2.0) / ratio;
+                        pose.y = pose.y / ratio;
+                        break;
                     }
-                    // 计算真实世界中坐标
-                    pose.x = (pose.x - cv_image->image.cols / 2.0) / ratio;
-                    pose.y = pose.y / ratio;
+                    else
+                    {
+                        if (show_detections && !cv_image->image.empty())
+                        {
+                            for (size_t i = 0; i < contours.size(); i++)
+                            {
+                                drawContours(cv_image->image, contours, i, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
+                            }
+                            debug_image = cv_image->toImageMsg();
+                        }
+                        ROS_WARN("Could not find parking area with method %d.", method);
+                        continue;
+                    }
                 }
                 else
                 {
                     if (show_detections && !cv_image->image.empty())
-                    {
-                        for (size_t i = 0; i < contours.size(); i++)
-                        {
-                            drawContours(cv_image->image, contours, i, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
-                        }
                         debug_image = cv_image->toImageMsg();
-                    }
-                    ROS_WARN("Could not find parking area!");
-                    return false;
+                    ROS_WARN("Could not find parking area with method %d.", method);
+                    continue;
                 }
-            }
-            else
-            {
-                if (show_detections && !cv_image->image.empty())
-                    debug_image = cv_image->toImageMsg();
-                ROS_WARN("Could not find parking area!");
-                return false;
             }
             return true;
         }
@@ -1800,9 +1765,9 @@ namespace my_hand_eye
         return valid;
     }
 
-    void ArmController::start(bool start)
+    void ArmController::start()
     {
-        ps_.start(start);
+        ps_.start();
     }
 
     void ArmController::ready(bool left)

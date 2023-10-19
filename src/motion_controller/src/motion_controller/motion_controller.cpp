@@ -482,8 +482,8 @@ namespace motion_controller
                     finish_turning_ = true;
                 }
             }
-            else if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area &&
-                     where_is_car(follower_.debug, config_.startup) == route_parking_area &&
+            else if ((where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
+                     where_is_car(follower_.debug, config_.startup) == route_parking_area) &&
                      is_doing())
             {
                 _move_with_vision();
@@ -538,8 +538,14 @@ namespace motion_controller
                 ac_move_.sendGoal(goal, boost::bind(&MotionController::_move_done_callback, this, _1, _2),
                                   boost::bind(&MotionController::_move_active_callback, this),
                                   boost::bind(&MotionController::_move_feedback_callback, this, _1));
-                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                arm_initialized_ = true;
+                {
+                    boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+                    arm_initialized_ = true;
+                    move_stamp_ = arm_stamp_;
+                    move_time_ = arm_time_;
+                    move_pose_ = arm_pose_;
+                }
+                _check_move_active();
             }
             {
                 boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
@@ -559,6 +565,19 @@ namespace motion_controller
             arm_pose_.x = 0;
         if (pme.pose.y == pme.not_change)
             arm_pose_.y = 0;
+    }
+
+    void MotionController::_check_move_active()
+    {
+        if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
+        {
+            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
+            if (!move_initialized_)
+            {
+                move_initialized_ = true;
+            }
+            move_active_ = true;
+        }
     }
 
     void MotionController::_arm_active_callback()
@@ -581,8 +600,7 @@ namespace motion_controller
         if (where_is_car(follower_.debug, config_.startup) == route_raw_material_area ||
             where_is_car(follower_.debug, config_.startup) == route_parking_area)
         {
-            if (feedback->pme.end &&
-                where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
+            if (feedback->pme.end && where_is_car(follower_.debug, config_.startup) == route_raw_material_area)
             {
                 if (timer_.hasStarted())
                     timer_.stop();
@@ -971,15 +989,7 @@ namespace motion_controller
                 move_time_ = ros::Time::now();
                 move_pose_ = feedback->pose_now;
             }
-            if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
-            {
-                boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-                if (!move_initialized_)
-                {
-                    move_initialized_ = true;
-                }
-                move_active_ = true;
-            }
+            _check_move_active();
         }
     }
 
@@ -992,18 +1002,15 @@ namespace motion_controller
         {
             boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
             move_stamp_ = result->header.stamp;
+            if (move_stamp_.is_zero())
+            {
+                ROS_WARN("_move_done_callback: Stamp is zero!");
+                move_stamp_ = ros::Time::now();
+            }
             move_time_ = ros::Time::now();
             move_pose_ = result->pose_final;
         }
-        if (!move_active_ && !move_stamp_.is_zero()) // is_zero说明坐标转换失败
-        {
-            boost::lock_guard<boost::recursive_mutex> lk(follower_.mtx);
-            if (!move_initialized_)
-            {
-                move_initialized_ = true;
-            }
-            move_active_ = true;
-        }
+        _check_move_active();
         if (state.toString() == "SUCCEEDED")
             ROS_INFO_STREAM("*** Move finished: " << state.toString());
         else
@@ -1232,12 +1239,6 @@ namespace motion_controller
             return false;
         }
         ROS_INFO("5 %lf", ros::Time::now().toSec());
-        // 横向移动出停止区
-        motion_controller::MoveGoal goal1;
-        get_position();
-        goal1.pose.x = length_from_road(follower_.debug, config_.startup);
-        goal1.pose.y = 0.1;
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 发送二维码请求
         my_hand_eye::ArmGoal goal;
         goal.loop = loop_;
@@ -1245,6 +1246,12 @@ namespace motion_controller
         ac_arm_.sendGoal(goal, boost::bind(&MotionController::_arm_done_callback, this, _1, _2),
                          boost::bind(&MotionController::_arm_active_callback, this),
                          boost::bind(&MotionController::_arm_feedback_callback, this, _1));
+        // 横向移动出停止区
+        motion_controller::MoveGoal goal1;
+        get_position();
+        goal1.pose.x = length_from_road(follower_.debug, config_.startup);
+        goal1.pose.y = 0.1;
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
         // 横向移动出停止区
         // follower_.start(true, theta_, abs(length_from_road(follower_.debug, config_.startup)));
         get_position();
