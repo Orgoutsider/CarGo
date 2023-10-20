@@ -14,6 +14,8 @@ namespace motion_controller
         pnh.param<bool>("debug", debug_, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_srv", 3);
         server_.start();
+        // ROS_INFO_STREAM(kp_angular_[1] << " " << ki_angular_[1] << " " << kd_angular_[1] << " " <<
+        // kp_linear_[1] << " " << ki_linear_[1] << " " << ki_linear_[1]);
         if (debug_)
         {
             dr_server_.setCallback(boost::bind(&MotionServer::_dr_callback, this, _1, _2));
@@ -23,6 +25,8 @@ namespace motion_controller
 
     void MotionServer::_execute_callback(const MoveGoalConstPtr &goal)
     {
+        // ROS_INFO_STREAM(kp_angular_[1] << " " << ki_angular_[1] << " " << kd_angular_[1] << " " <<
+        // kp_linear_[1] << " " << ki_linear_[1] << " " << ki_linear_[1]);
         ros::Rate rate(10);
         MoveFeedback feedback;
         TwistMightEnd tme;
@@ -44,7 +48,7 @@ namespace motion_controller
         std::vector<double> control;
         if (goal->pose.theta)
         {
-            static int cnt = 0;
+            int cnt = 0;
             PIDController pid1({0}, {kp_angular_[goal->precision]}, {ki_angular_[goal->precision]},
                                {kd_angular_[goal->precision]},
                                {(goal->precision && !(goal->pose.x || goal->pose.y)) ? 0.01 : 0.02},
@@ -140,6 +144,7 @@ namespace motion_controller
         // 平移
         if (goal->pose.x || goal->pose.y)
         {
+            int cnt = 0;
             PIDController pid2({0, 0, 0}, {kp_linear_[goal->precision], kp_linear_[goal->precision], kp_angular_[0]},
                                {ki_linear_[goal->precision], ki_linear_[goal->precision], ki_angular_[0]},
                                {kd_linear_[goal->precision], kd_linear_[goal->precision], kd_angular_[0]},
@@ -147,7 +152,7 @@ namespace motion_controller
                                 (goal->precision ? 0.01 : 0.02)},
                                {0.03, 0.03, 0.1}, {0.3, 0.3, 0.8});
             success = false;
-            while (!success)
+            while (!(success && !goal->precision))
             {
                 if (server_.isPreemptRequested() || !ros::ok())
                 {
@@ -224,6 +229,20 @@ namespace motion_controller
                 feedback.pose_now = pose;
                 feedback.header = header_;
                 server_.publishFeedback(feedback);
+                if (goal->precision)
+                {
+                    if (success)
+                    {
+                        cnt++;
+                        if (cnt >= 2)
+                        {
+                            cnt = 0;
+                            break;
+                        }
+                    }
+                    else if (cnt)
+                        cnt = 0;
+                }
                 rate.sleep();
             }
         }
@@ -252,9 +271,11 @@ namespace motion_controller
         if (config.kp_linear != kp_linear_[0] || config.kp_linear != kp_linear_[1])
             kp_linear_[0] = kp_linear_[1] = config.kp_linear;
         if (config.ki_linear != ki_linear_[0] || config.ki_linear != ki_linear_[1])
-            ki_linear_[0] = kp_linear_[1] = config.ki_linear;
+            ki_linear_[0] = ki_linear_[1] = config.ki_linear;
         if (config.kd_linear != kd_linear_[0] || config.kd_linear != kd_linear_[1])
-            kd_linear_[0] = kp_linear_[1] = config.kd_linear;
+            kd_linear_[0] = kd_linear_[1] = config.kd_linear;
+        // ROS_INFO_STREAM(kp_angular_[1] << " " << ki_angular_[1] << " " << kd_angular_[1] << " " <<
+        // kp_linear_[1] << " " << ki_linear_[1] << " " << ki_linear_[1]);
     }
 
     bool MotionServer::_add_pose_goal(const geometry_msgs::Pose2D &pose)
@@ -267,8 +288,8 @@ namespace motion_controller
         geometry_msgs::Pose p3D;
         // w = cos(theta/2) x = 0 y = 0 z = sin(theta/2)
         p3D.orientation = tf::createQuaternionMsgFromYaw(pose.theta);
-        p3D.orientation.w = cos(pose.theta / 2);
-        p3D.orientation.z = sin(pose.theta / 2);
+        // p3D.orientation.w = cos(pose.theta / 2);
+        // p3D.orientation.z = sin(pose.theta / 2);
         p3D.position.x = pose.x;
         p3D.position.y = pose.y;
         pose_footprint.pose = p3D;

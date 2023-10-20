@@ -143,6 +143,7 @@ namespace my_hand_eye
 
 		case debug_parking_area:
 			arm_controller_.log_parking_area(image_rect, debug_image);
+			break;
 
 		default:
 			ROS_WARN("Invalid mode %d", mode_);
@@ -669,7 +670,7 @@ namespace my_hand_eye
 				msg.pose.theta = msg.not_change;
 				msg.header = image_rect->header;
 				msg.header.frame_id = "base_footprint";
-				if ((image_rect->header.stamp - err_time).toSec() > 13) // 超时
+				if ((image_rect->header.stamp - err_time).toSec() > 6) // 超时
 				{
 					finish_adjusting_ = true;
 					finish_ = true;

@@ -1,6 +1,6 @@
 <launch>
     <arg name="theta" default="0" />
-    <arg name="x" default="-0.2" />
+    <arg name="x" default="1" />
     <arg name="y" default="0" />
     <arg name="precision" default="0" />
 

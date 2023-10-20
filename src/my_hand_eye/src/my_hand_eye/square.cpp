@@ -64,16 +64,16 @@ namespace my_hand_eye
 
     bool Square::_is_quadrilateral()
     {
-        // if (approx_.size() == 4 && isContourConvex(approx_))
-        //     return true;
-        // else if (approx_.size() > 4)
-        // {
-        //     _square_point_delete();
-        //     return isContourConvex(approx_);
-        // }
-        // else
-        //     return false;
-        return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
+        if (approx_.size() == 4 && isContourConvex(approx_))
+            return true;
+        else if (approx_.size() > 4 && !isContourConvex(approx_))
+        {
+            _square_point_delete();
+            return isContourConvex(approx_);
+        }
+        else
+            return false;
+        // return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
     }
 
     bool Square::_is_rectangle()
@@ -191,12 +191,14 @@ namespace my_hand_eye
     cv::Mat SquareMethod::square_find_color(const cv::Mat &img)
     {
         // Low of S can be adjusted.High of S and V must be set to 255. 
-        cv::Scalar low_Area_Color = cv::Scalar(70, 20, 10);
+        cv::Scalar low_Area_Color = cv::Scalar(78, 46, 20);
         cv::Scalar high_Area_Color = cv::Scalar(145, 255, 255);
         cv::Mat srcHSV;
         cv::cvtColor(img, srcHSV, cv::COLOR_BGR2HSV);
         cv::Mat StopArea;
         cv::inRange(srcHSV, low_Area_Color, high_Area_Color, StopArea);
+        // cv::imshow("StopArea", StopArea);
+        // cv::waitKey(1);
         return StopArea;
     }
 
