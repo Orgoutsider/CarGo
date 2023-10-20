@@ -33,12 +33,12 @@ namespace my_hand_eye
             for (size_t i = 0; i < approxSize; i++)
             {
                 len.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) +
-                                     pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
+                                   pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
                 point.push_back(cv::Point(i, (i + 1) % approxSize));
             }
             // 寻找最短边长的标号
             int len_temp = len[0];
-            int len_flag = 0; // 最短边长的标号
+            int len_flag = 0;   // 最短边长的标号
             int point_flag = 0; // 目标点的标号
             for (size_t i = 0; i < approxSize; i++)
             {
@@ -62,18 +62,85 @@ namespace my_hand_eye
         }
     }
 
+    void Square::_square_point_add()
+    {
+        int approxSize = approx_.size();
+        if (approxSize != 5)
+            return;
+        // lenth存放长度，point存放端点标号
+        std::vector<int> lenth;
+        std::vector<cv::Point2i> point;
+
+        // 计算边长长度
+        for (size_t i = 0; i < approxSize; i++)
+        {
+            lenth.push_back(sqrt(pow((approx_[i].x - approx_[(i + 1) % approxSize].x), 2) +
+                                 pow((approx_[i].y - approx_[(i + 1) % approxSize].y), 2)));
+            point.push_back(cv::Point(i, (i + 1) % approxSize));
+        }
+        // 寻找最短边长的标号
+        int lenth_temp = lenth[0];
+        int lenth_flag = 0; // 最短边长的标号
+        int lenth_temp2 = lenth[0]; // 次短边
+        for (size_t i = 0; i < approxSize; i++)
+        {
+            if (lenth_temp > lenth[i])
+            {
+                lenth_flag = i;
+                lenth_temp2 = lenth_temp;
+                lenth_temp = lenth[i];
+            }
+            else if (lenth_temp2 > lenth[i])
+            {
+                lenth_temp2 = lenth[i];
+            }
+        }
+        if (lenth_temp2 * 0.2 < lenth_temp)
+            return;
+        int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1); // 前一条边的序号
+        int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);  // 后一条边的序号
+        cv::Point P1 = approx_[point[front_side].x];
+        cv::Point P2 = approx_[point[lenth_flag].x];
+        cv::Point P3 = approx_[point[lenth_flag].y];
+        cv::Point P4 = approx_[point[back_side].y];
+        cv::Point NewPoint;
+
+        double k1 = (double)(P2.y - P1.y) / (P2.x - P1.x);
+        double k2 = (double)(P4.y - P3.y) / (P4.x - P3.x);
+        NewPoint.x = (double)(k1 * P1.x - k2 * P3.x + P3.y - P1.y) / (k1 - k2);
+        NewPoint.y = (double)k1 * (NewPoint.x - P1.x) + P1.y;
+
+        if (point[lenth_flag].x == approxSize - 1)
+        {
+            approx_.erase(approx_.begin() + point[lenth_flag].x);
+            approx_.erase(approx_.begin());
+            approx_.insert(approx_.begin(), NewPoint);
+        }
+        else
+        {
+            approx_.erase(approx_.begin() + point[lenth_flag].x);
+            approx_.erase(approx_.begin() + point[lenth_flag].x);
+            approx_.insert(approx_.begin() + point[lenth_flag].x, NewPoint);
+        }
+    }
+
     bool Square::_is_quadrilateral()
     {
-        // if (approx_.size() == 4 && isContourConvex(approx_))
-        //     return true;
-        // else if (approx_.size() > 4)
-        // {
-        //     _square_point_delete();
-        //     return isContourConvex(approx_);
-        // }
-        // else
-        //     return false;
-        return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
+        if (approx_.size() == 4 && isContourConvex(approx_))
+            return true;
+        else if (approx_.size() > 4 && !isContourConvex(approx_))
+        {
+            _square_point_delete();
+            return isContourConvex(approx_);
+        }
+        else if (approx_.size() == 5 && isContourConvex(approx_))
+        {
+            _square_point_add();
+            return approx_.size() == 4;
+        }
+        else
+            return false;
+        // return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
     }
 
     bool Square::_is_rectangle()
@@ -190,7 +257,7 @@ namespace my_hand_eye
 
     cv::Mat SquareMethod::square_find_color(const cv::Mat &img)
     {
-        // Low of S can be adjusted.High of S and V must be set to 255. 
+        // Low of S can be adjusted.High of S and V must be set to 255.
         cv::Scalar low_Area_Color = cv::Scalar(70, 20, 10);
         cv::Scalar high_Area_Color = cv::Scalar(145, 255, 255);
         cv::Mat srcHSV;

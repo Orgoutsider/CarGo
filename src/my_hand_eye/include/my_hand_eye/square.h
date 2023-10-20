@@ -13,6 +13,7 @@ namespace my_hand_eye
         std::vector<cv::Point> approx_; // 轮廓角度最大余弦判断
         double _cosine(int pt0, int pt1, int pt2);
         void _square_point_delete(); // 如果不是四边形，删除点成为四边形
+        void _square_point_add(); // 如果不是四边形，补充点成为四边形
         bool _is_quadrilateral();    // 四边形判断
         bool _is_rectangle();        // 矩形判断
         cv::Point2d _center();       // 图形中心点计算

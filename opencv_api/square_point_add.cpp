@@ -1,24 +1,24 @@
 #include<opencv.hpp>
 #include<iostream>
 
-//Îå±ßĞÎ²¹³ä¶àÓàµã
+//äº”è¾¹å½¢è¡¥å……å¤šä½™ç‚¹
 void square_point_add(std::vector<cv::Point>& approx)
 {
 	int approxSize = approx.size();
-	//lenth´æ·Å³¤¶È£¬point´æ·Å¶Ëµã±êºÅ
+	//lenthå­˜æ”¾é•¿åº¦ï¼Œpointå­˜æ”¾ç«¯ç‚¹æ ‡å·
 	std::vector<int> lenth;
 	std::vector<cv::Point2i> point;
 
-	//¼ÆËã±ß³¤³¤¶È
+	//è®¡ç®—è¾¹é•¿é•¿åº¦
 	for (size_t i = 0; i < approxSize; i++)
 	{
 		lenth.push_back(sqrt(pow((approx[i].x - approx[(i + 1) % approxSize].x), 2)
 			+ pow((approx[i].y - approx[(i + 1) % approxSize].y), 2)));
 		point.push_back(cv::Point(i, (i + 1) % approxSize));
 	}
-	//Ñ°ÕÒ×î¶Ì±ß³¤µÄ±êºÅ
+	//å¯»æ‰¾æœ€çŸ­è¾¹é•¿çš„æ ‡å·
 	int lenth_temp = lenth[0];
-	int lenth_flag = 0;//×î¶Ì±ß³¤µÄ±êºÅ
+	int lenth_flag = 0;//æœ€çŸ­è¾¹é•¿çš„æ ‡å·
 	for (size_t i = 0; i < approxSize; i++)
 	{
 		if (lenth_temp > lenth[i])
@@ -28,8 +28,8 @@ void square_point_add(std::vector<cv::Point>& approx)
 		}
 	}
 
-	int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1);//Ç°Ò»Ìõ±ßµÄĞòºÅ
-	int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);//ºóÒ»Ìõ±ßµÄĞòºÅ
+	int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1);//å‰ä¸€æ¡è¾¹çš„åºå·
+	int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);//åä¸€æ¡è¾¹çš„åºå·
 	cv::Point P1 = approx[point[front_side].x];
 	cv::Point P2 = approx[point[lenth_flag].x];
 	cv::Point P3 = approx[point[lenth_flag].y];
