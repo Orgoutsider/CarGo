@@ -133,14 +133,11 @@ namespace my_hand_eye
             _square_point_delete();
             return isContourConvex(approx_);
         }
-<<<<<<< HEAD
         else if (approx_.size() == 5 && isContourConvex(approx_))
         {
             _square_point_add();
             return approx_.size() == 4;
         }
-=======
->>>>>>> testing
         else
             return false;
         // return approx_.size() == 4 && isContourConvex(approx_); // 四边形判断
