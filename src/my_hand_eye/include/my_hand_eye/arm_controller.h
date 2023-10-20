@@ -101,7 +101,7 @@ namespace my_hand_eye
         TargetPose target_pose;      // 用于视觉位姿调节
         double theta_turn;           // 车体偏转的角度
         double target_ellipse_theta; // 椭圆区域目标角度
-        const double z_turntable;
+        double z_turntable;
         const double z_ellipse;
         // const double z_palletize;
         double z_parking_area;

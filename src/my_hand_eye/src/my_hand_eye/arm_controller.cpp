@@ -136,6 +136,7 @@ namespace my_hand_eye
         std::string ft_servo;
         pnh.param<std::string>("ft_servo", ft_servo, "/dev/ft_servo");
         ROS_INFO_STREAM("serial:" << ft_servo);
+        z_turntable = pnh.param<double>("z_turntable", 11.47052);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
         factor_ = pnh.param<int>("factor", 150);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
