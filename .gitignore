@@ -48,4 +48,6 @@ src/imu_utils/
 src/code_utils/
 src/VINS-Fusion-gpu/
 src/mono-vo/
+src/imu_filter_madgwick/
+src/imu_complementary_filter/
 .VSCodeCounter

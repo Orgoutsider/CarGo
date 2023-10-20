@@ -623,90 +623,109 @@ namespace motion_controller
         else if (where_is_car(follower_.debug, config_.startup) == route_roughing_area ||
                  where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area)
         {
-            if (feedback->pme.end)
+            if (!follower_.debug)
             {
-                bool flag = false;
-                if (feedback->pme.pose.theta != feedback->pme.not_change &&
-                    abs(my_hand_eye::Angle::degree(feedback->pme.pose.theta -
-                                                   angle_from_road(follower_.debug, config_.startup))) < 1.2 &&
-                    !(where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 1))
+                if (feedback->pme.end)
                 {
-                    flag = true;
-                    get_position();
-                    double theta = angle_correction(feedback->pme.pose.theta);
-                    theta = (theta + theta_) / 2;
-                    ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
-                    if (where_is_car(follower_.debug, config_.startup) == route_roughing_area)
+                    bool flag = false;
+                    if (feedback->pme.pose.theta != feedback->pme.not_change &&
+                        abs(my_hand_eye::Angle::degree(feedback->pme.pose.theta -
+                                                       angle_from_road(follower_.debug, config_.startup))) < 1.2 &&
+                        !(where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 1))
                     {
-                        set_position(-(x_roughing_area_ + length_from_ellipse_ +
-                                       feedback->pme.pose.x * cos(feedback->pme.pose.theta) +
-                                       feedback->pme.pose.y * sin(feedback->pme.pose.theta)),
-                                     length_field_ - width_from_roughing_area_ -
-                                         feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
-                                         feedback->pme.pose.x * sin(feedback->pme.pose.theta),
-                                     theta);
+                        flag = true;
+                        get_position();
+                        double theta = angle_correction(feedback->pme.pose.theta);
+                        theta = (theta + theta_) / 2;
+                        ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
+                        if (where_is_car(follower_.debug, config_.startup) == route_roughing_area)
+                        {
+                            set_position(-(x_roughing_area_ + length_from_ellipse_ +
+                                           feedback->pme.pose.x * cos(feedback->pme.pose.theta) +
+                                           feedback->pme.pose.y * sin(feedback->pme.pose.theta)),
+                                         length_field_ - width_from_roughing_area_ -
+                                             feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
+                                             feedback->pme.pose.x * sin(feedback->pme.pose.theta),
+                                         theta);
+                        }
+                        else if (loop_ == 0)
+                        {
+                            set_position(-(x_road_up_ + width_field_ - width_from_semi_finishing_area_ -
+                                           feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
+                                           feedback->pme.pose.x * sin(feedback->pme.pose.theta)),
+                                         y_semi_finishing_area_ - length_from_ellipse_ -
+                                             feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
+                                             feedback->pme.pose.y * sin(feedback->pme.pose.theta),
+                                         theta);
+                        }
+                        ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                     }
-                    else if (loop_ == 0)
+                    else if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area &&
+                             loop_ == 1)
                     {
-                        set_position(-(x_road_up_ + width_field_ - width_from_semi_finishing_area_ -
-                                       feedback->pme.pose.y * cos(feedback->pme.pose.theta) -
-                                       feedback->pme.pose.x * sin(feedback->pme.pose.theta)),
-                                     y_semi_finishing_area_ - length_from_ellipse_ -
-                                         feedback->pme.pose.x * cos(feedback->pme.pose.theta) -
-                                         feedback->pme.pose.y * sin(feedback->pme.pose.theta),
-                                     theta);
+                        get_position();
+                        ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
+                        set_position(x_, y_palletize_, theta_);
+                        ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                     }
-                    ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
-                }
-                else if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area &&
-                         loop_ == 1)
-                {
+                    if (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 0)
+                    {
+                        ac_move_.waitForServer();
+                        MoveGoal goal;
+                        get_position();
+                        goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                        goal.precision = true;
+                        ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+                    }
+                    else if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 0)
+                    {
+                        ac_move_.waitForServer();
+                        MoveGoal goal;
+                        get_position();
+                        goal.pose.theta = flag ? feedback->pme.pose.theta : angle_from_road(follower_.debug, config_.startup);
+                        goal.precision = true;
+                        ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+                    }
+                    else if (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
+                    {
+                        ac_move_.waitForServer();
+                        MoveGoal goal;
+                        get_position();
+                        goal.pose.theta = (feedback->pme.pose.theta != feedback->pme.not_change)
+                                              ? feedback->pme.pose.theta
+                                              : angle_from_road(follower_.debug, config_.startup);
+                        goal.precision = true;
+                        ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                        ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+                    }
+                    // ac_move_.waitForServer();
+                    // MoveGoal goal;
+                    // get_position();
+                    // goal.pose.theta = (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
+                    //                       ? feedback->pme.pose.theta
+                    //                       : angle_from_road(follower_.debug, config_.startup);
+                    // goal.precision = true;
+                    // ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                    // ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+                    client_done_.waitForExistence();
+                    my_hand_eye::moveDone md;
                     get_position();
-                    ROS_INFO("Before setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
-                    set_position(x_, y_palletize_, theta_);
-                    ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
+                    md.request.theta_turn = angle_from_road(follower_.debug, config_.startup);
+                    if (!client_done_.call(md))
+                        ROS_WARN("Failed to call moveDone!");
                 }
-                if (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 0)
-                {
-                    ac_move_.waitForServer();
-                    MoveGoal goal;
-                    get_position();
-                    goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-                    goal.precision = true;
-                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
-                }
-                else if (where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 0)
-                {
-                    ac_move_.waitForServer();
-                    MoveGoal goal;
-                    get_position();
-                    goal.pose.theta = flag ? feedback->pme.pose.theta : angle_from_road(follower_.debug, config_.startup);
-                    goal.precision = true;
-                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
-                }
-                else if (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
-                {
-                    ac_move_.waitForServer();
-                    MoveGoal goal;
-                    get_position();
-                    goal.pose.theta = (feedback->pme.pose.theta != feedback->pme.not_change)
-                                          ? feedback->pme.pose.theta
-                                          : angle_from_road(follower_.debug, config_.startup);
-                    goal.precision = true;
-                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                    ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
-                }
-                // ac_move_.waitForServer();
-                // MoveGoal goal;
-                // get_position();
-                // goal.pose.theta = (where_is_car(follower_.debug, config_.startup) == route_roughing_area && loop_ == 1)
-                //                       ? feedback->pme.pose.theta
-                //                       : angle_from_road(follower_.debug, config_.startup);
-                // goal.precision = true;
-                // ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                // ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
+            }
+            else if (feedback->pme.end)
+            {
+                ac_move_.waitForServer();
+                MoveGoal goal;
+                get_position();
+                goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                goal.precision = true;
+                ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
                 client_done_.waitForExistence();
                 my_hand_eye::moveDone md;
                 get_position();
@@ -801,8 +820,8 @@ namespace motion_controller
             ac_move_.waitForServer();
             get_position();
             goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-            // goal.pose.x = -length_route(follower_.debug, config_.startup) * sin(goal.pose.theta);
-            // goal.pose.y = length_route(follower_.debug, config_.startup) * cos(goal.pose.theta);
+            goal.pose.x = -length_route(follower_.debug, config_.startup, 1) * sin(goal.pose.theta);
+            goal.pose.y = length_route(follower_.debug, config_.startup, 1) * cos(goal.pose.theta);
             ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
             // get_position();
             // MoveGoal goal;
@@ -1277,7 +1296,7 @@ namespace motion_controller
         get_position();
         goal1.pose.x = length_from_road(follower_.debug, config_.startup);
         goal1.pose.y = 0.1;
-        ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+        ac_move_.sendGoalAndWait(goal1, ros::Duration(5), ros::Duration(0.1));
         // 横向移动出停止区
         // follower_.start(true, theta_, abs(length_from_road(follower_.debug, config_.startup)));
         get_position();

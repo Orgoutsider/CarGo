@@ -353,10 +353,10 @@ namespace my_hand_eye
             {
                 Position[3] -= 450; // 防止碰到物料
             }
-            else if (z < 7 && y > 4.2 && !cat)
-            {
-                Position[3] -= 30; // 防止悬空抖动
-            }
+            // else if (z < 7 && y > 4.2 && !cat)
+            // {
+            //     Position[3] -= 30; // 防止悬空抖动
+            // }
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
             u8 ID1[] = {1, 3, 4};
             wait_until_static(ID1, 3);
@@ -438,7 +438,7 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, Color color, bool left)
     {
-        const double TIGHTNESS = 0.65; // 在转盘进行抓取放置时略微松手
+        const double TIGHTNESS = 0.56; // 在转盘进行抓取放置时略微松手
         bool valid = refresh_xyz();
         bool flag = (this->z < 11);
         this->x = left ? action_right.x : action_back.x;

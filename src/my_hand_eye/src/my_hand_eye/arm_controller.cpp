@@ -141,7 +141,7 @@ namespace my_hand_eye
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -3.953325)).rad();
+        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -3.832890333)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -1509,7 +1509,6 @@ namespace my_hand_eye
                         // 计算真实世界中坐标
                         pose.x = (pose.x - cv_image->image.cols / 2.0) / ratio;
                         pose.y = pose.y / ratio;
-                        break;
                     }
                     else
                     {
@@ -1521,7 +1520,7 @@ namespace my_hand_eye
                             }
                             debug_image = cv_image->toImageMsg();
                         }
-                        ROS_WARN("Could not find parking area with method %d.", method);
+                        ROS_WARN("Could not find parking area with method %d!", method);
                         continue;
                     }
                 }
@@ -1529,11 +1528,11 @@ namespace my_hand_eye
                 {
                     if (show_detections && !cv_image->image.empty())
                         debug_image = cv_image->toImageMsg();
-                    ROS_WARN("Could not find parking area with method %d.", method);
+                    ROS_WARN("Could not find parking area with method %d!", method);
                     continue;
                 }
+                return true;
             }
-            return true;
         }
         return false;
     }
