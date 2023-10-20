@@ -9,8 +9,8 @@
 #define ARM_JOINT3_POS_WHEN_DEG0 1024
 #define ARM_JOINT4_POS_WHEN_DEG180 3072
 #define ARM_JOINT4_POS_WHEN_DEG0 1024
-#define ARM_JOINT5_POS_WHEN_CATCH 660
-#define ARM_JOINT5_POS_WHEN_OPEN 881
+#define ARM_JOINT5_POS_WHEN_CATCH 664
+#define ARM_JOINT5_POS_WHEN_OPEN 897
 
 #include <opencv2/opencv.hpp>
 #include <my_hand_eye/Plot.h>
