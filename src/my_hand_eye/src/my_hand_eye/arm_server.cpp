@@ -129,8 +129,8 @@ namespace my_hand_eye
 
 		case debug_cargo:
 			// 输出检测物料位置
-			arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_ellipse,
-									  debug_image, false, true);
+			arm_controller_.log_cargo(image_rect, color_blue, arm_controller_.z_turntable,
+									  debug_image, true, false);
 			break;
 
 		case debug_ellipse:

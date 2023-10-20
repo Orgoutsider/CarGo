@@ -630,7 +630,7 @@ namespace motion_controller
                     bool flag = false;
                     if (feedback->pme.pose.theta != feedback->pme.not_change &&
                         abs(my_hand_eye::Angle::degree(feedback->pme.pose.theta -
-                                                       angle_from_road(follower_.debug, config_.startup))) < 1.2 &&
+                                                       angle_from_road(follower_.debug, config_.startup))) < 1 &&
                         !(where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 1))
                     {
                         flag = true;

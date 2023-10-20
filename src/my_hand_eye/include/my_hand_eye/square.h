@@ -37,7 +37,14 @@ namespace my_hand_eye
 
     class SquareMethod
     {
+    private:
+        double h_min_;
+        double h_max_;
+        double s_min_;
+        double v_min_;
+
     public:
+        void init_hsv(int h_min, int h_max, int s_min, int v_min);
         // 利用灰度信息找矩形
         cv::Mat square_find(const cv::Mat &img);
         // 使用颜色信息找矩形

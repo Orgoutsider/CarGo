@@ -138,11 +138,15 @@ namespace my_hand_eye
         ROS_INFO_STREAM("serial:" << ft_servo);
         z_turntable = pnh.param<double>("z_turntable", 11.47052);
         white_vmin_ = pnh.param<int>("white_vmin", 170);
+        blue_hmin_ = pnh.param<int>("blue_hmin", 95);
+        blue_hmax_ = pnh.param<int>("blue_hmax", 130);
+        blue_smin_ = pnh.param<int>("blue_smin", 50);
+        blue_vmin_ = pnh.param<int>("blue_vmin", 35);
         factor_ = pnh.param<int>("factor", 150);
         speed_standard_static_ = pnh.param<double>("speed_standard_static", 0.16);
         speed_standard_motion_ = pnh.param<double>("speed_standard_motion", 0.14);
         tracker_.flag = pnh.param<bool>("flag", false);
-        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -3.832890333)).rad();
+        target_ellipse_theta = Angle(pnh.param<double>("target_ellipse_theta", -4.033091446)).rad();
         if (!ps_.begin(ft_servo.c_str()))
         {
             ROS_ERROR_STREAM("Cannot open ft servo at" << ft_servo);
@@ -1466,74 +1470,71 @@ namespace my_hand_eye
                     Size(cv_image->image.cols / 2, cv_image->image.rows / 2));
             gramma_transform(factor_, cv_image->image);
             Mat img = saturation(cv_image->image, 50);
-            // imshow("saturation", srcgray);
+            // imshow("saturation", img);
             // waitKey(1);
-            for (int method = 0; method <= 1; method++)
+            Mat dst = square_find_color(img);
+            std::vector<std::vector<cv::Point>> contours;
+            std::vector<Vec4i> hierarchy;
+            findContours(dst, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // 只检测最外围的轮廓,只保留拐点的信息
+            if (contours.size())
             {
-                Mat dst = method ? square_find_color(img) : square_find(img);
-                std::vector<std::vector<cv::Point>> contours;
-                std::vector<Vec4i> hierarchy;
-                findContours(dst, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE); // 只检测最外围的轮廓,只保留拐点的信息
-                if (contours.size())
+                BestSquare s(contours, ratio);
+                if (s.best.length && s.best.get_pose(pose))
                 {
-                    BestSquare s(contours, ratio);
-                    if (s.best.length && s.best.get_pose(pose))
+                    if (show_detections && !cv_image->image.empty())
                     {
-                        if (show_detections && !cv_image->image.empty())
+                        // 绘制矩形轮廓
+                        RotatedRect rotate_rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length),
+                                                Angle::degree(pose.theta));
+                        // 获取旋转矩形的四个顶点
+                        Point2f *vertices = new Point2f[4];
+                        rotate_rect.points(vertices);
+                        // 逐条边绘制
+                        for (int j = 0; j < 4; j++)
                         {
-                            // 绘制矩形轮廓
-                            RotatedRect rotate_rect(Point2f(pose.x, pose.y), Size2f(s.best.length, s.best.length),
-                                                    Angle::degree(pose.theta));
-                            // 获取旋转矩形的四个顶点
-                            Point2f *vertices = new Point2f[4];
-                            rotate_rect.points(vertices);
-                            // 逐条边绘制
-                            for (int j = 0; j < 4; j++)
-                            {
-                                cv::line(cv_image->image, vertices[j], vertices[(j + 1) % 4],
-                                         cv::Scalar(0, 255, 0));
-                            }
-                            // 当前绘制白
-                            draw_cross(cv_image->image, cv::Point2d(pose.x, pose.y), Scalar(255, 255, 255),
-                                       30, 1);
-                            Action a = Action(target_pose.pose[target_pose.target_parking_area].x,
-                                              target_pose.pose[target_pose.target_parking_area].y, 0)
-                                           .footprint2arm();
-                            a *= ratio;
-                            a.x += cv_image->image.cols / 2.0;
-                            // 目标绘制红
-                            draw_cross(cv_image->image, cv::Point2d(a.x, a.y), Scalar(0, 0, 255),
-                                       30, 1);
-                            debug_image = cv_image->toImageMsg();
-                            delete[] vertices;
+                            cv::line(cv_image->image, vertices[j], vertices[(j + 1) % 4],
+                                     cv::Scalar(0, 255, 0));
                         }
-                        // 计算真实世界中坐标
-                        pose.x = (pose.x - cv_image->image.cols / 2.0) / ratio;
-                        pose.y = pose.y / ratio;
+                        // 当前绘制白
+                        draw_cross(cv_image->image, cv::Point2d(pose.x, pose.y), Scalar(255, 255, 255),
+                                   30, 1);
+                        Action a = Action(target_pose.pose[target_pose.target_parking_area].x,
+                                          target_pose.pose[target_pose.target_parking_area].y, 0)
+                                       .footprint2arm();
+                        a *= ratio;
+                        a.x += cv_image->image.cols / 2.0;
+                        // 目标绘制红
+                        draw_cross(cv_image->image, cv::Point2d(a.x, a.y), Scalar(0, 0, 255),
+                                   30, 1);
+                        debug_image = cv_image->toImageMsg();
+                        delete[] vertices;
                     }
-                    else
-                    {
-                        if (show_detections && !cv_image->image.empty())
-                        {
-                            for (size_t i = 0; i < contours.size(); i++)
-                            {
-                                drawContours(cv_image->image, contours, i, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
-                            }
-                            debug_image = cv_image->toImageMsg();
-                        }
-                        ROS_WARN("Could not find parking area with method %d!", method);
-                        continue;
-                    }
+                    // 计算真实世界中坐标
+                    pose.x = (pose.x - cv_image->image.cols / 2.0) / ratio;
+                    pose.y = pose.y / ratio;
                 }
                 else
                 {
                     if (show_detections && !cv_image->image.empty())
+                    {
+                        for (size_t i = 0; i < contours.size(); i++)
+                        {
+                            drawContours(cv_image->image, contours, i, cv::Scalar(0, 255, 0), 1); // 绘制矩形轮廓
+                        }
                         debug_image = cv_image->toImageMsg();
-                    ROS_WARN("Could not find parking area with method %d!", method);
-                    continue;
+                    }
+                    ROS_WARN("Could not find parking area!");
+                    return false;
                 }
-                return true;
             }
+            else
+            {
+                if (show_detections && !cv_image->image.empty())
+                    debug_image = cv_image->toImageMsg();
+                ROS_WARN("Could not find parking area!");
+                return false;
+            }
+            return true;
         }
         return false;
     }
@@ -1754,6 +1755,7 @@ namespace my_hand_eye
         {
             ps_.reset(false);
             flag = false;
+            init_hsv(blue_hmin_, blue_hmax_, blue_smin_, blue_vmin_);
             return false;
         }
         if (!ps_.check_stamp(image_rect->header.stamp))
@@ -1809,7 +1811,7 @@ namespace my_hand_eye
                 target_pose.tolerance[target_pose.target_ellipse].x = 0.015;
                 target_pose.tolerance[target_pose.target_ellipse].y = 0.015;
                 target_theta = target_ellipse_theta;
-                target_ellipse_theta = Angle(-4.791815882).rad();
+                target_ellipse_theta = Angle(-4.970321053).rad();
                 rst = true;
                 clear(true, true);
             }
@@ -2107,6 +2109,7 @@ namespace my_hand_eye
             ps_.reset();
             last_finish = false;
             clear(true, true);
+            init_hsv(blue_hmin_, blue_hmax_, blue_smin_, blue_vmin_);
             // return false;
         }
         else if (msg.end && !last_finish)

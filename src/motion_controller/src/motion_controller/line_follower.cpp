@@ -12,7 +12,7 @@ namespace motion_controller
           kp_(4.05), ki_(0), kd_(0.2),
           kp_adjust_(3.4), ki_adjust_(0), kd_adjust_(0.5),
           pid_({0}, {kp_}, {ki_}, {kd_}, {0.01}, {0.1}, {0.5}), bezier_ratio_(3),
-          vel_max_(0.7), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.02)
+          vel_max_(0.7), vel_(vel_max_), acc_(0.6), has_started(false), thresh_adjust_(0.015)
     {
         pnh.param<bool>("debug", debug, false);
         cmd_vel_publisher_ = nh.advertise<TwistMightEnd>("/cmd_vel_line", 3);

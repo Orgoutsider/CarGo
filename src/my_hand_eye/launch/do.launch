@@ -9,8 +9,7 @@
     <arg name="emulation" default="false" />
     <arg name="debug" default="true" />
     <arg name="respawn" default="false" />
-    <arg name="z_turntable" default="11.47052"/>
-    <arg name="mode" default="4"
+    <arg name="mode" default="0"
         doc="opt: 0:default, 
     1:cargo, 
     2:ellipse,
@@ -62,15 +61,18 @@
         <param name="show_detections" type="bool" value="$(arg show_detections)" />
         <param name="given_QR_code" type="bool" value="$(arg given_QR_code)" />
         <param name="white_vmin" type="int" value="120" />
+        <param name="blue_hmin" type="int" value="95" />
+        <param name="blue_hmax" type="int" value="130" />
+        <param name="blue_smin" type="int" value="50" />
+        <param name="blue_vmin" type="int" value="35" />
         <param name="factor" type="int" value="150" />
         <param name="speed_standard_static" type="double" value="0.17" />
         <param name="speed_standard_motion" type="double" value="0.14" />
-        <param name="target_ellipse_theta" type="double" value="-3.832890333" />
+        <param name="target_ellipse_theta" type="double" value="-4.033091446" />
         <param name="fThScoreScore" type="double" value="0.4" />
         <param name="fMinReliability" type="double" value="0.4" />
         <param name="flag" type="bool" value="$(arg flag)" />
         <param name="emulation" type="bool" value="$(arg emulation)" />
-        <param name="z_turntable" type="double" value="$(arg z_turntable)" />
         <param name="debug" type="bool" value="$(arg debug)" />
         <param name="mode" type="int" value="$(arg mode)"/>
     </node>

@@ -18,12 +18,12 @@ namespace motion_controller
         length_car_(0.29), width_car_(0.27), width_road_(0.45), length_field_(2.29), width_field_(2.03),
         y_QR_code_board_(0.82), x_QR_code_board_(0.02),
         y_raw_material_area_(1.69), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
-        x_roughing_area_(1.2), length_from_semi_finishing_area_(1.045),
+        x_roughing_area_(1.2), length_from_semi_finishing_area_(1.055),
         y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_), 
         length_from_ellipse_(0.028),
-        width_from_semi_finishing_area_(0.28), width_from_roughing_area_(0.275), y_palletize_(1.143279),
+        width_from_semi_finishing_area_(0.285), width_from_roughing_area_(0.275), y_palletize_(1.143279),
         width_palletize_(0.28), length_from_parking_area_(0.45),
-        width_from_parking_area_(0.09), length_parking_area_(0.292), x_road_up_(0.08), x_parking_area_(0.58),
+        width_from_parking_area_(0.09), length_parking_area_(0.29), x_road_up_(0.08), x_parking_area_(0.58),
         clockwise_(false)
   {
   }

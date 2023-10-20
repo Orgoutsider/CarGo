@@ -20,6 +20,10 @@ namespace my_hand_eye
         bool can_catch_;               // 用于颜色追踪，物料是否可以抓取
         bool catched_;                 // 是否已抓取过
         int white_vmin_;               // 用于滤除白色
+        int blue_hmin_;
+        int blue_hmax_;
+        int blue_smin_;
+        int blue_vmin_;
         int factor_;                   // gramma参数，暗部增强取0-99，亮部增强取101-300。取100为原图
         float fThScoreScore_;
         float fMinReliability_;

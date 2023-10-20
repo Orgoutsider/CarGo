@@ -16,7 +16,6 @@ def cb(channel):
         return
        
     rospy.loginfo("1 %f", rospy.Time.now().to_sec())
-    client = rospy.ServiceProxy("Go", Go)
     rospy.loginfo("2 %f", rospy.Time.now().to_sec())
     req = GoRequest()
     client.call(req)
@@ -37,6 +36,7 @@ def setup():
 if __name__ == '__main__':
     rospy.init_node("touch")
     setup()
+    client = rospy.ServiceProxy("Go", Go)
     # rate = rospy.Rate(1)
     while not rospy.is_shutdown():
         time.sleep(1)

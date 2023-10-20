@@ -209,6 +209,14 @@ namespace my_hand_eye
         }
     }
 
+    void SquareMethod::init_hsv(int h_min, int h_max, int s_min, int v_min)
+    {
+        h_min_ = h_min;
+        h_max_ = h_max;
+        s_min_ = s_min;
+        v_min_ = v_min;
+    }
+
     cv::Mat SquareMethod::square_find(const cv::Mat &img)
     {
         using namespace cv;
@@ -258,12 +266,17 @@ namespace my_hand_eye
     cv::Mat SquareMethod::square_find_color(const cv::Mat &img)
     {
         // Low of S can be adjusted.High of S and V must be set to 255.
-        cv::Scalar low_Area_Color = cv::Scalar(95, 46, 20);
-        cv::Scalar high_Area_Color = cv::Scalar(130, 255, 255);
+        // cv::Scalar low_Area_Color = cv::Scalar(95, 46, 20);
+        // cv::Scalar high_Area_Color = cv::Scalar(130, 255, 255);
+        cv::Scalar low_Area_Color = cv::Scalar(h_min_, s_min_, v_min_);
+        cv::Scalar high_Area_Color = cv::Scalar(h_max_, 255, 255);
         cv::Mat srcHSV;
         cv::cvtColor(img, srcHSV, cv::COLOR_BGR2HSV);
         cv::Mat StopArea;
         cv::inRange(srcHSV, low_Area_Color, high_Area_Color, StopArea);
+        cv::Mat kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(-1, -1));
+        cv::morphologyEx(StopArea, StopArea, cv::MORPH_OPEN, kernel, cv::Point(-1, -1), 2);  // 开操作去除噪点
+        cv::morphologyEx(StopArea, StopArea, cv::MORPH_CLOSE, kernel, cv::Point(-1, -1), 2); // 闭操作去除缺口
         // cv::imshow("StopArea", StopArea);
         // cv::waitKey(1);
         return StopArea;
