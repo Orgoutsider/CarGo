@@ -9,6 +9,12 @@
     <arg name="emulation" default="false" />
     <arg name="debug" default="true" />
     <arg name="respawn" default="false" />
+    <arg name="mode" default="0"
+        doc="opt: 0:default, 
+    1:cargo, 
+    2:ellipse,
+    3:border,
+    4:parking_area" />
 
     <arg if="$(arg respawn)" name="bond" value="" />
     <arg unless="$(arg respawn)" name="bond" value="--no-bond" />
@@ -36,8 +42,8 @@
         </include>
 
         <include file="$(find my_hand_eye)/launch/include/zbar_ros.launch">
-            <arg name="nodelet_manager" value="$(arg nodelet_manager)"/>
-            <arg name="respawn" value="$(arg respawn)"/>
+            <arg name="nodelet_manager" value="$(arg nodelet_manager)" />
+            <arg name="respawn" value="$(arg respawn)" />
         </include>
 
         <include file="$(find my_hand_eye)/launch/front_camera.launch">
@@ -64,5 +70,6 @@
         <param name="flag" type="bool" value="$(arg flag)" />
         <param name="emulation" type="bool" value="$(arg emulation)" />
         <param name="debug" type="bool" value="$(arg debug)" />
+        <param name="mode" type="int" value="$(arg mode)"/>
     </node>
 </launch>
