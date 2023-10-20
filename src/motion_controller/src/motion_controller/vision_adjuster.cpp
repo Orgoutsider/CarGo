@@ -187,7 +187,10 @@ namespace motion_controller
     {
         geometry_msgs::Pose2D pose;
         ros::Time stamp;
-        if (!_get_pose_now(pose, stamp) || (pose.theta == pose_last_.theta && pose.x == pose_last_.x && pose.y == pose_last_.y))
+        if (!_get_pose_now(pose, stamp) ||
+            (abs(pose.theta - pose_last_.theta) < 0.001 &&
+             abs(pose.x - pose_last_.x) < 0.0005 &&
+             abs(pose.y == pose_last_.y) < 0.0005))
             return;
         pose_last_ = pose;
         std::vector<double> control;
@@ -198,8 +201,8 @@ namespace motion_controller
             if (pid_.update({pose.theta}, stamp, control, success))
             {
                 // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+                                     << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.angular.z = control[0];
@@ -211,8 +214,8 @@ namespace motion_controller
             if (pid_.update({pose.x, pose.theta}, stamp, control, success))
             {
                 // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+                                     << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = control[0];
@@ -225,8 +228,8 @@ namespace motion_controller
             if (pid_.update({pose.x, pose.y, pose.theta}, stamp, control, success))
             {
                 // if (debug_)
-                    ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
-                                         << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
+                ROS_INFO_STREAM("x:" << pose.x << " y:" << pose.y << " theta:" << pose.theta
+                                     << " changing:" << changing_ << " stamp:" << stamp.toSec() - ((int)stamp.toSec() / 10 * 10));
                 TwistMightEnd tme;
                 tme.end = false;
                 tme.velocity.linear.x = control[0];

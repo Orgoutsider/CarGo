@@ -22,7 +22,7 @@
         <arg name="flag" value="false" />
         <arg name="given_QR_code" value="false" />
         <arg name="emulation" value="false" />
-        <arg name="debug" value="false" />
+        <arg name="debug" value="true" />
     </include>
     <!-- 开启视觉pid节点 -->
     <include file="$(find motion_controller)/launch/nodes/adjuster.launch">
