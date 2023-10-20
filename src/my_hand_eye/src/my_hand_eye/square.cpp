@@ -258,8 +258,8 @@ namespace my_hand_eye
     cv::Mat SquareMethod::square_find_color(const cv::Mat &img)
     {
         // Low of S can be adjusted.High of S and V must be set to 255.
-        cv::Scalar low_Area_Color = cv::Scalar(70, 20, 10);
-        cv::Scalar high_Area_Color = cv::Scalar(145, 255, 255);
+        cv::Scalar low_Area_Color = cv::Scalar(95, 20, 10);
+        cv::Scalar high_Area_Color = cv::Scalar(130, 255, 255);
         cv::Mat srcHSV;
         cv::cvtColor(img, srcHSV, cv::COLOR_BGR2HSV);
         cv::Mat StopArea;
