@@ -143,6 +143,7 @@ namespace my_hand_eye
 
 		case debug_parking_area:
 			arm_controller_.log_parking_area(image_rect, debug_image);
+			break;
 
 		default:
 			ROS_WARN("Invalid mode %d", mode_);

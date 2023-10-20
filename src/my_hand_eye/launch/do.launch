@@ -9,7 +9,7 @@
     <arg name="emulation" default="false" />
     <arg name="debug" default="true" />
     <arg name="respawn" default="false" />
-    <arg name="mode" default="0"
+    <arg name="mode" default="4"
         doc="opt: 0:default, 
     1:cargo, 
     2:ellipse,

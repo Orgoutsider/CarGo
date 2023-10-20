@@ -95,7 +95,7 @@ namespace my_hand_eye
                 lenth_temp2 = lenth[i];
             }
         }
-        if (lenth_temp2 * 0.2 < lenth_temp)
+        if (lenth_temp2 * 0.4 < lenth_temp)
             return;
         int front_side = (lenth_flag - 1) < 0 ? (approxSize - 1) : (lenth_flag - 1); // 前一条边的序号
         int back_side = (lenth_flag + 1) > (approxSize - 1) ? 0 : (lenth_flag + 1);  // 后一条边的序号
