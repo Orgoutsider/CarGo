@@ -124,11 +124,11 @@ class Yolov5Detector:
         self.line_thickness = rospy.get_param("~line_thickness", 3)
         PLUGIN_LIBRARY = rospy.get_param(
             "~plugin_library",
-            "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/libmyplugins.so")
+            "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/libmyplugins_all_new.so")
         ctypes.CDLL(PLUGIN_LIBRARY)
         engine_file_path = rospy.get_param(
             "~engine_file_path",
-            "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/best.engine")
+            "/home/nano/car/car/car_ws/src/yolov5_ros/src/yolov5_deepsort_tensorrt/weights/best_all_new.engine")
         self.detector = Detector(engine_file_path)
 
         # Initialize image publisher

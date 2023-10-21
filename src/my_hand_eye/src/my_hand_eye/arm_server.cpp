@@ -468,14 +468,23 @@ namespace my_hand_eye
 							   : arm_controller_.find_ellipse(image_rect, msg, debug_image, true);
 				if (fin)
 				{
-					arm_controller_.put(which_color(), pal, false);
-					next_task();
-					arm_controller_.put(which_color(), pal, false);
-					next_task();
-					arm_controller_.put(which_color(), pal, arm_goal_.route == arm_goal_.route_semi_finishing_area);
-					next_task();
-					if (arm_goal_.route == arm_goal_.route_roughing_area)
+					if (arm_goal_.route == arm_goal_.route_semi_finishing_area)
 					{
+						arm_controller_.catch_after_putting(which_color(), false);
+						next_task();
+						arm_controller_.catch_after_putting(which_color(), false);
+						next_task();
+						arm_controller_.catch_after_putting(which_color(), true);
+						next_task();
+					}
+					else if (arm_goal_.route == arm_goal_.route_roughing_area)
+					{
+						arm_controller_.put(which_color(), false, false);
+						next_task();
+						arm_controller_.put(which_color(), false, false);
+						next_task();
+						arm_controller_.put(which_color(), false, false);
+						next_task();
 						arm_controller_.ready_after_putting();
 						arm_controller_.catch_after_putting(which_color(), false);
 						next_task();

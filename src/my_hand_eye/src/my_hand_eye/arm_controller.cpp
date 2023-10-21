@@ -1808,8 +1808,8 @@ namespace my_hand_eye
                 Action ellipse = Action(0, 19, 0).front2left().arm2footprint();
                 target_pose.pose[target_pose.target_ellipse].x = ellipse.x;
                 target_pose.pose[target_pose.target_ellipse].y = ellipse.y;
-                target_pose.tolerance[target_pose.target_ellipse].x = 0.015;
-                target_pose.tolerance[target_pose.target_ellipse].y = 0.015;
+                // target_pose.tolerance[target_pose.target_ellipse].x = 0.015;
+                // target_pose.tolerance[target_pose.target_ellipse].y = 0.015;
                 target_theta = target_ellipse_theta;
                 target_ellipse_theta = Angle(-4.970321053).rad();
                 rst = true;

@@ -13,7 +13,7 @@ namespace my_hand_eye
                                                                        sm_st_ptr_(sm_st_ptr), sc_ptr_(sc_ptr),
                                                                        cargo_table_(sm_st_ptr),
                                                                        Id{0, 1, 2, 3, 4, 5}
-                                                                    //    Position_front_(1270),
+    //    Position_front_(1270),
     {
         memset(Position, 0, sizeof(Position));
         memset(Position_now, 0, sizeof(Position_now));
@@ -349,8 +349,11 @@ namespace my_hand_eye
         if (valid)
         {
             sc_ptr_->WritePos(1, (u16)Position[1], 0, Speed[1]);
+            u16 Position_tmp = Position[5];
             if (z < 7 && cat)
             {
+                Position[5] = ARM_JOINT5_POS_WHEN_OPEN;
+                sc_ptr_->WritePos(5, (u16)Position[5], 0, Speed[5]);
                 Position[3] -= 450; // 防止碰到物料
             }
             // else if (z < 7 && y > 4.2 && !cat)
@@ -358,17 +361,25 @@ namespace my_hand_eye
             //     Position[3] -= 30; // 防止悬空抖动
             // }
             sm_st_ptr_->SyncWritePosEx(Id + 3, 2, Position + 3, Speed + 3, ACC + 3);
-            u8 ID1[] = {1, 3, 4};
-            wait_until_static(ID1, 3);
             if (z < 7 && cat)
+            {
+                u8 ID1[] = {1, 3, 4, 5};
+                wait_until_static(ID1, 4);
                 ros::Duration(0.2).sleep();
+                Position[5] = Position_tmp;
+            }
+            else
+            {
+                u8 ID1[] = {1, 3, 4};
+                wait_until_static(ID1, 3);
+            }
 
             sm_st_ptr_->WritePosEx(2, Position[2], Speed[2], ACC[2]);
             u8 ID2[] = {2};
             wait_until_static(ID2, 1);
             if (z < 7 && cat)
             {
-                Position[3] += 390;
+                Position[3] += 450;
                 sm_st_ptr_->WritePosEx(3, Position[3], Speed[3], ACC[3]);
                 u8 ID[] = {3};
                 wait_until_static(ID, 1);

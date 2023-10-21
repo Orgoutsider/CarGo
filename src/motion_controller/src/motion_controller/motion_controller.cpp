@@ -350,13 +350,13 @@ namespace motion_controller
                 //     return;
                 // }
                 // }
-                else if (goal.route == route_border && last_route == route_raw_material_area)
+                else if (goal.route == route_border && (last_route == radius_raw_material_area_))
                 {
                     // 等车停
                     // boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                     follower_.veer(true, false);
                     get_position();
-                    if (loop_ == 0)
+                    if (loop_ == 1)
                     {
                         follower_.start(true, theta_,
                                         length_route(follower_.debug, config_.startup, 1),
@@ -374,8 +374,6 @@ namespace motion_controller
                         // ROS_INFO_STREAM("Move theta" << goal.pose.theta);
                         // ac_move_.sendGoalAndWait(goal, ros::Duration(15), ros::Duration(0.1));
                     }
-                    else if (loop_ == 1)
-                        follower_.start(true, theta_, length_route(follower_.debug, config_.startup, 1));
                     doing(follower_.mtx);
                     finished(follower_.mtx);
                     return;
