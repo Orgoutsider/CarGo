@@ -335,6 +335,7 @@ namespace my_hand_eye
 				{
 					first = true;
 					finish_ = true;
+					arm_controller_.ready(false);
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
 					arm_controller_.finish_catching();
 					arm_goal_.route = arm_goal_.route_rest;
@@ -367,13 +368,13 @@ namespace my_hand_eye
 		if (!finish_adjusting_)
 		{
 			msg.end = false;
-			if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
+			if (arm_goal_.route == arm_goal_.route_roughing_area)
 			{
 				if (!debug_ && arm_goal_.route == arm_goal_.route_semi_finishing_area)
 					ROS_WARN_ONCE("If you want to palletize, set loop to 1.");
 				valid = arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
 			}
-			else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+			else if (arm_goal_.route == arm_goal_.route_semi_finishing_area)
 				valid = arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
 			else
 			{
@@ -412,20 +413,29 @@ namespace my_hand_eye
 					feedback.pme = msg;
 					as_.publishFeedback(feedback);
 					// 结束该函数
-					if (arm_goal_.loop == 0 || arm_goal_.route == arm_goal_.route_roughing_area)
+					if (arm_goal_.route == arm_goal_.route_roughing_area)
 						arm_controller_.find_ellipse(image_rect, msg, debug_image, false);
-					else if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+					else if (arm_goal_.route == arm_goal_.route_semi_finishing_area)
 						arm_controller_.find_cargo(image_rect, msg, debug_image, true, false);
 					arm_controller_.theta_turn = 0;
 					bool pal = (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area);
-					arm_controller_.put(which_color(), pal, false);
-					next_task();
-					arm_controller_.put(which_color(), pal, false);
-					next_task();
-					arm_controller_.put(which_color(), pal, arm_goal_.route == arm_goal_.route_semi_finishing_area);
-					next_task();
-					if (arm_goal_.route == arm_goal_.route_roughing_area)
+					if (arm_goal_.route == arm_goal_.route_semi_finishing_area)
 					{
+						arm_controller_.catch_after_putting(which_color(), false);
+						next_task();
+						arm_controller_.catch_after_putting(which_color(), false);
+						next_task();
+						arm_controller_.catch_after_putting(which_color(), true);
+						next_task();
+					}
+					else if (arm_goal_.route == arm_goal_.route_roughing_area)
+					{
+						arm_controller_.put(which_color(), false, false);
+						next_task();
+						arm_controller_.put(which_color(), false, false);
+						next_task();
+						arm_controller_.put(which_color(), false, false);
+						next_task();
 						arm_controller_.ready_after_putting();
 						arm_controller_.catch_after_putting(which_color(), false);
 						next_task();

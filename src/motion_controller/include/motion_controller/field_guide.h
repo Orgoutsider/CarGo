@@ -11,7 +11,7 @@ namespace motion_controller
     class FieldGuide
     {
     private:
-        std::array<int, 14> route_; // 赛道所有场景数组
+        std::array<int, 13> route_; // 赛道所有场景数组
         bool doing_;                // 是否正在运行机械臂任务
         int where_;                 // route索引
 

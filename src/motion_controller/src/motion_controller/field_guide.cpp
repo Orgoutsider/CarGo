@@ -7,11 +7,9 @@
 namespace motion_controller
 {
   FieldGuide::FieldGuide()
-      : route_({route_QR_code_board, route_raw_material_area, route_border,
-                route_roughing_area, route_border, route_semi_finishing_area,
-                route_border, route_raw_material_area, route_border,
-                route_roughing_area, route_border, route_semi_finishing_area, route_border,
-                route_parking_area}),
+      : route_({route_border, route_semi_finishing_area, route_border,
+                route_roughing_area, route_raw_material_area, route_border, route_border, route_semi_finishing_area,
+                route_border, route_roughing_area, route_raw_material_area, route_border, route_parking_area}),
         dr_route_(route_rest),
         doing_(false), where_(0),
         x_(0), y_(0), theta_(0), loop_(0), // length_field_(2.26)
@@ -19,12 +17,12 @@ namespace motion_controller
         y_QR_code_board_(0.82), x_QR_code_board_(0.02),
         y_raw_material_area_(1.69), angle_raw_material_area_(0.715584993), radius_raw_material_area_(0.15),
         x_roughing_area_(1.2), length_from_semi_finishing_area_(1.055),
-        y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_), 
+        y_semi_finishing_area_(length_field_ - length_from_semi_finishing_area_),
         length_from_ellipse_(0.028),
         width_from_semi_finishing_area_(0.285), width_from_roughing_area_(0.275), y_palletize_(1.143279),
         width_palletize_(0.28), length_from_parking_area_(0.45),
         width_from_parking_area_(0.09), length_parking_area_(0.29), x_road_up_(0.08), x_parking_area_(0.58),
-        clockwise_(false)
+        clockwise_(true)
   {
   }
 
@@ -51,11 +49,11 @@ namespace motion_controller
     boost::lock_guard<boost::recursive_mutex> lk(mtx);
     if (where_ + 1 < route_.size())
     {
-      if (loop_ == 0 && !clockwise_ && where_is_car(false) == route_semi_finishing_area)
-        clockwise_ = true;
-      else if (loop_ == 1 && clockwise_ && where_is_car(false) == route_raw_material_area)
+      if (loop_ == 0 && clockwise_ && where_is_car(false) == route_raw_material_area)
         clockwise_ = false;
-      if (loop_ == 0 && where_is_car(false) == route_semi_finishing_area)
+      // else if (loop_ == 0 && !clockwise_ && where_is_car(false) == route_semi_finishing_area)
+      //   clockwise_ = true;
+      if (loop_ == 0 && where_is_car(false) == route_raw_material_area)
         loop_++;
       where_++;
       doing_ = false;
@@ -77,21 +75,21 @@ namespace motion_controller
       return length_route(debug, startup) < 0.1 && -x_ < x_road_up_ + width_road_;
 
     case route_raw_material_area:
-      if (loop_ == 0)
-        return length_route(debug, startup) < 0.1 &&
-               -x_ < x_road_up_ + width_road_;
-      else if (loop_ == 1)
-        return -length_route(debug, startup) < 0.1 &&
-               y_ > length_field_ - width_road_;
-      else
-        ROS_ERROR("Invalid loop!");
-      return false;
+      // if (loop_ == 0)
+      //   return length_route(debug, startup) < 0.1 &&
+      //          -x_ < x_road_up_ + width_road_;
+      // else if (loop_ == 1)
+      return length_route(debug, startup) * (clockwise_ ? -1 : 1) < 0.1 &&
+             y_ > length_field_ - width_road_;
+      // else
+      //   ROS_ERROR("Invalid loop!");
+      // return false;
 
     case route_roughing_area:
-      return length_route(debug, startup) < 0.1 && y_ > length_field_ - width_road_;
+      return length_route(debug, startup) * (clockwise_ ? -1 : 1) < 0.1 && y_ > length_field_ - width_road_;
 
     case route_semi_finishing_area:
-      return length_route(debug, startup) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_;
+      return length_route(debug, startup) * (clockwise_ ? -1 : 1) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_;
 
     case route_parking_area:
       return length_route(debug, startup) < 0.1 && y_ < width_road_;
@@ -269,22 +267,22 @@ namespace motion_controller
       return y_QR_code_board_ - y_;
 
     case route_raw_material_area:
-      if (loop_ == 0)
-        return y_raw_material_area_ - y_ -
-               (radius_raw_material_area_ + width_road_ / 2 +
-                length_from_road(debug, startup, offset)) *
-                   tan(angle_raw_material_area_);
-      else if (loop_ == 1)
-        return x_road_up_ + width_road_ / 2 - (-x_);
-      else
-        ROS_ERROR("Invalid loop!");
-      return false;
+      // if (loop_ == 0)
+      //   return y_raw_material_area_ - y_ -
+      //          (radius_raw_material_area_ + width_road_ / 2 +
+      //           length_from_road(debug, startup, offset)) *
+      //              tan(angle_raw_material_area_);
+      // else if (loop_ == 1)
+      return x_road_up_ + width_road_ / 2 - (-x_);
+      // else
+      //   ROS_ERROR("Invalid loop!");
+      // return false;
 
     case route_roughing_area:
       return x_roughing_area_ - (-x_);
 
     case route_semi_finishing_area:
-      return -(y_semi_finishing_area_ - y_);
+      return -((loop_ == 0 ? y_palletize_ : y_semi_finishing_area_) - y_);
 
     case route_parking_area:
       return -(x_parking_area_ - (-x_));
@@ -293,10 +291,10 @@ namespace motion_controller
       switch (where_is_car(debug, startup, offset + 1))
       {
       case route_roughing_area:
-        return length_field_ - width_road_ / 2 - y_;
+        return x_road_up_ + width_field_ - width_road_ / 2 - (-x_);
 
       case route_semi_finishing_area:
-        return x_road_up_ + width_field_ - width_road_ / 2 - (-x_);
+        return -(x_road_up_ + width_field_ - width_road_ / 2 - (-x_));
 
       case route_raw_material_area:
         return -(length_field_ - width_road_ / 2 - y_);

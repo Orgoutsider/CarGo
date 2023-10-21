@@ -1179,10 +1179,10 @@ namespace my_hand_eye
                 finish = false;
                 return false;
             }
-            bool valid = ps_.go_to_and_wait(x, y, z_turntable, true);
+            bool valid = ps_.go_to_table(true, color, left);
             if (valid)
             {
-                ps_.go_to_table(false, color, left);
+                ps_.go_to_and_wait(x, y, z_turntable, false);
                 // ps_.reset();
             }
             else
