@@ -75,5 +75,6 @@
         <param name="emulation" type="bool" value="$(arg emulation)" />
         <param name="debug" type="bool" value="$(arg debug)" />
         <param name="mode" type="int" value="$(arg mode)"/>
+        <param name="z_turntable" type="int" value="11.47052"/>
     </node>
 </launch>
