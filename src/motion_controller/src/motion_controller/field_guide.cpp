@@ -51,8 +51,8 @@ namespace motion_controller
     {
       if (loop_ == 0 && clockwise_ && where_is_car(false) == route_raw_material_area)
         clockwise_ = false;
-      // else if (loop_ == 0 && !clockwise_ && where_is_car(false) == route_semi_finishing_area)
-      //   clockwise_ = true;
+      else if (loop_ == 1 && !clockwise_ && where_is_car(false) == route_semi_finishing_area)
+        clockwise_ == true;
       if (loop_ == 0 && where_is_car(false) == route_raw_material_area)
         loop_++;
       where_++;
@@ -92,7 +92,7 @@ namespace motion_controller
       return length_route(debug, startup) * (clockwise_ ? -1 : 1) < 0.1 && -x_ > x_road_up_ + width_field_ - width_road_;
 
     case route_parking_area:
-      return length_route(debug, startup) < 0.1 && y_ < width_road_;
+      return length_route(debug, startup) * (clockwise_ ? -1 : 1) < 0.1 && y_ < width_road_;
 
     case route_border:
       return length_route(debug, startup) * (clockwise_ ? -1 : 1) < 0.1;
@@ -291,16 +291,19 @@ namespace motion_controller
       switch (where_is_car(debug, startup, offset + 1))
       {
       case route_roughing_area:
-        return x_road_up_ + width_field_ - width_road_ / 2 - (-x_);
+        return -(length_field_ - width_road_ / 2 - y_);
 
       case route_semi_finishing_area:
-        return -(x_road_up_ + width_field_ - width_road_ / 2 - (-x_));
+        return loop_ == 0 ? -(x_road_up_ + width_field_ - width_road_ / 2 - (-x_)) : (x_road_up_ + width_field_ - width_road_ / 2 - (-x_));
 
       case route_raw_material_area:
-        return -(length_field_ - width_road_ / 2 - y_);
+        return width_road_ / 2 - y_;
 
       case route_parking_area:
         return -(width_road_ / 2 - y_);
+
+      case route_border:
+        return length_field_ - width_road_ / 2 - y_;
 
       default:
         ROS_WARN("Attempted to use 'length_route' in route %d.",

@@ -67,8 +67,8 @@ namespace my_hand_eye
 		{
 			if (!as_.isActive())
 				return;
-			as_.setSucceeded(ArmResult(), "Arm finish tasks");
-			arm_goal_.route = arm_goal_.route_rest;
+			// as_.setSucceeded(ArmResult(), "Arm finish tasks");
+			// arm_goal_.route = arm_goal_.route_rest;
 		}
 		tasks_ = *task;
 		ROS_INFO_STREAM(

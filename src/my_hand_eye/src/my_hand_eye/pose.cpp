@@ -449,7 +449,7 @@ namespace my_hand_eye
 
     bool Pos::go_to_table(bool cat, Color color, bool left)
     {
-        const double TIGHTNESS = 0.56; // 在转盘进行抓取放置时略微松手
+        const double TIGHTNESS = 0.3; // 在转盘进行抓取放置时略微松手
         bool valid = refresh_xyz();
         bool flag = (this->z < 11);
         this->x = left ? action_right.x : action_back.x;
