@@ -603,7 +603,8 @@ namespace motion_controller
                     bool flag = false;
                     if (feedback->pme.pose.theta != feedback->pme.not_change &&
                         abs(my_hand_eye::Angle::degree(feedback->pme.pose.theta -
-                                                       angle_from_road(follower_.debug, config_.startup))) < 1)
+                                                       angle_from_road(follower_.debug, config_.startup))) < 1 &&
+                        !(where_is_car(follower_.debug, config_.startup) == route_semi_finishing_area && loop_ == 1))
                     {
                         flag = true;
                         get_position();
@@ -632,31 +633,13 @@ namespace motion_controller
                         }
                         ROS_INFO("After setting: x: %lf y:%lf theta:%lf", x_, y_, theta_);
                     }
-                    if (loop_ == 0)
-                    {
-                        ac_move_.waitForServer();
-                        MoveGoal goal;
-                        get_position();
-                        goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
-                        goal.precision = true;
-                        ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                        ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
-                    }
-                    else if (loop_ == 1)
-                    {
-                        ac_move_.waitForServer();
-                        MoveGoal goal;
-                        get_position();
-                        goal.pose.theta = flag ? feedback->pme.pose.theta : angle_from_road(follower_.debug, config_.startup);
-                        goal.precision = true;
-                        ROS_INFO_STREAM("Move theta " << goal.pose.theta);
-                        ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
-                    }
-                    else
-                    {
-                        ROS_ERROR("Invalid loop!");
-                        return;
-                    }
+                    ac_move_.waitForServer();
+                    MoveGoal goal;
+                    get_position();
+                    goal.pose.theta = angle_from_road(follower_.debug, config_.startup);
+                    goal.precision = true;
+                    ROS_INFO_STREAM("Move theta " << goal.pose.theta);
+                    ac_move_.sendGoalAndWait(goal, ros::Duration(8), ros::Duration(0.1));
                     // ac_move_.waitForServer();
                     // MoveGoal goal;
                     // get_position();

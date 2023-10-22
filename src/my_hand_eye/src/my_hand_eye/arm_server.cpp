@@ -362,6 +362,12 @@ namespace my_hand_eye
 			finish_ = false;
 			ROS_INFO("Start to operate ellipse...");
 			err_time = image_rect->header.stamp;
+			if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+			{
+				arm_controller_.z_ellipse += 4.5;
+			}
+			else if (arm_goal_.loop == 0 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+				arm_controller_.default_roi_ = arm_controller_.ellipse_roi_;
 		}
 		bool valid = true;
 		Pose2DMightEnd msg;
@@ -421,11 +427,11 @@ namespace my_hand_eye
 					bool pal = (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area);
 					if (arm_goal_.route == arm_goal_.route_semi_finishing_area)
 					{
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, pal);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, pal);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), true);
+						arm_controller_.catch_after_putting(which_color(), true, pal);
 						next_task();
 					}
 					else if (arm_goal_.route == arm_goal_.route_roughing_area)
@@ -437,15 +443,19 @@ namespace my_hand_eye
 						arm_controller_.put(which_color(), false, false);
 						next_task();
 						arm_controller_.ready_after_putting();
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, false);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, false);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), true);
+						arm_controller_.catch_after_putting(which_color(), true, false);
 						next_task();
 					}
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 						arm_controller_.ready(arm_goal_.left_ready);
+					if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+						arm_controller_.z_ellipse -= 4.5;
+					else if (arm_goal_.loop == 0 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+						arm_controller_.default_roi_ = cv::Rect(480, 0, 960, 1080);
 					arm_goal_.route = arm_goal_.route_rest;
 					as_.setAborted(ArmResult(), "Arm finish tasks");
 					ROS_WARN("Failed to operate ellipse.");
@@ -470,11 +480,11 @@ namespace my_hand_eye
 				{
 					if (arm_goal_.route == arm_goal_.route_semi_finishing_area)
 					{
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, pal);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, pal);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), true);
+						arm_controller_.catch_after_putting(which_color(), true, pal);
 						next_task();
 					}
 					else if (arm_goal_.route == arm_goal_.route_roughing_area)
@@ -486,17 +496,21 @@ namespace my_hand_eye
 						arm_controller_.put(which_color(), false, false);
 						next_task();
 						arm_controller_.ready_after_putting();
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, false);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), false);
+						arm_controller_.catch_after_putting(which_color(), false, false);
 						next_task();
-						arm_controller_.catch_after_putting(which_color(), true);
+						arm_controller_.catch_after_putting(which_color(), true, false);
 						next_task();
 					}
 					as_.setSucceeded(ArmResult(), "Arm finish tasks");
 					if (arm_goal_.route == arm_goal_.route_roughing_area)
 						arm_controller_.ready(arm_goal_.left_ready);
 					finish_ = true;
+					if (arm_goal_.loop == 1 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+						arm_controller_.z_ellipse -= 4.5;
+					else if (arm_goal_.loop == 0 && arm_goal_.route == arm_goal_.route_semi_finishing_area)
+						arm_controller_.default_roi_ = cv::Rect(480, 0, 960, 1080);
 					arm_goal_.route = arm_goal_.route_rest;
 					ROS_INFO("Finish operating ellipse...");
 				}

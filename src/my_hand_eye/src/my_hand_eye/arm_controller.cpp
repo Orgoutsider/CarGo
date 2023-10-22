@@ -1667,7 +1667,7 @@ namespace my_hand_eye
         return valid;
     }
 
-    bool ArmController::catch_after_putting(const Color color, bool final)
+    bool ArmController::catch_after_putting(const Color color, bool final, bool two)
     {
         double err_x, err_y, err_theta;
         error_position(color, false, err_x, err_y, err_theta);
@@ -1675,7 +1675,7 @@ namespace my_hand_eye
         {
             clear(true, true, true, true);
         }
-        bool valid = ps_.put(color_map_[color], true, err_x, err_y, err_theta, false) &&
+        bool valid = ps_.put(color_map_[color], true, err_x, err_y, err_theta, two) &&
                      ps_.go_to_table(false, color, true);
         // if (!final)
         //     ps_.reset(true);
@@ -1797,6 +1797,7 @@ namespace my_hand_eye
         static geometry_msgs::Pose2D tolerance;
         static double target_theta;
         const int MAX = 5; // 读取5次求平均位姿
+        static int cnt = 0;
         if (!msg.end && last_finish && !store)
         {
             ps_.reset(pose);

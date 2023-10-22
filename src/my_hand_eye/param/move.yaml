@@ -35,13 +35,13 @@ loop0_enlarge: [1.01, 0.965, 0.0]
 
 # 以下码垛
 # palletize1_action: [-35.1264, -28.1984, 10.2079]
-palletize1_action: [-36.2864, -28.1484, 10.2079]
+palletize1_action: [-35.2588, -27.5071, 7.88369]
 
-# palletize2_action: [-36.4789, -13.0014, 10.2079]
-palletize2_action: [-36.8089, -13.2614, 10.2079]
+# palletize2_action: [-35.7833, -12.1839, 3.38369]
+palletize2_action: [-35.7833, -12.1839, 7.88369]
 
-# palletize3_action: [-37.0729, 2.93343, 10.2079]
-palletize3_action: [-36.8329, 2.93343, 10.2079]
+# palletize3_action: [-35.8488, 3.8504, 3.38369]
+palletize3_action: [-35.8488, 3.6404, 7.88369]
 
 loop1_enlarge: [1.008, 0.935, 0.0]
 

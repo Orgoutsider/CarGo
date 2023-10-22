@@ -24,7 +24,7 @@ namespace my_hand_eye
         int blue_hmax_;
         int blue_smin_;
         int blue_vmin_;
-        int factor_;                   // gramma参数，暗部增强取0-99，亮部增强取101-300。取100为原图
+        int factor_; // gramma参数，暗部增强取0-99，亮部增强取101-300。取100为原图
         float fThScoreScore_;
         float fMinReliability_;
         Pos ps_;
@@ -38,9 +38,7 @@ namespace my_hand_eye
         ros::NodeHandle *nh_;             // 节点句柄
         ros::ServiceClient cargo_client_; // yolov5+颜色识别
         ros::ServiceClient plot_client_;  // 运动范围绘制
-        cv::Rect default_roi_;            // 默认截图矩形
         cv::Rect border_roi_;             // 边界截图矩形
-        cv::Rect ellipse_roi_;            // 椭圆截图矩形
         cv::Rect parking_area_roi_;       // 停车区截图矩形
         cv_bridge::CvImage cv_image_;
         std::vector<double> cargo_x_;
@@ -99,6 +97,8 @@ namespace my_hand_eye
         bool cargo_is_static(double speed, bool reset, double x, double y);
 
     public:
+        cv::Rect default_roi_; // 默认截图矩形
+        cv::Rect ellipse_roi_; // 椭圆截图矩形
         ArmController();
         ArmController(ros::NodeHandle &nh, ros::NodeHandle &pnh);
         ~ArmController();
@@ -106,7 +106,7 @@ namespace my_hand_eye
         double theta_turn;           // 车体偏转的角度
         double target_ellipse_theta; // 椭圆区域目标角度
         double z_turntable;
-        const double z_ellipse;
+        double z_ellipse;
         // const double z_palletize;
         double z_parking_area;
         int threshold;
@@ -137,7 +137,7 @@ namespace my_hand_eye
         bool put(const Color color, bool pal, bool final);
         void ready_after_putting();
         // 固定位置抓取
-        bool catch_after_putting(const Color color, bool final);
+        bool catch_after_putting(const Color color, bool final, bool two);
         // 输出边界线位置
         bool log_border(const sensor_msgs::ImageConstPtr &image_rect, sensor_msgs::ImagePtr &debug_image);
         // 输出停车区位置
