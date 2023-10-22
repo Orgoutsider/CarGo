@@ -112,9 +112,7 @@ namespace motion_controller
       return -(x_road_up_ + width_road_ - x_QR_code_board_ - length_car_ / 2 - (-x_));
 
     case route_raw_material_area:
-      return (!doing_ && loop_ == 1)
-                 ? length_field_ - width_road_ / 2 - y_
-                 : -(x_road_up_ + width_road_ / 2 + x_QR_code_board_ - (-x_));
+      return length_field_ - width_road_ / 2 - y_;
 
     case route_roughing_area:
       return length_field_ - width_road_ / 2 - y_;

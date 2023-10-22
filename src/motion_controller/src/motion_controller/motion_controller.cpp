@@ -310,10 +310,10 @@ namespace motion_controller
                     ac_move_.waitForServer();
                     // 等车停
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
-                    // get_position();
-                    // MoveGoal goal1;
-                    // goal1.pose.y = length_from_road(follower_.debug, config_.startup);
-                    // ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
+                    get_position();
+                    MoveGoal goal1;
+                    goal1.pose.y = length_from_road(follower_.debug, config_.startup);
+                    ac_move_.sendGoalAndWait(goal1, ros::Duration(15), ros::Duration(0.1));
                     // get_position();
                     // MoveGoal goal2;
                     // goal2.pose.x = length_border();
